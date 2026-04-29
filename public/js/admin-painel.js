@@ -1,7 +1,10 @@
 let adminInfo = null;
 let chamadoAtual = null;
+let abaAtiva = 'abertos';
 
-const PRIORIDADES = ['urgente', 'alta', 'media', 'baixa'];
+const STATUS_ABERTOS = ['aberto', 'em_andamento'];
+const STATUS_ENCERRADOS = ['concluido', 'encerrado'];
+
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
@@ -37,9 +40,61 @@ async function api(url, opts = {}) {
     }
 
     await carregarAdminsParaFiltro();
-    await carregarChamados();
+    atualizarFiltrosDeAba();
+    await Promise.all([carregarChamados(), carregarEstatisticas()]);
   } catch {}
 })();
+
+// ── Abas ──────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    abaAtiva = btn.dataset.tab;
+    atualizarFiltrosDeAba();
+    carregarChamados();
+  });
+});
+
+function atualizarFiltrosDeAba() {
+  const sel = document.getElementById('filtro-status');
+  sel.innerHTML = '';
+  if (abaAtiva === 'abertos') {
+    sel.innerHTML = `
+      <option value="">Todos (abertos)</option>
+      <option value="aberto">Aberto</option>
+      <option value="em_andamento">Em andamento</option>
+    `;
+  } else {
+    sel.innerHTML = `
+      <option value="">Todos (encerrados)</option>
+      <option value="concluido">Concluído</option>
+      <option value="encerrado">Encerrado</option>
+    `;
+  }
+}
+
+// ── Estatísticas ──────────────────────────────────────────────
+async function carregarEstatisticas() {
+  try {
+    const r = await api('/api/admin/chamados?limit=9999');
+    if (!r.ok) return;
+    const todos = await r.json();
+
+    const contagem = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
+    todos.forEach(c => { if (contagem[c.status] !== undefined) contagem[c.status]++; });
+
+    document.getElementById('cnt-aberto').textContent = contagem.aberto;
+    document.getElementById('cnt-andamento').textContent = contagem.em_andamento;
+    document.getElementById('cnt-concluido').textContent = contagem.concluido;
+    document.getElementById('cnt-encerrado').textContent = contagem.encerrado;
+
+    const totalAbertos = contagem.aberto + contagem.em_andamento;
+    const totalEncerrados = contagem.concluido + contagem.encerrado;
+    document.getElementById('badge-abertos').textContent = totalAbertos || '';
+    document.getElementById('badge-encerrados').textContent = totalEncerrados || '';
+  } catch {}
+}
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await api('/api/admin/logout', { method: 'POST' });
@@ -47,7 +102,10 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-filtrar').addEventListener('click', carregarChamados);
-document.getElementById('btn-atualizar').addEventListener('click', carregarChamados);
+document.getElementById('btn-atualizar').addEventListener('click', () => {
+  carregarChamados();
+  carregarEstatisticas();
+});
 document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('filtro-status').value = '';
   document.getElementById('filtro-setor').value = '';
@@ -83,12 +141,19 @@ async function carregarChamados() {
   lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
   const params = new URLSearchParams();
-  const status = document.getElementById('filtro-status').value;
+  const statusFiltro = document.getElementById('filtro-status').value;
   const setor = document.getElementById('filtro-setor').value.trim();
   const adminId = document.getElementById('filtro-admin').value;
   const inicio = document.getElementById('filtro-inicio').value;
   const fim = document.getElementById('filtro-fim').value;
-  if (status) params.set('status', status);
+
+  if (statusFiltro) {
+    params.set('status', statusFiltro);
+  } else {
+    const statusDaAba = abaAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
+    params.set('status', statusDaAba.join(','));
+  }
+
   if (setor) params.set('setor', setor);
   if (adminId) params.set('admin_id', adminId);
   if (inicio) params.set('periodo_inicio', inicio);
@@ -98,7 +163,10 @@ async function carregarChamados() {
     const r = await api('/api/admin/chamados?' + params);
     const chamados = await r.json();
     if (!chamados.length) {
-      lista.innerHTML = '<div class="card text-center text-muted">Nenhum chamado encontrado.</div>';
+      const msg = abaAtiva === 'abertos'
+        ? 'Nenhum chamado em aberto no momento.'
+        : 'Nenhum chamado encerrado encontrado.';
+      lista.innerHTML = `<div class="empty-state"><div class="empty-icon">${abaAtiva === 'abertos' ? '📭' : '✅'}</div><p>${msg}</p></div>`;
       return;
     }
     lista.innerHTML = chamados.map(c => renderChamadoItem(c)).join('');
@@ -112,17 +180,18 @@ async function carregarChamados() {
 }
 
 function renderChamadoItem(c) {
-  const prazoAlterado = c.prazo && false; // checamos no modal com histórico completo
+  const encerrado = ['concluido', 'encerrado'].includes(c.status);
   return `
-    <div class="chamado-item prioridade-${c.prioridade || 'sem'}" data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
+    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}" data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
       <div class="chamado-item-header">
         <span class="chamado-id">#${c.id}</span>
         ${badgePrio(c.prioridade)}
         ${badgeStatus(c.status)}
-        ${c.admin_nome ? `<span class="tag">${c.admin_nome}</span>` : ''}
+        ${c.admin_nome ? `<span class="tag"><span style="opacity:.6">👤</span> ${c.admin_nome}</span>` : ''}
+        <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
       </div>
       <div class="chamado-nome">${c.nome}</div>
-      <div class="chamado-meta">${c.setor} · Ramal ${c.ramal} · ${fmtData(c.criado_em)}${c.prazo ? ' · Prazo: '+fmtData(c.prazo) : ''}</div>
+      <div class="chamado-meta">${c.setor} · Ramal ${c.ramal}${c.prazo ? ' · <strong>Prazo:</strong> ' + fmtData(c.prazo) : ''}</div>
       <div class="chamado-desc">${c.descricao}</div>
     </div>
   `;
@@ -148,6 +217,7 @@ function fecharModal() {
   document.getElementById('modal-overlay').classList.remove('open');
   chamadoAtual = null;
   carregarChamados();
+  carregarEstatisticas();
 }
 
 function renderModalBody(c) {
@@ -176,7 +246,7 @@ function renderModalBody(c) {
       ${bannerPrazo}
       <div class="flex gap-1 flex-wrap">
         ${badgeStatus(c.status)} ${badgePrio(c.prioridade)}
-        ${c.admin_nome ? `<span class="tag">Responsável: ${c.admin_nome}</span>` : ''}
+        ${c.admin_nome ? `<span class="tag">👤 Responsável: ${c.admin_nome}</span>` : ''}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.88rem">
         <div><span class="text-muted">Solicitante</span><br><strong>${c.nome}</strong></div>
@@ -192,7 +262,6 @@ function renderModalBody(c) {
       ${c.nota !== null ? `<div class="alert alert-success" style="margin:0"><strong>Avaliação do usuário:</strong> ${c.nota}/10${c.comentario_avaliacao ? ' — '+c.comentario_avaliacao : ''}</div>` : ''}
 
       <hr>
-      <!-- Ações -->
       <div id="msg-modal"></div>
 
       <!-- Prioridade -->
@@ -220,12 +289,11 @@ function renderModalBody(c) {
 
       <!-- Botões de transição -->
       <div class="modal-footer" style="margin-top:0;padding-top:0;border:none;flex-wrap:wrap">
-        ${podeAssumir ? `<button class="btn btn-primary" id="btn-assumir">Assumir</button>` : ''}
+        ${podeAssumir ? `<button class="btn btn-primary" id="btn-assumir">Assumir chamado</button>` : ''}
         ${podeConcluir ? `<button class="btn btn-success" id="btn-concluir">Concluir</button>` : ''}
         ${podeEncerrar ? `<button class="btn btn-danger" id="btn-encerrar">Encerrar</button>` : ''}
       </div>
 
-      <!-- Campos contextuais -->
       <div id="area-concluir" style="display:none">
         <div class="form-group">
           <label for="txt-solucao">Solução aplicada <span class="req">*</span></label>
@@ -242,7 +310,6 @@ function renderModalBody(c) {
       </div>
 
       <hr>
-      <!-- Histórico -->
       <details>
         <summary style="cursor:pointer;font-size:.88rem;font-weight:600">Histórico de ações</summary>
         <div style="margin-top:.75rem">${historicoHtml}</div>
@@ -250,7 +317,6 @@ function renderModalBody(c) {
     </div>
   `;
 
-  // Eventos botões
   setupModalEventos(c);
 }
 

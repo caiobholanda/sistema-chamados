@@ -330,6 +330,113 @@ tr:hover td { background: #f8fafc; }
 .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
 .login-card { width: 100%; max-width: 400px; }
 
+/* ── Stats strip ── */
+.stats-strip {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: .4rem 1rem;
+  font-size: .85rem;
+  box-shadow: var(--shadow);
+}
+.stat-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-aberto { background: var(--cor-aberto); }
+.dot-andamento { background: var(--cor-andamento); }
+.dot-concluido { background: var(--cor-concluido); }
+.dot-encerrado { background: var(--cor-encerrado); }
+.stat-num { font-weight: 700; font-size: 1rem; }
+.stat-label { color: var(--text-muted); }
+
+/* ── Tabs ── */
+.tabs-bar {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 0;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0;
+}
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .65rem 1.25rem;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: .92rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 8px 8px 0 0;
+  transition: color .15s, background .15s;
+}
+.tab-btn:hover { background: var(--bg); color: var(--text); }
+.tab-btn.ativo {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: var(--surface);
+}
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 700;
+}
+.tab-btn:not(.ativo) .tab-badge { background: var(--border); color: var(--text-muted); }
+
+/* ── Filtros card ── */
+.filtros-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+.empty-icon { font-size: 3rem; margin-bottom: .75rem; }
+.empty-state p { font-size: .95rem; }
+
+/* ── Chamado encerrado (opacidade reduzida) ── */
+.chamado-encerrado { opacity: .75; }
+.chamado-encerrado:hover { opacity: 1; }
+
+/* ── Data relativa no card ── */
+.chamado-data-rel {
+  margin-left: auto;
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+
 /* ── Misc ── */
 .text-center { text-align: center; }
 .text-muted { color: var(--text-muted); }

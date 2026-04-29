@@ -21,16 +21,46 @@
 <main class="wide">
   <div id="msg-global"></div>
 
+  <!-- Resumo rápido -->
+  <div class="stats-strip" id="stats-strip">
+    <div class="stat-pill" id="stat-aberto">
+      <span class="stat-dot dot-aberto"></span>
+      <span class="stat-num" id="cnt-aberto">—</span>
+      <span class="stat-label">Abertos</span>
+    </div>
+    <div class="stat-pill" id="stat-andamento">
+      <span class="stat-dot dot-andamento"></span>
+      <span class="stat-num" id="cnt-andamento">—</span>
+      <span class="stat-label">Em andamento</span>
+    </div>
+    <div class="stat-pill" id="stat-concluido">
+      <span class="stat-dot dot-concluido"></span>
+      <span class="stat-num" id="cnt-concluido">—</span>
+      <span class="stat-label">Concluídos</span>
+    </div>
+    <div class="stat-pill" id="stat-encerrado">
+      <span class="stat-dot dot-encerrado"></span>
+      <span class="stat-num" id="cnt-encerrado">—</span>
+      <span class="stat-label">Encerrados</span>
+    </div>
+  </div>
+
+  <!-- Abas -->
+  <div class="tabs-bar">
+    <button class="tab-btn ativo" id="tab-abertos" data-tab="abertos">
+      <span class="tab-icon">📋</span> Em Aberto
+      <span class="tab-badge" id="badge-abertos"></span>
+    </button>
+    <button class="tab-btn" id="tab-encerrados" data-tab="encerrados">
+      <span class="tab-icon">✅</span> Encerrados
+      <span class="tab-badge" id="badge-encerrados"></span>
+    </button>
+  </div>
+
   <!-- Filtros -->
-  <div class="card mb-2" style="padding:1rem">
+  <div class="filtros-card">
     <div class="filtros">
-      <select class="form-control" id="filtro-status" aria-label="Filtrar por status">
-        <option value="">Todos os status</option>
-        <option value="aberto">Aberto</option>
-        <option value="em_andamento">Em andamento</option>
-        <option value="concluido">Concluído</option>
-        <option value="encerrado">Encerrado</option>
-      </select>
+      <select class="form-control" id="filtro-status" aria-label="Filtrar por status"></select>
       <input class="form-control" type="text" id="filtro-setor" placeholder="Filtrar por setor" aria-label="Filtrar por setor">
       <select class="form-control" id="filtro-admin" aria-label="Filtrar por responsável">
         <option value="">Todos responsáveis</option>

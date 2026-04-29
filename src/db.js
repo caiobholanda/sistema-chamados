@@ -133,8 +133,14 @@ function listarChamadosAdmin(filtros = {}) {
   const params = [];
 
   if (filtros.status) {
-    sql += ' AND c.status = ?';
-    params.push(filtros.status);
+    const statusList = filtros.status.split(',').map(s => s.trim()).filter(Boolean);
+    if (statusList.length === 1) {
+      sql += ' AND c.status = ?';
+      params.push(statusList[0]);
+    } else if (statusList.length > 1) {
+      sql += ` AND c.status IN (${statusList.map(() => '?').join(',')})`;
+      params.push(...statusList);
+    }
   }
   if (filtros.setor) {
     sql += ' AND c.setor LIKE ?';
