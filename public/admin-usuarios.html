@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usuários Admin — TI Hotel</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+  <div class="logo-placeholder" aria-hidden="true">🏨</div>
+  <h1>TI — Hotel &nbsp;<span style="font-weight:300;opacity:.7">|&nbsp; Usuários</span></h1>
+  <nav>
+    <a href="/admin-painel.html">Chamados</a>
+    <a href="/admin-relatorios.html">Relatórios</a>
+    <a href="/admin-usuarios.html" class="ativo">Usuários</a>
+    <button id="btn-logout" class="btn btn-secondary btn-sm" style="margin-left:.5rem">Sair</button>
+  </nav>
+</header>
+
+<main>
+  <div class="flex-between mb-2">
+    <h2 style="font-size:1.1rem">Administradores do sistema</h2>
+    <button class="btn btn-primary" id="btn-novo">+ Novo admin</button>
+  </div>
+  <div id="msg-global"></div>
+  <div id="lista"></div>
+</main>
+
+<!-- Modal criar/editar admin -->
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2 id="modal-title">Novo administrador</h2>
+      <button class="modal-close" id="btn-fechar" aria-label="Fechar">✕</button>
+    </div>
+    <div id="msg-modal"></div>
+    <form id="form-admin" novalidate>
+      <input type="hidden" id="admin-id">
+      <div class="form-group">
+        <label for="f-usuario">Usuário (login)</label>
+        <input class="form-control" type="text" id="f-usuario" name="usuario" required minlength="3" maxlength="40" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label for="f-nome">Nome completo</label>
+        <input class="form-control" type="text" id="f-nome" name="nome_completo" required minlength="2" maxlength="80">
+      </div>
+      <div class="form-group">
+        <label for="f-senha">Senha <span id="lbl-senha-dica" class="text-muted" style="font-size:.8rem">(mínimo 6 caracteres)</span></label>
+        <input class="form-control" type="password" id="f-senha" name="senha" minlength="6" autocomplete="new-password" placeholder="••••••">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;gap:.5rem;align-items:center;cursor:pointer">
+          <input type="checkbox" id="f-master" name="is_master"> Admin master
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancelar">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/admin-usuarios.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatórios — TI Hotel</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="logo-placeholder" aria-hidden="true">🏨</div>
+  <h1>TI — Hotel &nbsp;<span style="font-weight:300;opacity:.7">|&nbsp; Relatórios</span></h1>
+  <nav>
+    <a href="/admin-painel.html">Chamados</a>
+    <a href="/admin-relatorios.html" class="ativo">Relatórios</a>
+    <span id="nav-usuarios-wrap"></span>
+    <button id="btn-logout" class="btn btn-secondary btn-sm" style="margin-left:.5rem">Sair</button>
+  </nav>
+</header>
+
+<main>
+  <div class="flex-between flex-wrap gap-2 mb-2">
+    <div class="flex gap-1 flex-wrap" style="align-items:center">
+      <label for="sel-mes" style="font-weight:500">Mês:</label>
+      <input type="month" class="form-control" id="sel-mes" style="width:auto">
+      <button class="btn btn-primary" id="btn-carregar">Carregar</button>
+    </div>
+    <button class="btn btn-secondary" id="btn-exportar">⬇ Exportar CSV</button>
+  </div>
+
+  <div id="conteudo"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+
+<script src="/js/admin-relatorios.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin — TI Hotel</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+  <div class="logo-placeholder" aria-hidden="true">🏨</div>
+  <h1>TI — Hotel &nbsp;<span style="font-weight:300;opacity:.7">|&nbsp; Painel</span></h1>
+  <nav>
+    <a href="/admin-painel.html" class="ativo">Chamados</a>
+    <a href="/admin-relatorios.html">Relatórios</a>
+    <span id="nav-usuarios-wrap"></span>
+    <button id="btn-logout" class="btn btn-secondary btn-sm" style="margin-left:.5rem">Sair</button>
+  </nav>
+</header>
+
+<main class="wide">
+  <div id="msg-global"></div>
+
+  <!-- Filtros -->
+  <div class="card mb-2" style="padding:1rem">
+    <div class="filtros">
+      <select class="form-control" id="filtro-status" aria-label="Filtrar por status">
+        <option value="">Todos os status</option>
+        <option value="aberto">Aberto</option>
+        <option value="em_andamento">Em andamento</option>
+        <option value="concluido">Concluído</option>
+        <option value="encerrado">Encerrado</option>
+      </select>
+      <input class="form-control" type="text" id="filtro-setor" placeholder="Filtrar por setor" aria-label="Filtrar por setor">
+      <select class="form-control" id="filtro-admin" aria-label="Filtrar por responsável">
+        <option value="">Todos responsáveis</option>
+      </select>
+      <input class="form-control" type="date" id="filtro-inicio" aria-label="Data início">
+      <input class="form-control" type="date" id="filtro-fim" aria-label="Data fim">
+      <button class="btn btn-primary" id="btn-filtrar">Filtrar</button>
+      <button class="btn btn-secondary" id="btn-limpar">Limpar</button>
+      <button class="btn btn-secondary" id="btn-atualizar" title="Atualizar lista">↻</button>
+    </div>
+  </div>
+
+  <!-- Lista -->
+  <div id="lista-chamados"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+
+<!-- Modal detalhe chamado -->
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Chamado #—</h2>
+      <button class="modal-close" id="btn-fechar-modal" aria-label="Fechar">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="/js/admin-painel.js"></script>
+</body>
+</html>
