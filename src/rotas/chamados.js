@@ -1,9 +1,19 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../db');
 const { upload, renomearAnexoComId, UPLOADS_DIR } = require('../upload');
+
+function getUsuarioIdFromCookie(req) {
+  try {
+    const token = req.cookies && req.cookies.token_usuario;
+    if (!token) return null;
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    return payload.sub;
+  } catch { return null; }
+}
 
 const STATUS_VALIDOS = ['aberto', 'em_andamento', 'concluido', 'encerrado'];
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
@@ -42,7 +52,8 @@ router.post('/', upload.single('anexo'), (req, res) => {
     let anexo_path = null;
     let anexo_nome_original = null;
 
-    const id = db.inserirChamado({ nome, setor, ramal, descricao, anexo_path: null, anexo_nome_original: null });
+    const usuario_id = getUsuarioIdFromCookie(req);
+    const id = db.inserirChamado({ usuario_id, nome, setor, ramal, descricao, anexo_path: null, anexo_nome_original: null });
 
     if (req.file) {
       const novoNome = renomearAnexoComId(id, req.file.path, req.file.originalname);

@@ -292,6 +292,7 @@ function renderModalBody(c) {
         ${podeAssumir ? `<button class="btn btn-primary" id="btn-assumir">Assumir chamado</button>` : ''}
         ${podeConcluir ? `<button class="btn btn-success" id="btn-concluir">Concluir</button>` : ''}
         ${podeEncerrar ? `<button class="btn btn-danger" id="btn-encerrar">Encerrar</button>` : ''}
+        ${adminInfo && adminInfo.is_master ? `<button class="btn btn-danger btn-sm" id="btn-deletar" style="margin-left:auto">🗑 Apagar chamado</button>` : ''}
       </div>
 
       <div id="area-concluir" style="display:none">
@@ -395,6 +396,16 @@ function setupModalEventos(c) {
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Chamado encerrado.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 700);
+    });
+  }
+
+  const btnDeletar = document.getElementById('btn-deletar');
+  if (btnDeletar) {
+    btnDeletar.addEventListener('click', async () => {
+      if (!confirm(`Tem certeza que deseja APAGAR permanentemente o chamado #${c.id}? Esta ação não pode ser desfeita.`)) return;
+      const r = await api(`/api/admin/chamados/${c.id}`, { method: 'DELETE' });
+      const d = await r.json();
+      if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
     });
   }
 }

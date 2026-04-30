@@ -23,4 +23,18 @@ function requireMaster(req, res, next) {
   });
 }
 
-module.exports = { requireAdmin, requireMaster };
+function requireUsuario(req, res, next) {
+  const token = req.cookies && req.cookies.token_usuario;
+  if (!token) return res.status(401).json({ erro: 'Não autenticado' });
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    req.usuario = payload;
+    next();
+  } catch {
+    res.clearCookie('token_usuario');
+    return res.status(401).json({ erro: 'Sessão expirada ou inválida' });
+  }
+}
+
+module.exports = { requireAdmin, requireMaster, requireUsuario };

@@ -326,7 +326,74 @@ tr:hover td { background: #f8fafc; }
 .relat-card .numero { font-size: 2.2rem; font-weight: 700; line-height: 1; }
 .relat-card .label { font-size: .78rem; color: var(--text-muted); margin-top: .3rem; }
 
-/* ── Login ── */
+/* ── Auth (usuario login/cadastro) ── */
+.auth-wrap {
+  min-height: calc(100vh - 60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+}
+
+/* ── Painel do usuário ── */
+.painel-usuario { max-width: 780px; margin: 0 auto; padding: 1.5rem 1rem; }
+.painel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+}
+.painel-saudacao { font-size: 1rem; margin-bottom: .1rem; }
+
+/* ── Card de chamado do usuário ── */
+.chamado-card-usuario {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  margin-bottom: .75rem;
+  border-left: 4px solid var(--cor-aberto);
+  box-shadow: var(--shadow);
+  transition: box-shadow .15s;
+}
+.chamado-card-usuario:hover { box-shadow: var(--shadow-md); }
+.chamado-card-usuario.encerrado { border-left-color: var(--cor-encerrado); opacity: .85; }
+.chamado-card-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem; }
+.chamado-card-setor { font-weight: 600; font-size: .9rem; margin-bottom: .25rem; }
+.chamado-card-desc { font-size: .85rem; color: var(--text-muted); }
+.solucao-box {
+  margin-top: .5rem;
+  background: #f0fdf4;
+  border-left: 3px solid var(--cor-concluido);
+  border-radius: 6px;
+  padding: .5rem .75rem;
+  font-size: .85rem;
+}
+.avaliacao-box {
+  margin-top: .75rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: .75rem 1rem;
+}
+
+/* ── Login (admin, legado) ── */
 .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
 .login-card { width: 100%; max-width: 400px; }
 

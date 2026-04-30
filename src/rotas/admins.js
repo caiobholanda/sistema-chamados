@@ -82,6 +82,29 @@ router.get('/chamados', requireAdmin, (req, res) => {
   }
 });
 
+// DELETE /api/admin/chamados/:id — somente master
+router.delete('/chamados/:id', requireMaster, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+
+    const deletado = db.deletarChamado(req.params.id);
+
+    if (deletado && deletado.anexo_path) {
+      const { UPLOADS_DIR } = require('../upload');
+      const path = require('path');
+      const fs = require('fs');
+      const filePath = path.join(UPLOADS_DIR, deletado.anexo_path);
+      try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
+    }
+
+    return res.json({ mensagem: 'Chamado excluído com sucesso' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 // GET /api/admin/chamados/:id
 router.get('/chamados/:id', requireAdmin, (req, res) => {
   try {

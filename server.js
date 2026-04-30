@@ -15,6 +15,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Rotas da API
 app.use('/api/chamados', require('./src/rotas/chamados'));
+app.use('/api/usuarios', require('./src/rotas/usuarios'));
 app.use('/api/admin/relatorios', require('./src/rotas/relatorios'));
 app.use('/api/admin', require('./src/rotas/admins'));
 

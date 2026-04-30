@@ -19,6 +19,14 @@ function initDb() {
   const db = getDb();
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      senha_hash TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS admins (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       usuario TEXT UNIQUE NOT NULL,
@@ -31,6 +39,7 @@ function initDb() {
 
     CREATE TABLE IF NOT EXISTS chamados (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER REFERENCES usuarios(id),
       nome TEXT NOT NULL,
       setor TEXT NOT NULL,
       ramal TEXT NOT NULL,
@@ -59,6 +68,9 @@ function initDb() {
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Migração: adicionar usuario_id em bancos existentes que não têm a coluna
+  try { db.exec('ALTER TABLE chamados ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)'); } catch {}
 
   return db;
 }
@@ -91,11 +103,19 @@ async function criarAdminMasterSeNecessario() {
 function inserirChamado(dados) {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO chamados (nome, setor, ramal, descricao, anexo_path, anexo_nome_original)
-    VALUES (@nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original)
+    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original)
+    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original)
   `);
-  const result = stmt.run(dados);
+  const result = stmt.run({ usuario_id: null, ...dados });
   return result.lastInsertRowid;
+}
+
+function deletarChamado(id) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+  db.prepare('DELETE FROM historico_chamados WHERE chamado_id = ?').run(id);
+  db.prepare('DELETE FROM chamados WHERE id = ?').run(id);
+  return chamado;
 }
 
 function buscarChamadoPorId(id) {
@@ -244,6 +264,33 @@ function avaliarChamado(id, nota, comentario) {
   `).run(nota, comentario || null, id);
 }
 
+// ── Usuarios ──────────────────────────────────────────────────
+
+function registrarUsuario(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO usuarios (nome, email, senha_hash) VALUES (@nome, @email, @senha_hash)
+  `).run(dados);
+  return result.lastInsertRowid;
+}
+
+function buscarUsuarioPorEmail(email) {
+  return getDb().prepare('SELECT * FROM usuarios WHERE email = ?').get(email);
+}
+
+function buscarUsuarioPorId(id) {
+  return getDb().prepare('SELECT id, nome, email, criado_em FROM usuarios WHERE id = ?').get(id);
+}
+
+function listarChamadosPorUsuario(usuario_id) {
+  return getDb().prepare(`
+    SELECT c.*, a.nome_completo as admin_nome
+    FROM chamados c
+    LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    WHERE c.usuario_id = ?
+    ORDER BY c.criado_em DESC
+  `).all(usuario_id);
+}
+
 // ── Admins ────────────────────────────────────────────────────
 
 function buscarAdminPorUsuario(usuario) {
@@ -347,6 +394,7 @@ module.exports = {
   initDb,
   criarAdminMasterSeNecessario,
   inserirChamado,
+  deletarChamado,
   buscarChamadoPorId,
   buscarHistoricoPrazos,
   buscarHistoricoCompleto,
@@ -357,6 +405,10 @@ module.exports = {
   concluirChamado,
   encerrarChamado,
   avaliarChamado,
+  registrarUsuario,
+  buscarUsuarioPorEmail,
+  buscarUsuarioPorId,
+  listarChamadosPorUsuario,
   buscarAdminPorUsuario,
   buscarAdminPorId,
   listarAdmins,
