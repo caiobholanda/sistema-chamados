@@ -98,8 +98,8 @@ router.patch('/chamados/:id/reabrir', requireAdmin, (req, res) => {
   }
 });
 
-// DELETE /api/admin/chamados/:id — qualquer admin
-router.delete('/chamados/:id', requireAdmin, (req, res) => {
+// DELETE /api/admin/chamados/:id — somente master
+router.delete('/chamados/:id', requireMaster, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });

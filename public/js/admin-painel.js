@@ -294,7 +294,7 @@ function renderModalBody(c) {
         ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir">Concluir</button>` : ''}
         ${podeEncerrar ? `<button class="btn btn-danger btn-sm"  id="btn-encerrar">Encerrar</button>` : ''}
         ${podeReabrir  ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir">↩ Reabrir</button>` : ''}
-        <button class="btn btn-danger btn-sm" id="btn-deletar" style="margin-left:auto">🗑 Excluir</button>
+        ${adminInfo && adminInfo.is_master ? `<button class="btn btn-danger btn-sm" id="btn-deletar" style="margin-left:auto">🗑 Excluir</button>` : ''}
       </div>
 
       <div id="area-concluir" style="display:none">
