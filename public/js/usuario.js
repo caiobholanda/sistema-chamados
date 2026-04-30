@@ -29,69 +29,90 @@ async function apiFetch(url, opts = {}) {
 // ── Auth: Login / Cadastro ─────────────────────────────────────
 function renderAuth(abaInicial = 'login') {
   app.innerHTML = `
-    <div class="auth-wrap">
-      <div class="auth-card">
-        <div style="text-align:center;margin-bottom:1.5rem">
-          <div style="font-size:2.5rem">🏨</div>
-          <h2 style="margin-top:.5rem;font-size:1.2rem">Sistema de Chamados TI</h2>
-          <p class="text-muted" style="font-size:.85rem;margin-top:.25rem">Faça login ou cadastre-se para continuar</p>
+    <div class="auth-page">
+
+      <!-- Painel esquerdo -->
+      <div class="auth-left">
+        <div class="auth-left-logo">🏨</div>
+        <h2>Portal de Chamados de TI</h2>
+        <p>Abra, acompanhe e avalie seus chamados com o setor de tecnologia do Hotel Fortaleza.</p>
+        <div class="auth-left-features">
+          <div class="auth-feature"><div class="auth-feature-dot">📋</div> Abra chamados a qualquer momento</div>
+          <div class="auth-feature"><div class="auth-feature-dot">🔔</div> Acompanhe o status em tempo real</div>
+          <div class="auth-feature"><div class="auth-feature-dot">⭐</div> Avalie a qualidade do atendimento</div>
         </div>
-
-        <div class="tabs-bar" style="margin-bottom:1.5rem">
-          <button class="tab-btn ${abaInicial === 'login' ? 'ativo' : ''}" id="tab-login">Entrar</button>
-          <button class="tab-btn ${abaInicial === 'cadastro' ? 'ativo' : ''}" id="tab-cadastro">Criar conta</button>
-        </div>
-
-        <div id="msg-auth"></div>
-
-        <!-- Login -->
-        <form id="form-login" style="display:${abaInicial === 'login' ? 'block' : 'none'}">
-          <div class="form-group">
-            <label for="login-email">E-mail</label>
-            <input class="form-control" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" required>
-          </div>
-          <div class="form-group">
-            <label for="login-senha">Senha</label>
-            <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required>
-          </div>
-          <button type="submit" class="btn btn-primary btn-full">Entrar</button>
-        </form>
-
-        <!-- Cadastro -->
-        <form id="form-cadastro" style="display:${abaInicial === 'cadastro' ? 'block' : 'none'}">
-          <div class="form-group">
-            <label for="cad-nome">Nome completo <span class="req">*</span></label>
-            <input class="form-control" type="text" id="cad-nome" placeholder="Seu nome" minlength="2" maxlength="80" required>
-          </div>
-          <div class="form-group">
-            <label for="cad-email">E-mail <span class="req">*</span></label>
-            <input class="form-control" type="email" id="cad-email" placeholder="seu@email.com" autocomplete="email" required>
-          </div>
-          <div class="form-group">
-            <label for="cad-senha">Senha <span class="req">*</span></label>
-            <input class="form-control" type="password" id="cad-senha" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
-          </div>
-          <button type="submit" class="btn btn-primary btn-full">Criar conta</button>
-        </form>
       </div>
+
+      <!-- Formulário -->
+      <div class="auth-right">
+        <div class="auth-card">
+          <div class="tabs-bar" style="margin-bottom:1.75rem">
+            <button class="tab-btn ${abaInicial === 'login' ? 'ativo' : ''}" id="tab-login">Entrar</button>
+            <button class="tab-btn ${abaInicial === 'cadastro' ? 'ativo' : ''}" id="tab-cadastro">Criar conta</button>
+          </div>
+
+          <div id="msg-auth"></div>
+
+          <!-- Login -->
+          <form id="form-login" style="display:${abaInicial === 'login' ? 'block' : 'none'}">
+            <div class="form-group">
+              <label for="login-email">E-mail</label>
+              <input class="form-control" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+              <label for="login-senha">Senha</label>
+              <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
+            <p style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--text-muted)">
+              Não tem conta? <button type="button" id="ir-cadastro" style="background:none;border:none;color:var(--primary);cursor:pointer;font-weight:600;font-size:.8rem">Criar conta</button>
+            </p>
+          </form>
+
+          <!-- Cadastro -->
+          <form id="form-cadastro" style="display:${abaInicial === 'cadastro' ? 'block' : 'none'}">
+            <div class="form-group">
+              <label for="cad-nome">Nome completo <span class="req">*</span></label>
+              <input class="form-control" type="text" id="cad-nome" placeholder="Seu nome completo" minlength="2" maxlength="80" required>
+            </div>
+            <div class="form-group">
+              <label for="cad-email">E-mail <span class="req">*</span></label>
+              <input class="form-control" type="email" id="cad-email" placeholder="seu@email.com" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+              <label for="cad-senha">Senha <span class="req">*</span></label>
+              <input class="form-control" type="password" id="cad-senha" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Criar conta</button>
+            <p style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--text-muted)">
+              Já tem conta? <button type="button" id="ir-login" style="background:none;border:none;color:var(--primary);cursor:pointer;font-weight:600;font-size:.8rem">Entrar</button>
+            </p>
+          </form>
+        </div>
+      </div>
+
     </div>
   `;
 
-  document.getElementById('tab-login').addEventListener('click', () => {
+  function mostrarLogin() {
     document.getElementById('tab-login').classList.add('ativo');
     document.getElementById('tab-cadastro').classList.remove('ativo');
     document.getElementById('form-login').style.display = 'block';
     document.getElementById('form-cadastro').style.display = 'none';
     document.getElementById('msg-auth').innerHTML = '';
-  });
-
-  document.getElementById('tab-cadastro').addEventListener('click', () => {
+  }
+  function mostrarCadastro() {
     document.getElementById('tab-cadastro').classList.add('ativo');
     document.getElementById('tab-login').classList.remove('ativo');
     document.getElementById('form-cadastro').style.display = 'block';
     document.getElementById('form-login').style.display = 'none';
     document.getElementById('msg-auth').innerHTML = '';
-  });
+  }
+
+  document.getElementById('tab-login').addEventListener('click', mostrarLogin);
+  document.getElementById('tab-cadastro').addEventListener('click', mostrarCadastro);
+  document.getElementById('ir-cadastro') && document.getElementById('ir-cadastro').addEventListener('click', mostrarCadastro);
+  document.getElementById('ir-login') && document.getElementById('ir-login').addEventListener('click', mostrarLogin);
 
   document.getElementById('form-login').addEventListener('submit', async (e) => {
     e.preventDefault();

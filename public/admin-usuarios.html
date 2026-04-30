@@ -3,26 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Usuários Admin — TI Hotel</title>
+  <title>Usuários — TI Hotel</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <header>
-  <div class="logo-placeholder" aria-hidden="true">🏨</div>
-  <h1>TI — Hotel &nbsp;<span style="font-weight:300;opacity:.7">|&nbsp; Usuários</span></h1>
+  <div class="header-brand">
+    <div class="header-logo-box">🏨</div>
+    <div class="header-brand-text">
+      <div class="header-brand-name">Hotel Fortaleza</div>
+      <div class="header-brand-sub">Sistema de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
   <nav>
     <a href="/admin-painel.html">Chamados</a>
     <a href="/admin-relatorios.html">Relatórios</a>
     <a href="/admin-usuarios.html" class="ativo">Usuários</a>
-    <button id="btn-logout" class="btn btn-secondary btn-sm" style="margin-left:.5rem">Sair</button>
+    <button id="btn-logout" class="btn btn-ghost btn-sm" style="margin-left:.5rem;color:rgba(255,255,255,.6)">Sair</button>
   </nav>
 </header>
 
 <main>
-  <div class="flex-between mb-2">
-    <h2 style="font-size:1.1rem">Administradores do sistema</h2>
-    <button class="btn btn-primary" id="btn-novo">+ Novo admin</button>
+  <div class="page-header flex-between flex-wrap gap-2">
+    <div>
+      <div class="page-title">Administradores</div>
+      <div class="page-subtitle">Gerencie os usuários com acesso ao painel administrativo</div>
+    </div>
+    <button class="btn btn-primary btn-sm" id="btn-novo">+ Novo administrador</button>
   </div>
+
   <div id="msg-global"></div>
   <div id="lista"></div>
 </main>
@@ -34,31 +44,33 @@
       <h2 id="modal-title">Novo administrador</h2>
       <button class="modal-close" id="btn-fechar" aria-label="Fechar">✕</button>
     </div>
-    <div id="msg-modal"></div>
-    <form id="form-admin" novalidate>
-      <input type="hidden" id="admin-id">
-      <div class="form-group">
-        <label for="f-usuario">Usuário (login)</label>
-        <input class="form-control" type="text" id="f-usuario" name="usuario" required minlength="3" maxlength="40" autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label for="f-nome">Nome completo</label>
-        <input class="form-control" type="text" id="f-nome" name="nome_completo" required minlength="2" maxlength="80">
-      </div>
-      <div class="form-group">
-        <label for="f-senha">Senha <span id="lbl-senha-dica" class="text-muted" style="font-size:.8rem">(mínimo 6 caracteres)</span></label>
-        <input class="form-control" type="password" id="f-senha" name="senha" minlength="6" autocomplete="new-password" placeholder="••••••">
-      </div>
-      <div class="form-group">
-        <label style="display:flex;gap:.5rem;align-items:center;cursor:pointer">
-          <input type="checkbox" id="f-master" name="is_master"> Admin master
-        </label>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="btn-cancelar">Cancelar</button>
-        <button type="submit" class="btn btn-primary" id="btn-salvar">Salvar</button>
-      </div>
-    </form>
+    <div class="modal-body">
+      <div id="msg-modal"></div>
+      <form id="form-admin" novalidate>
+        <input type="hidden" id="admin-id">
+        <div class="form-group">
+          <label for="f-usuario">Login (usuário)</label>
+          <input class="form-control" type="text" id="f-usuario" name="usuario" required minlength="3" maxlength="40" autocomplete="username" placeholder="ex: joao.silva">
+        </div>
+        <div class="form-group">
+          <label for="f-nome">Nome completo</label>
+          <input class="form-control" type="text" id="f-nome" name="nome_completo" required minlength="2" maxlength="80" placeholder="João da Silva">
+        </div>
+        <div class="form-group">
+          <label for="f-senha">Senha <span id="lbl-senha-dica" class="text-muted" style="font-size:.75rem;text-transform:none;letter-spacing:0">(mín. 6 caracteres)</span></label>
+          <input class="form-control" type="password" id="f-senha" name="senha" minlength="6" autocomplete="new-password" placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label style="display:flex;gap:.6rem;align-items:center;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.875rem">
+            <input type="checkbox" id="f-master" name="is_master" style="width:16px;height:16px"> Admin master (acesso total)
+          </label>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-cancelar">Cancelar</button>
+      <button type="submit" form="form-admin" class="btn btn-primary" id="btn-salvar">Salvar</button>
+    </div>
   </div>
 </div>
 

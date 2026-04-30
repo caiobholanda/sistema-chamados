@@ -3,33 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login Admin — TI Hotel</title>
+  <title>Acesso Administrativo — TI Hotel</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
-<body style="background:var(--bg)">
-<div class="login-wrap">
-  <div class="card login-card">
-    <div class="text-center mb-2">
-      <div style="font-size:2.5rem;margin-bottom:.5rem">🔒</div>
-      <h1 style="font-size:1.3rem">Área Administrativa</h1>
-      <p class="text-muted" style="font-size:.875rem">TI — Hotel Fortaleza</p>
-    </div>
-    <div id="msg"></div>
-    <form id="form-login" novalidate>
-      <div class="form-group">
-        <label for="usuario">Usuário</label>
-        <input class="form-control" type="text" id="usuario" name="usuario" required autocomplete="username" placeholder="seu.usuario">
+<body>
+<div class="login-page">
+
+  <!-- Painel esquerdo -->
+  <div class="login-left">
+    <div class="login-left-logo">🏨</div>
+    <div class="login-badge">🔒 Área Restrita</div>
+    <h2>Portal de Administração de TI</h2>
+    <p>Acesso exclusivo para administradores do setor de tecnologia do Hotel Fortaleza.</p>
+  </div>
+
+  <!-- Formulário -->
+  <div class="login-right">
+    <div class="login-card">
+      <div class="login-card-title">Entrar no painel</div>
+      <div class="login-card-sub">Use suas credenciais de administrador</div>
+
+      <div id="msg"></div>
+
+      <form id="form-login" novalidate>
+        <div class="form-group">
+          <label for="usuario">Usuário</label>
+          <input class="form-control" type="text" id="usuario" name="usuario" required autocomplete="username" placeholder="seu.usuario">
+        </div>
+        <div class="form-group">
+          <label for="senha">Senha</label>
+          <input class="form-control" type="password" id="senha" name="senha" required autocomplete="current-password" placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="btn-login" style="margin-top:.5rem">Entrar</button>
+      </form>
+
+      <div style="text-align:center;margin-top:1.5rem">
+        <a href="/" style="font-size:.8rem;color:var(--text-muted);text-decoration:none">← Voltar ao portal</a>
       </div>
-      <div class="form-group">
-        <label for="senha">Senha</label>
-        <input class="form-control" type="password" id="senha" name="senha" required autocomplete="current-password" placeholder="••••••••">
-      </div>
-      <button type="submit" class="btn btn-primary btn-full" id="btn-login">Entrar</button>
-    </form>
-    <div class="text-center mt-2">
-      <a href="/" class="text-muted" style="font-size:.85rem">← Voltar ao formulário</a>
     </div>
   </div>
+
 </div>
 <script src="/js/admin-login.js"></script>
 </body>

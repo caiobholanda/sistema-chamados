@@ -3,73 +3,90 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Admin — TI Hotel</title>
+  <title>Chamados — TI Hotel</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <header>
-  <div class="logo-placeholder" aria-hidden="true">🏨</div>
-  <h1>TI — Hotel &nbsp;<span style="font-weight:300;opacity:.7">|&nbsp; Painel</span></h1>
+  <div class="header-brand">
+    <div class="header-logo-box">🏨</div>
+    <div class="header-brand-text">
+      <div class="header-brand-name">Hotel Fortaleza</div>
+      <div class="header-brand-sub">Sistema de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
   <nav>
     <a href="/admin-painel.html" class="ativo">Chamados</a>
     <a href="/admin-relatorios.html">Relatórios</a>
     <span id="nav-usuarios-wrap"></span>
-    <button id="btn-logout" class="btn btn-secondary btn-sm" style="margin-left:.5rem">Sair</button>
+    <button id="btn-logout" class="btn btn-ghost btn-sm" style="margin-left:.5rem;color:rgba(255,255,255,.6)">Sair</button>
   </nav>
 </header>
 
 <main class="wide">
   <div id="msg-global"></div>
 
-  <!-- Resumo rápido -->
+  <div class="page-header">
+    <div class="page-title">Gestão de Chamados</div>
+    <div class="page-subtitle">Acompanhe e gerencie todos os chamados de TI do hotel</div>
+  </div>
+
+  <!-- KPIs -->
   <div class="stats-strip" id="stats-strip">
-    <div class="stat-pill" id="stat-aberto">
-      <span class="stat-dot dot-aberto"></span>
-      <span class="stat-num" id="cnt-aberto">—</span>
-      <span class="stat-label">Abertos</span>
+    <div class="stat-pill">
+      <div class="stat-dot dot-aberto">📋</div>
+      <div class="stat-info">
+        <div class="stat-num" id="cnt-aberto">—</div>
+        <div class="stat-label">Abertos</div>
+      </div>
     </div>
-    <div class="stat-pill" id="stat-andamento">
-      <span class="stat-dot dot-andamento"></span>
-      <span class="stat-num" id="cnt-andamento">—</span>
-      <span class="stat-label">Em andamento</span>
+    <div class="stat-pill">
+      <div class="stat-dot dot-andamento">⚙️</div>
+      <div class="stat-info">
+        <div class="stat-num" id="cnt-andamento">—</div>
+        <div class="stat-label">Em andamento</div>
+      </div>
     </div>
-    <div class="stat-pill" id="stat-concluido">
-      <span class="stat-dot dot-concluido"></span>
-      <span class="stat-num" id="cnt-concluido">—</span>
-      <span class="stat-label">Concluídos</span>
+    <div class="stat-pill">
+      <div class="stat-dot dot-concluido">✅</div>
+      <div class="stat-info">
+        <div class="stat-num" id="cnt-concluido">—</div>
+        <div class="stat-label">Concluídos</div>
+      </div>
     </div>
-    <div class="stat-pill" id="stat-encerrado">
-      <span class="stat-dot dot-encerrado"></span>
-      <span class="stat-num" id="cnt-encerrado">—</span>
-      <span class="stat-label">Encerrados</span>
+    <div class="stat-pill">
+      <div class="stat-dot dot-encerrado">🔒</div>
+      <div class="stat-info">
+        <div class="stat-num" id="cnt-encerrado">—</div>
+        <div class="stat-label">Encerrados</div>
+      </div>
     </div>
   </div>
 
   <!-- Abas -->
   <div class="tabs-bar">
     <button class="tab-btn ativo" id="tab-abertos" data-tab="abertos">
-      <span class="tab-icon">📋</span> Em Aberto
-      <span class="tab-badge" id="badge-abertos"></span>
+      Em Aberto <span class="tab-badge" id="badge-abertos"></span>
     </button>
     <button class="tab-btn" id="tab-encerrados" data-tab="encerrados">
-      <span class="tab-icon">✅</span> Encerrados
-      <span class="tab-badge" id="badge-encerrados"></span>
+      Encerrados <span class="tab-badge" id="badge-encerrados"></span>
     </button>
   </div>
 
   <!-- Filtros -->
   <div class="filtros-card">
     <div class="filtros">
-      <select class="form-control" id="filtro-status" aria-label="Filtrar por status"></select>
-      <input class="form-control" type="text" id="filtro-setor" placeholder="Filtrar por setor" aria-label="Filtrar por setor">
-      <select class="form-control" id="filtro-admin" aria-label="Filtrar por responsável">
+      <select class="form-control" id="filtro-status" aria-label="Status"></select>
+      <input class="form-control" type="text" id="filtro-setor" placeholder="Setor..." aria-label="Setor">
+      <select class="form-control" id="filtro-admin" aria-label="Responsável">
         <option value="">Todos responsáveis</option>
       </select>
       <input class="form-control" type="date" id="filtro-inicio" aria-label="Data início">
       <input class="form-control" type="date" id="filtro-fim" aria-label="Data fim">
-      <button class="btn btn-primary" id="btn-filtrar">Filtrar</button>
-      <button class="btn btn-secondary" id="btn-limpar">Limpar</button>
-      <button class="btn btn-secondary" id="btn-atualizar" title="Atualizar lista">↻</button>
+      <button class="btn btn-primary btn-sm" id="btn-filtrar">Filtrar</button>
+      <button class="btn btn-secondary btn-sm" id="btn-limpar">Limpar</button>
+      <button class="btn btn-ghost btn-sm" id="btn-atualizar" title="Atualizar">↻</button>
     </div>
   </div>
 
@@ -77,14 +94,14 @@
   <div id="lista-chamados"><div class="loading"><div class="spinner"></div></div></div>
 </main>
 
-<!-- Modal detalhe chamado -->
+<!-- Modal -->
 <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal">
     <div class="modal-header">
       <h2 id="modal-title">Chamado #—</h2>
       <button class="modal-close" id="btn-fechar-modal" aria-label="Fechar">✕</button>
     </div>
-    <div id="modal-body"></div>
+    <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
 

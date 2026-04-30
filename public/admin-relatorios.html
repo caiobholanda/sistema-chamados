@@ -9,22 +9,32 @@
 </head>
 <body>
 <header>
-  <div class="logo-placeholder" aria-hidden="true">🏨</div>
-  <h1>TI — Hotel &nbsp;<span style="font-weight:300;opacity:.7">|&nbsp; Relatórios</span></h1>
+  <div class="header-brand">
+    <div class="header-logo-box">🏨</div>
+    <div class="header-brand-text">
+      <div class="header-brand-name">Hotel Fortaleza</div>
+      <div class="header-brand-sub">Sistema de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
   <nav>
     <a href="/admin-painel.html">Chamados</a>
     <a href="/admin-relatorios.html" class="ativo">Relatórios</a>
     <span id="nav-usuarios-wrap"></span>
-    <button id="btn-logout" class="btn btn-secondary btn-sm" style="margin-left:.5rem">Sair</button>
+    <button id="btn-logout" class="btn btn-ghost btn-sm" style="margin-left:.5rem;color:rgba(255,255,255,.6)">Sair</button>
   </nav>
 </header>
 
 <main>
-  <div class="flex-between flex-wrap gap-2 mb-2">
+  <div class="page-header flex-between flex-wrap gap-2">
+    <div>
+      <div class="page-title">Relatórios</div>
+      <div class="page-subtitle">Indicadores de desempenho do suporte técnico</div>
+    </div>
     <div class="flex gap-1 flex-wrap" style="align-items:center">
-      <label for="sel-mes" style="font-weight:500">Mês:</label>
+      <label for="sel-mes" style="font-size:.8rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em">Mês</label>
       <input type="month" class="form-control" id="sel-mes" style="width:auto">
-      <button class="btn btn-primary" id="btn-carregar">Carregar</button>
+      <button class="btn btn-primary btn-sm" id="btn-carregar">Carregar</button>
     </div>
   </div>
 
