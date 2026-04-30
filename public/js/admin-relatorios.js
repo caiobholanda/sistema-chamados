@@ -26,10 +26,6 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 
 document.getElementById('btn-carregar').addEventListener('click', carregarRelatorio);
 
-document.getElementById('btn-exportar').addEventListener('click', () => {
-  const mes = document.getElementById('sel-mes').value;
-  window.location.href = `/api/admin/relatorios/exportar?mes=${mes}`;
-});
 
 async function carregarRelatorio() {
   const mes = document.getElementById('sel-mes').value;
