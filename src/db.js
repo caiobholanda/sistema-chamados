@@ -258,6 +258,18 @@ function encerrarChamado(id, motivo, adminId) {
   `).run(id, adminId, chamado.status);
 }
 
+function reabrirChamado(id, adminId) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+  db.prepare(`
+    UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+  `).run(id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'status_alterado', ?, 'aberto')
+  `).run(id, adminId, chamado.status);
+}
+
 function avaliarChamado(id, nota, comentario) {
   getDb().prepare(`
     UPDATE chamados SET nota = ?, comentario_avaliacao = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
@@ -404,6 +416,7 @@ module.exports = {
   assumirChamado,
   concluirChamado,
   encerrarChamado,
+  reabrirChamado,
   avaliarChamado,
   registrarUsuario,
   buscarUsuarioPorEmail,

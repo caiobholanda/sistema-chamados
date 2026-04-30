@@ -226,9 +226,10 @@ function renderModalBody(c) {
     ? `<div class="banner-prazo">⚠️ <strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último: ${fmtData(historicoPrazos[historicoPrazos.length-1].timestamp)} por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'} — de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
     : '';
 
-  const podeAssumir = c.status === 'aberto';
+  const podeAssumir  = c.status === 'aberto';
   const podeConcluir = c.status === 'em_andamento';
   const podeEncerrar = ['aberto', 'em_andamento'].includes(c.status);
+  const podeReabrir  = ['concluido', 'encerrado'].includes(c.status);
 
   const historicoHtml = c.historico && c.historico.length > 0
     ? c.historico.map(h => `
@@ -289,10 +290,11 @@ function renderModalBody(c) {
 
       <!-- Botões de transição -->
       <div class="modal-footer" style="margin-top:0;padding-top:0;border:none;flex-wrap:wrap">
-        ${podeAssumir ? `<button class="btn btn-primary" id="btn-assumir">Assumir chamado</button>` : ''}
-        ${podeConcluir ? `<button class="btn btn-success" id="btn-concluir">Concluir</button>` : ''}
-        ${podeEncerrar ? `<button class="btn btn-danger" id="btn-encerrar">Encerrar</button>` : ''}
-        ${adminInfo && adminInfo.is_master ? `<button class="btn btn-danger btn-sm" id="btn-deletar" style="margin-left:auto">🗑 Apagar chamado</button>` : ''}
+        ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir">Assumir chamado</button>` : ''}
+        ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir">Concluir</button>` : ''}
+        ${podeEncerrar ? `<button class="btn btn-danger btn-sm"  id="btn-encerrar">Encerrar</button>` : ''}
+        ${podeReabrir  ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir">↩ Reabrir</button>` : ''}
+        <button class="btn btn-danger btn-sm" id="btn-deletar" style="margin-left:auto">🗑 Excluir</button>
       </div>
 
       <div id="area-concluir" style="display:none">
@@ -399,10 +401,21 @@ function setupModalEventos(c) {
     });
   }
 
+  const btnReabrir = document.getElementById('btn-reabrir');
+  if (btnReabrir) {
+    btnReabrir.addEventListener('click', async () => {
+      if (!confirm(`Reabrir o chamado #${c.id}? Ele voltará para o status "Aberto".`)) return;
+      const r = await api(`/api/admin/chamados/${c.id}/reabrir`, { method: 'PATCH', body: JSON.stringify({}) });
+      const d = await r.json();
+      setMsg(r.ok ? '<div class="alert alert-success">Chamado reaberto!</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+    });
+  }
+
   const btnDeletar = document.getElementById('btn-deletar');
   if (btnDeletar) {
     btnDeletar.addEventListener('click', async () => {
-      if (!confirm(`Tem certeza que deseja APAGAR permanentemente o chamado #${c.id}? Esta ação não pode ser desfeita.`)) return;
+      if (!confirm(`Excluir permanentemente o chamado #${c.id}? Esta ação não pode ser desfeita.`)) return;
       const r = await api(`/api/admin/chamados/${c.id}`, { method: 'DELETE' });
       const d = await r.json();
       if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
