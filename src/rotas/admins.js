@@ -282,7 +282,7 @@ router.delete('/usuarios/:id', requireMaster, (req, res) => {
     if (!alvo) return res.status(404).json({ erro: 'Admin não encontrado' });
     if (alvo.id === req.admin.sub) return res.status(400).json({ erro: 'Não é possível remover a si mesmo' });
     db.deletarAdmin(alvo.id);
-    return res.json({ mensagem: 'Admin removido (soft delete)' });
+    return res.json({ mensagem: 'Admin excluído permanentemente' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

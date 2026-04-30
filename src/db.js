@@ -325,7 +325,7 @@ function atualizarAdmin(id, dados) {
 }
 
 function deletarAdmin(id) {
-  getDb().prepare('UPDATE admins SET ativo = 0 WHERE id = ?').run(id);
+  getDb().prepare('DELETE FROM admins WHERE id = ?').run(id);
 }
 
 // ── Relatórios ────────────────────────────────────────────────

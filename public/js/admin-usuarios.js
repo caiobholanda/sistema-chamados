@@ -145,7 +145,7 @@ async function toggleAtivo(id, ativo) {
 }
 
 async function removerAdmin(id) {
-  if (!confirm('Remover este administrador? (soft delete — pode ser reativado depois)')) return;
+  if (!confirm('Tem certeza? Esta ação excluirá o administrador permanentemente e não pode ser desfeita.')) return;
   const r = await api(`/api/admin/usuarios/${id}`, { method: 'DELETE' });
   const d = await r.json();
   if (!r.ok) { alert(d.erro); return; }
