@@ -2,6 +2,66 @@ const app = document.getElementById('app');
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 
+// ── Chat (usuário) ─────────────────────────────────────────────
+
+const _chatIntervals = new Map();
+
+function _limparChats() {
+  _chatIntervals.forEach(iv => clearInterval(iv));
+  _chatIntervals.clear();
+}
+
+function _renderMsgChat(m) {
+  return `<div class="chat-msg ${m.autor_tipo}">
+    <div class="chat-msg-bubble">${m.mensagem}</div>
+    <div class="chat-msg-meta">${m.autor_nome} · ${fmtData(m.criado_em)}</div>
+  </div>`;
+}
+
+async function _atualizarChat(chamadoId) {
+  const box = document.getElementById('chat-msgs-' + chamadoId);
+  if (!box) return;
+  const atFundo = box.scrollTop + box.clientHeight >= box.scrollHeight - 6;
+  const anterior = +(box.dataset.cnt || 0);
+  try {
+    const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens');
+    if (!r.ok) return;
+    const msgs = await r.json();
+    box.dataset.cnt = msgs.length;
+    if (!msgs.length) {
+      if (!box.querySelector('.chat-msg'))
+        box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem ainda. Escreva para o suporte!</div>';
+      return;
+    }
+    box.innerHTML = msgs.map(_renderMsgChat).join('');
+    if (atFundo || anterior < msgs.length) box.scrollTop = box.scrollHeight;
+  } catch {}
+}
+
+function _iniciarChat(chamadoId) {
+  _atualizarChat(chamadoId);
+  _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 12000));
+
+  const form = document.getElementById('chat-form-' + chamadoId);
+  if (!form) return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chat-input-' + chamadoId);
+    const texto = input.value.trim();
+    if (!texto) return;
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    try {
+      const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens', {
+        method: 'POST',
+        body: JSON.stringify({ mensagem: texto }),
+      });
+      if (r.ok) { input.value = ''; await _atualizarChat(chamadoId); }
+    } catch {}
+    finally { btn.disabled = false; input.focus(); }
+  });
+}
+
 function fmtData(d) {
   if (!d) return '—';
   return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -26,6 +86,7 @@ async function apiFetch(url, opts = {}) {
 })();
 
 function renderAuth() {
+  _limparChats();
   const header = document.querySelector('header');
   if (header) header.style.display = 'none';
   document.body.classList.add('auth-mode');
@@ -163,6 +224,7 @@ function renderPainel(usuario) {
   carregarChamados();
 
   function renderListaChamados(todos, aba) {
+    _limparChats();
     const lista = document.getElementById('lista-usuario');
     const filtrados = aba === 'abertos'
       ? todos.filter(c => ['aberto', 'em_andamento'].includes(c.status))
@@ -214,6 +276,10 @@ function renderPainel(usuario) {
         finally { btn.disabled = false; btn.textContent = 'Enviar avaliação'; }
       });
     });
+
+    filtrados.filter(c => ['aberto', 'em_andamento'].includes(c.status)).forEach(c => {
+      _iniciarChat(c.id);
+    });
   }
 }
 
@@ -243,6 +309,19 @@ function renderCardChamado(c) {
     `;
   };
 
+  const chatHtml = !encerrado ? `
+    <div class="chat-wrap">
+      <div class="chat-header">Conversa com o Suporte</div>
+      <div class="chat-messages" id="chat-msgs-${c.id}" data-cnt="0">
+        <div class="chat-vazio">Carregando...</div>
+      </div>
+      <form class="chat-input-row" id="chat-form-${c.id}">
+        <input type="text" class="chat-input" id="chat-input-${c.id}" placeholder="Escreva uma mensagem para o suporte..." maxlength="1000" autocomplete="off">
+        <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+      </form>
+    </div>
+  ` : '';
+
   return `
     <div class="chamado-card-usuario${encerrado ? ' encerrado' : ''}">
       <div class="chamado-card-header">
@@ -258,6 +337,7 @@ function renderCardChamado(c) {
       ${c.prazo ? `<div style="font-size:.74rem;color:var(--text-muted);margin-top:.2rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
       ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${c.solucao}</div>` : ''}
       ${avaliacaoHtml()}
+      ${chatHtml}
     </div>
   `;
 }

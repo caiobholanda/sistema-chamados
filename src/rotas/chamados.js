@@ -118,4 +118,49 @@ router.get('/:id/anexo', (req, res) => {
   }
 });
 
+// GET /api/chamados/:id/mensagens — requer autenticação do usuário dono do chamado
+router.get('/:id/mensagens', (req, res) => {
+  try {
+    const usuario_id = getUsuarioIdFromCookie(req);
+    if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (chamado.usuario_id !== usuario_id) return res.status(403).json({ erro: 'Acesso negado' });
+    return res.json(db.listarMensagensChamado(chamado.id));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+// POST /api/chamados/:id/mensagens
+router.post('/:id/mensagens', (req, res) => {
+  try {
+    const usuario_id = getUsuarioIdFromCookie(req);
+    if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (chamado.usuario_id !== usuario_id) return res.status(403).json({ erro: 'Acesso negado' });
+    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
+      return res.status(400).json({ erro: 'Chamado encerrado — não é possível enviar mensagens' });
+    }
+    const mensagem = sanitizarTexto(req.body.mensagem || '');
+    if (!mensagem || mensagem.length < 1 || mensagem.length > 1000) {
+      return res.status(400).json({ erro: 'Mensagem deve ter entre 1 e 1000 caracteres' });
+    }
+    const usuario = db.buscarUsuarioPorId(usuario_id);
+    db.criarMensagem({
+      chamado_id: chamado.id,
+      autor_tipo: 'usuario',
+      autor_id: usuario_id,
+      autor_nome: usuario ? usuario.nome : 'Usuário',
+      mensagem,
+    });
+    return res.status(201).json({ mensagem: 'Mensagem enviada' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 module.exports = router;

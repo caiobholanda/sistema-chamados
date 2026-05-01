@@ -1,6 +1,31 @@
 let adminInfo = null;
 let chamadoAtual = null;
 let abaAtiva = 'abertos';
+let _chatAdminIv = null;
+
+async function _atualizarChatAdmin(chamadoId) {
+  const box = document.getElementById('chat-modal-msgs');
+  if (!box) return;
+  const atFundo = box.scrollTop + box.clientHeight >= box.scrollHeight - 6;
+  const anterior = +(box.dataset.cnt || 0);
+  try {
+    const r = await api('/api/admin/chamados/' + chamadoId + '/mensagens');
+    if (!r.ok) return;
+    const msgs = await r.json();
+    box.dataset.cnt = msgs.length;
+    if (!msgs.length) {
+      if (!box.querySelector('.chat-msg'))
+        box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem trocada ainda.</div>';
+      return;
+    }
+    box.innerHTML = msgs.map(m => `
+      <div class="chat-msg ${m.autor_tipo}">
+        <div class="chat-msg-bubble">${m.mensagem}</div>
+        <div class="chat-msg-meta">${m.autor_nome} · ${fmtData(m.criado_em)}</div>
+      </div>`).join('');
+    if (atFundo || anterior < msgs.length) box.scrollTop = box.scrollHeight;
+  } catch {}
+}
 
 const STATUS_ABERTOS = ['aberto', 'em_andamento'];
 const STATUS_ENCERRADOS = ['concluido', 'encerrado'];
@@ -218,6 +243,7 @@ async function abrirModal(id) {
 }
 
 function fecharModal() {
+  if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
   document.getElementById('modal-overlay').classList.remove('open');
   chamadoAtual = null;
   carregarChamados();
@@ -312,6 +338,21 @@ function renderModalBody(c) {
         </div>
         <button class="btn btn-danger btn-sm" id="btn-confirmar-encerrar">Confirmar encerramento</button>
       </div>
+
+      ${['aberto', 'em_andamento'].includes(c.status) ? `
+      <div>
+        <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.55rem">Conversa com o usuário</div>
+        <div class="chat-wrap">
+          <div class="chat-header">Chat em tempo real</div>
+          <div class="chat-messages" id="chat-modal-msgs" data-cnt="0">
+            <div class="chat-vazio">Carregando...</div>
+          </div>
+          <form class="chat-input-row" id="chat-modal-form">
+            <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
+            <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+          </form>
+        </div>
+      </div>` : ''}
 
       <hr>
       <details>
@@ -420,6 +461,29 @@ function setupModalEventos(c) {
       const r = await api(`/api/admin/chamados/${c.id}`, { method: 'DELETE' });
       const d = await r.json();
       if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
+    });
+  }
+
+  const chatForm = document.getElementById('chat-modal-form');
+  if (chatForm) {
+    _atualizarChatAdmin(c.id);
+    _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 10000);
+
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('chat-modal-input');
+      const texto = input.value.trim();
+      if (!texto) return;
+      const btn = chatForm.querySelector('button');
+      btn.disabled = true;
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/mensagens`, {
+          method: 'POST',
+          body: JSON.stringify({ mensagem: texto }),
+        });
+        if (r.ok) { input.value = ''; await _atualizarChatAdmin(c.id); }
+      } catch {}
+      finally { btn.disabled = false; input.focus(); }
     });
   }
 }

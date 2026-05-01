@@ -67,6 +67,16 @@ function initDb() {
       valor_novo TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS mensagens_chamado (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id),
+      autor_tipo TEXT NOT NULL CHECK(autor_tipo IN ('usuario','admin')),
+      autor_id INTEGER,
+      autor_nome TEXT NOT NULL,
+      mensagem TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Migrações de colunas em bancos existentes
@@ -115,9 +125,24 @@ function inserirChamado(dados) {
 function deletarChamado(id) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
+  db.prepare('DELETE FROM mensagens_chamado WHERE chamado_id = ?').run(id);
   db.prepare('DELETE FROM historico_chamados WHERE chamado_id = ?').run(id);
   db.prepare('DELETE FROM chamados WHERE id = ?').run(id);
   return chamado;
+}
+
+function listarMensagensChamado(chamadoId) {
+  return getDb().prepare(
+    'SELECT * FROM mensagens_chamado WHERE chamado_id = ? ORDER BY criado_em ASC'
+  ).all(chamadoId);
+}
+
+function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem }) {
+  const result = getDb().prepare(`
+    INSERT INTO mensagens_chamado (chamado_id, autor_tipo, autor_id, autor_nome, mensagem)
+    VALUES (@chamado_id, @autor_tipo, @autor_id, @autor_nome, @mensagem)
+  `).run({ chamado_id, autor_tipo, autor_id: autor_id || null, autor_nome, mensagem });
+  return result.lastInsertRowid;
 }
 
 function buscarChamadoPorId(id) {
@@ -455,4 +480,6 @@ module.exports = {
   deletarAdmin,
   relatorioMes,
   exportarCsvMes,
+  listarMensagensChamado,
+  criarMensagem,
 };

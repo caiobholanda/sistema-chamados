@@ -126,6 +126,45 @@ router.delete('/chamados/:id', requireMaster, (req, res) => {
   }
 });
 
+// GET /api/admin/chamados/:id/mensagens
+router.get('/chamados/:id/mensagens', requireAdmin, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    return res.json(db.listarMensagensChamado(chamado.id));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+// POST /api/admin/chamados/:id/mensagens
+router.post('/chamados/:id/mensagens', requireAdmin, async (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
+      return res.status(400).json({ erro: 'Chamado encerrado — não é possível enviar mensagens' });
+    }
+    const mensagem = sanitizarTexto(req.body.mensagem || '');
+    if (!mensagem || mensagem.length < 1 || mensagem.length > 1000) {
+      return res.status(400).json({ erro: 'Mensagem deve ter entre 1 e 1000 caracteres' });
+    }
+    const admin = db.buscarAdminPorId(req.admin.sub);
+    db.criarMensagem({
+      chamado_id: chamado.id,
+      autor_tipo: 'admin',
+      autor_id: req.admin.sub,
+      autor_nome: admin ? admin.nome_completo : 'Suporte',
+      mensagem,
+    });
+    return res.status(201).json({ mensagem: 'Mensagem enviada' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 // GET /api/admin/chamados/:id
 router.get('/chamados/:id', requireAdmin, (req, res) => {
   try {
