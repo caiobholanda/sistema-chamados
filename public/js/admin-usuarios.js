@@ -204,13 +204,14 @@ document.getElementById('form-usuario').addEventListener('submit', async (e) => 
 
   try {
     const r = await api('/api/admin/portal-usuarios', { method: 'POST', body: JSON.stringify(body) });
-    const d = await r.json();
+    let d;
+    try { d = await r.json(); } catch { d = { erro: `Erro ${r.status} — reinicie o servidor.` }; }
     if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
     fecharModalUsuario();
     await carregarUsuarios();
     msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
   } catch (err) {
-    if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
+    if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro de conexão. Verifique se o servidor está rodando.</div>';
   } finally {
     btn.disabled = false;
   }
