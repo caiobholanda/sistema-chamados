@@ -215,14 +215,24 @@ function renderChamadoItem(c) {
     <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}" data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
       <div class="chamado-item-header">
         <span class="chamado-id">#${c.id}</span>
-        ${badgePrio(c.prioridade)}
         ${badgeStatus(c.status)}
-        ${c.admin_nome ? `<span class="tag">${c.admin_nome}</span>` : ''}
+        ${badgePrio(c.prioridade)}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
       </div>
       <div class="chamado-nome">${c.nome}</div>
-      <div class="chamado-meta">${c.setor} · Ramal ${c.ramal}${c.prazo ? ' · <strong>Prazo:</strong> ' + fmtData(c.prazo) : ''}</div>
       <div class="chamado-desc">${c.descricao}</div>
+      <div class="chamado-item-footer">
+        <span class="chamado-footer-meta">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          ${c.setor}
+        </span>
+        <span class="chamado-footer-meta">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Ramal ${c.ramal}
+        </span>
+        ${c.prazo ? `<span class="chamado-footer-prazo"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Prazo: ${fmtData(c.prazo)}</span>` : ''}
+        ${c.admin_nome ? `<span class="tag">${c.admin_nome}</span>` : ''}
+      </div>
     </div>
   `;
 }
@@ -251,15 +261,16 @@ function fecharModal() {
 }
 
 function renderModalBody(c) {
-  const historicoPrazos = (c.historico || []).filter(h => h.acao === 'prazo_alterado');
-  const bannerPrazo = historicoPrazos.length > 0
-    ? `<div class="banner-prazo"><strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último: ${fmtData(historicoPrazos[historicoPrazos.length-1].timestamp)} por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'} — de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
-    : '';
-
+  const isAberto = ['aberto', 'em_andamento'].includes(c.status);
   const podeAssumir  = c.status === 'aberto';
   const podeConcluir = c.status === 'em_andamento';
-  const podeEncerrar = ['aberto', 'em_andamento'].includes(c.status);
+  const podeEncerrar = isAberto;
   const podeReabrir  = ['concluido', 'encerrado'].includes(c.status);
+
+  const historicoPrazos = (c.historico || []).filter(h => h.acao === 'prazo_alterado');
+  const bannerPrazo = historicoPrazos.length > 0
+    ? `<div class="banner-prazo"><strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'}: de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
+    : '';
 
   const historicoHtml = c.historico && c.historico.length > 0
     ? c.historico.map(h => `
@@ -268,80 +279,107 @@ function renderModalBody(c) {
           ${h.valor_anterior !== null ? ` <span class="text-muted">de "${h.valor_anterior || '—'}"</span>` : ''}
           ${h.valor_novo !== null ? ` <span class="text-muted">para "${h.valor_novo || '—'}"</span>` : ''}
           <div class="historico-meta">${h.admin_nome || 'Sistema'} · ${fmtData(h.timestamp)}</div>
-        </div>
-      `).join('')
+        </div>`).join('')
     : '<p class="text-muted" style="font-size:.85rem">Sem histórico.</p>';
 
+  document.getElementById('modal-title').innerHTML = `Chamado #${c.id} ${badgeStatus(c.status)}`;
+
   document.getElementById('modal-body').innerHTML = `
-    <div style="display:grid;gap:.85rem">
+    <div style="display:grid;gap:1rem">
+
       ${bannerPrazo}
-      <div class="flex gap-1 flex-wrap">
-        ${badgeStatus(c.status)} ${badgePrio(c.prioridade)}
-        ${c.admin_nome ? `<span class="tag">Responsável: ${c.admin_nome}</span>` : ''}
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.88rem">
-        <div><span class="text-muted">Solicitante</span><br><strong>${c.nome}</strong></div>
-        <div><span class="text-muted">Setor / Ramal</span><br>${c.setor} / ${c.ramal}</div>
-        <div><span class="text-muted">Aberto em</span><br>${fmtData(c.criado_em)}</div>
-        <div><span class="text-muted">Atualizado em</span><br>${fmtData(c.atualizado_em)}</div>
-        ${c.prazo ? `<div><span class="text-muted">Prazo</span><br><strong>${fmtData(c.prazo)}</strong></div>` : ''}
-        ${c.concluido_em ? `<div><span class="text-muted">Concluído em</span><br>${fmtData(c.concluido_em)}</div>` : ''}
-      </div>
-      <div><span class="text-muted" style="font-size:.78rem">Descrição</span><br>${c.descricao}</div>
-      ${c.anexo_nome_original ? `<div><a href="/api/chamados/${c.id}/anexo" class="btn btn-secondary btn-sm" download>Baixar anexo: ${c.anexo_nome_original}</a></div>` : ''}
-      ${c.solucao ? `<div><span class="text-muted" style="font-size:.78rem">Solução / Motivo</span><br>${c.solucao}</div>` : ''}
-      ${c.nota !== null ? `<div class="alert alert-success" style="margin:0"><strong>Avaliação do usuário:</strong> ${c.nota}/10${c.comentario_avaliacao ? ' — '+c.comentario_avaliacao : ''}</div>` : ''}
 
-      <hr>
-      <div id="msg-modal"></div>
-
-      <div class="form-group" style="margin-bottom:.5rem">
-        <label for="sel-prioridade">Prioridade</label>
-        <select class="form-control" id="sel-prioridade">
-          <option value="">Sem prioridade</option>
-          <option value="baixa" ${c.prioridade==='baixa'?'selected':''}>Baixa</option>
-          <option value="media" ${c.prioridade==='media'?'selected':''}>Média</option>
-          <option value="alta" ${c.prioridade==='alta'?'selected':''}>Alta</option>
-          <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
-        </select>
-      </div>
-      <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar prioridade</button>
-
-      <div class="form-group mt-2" style="margin-bottom:.5rem">
-        <label for="input-prazo">Prazo (data e hora)</label>
-        <input class="form-control" type="datetime-local" id="input-prazo" value="${c.prazo ? c.prazo.replace(' ','T').slice(0,16) : ''}">
-      </div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar prazo</button>
-        ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo">Remover prazo</button>` : ''}
-      </div>
-
-      <div class="modal-footer" style="margin-top:0;padding-top:0;border:none;flex-wrap:wrap">
-        ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir">Assumir chamado</button>` : ''}
-        ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir">Concluir</button>` : ''}
-        ${podeEncerrar ? `<button class="btn btn-danger btn-sm"  id="btn-encerrar">Encerrar</button>` : ''}
-        ${podeReabrir  ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir">Reabrir</button>` : ''}
-        ${adminInfo && adminInfo.is_master ? `<button class="btn btn-danger btn-sm" id="btn-deletar" style="margin-left:auto">Excluir</button>` : ''}
-      </div>
-
-      <div id="area-concluir" style="display:none">
-        <div class="form-group">
-          <label for="txt-solucao">Solução aplicada <span class="req">*</span></label>
-          <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" placeholder="Descreva a solução..."></textarea>
-        </div>
-        <button class="btn btn-success btn-sm" id="btn-confirmar-concluir">Confirmar conclusão</button>
-      </div>
-      <div id="area-encerrar" style="display:none">
-        <div class="form-group">
-          <label for="txt-motivo">Motivo do encerramento <span class="req">*</span></label>
-          <textarea class="form-control" id="txt-motivo" minlength="3" maxlength="500" placeholder="Informe o motivo..."></textarea>
-        </div>
-        <button class="btn btn-danger btn-sm" id="btn-confirmar-encerrar">Confirmar encerramento</button>
-      </div>
-
-      ${['aberto', 'em_andamento'].includes(c.status) ? `
+      <!-- ① Informações do chamado -->
       <div>
-        <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.55rem">Conversa com o usuário</div>
+        <div class="modal-solicitante-row">
+          <div>
+            <div class="modal-solicitante-name">${c.nome}</div>
+            <div class="modal-solicitante-meta">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              ${c.setor}
+              <span style="color:var(--border-strong)">·</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              Ramal ${c.ramal}
+            </div>
+          </div>
+          <div class="modal-title-badges">
+            ${badgePrio(c.prioridade)}
+            ${c.admin_nome ? `<span class="tag">👤 ${c.admin_nome}</span>` : ''}
+          </div>
+        </div>
+        <div class="modal-info-grid-3">
+          <div><span class="modal-info-label">Aberto em</span>${fmtData(c.criado_em)}</div>
+          <div><span class="modal-info-label">${c.prazo ? 'Prazo' : 'Atualizado em'}</span>${c.prazo ? `<strong style="color:var(--gold-dark)">${fmtData(c.prazo)}</strong>` : fmtData(c.atualizado_em)}</div>
+          ${c.concluido_em ? `<div><span class="modal-info-label">Concluído em</span>${fmtData(c.concluido_em)}</div>` : '<div></div>'}
+        </div>
+        <div class="modal-desc">${c.descricao}</div>
+        ${c.anexo_nome_original ? `
+          <a href="/api/chamados/${c.id}/anexo" class="btn btn-secondary btn-sm" download style="margin-top:.55rem;display:inline-flex;align-items:center;gap:.35rem">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            ${c.anexo_nome_original}
+          </a>` : ''}
+        ${c.solucao ? `
+          <div style="margin-top:.6rem;background:rgba(21,128,61,.06);border-left:3px solid var(--success);border-radius:var(--radius-sm);padding:.5rem .8rem;font-size:.83rem;color:#166534">
+            <strong>Solução / Motivo:</strong> ${c.solucao}
+          </div>` : ''}
+        ${c.nota !== null ? `
+          <div class="alert alert-success" style="margin:.55rem 0 0;font-size:.83rem">
+            <strong>Avaliação:</strong> ${c.nota}/10${c.comentario_avaliacao ? ' — ' + c.comentario_avaliacao : ''}
+          </div>` : ''}
+      </div>
+
+      <!-- ② Ações -->
+      <div class="modal-controls-card">
+        <div class="modal-section-label">${isAberto ? 'Ações' : 'Gerenciar'}</div>
+        <div id="msg-modal"></div>
+        ${isAberto ? `
+          <div class="modal-controls-row">
+            <span class="modal-ctrl-label">Prioridade</span>
+            <select class="form-control form-control-sm" id="sel-prioridade" style="flex:1;max-width:155px">
+              <option value="">Sem prioridade</option>
+              <option value="baixa"   ${c.prioridade==='baixa'  ?'selected':''}>Baixa</option>
+              <option value="media"   ${c.prioridade==='media'  ?'selected':''}>Média</option>
+              <option value="alta"    ${c.prioridade==='alta'   ?'selected':''}>Alta</option>
+              <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar</button>
+          </div>
+          <div class="modal-controls-row">
+            <span class="modal-ctrl-label">Prazo</span>
+            <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${c.prazo ? c.prazo.replace(' ','T').slice(0,16) : ''}" style="flex:1;max-width:195px">
+            <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
+            ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .6rem">✕</button>` : ''}
+          </div>
+          <div class="modal-action-btns">
+            ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir">Assumir chamado</button>` : ''}
+            ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir">Concluir</button>` : ''}
+            ${podeEncerrar ? `<button class="btn btn-danger  btn-sm" id="btn-encerrar">Encerrar</button>` : ''}
+          </div>
+          <div id="area-concluir" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)">
+            <div class="form-group" style="margin-bottom:.5rem">
+              <label for="txt-solucao">Solução aplicada <span class="req">*</span></label>
+              <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
+            </div>
+            <button class="btn btn-success btn-sm" id="btn-confirmar-concluir">Confirmar conclusão</button>
+          </div>
+          <div id="area-encerrar" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)">
+            <div class="form-group" style="margin-bottom:.5rem">
+              <label for="txt-motivo">Motivo do encerramento <span class="req">*</span></label>
+              <textarea class="form-control" id="txt-motivo" minlength="3" maxlength="500" rows="2" placeholder="Informe o motivo..."></textarea>
+            </div>
+            <button class="btn btn-danger btn-sm" id="btn-confirmar-encerrar">Confirmar encerramento</button>
+          </div>
+        ` : `
+          <div class="modal-closed-actions">
+            ${podeReabrir ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir">Reabrir chamado</button>` : ''}
+          </div>
+        `}
+      </div>
+
+      <!-- ③ Chat (só se aberto) -->
+      ${isAberto ? `
+      <div>
+        <div class="modal-section-label">Conversa com o usuário</div>
         <div class="chat-wrap">
           <div class="chat-header">Chat em tempo real</div>
           <div class="chat-messages" id="chat-modal-msgs" data-cnt="0">
@@ -354,11 +392,16 @@ function renderModalBody(c) {
         </div>
       </div>` : ''}
 
-      <hr>
+      <!-- ④ Histórico + excluir -->
       <details>
-        <summary style="cursor:pointer;font-size:.82rem;font-weight:600;color:var(--text-secondary);letter-spacing:.04em;text-transform:uppercase">Histórico de ações</summary>
-        <div style="margin-top:.75rem">${historicoHtml}</div>
+        <summary style="cursor:pointer;font-size:.75rem;font-weight:700;color:var(--text-secondary);letter-spacing:.05em;text-transform:uppercase;user-select:none">Histórico de ações</summary>
+        <div style="margin-top:.65rem">${historicoHtml}</div>
+        ${adminInfo && adminInfo.is_master ? `
+          <div style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)">
+            <button class="btn btn-danger btn-sm" id="btn-deletar">Excluir chamado permanentemente</button>
+          </div>` : ''}
       </details>
+
     </div>
   `;
 
@@ -369,21 +412,27 @@ function setupModalEventos(c) {
   const msg = () => document.getElementById('msg-modal');
   const setMsg = (html) => { msg().innerHTML = html; };
 
-  document.getElementById('btn-salvar-prio').addEventListener('click', async () => {
-    const prio = document.getElementById('sel-prioridade').value;
-    const r = await api(`/api/admin/chamados/${c.id}/prioridade`, { method: 'PATCH', body: JSON.stringify({ prioridade: prio || null }) });
-    const d = await r.json();
-    setMsg(r.ok ? '<div class="alert alert-success">Prioridade salva.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-    if (r.ok) { c.prioridade = prio || null; }
-  });
+  const btnSalvarPrio = document.getElementById('btn-salvar-prio');
+  if (btnSalvarPrio) {
+    btnSalvarPrio.addEventListener('click', async () => {
+      const prio = document.getElementById('sel-prioridade').value;
+      const r = await api(`/api/admin/chamados/${c.id}/prioridade`, { method: 'PATCH', body: JSON.stringify({ prioridade: prio || null }) });
+      const d = await r.json();
+      setMsg(r.ok ? '<div class="alert alert-success">Prioridade salva.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      if (r.ok) { c.prioridade = prio || null; }
+    });
+  }
 
-  document.getElementById('btn-salvar-prazo').addEventListener('click', async () => {
-    const prazo = document.getElementById('input-prazo').value;
-    const r = await api(`/api/admin/chamados/${c.id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: prazo || null }) });
-    const d = await r.json();
-    setMsg(r.ok ? '<div class="alert alert-success">Prazo atualizado.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-    if (r.ok) setTimeout(() => abrirModal(c.id), 600);
-  });
+  const btnSalvarPrazo = document.getElementById('btn-salvar-prazo');
+  if (btnSalvarPrazo) {
+    btnSalvarPrazo.addEventListener('click', async () => {
+      const prazo = document.getElementById('input-prazo').value;
+      const r = await api(`/api/admin/chamados/${c.id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: prazo || null }) });
+      const d = await r.json();
+      setMsg(r.ok ? '<div class="alert alert-success">Prazo atualizado.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+    });
+  }
 
   const btnRemoverPrazo = document.getElementById('btn-remover-prazo');
   if (btnRemoverPrazo) {

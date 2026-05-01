@@ -389,6 +389,12 @@ function renderFormChamado(usuario, container, onSuccess) {
       msg.innerHTML = '<div class="alert alert-danger">Ramal deve ter exatamente 4 dígitos.</div>';
       return;
     }
+    const descricao = document.getElementById('ch-descricao').value.trim();
+    if (descricao.length < 10) {
+      msg.innerHTML = '<div class="alert alert-danger">Por favor, descreva melhor o problema. A descrição precisa ter ao menos 10 caracteres para que o suporte entenda o que está acontecendo.</div>';
+      document.getElementById('ch-descricao').focus();
+      return;
+    }
     btn.disabled = true; btn.textContent = 'Enviando...';
     try {
       const fd = new FormData();
