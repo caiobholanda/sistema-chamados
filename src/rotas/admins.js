@@ -332,7 +332,7 @@ router.post('/portal-usuarios', requireMaster, async (req, res) => {
     const existente = db.buscarUsuarioPorEmail(email);
     if (existente) return res.status(409).json({ erro: 'E-mail já cadastrado' });
 
-    const senha_hash = await require('bcrypt').hash(senha, 12);
+    const senha_hash = await bcrypt.hash(senha, 12);
     const id = db.registrarUsuario({ nome, email, senha_hash });
     return res.status(201).json({ id, mensagem: 'Usuário criado com sucesso' });
   } catch (err) {
