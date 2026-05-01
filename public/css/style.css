@@ -1195,3 +1195,20 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .sidebar { width: 220px; flex-shrink: 0; }
 .content-area { flex: 1; min-width: 0; }
 @media(max-width:768px) { .painel-layout { flex-direction: column; } .sidebar { width: 100%; } }
+
+/* ═══════════════════════════════════════════
+   PASSWORD STRENGTH & EMAIL VALIDATOR
+═══════════════════════════════════════════ */
+.senha-forca { margin-top: .5rem; display: none; }
+.senha-forca.visivel { display: block; }
+.senha-barra { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: .55rem; }
+.senha-barra-fill { height: 100%; border-radius: 2px; width: 0; transition: width .3s ease, background .3s ease; }
+.senha-reqs { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: .2rem .75rem; }
+.senha-reqs li { font-size: .71rem; color: var(--text-muted); display: flex; align-items: center; gap: .3rem; line-height: 1.35; }
+.senha-reqs li::before { content: '○'; font-size: .65rem; flex-shrink: 0; color: var(--text-muted); }
+.senha-reqs li.ok { color: #2e7d32; }
+.senha-reqs li.ok::before { content: '●'; color: #4caf50; }
+
+.email-dominio-dica { font-size: .71rem; margin-top: .3rem; color: var(--text-muted); min-height: 1rem; }
+.email-dominio-dica.valido { color: #2e7d32; }
+.email-dominio-dica.invalido { color: #c62828; }

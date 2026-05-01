@@ -1,6 +1,84 @@
 let meAdmin = null;
 let editandoAdminId = null;
 
+const DOMINIO_EMAIL = '@granmarquise.com.br';
+
+function verificarSenha(senha) {
+  return {
+    len:     senha.length >= 8,
+    upper:   /[A-Z]/.test(senha),
+    lower:   /[a-z]/.test(senha),
+    digit:   /[0-9]/.test(senha),
+    special: /[^A-Za-z0-9]/.test(senha),
+  };
+}
+
+function senhaForte(senha) {
+  const r = verificarSenha(senha);
+  return Object.values(r).every(Boolean);
+}
+
+function atualizarForca(senhaId, forcaId, barraId, reqsId) {
+  const senha = document.getElementById(senhaId).value;
+  const forca = document.getElementById(forcaId);
+  if (!senha) { forca.classList.remove('visivel'); return; }
+  forca.classList.add('visivel');
+
+  const r = verificarSenha(senha);
+  const score = Object.values(r).filter(Boolean).length;
+  const cores = ['#e53935', '#e53935', '#fb8c00', '#fdd835', '#7cb342', '#43a047'];
+
+  const barra = document.getElementById(barraId);
+  barra.style.width = `${score * 20}%`;
+  barra.style.background = cores[score];
+
+  const reqs = document.getElementById(reqsId);
+  reqs.querySelector('[data-req="len"]').classList.toggle('ok', r.len);
+  reqs.querySelector('[data-req="upper"]').classList.toggle('ok', r.upper);
+  reqs.querySelector('[data-req="lower"]').classList.toggle('ok', r.lower);
+  reqs.querySelector('[data-req="digit"]').classList.toggle('ok', r.digit);
+  reqs.querySelector('[data-req="special"]').classList.toggle('ok', r.special);
+}
+
+function atualizarEmailDica(emailId, dicaId) {
+  const email = document.getElementById(emailId).value.trim().toLowerCase();
+  const dica = document.getElementById(dicaId);
+  if (!email) {
+    dica.className = 'email-dominio-dica';
+    dica.textContent = `Use apenas ${DOMINIO_EMAIL}`;
+    return;
+  }
+  if (email.endsWith(DOMINIO_EMAIL)) {
+    dica.className = 'email-dominio-dica valido';
+    dica.textContent = '✓ Domínio correto';
+  } else {
+    dica.className = 'email-dominio-dica invalido';
+    dica.textContent = `✗ Use apenas ${DOMINIO_EMAIL}`;
+  }
+}
+
+function resetarForca(forcaId, barraId, reqsId) {
+  const forca = document.getElementById(forcaId);
+  forca.classList.remove('visivel');
+  document.getElementById(barraId).style.width = '0';
+  document.getElementById(reqsId).querySelectorAll('li').forEach(li => li.classList.remove('ok'));
+}
+
+function resetarEmailDica(dicaId) {
+  const dica = document.getElementById(dicaId);
+  dica.className = 'email-dominio-dica';
+  dica.textContent = `Use apenas ${DOMINIO_EMAIL}`;
+}
+
+document.getElementById('f-senha').addEventListener('input', () =>
+  atualizarForca('f-senha', 'forca-admin', 'barra-admin', 'reqs-admin'));
+document.getElementById('f-email').addEventListener('input', () =>
+  atualizarEmailDica('f-email', 'dica-email-admin'));
+document.getElementById('fu-senha').addEventListener('input', () =>
+  atualizarForca('fu-senha', 'forca-usuario', 'barra-usuario', 'reqs-usuario'));
+document.getElementById('fu-email').addEventListener('input', () =>
+  atualizarEmailDica('fu-email', 'dica-email-usuario'));
+
 async function api(url, opts = {}) {
   const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
   if (res.status === 401) { location.replace('/admin-login.html'); throw new Error('401'); }
@@ -63,10 +141,23 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
   const body = {
     usuario: document.getElementById('f-usuario').value.trim(),
     nome_completo: document.getElementById('f-nome').value.trim(),
-    email: document.getElementById('f-email').value.trim(),
+    email: document.getElementById('f-email').value.trim().toLowerCase(),
     senha: document.getElementById('f-senha').value,
     is_master: document.getElementById('f-master').checked,
   };
+
+  if (!body.email.endsWith(DOMINIO_EMAIL)) {
+    msg.innerHTML = `<div class="alert alert-danger">E-mail deve terminar com ${DOMINIO_EMAIL}</div>`;
+    btn.disabled = false; return;
+  }
+  if (!editandoAdminId && !senhaForte(body.senha)) {
+    msg.innerHTML = '<div class="alert alert-danger">Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.</div>';
+    btn.disabled = false; return;
+  }
+  if (editandoAdminId && body.senha && !senhaForte(body.senha)) {
+    msg.innerHTML = '<div class="alert alert-danger">Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.</div>';
+    btn.disabled = false; return;
+  }
 
   try {
     let r;
@@ -158,6 +249,8 @@ async function abrirModalAdmin(id) {
     document.getElementById('lbl-senha-dica').textContent = '(mín. 6 caracteres)';
   }
 
+  resetarForca('forca-admin', 'barra-admin', 'reqs-admin');
+  resetarEmailDica('dica-email-admin');
   document.getElementById('modal-admin-overlay').classList.add('open');
   document.getElementById('f-usuario').focus();
 }
@@ -202,9 +295,18 @@ document.getElementById('form-usuario').addEventListener('submit', async (e) => 
 
   const body = {
     nome: document.getElementById('fu-nome').value.trim(),
-    email: document.getElementById('fu-email').value.trim(),
+    email: document.getElementById('fu-email').value.trim().toLowerCase(),
     senha: document.getElementById('fu-senha').value,
   };
+
+  if (!body.email.endsWith(DOMINIO_EMAIL)) {
+    msg.innerHTML = `<div class="alert alert-danger">E-mail deve terminar com ${DOMINIO_EMAIL}</div>`;
+    btn.disabled = false; return;
+  }
+  if (!senhaForte(body.senha)) {
+    msg.innerHTML = '<div class="alert alert-danger">Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.</div>';
+    btn.disabled = false; return;
+  }
 
   try {
     const r = await api('/api/admin/portal-usuarios', { method: 'POST', body: JSON.stringify(body) });
@@ -276,6 +378,8 @@ function abrirModalUsuario() {
   document.getElementById('fu-nome').value = '';
   document.getElementById('fu-email').value = '';
   document.getElementById('fu-senha').value = '';
+  resetarForca('forca-usuario', 'barra-usuario', 'reqs-usuario');
+  resetarEmailDica('dica-email-usuario');
   document.getElementById('modal-usuario-overlay').classList.add('open');
   document.getElementById('fu-nome').focus();
 }

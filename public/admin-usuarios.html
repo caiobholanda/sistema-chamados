@@ -80,10 +80,21 @@
         <div class="form-group">
           <label for="f-email">E-mail</label>
           <input class="form-control" type="email" id="f-email" name="email" required autocomplete="off" placeholder="joao.silva@granmarquise.com.br">
+          <div class="email-dominio-dica" id="dica-email-admin">Use apenas @granmarquise.com.br</div>
         </div>
         <div class="form-group">
-          <label for="f-senha">Senha <span id="lbl-senha-dica" class="text-muted" style="font-size:.72rem;text-transform:none;letter-spacing:0">(mín. 6 caracteres)</span></label>
-          <input class="form-control" type="password" id="f-senha" name="senha" minlength="6" autocomplete="new-password" placeholder="••••••••">
+          <label for="f-senha">Senha <span id="lbl-senha-dica" class="text-muted" style="font-size:.72rem;text-transform:none;letter-spacing:0">(mín. 8 caracteres)</span></label>
+          <input class="form-control" type="password" id="f-senha" name="senha" autocomplete="new-password" placeholder="••••••••">
+          <div class="senha-forca" id="forca-admin">
+            <div class="senha-barra"><div class="senha-barra-fill" id="barra-admin"></div></div>
+            <ul class="senha-reqs" id="reqs-admin">
+              <li data-req="len">Mínimo 8 caracteres</li>
+              <li data-req="upper">Letra maiúscula (A-Z)</li>
+              <li data-req="lower">Letra minúscula (a-z)</li>
+              <li data-req="digit">Número (0-9)</li>
+              <li data-req="special">Caractere especial (!@#$…)</li>
+            </ul>
+          </div>
         </div>
         <div class="form-group">
           <label style="display:flex;gap:.6rem;align-items:center;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.875rem;font-weight:400">
@@ -116,10 +127,21 @@
         <div class="form-group">
           <label for="fu-email">E-mail</label>
           <input class="form-control" type="email" id="fu-email" required autocomplete="off" placeholder="colaborador@granmarquise.com.br">
+          <div class="email-dominio-dica" id="dica-email-usuario">Use apenas @granmarquise.com.br</div>
         </div>
         <div class="form-group">
-          <label for="fu-senha">Senha <span class="text-muted" style="font-size:.72rem;text-transform:none;letter-spacing:0">(mín. 6 caracteres)</span></label>
-          <input class="form-control" type="password" id="fu-senha" required minlength="6" autocomplete="new-password" placeholder="••••••••">
+          <label for="fu-senha">Senha <span class="text-muted" style="font-size:.72rem;text-transform:none;letter-spacing:0">(mín. 8 caracteres)</span></label>
+          <input class="form-control" type="password" id="fu-senha" required autocomplete="new-password" placeholder="••••••••">
+          <div class="senha-forca" id="forca-usuario">
+            <div class="senha-barra"><div class="senha-barra-fill" id="barra-usuario"></div></div>
+            <ul class="senha-reqs" id="reqs-usuario">
+              <li data-req="len">Mínimo 8 caracteres</li>
+              <li data-req="upper">Letra maiúscula (A-Z)</li>
+              <li data-req="lower">Letra minúscula (a-z)</li>
+              <li data-req="digit">Número (0-9)</li>
+              <li data-req="special">Caractere especial (!@#$…)</li>
+            </ul>
+          </div>
         </div>
       </form>
     </div>
