@@ -63,6 +63,7 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
   const body = {
     usuario: document.getElementById('f-usuario').value.trim(),
     nome_completo: document.getElementById('f-nome').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
     senha: document.getElementById('f-senha').value,
     is_master: document.getElementById('f-master').checked,
   };
@@ -70,7 +71,7 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
   try {
     let r;
     if (editandoAdminId) {
-      const patch = { nome_completo: body.nome_completo, is_master: body.is_master };
+      const patch = { nome_completo: body.nome_completo, email: body.email, is_master: body.is_master };
       if (body.senha) patch.senha = body.senha;
       r = await api(`/api/admin/usuarios/${editandoAdminId}`, { method: 'PATCH', body: JSON.stringify(patch) });
     } else {
@@ -98,13 +99,14 @@ async function carregarAdmins() {
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Usuário</th><th>Nome</th><th>Tipo</th><th>Status</th><th>Criado em</th><th>Ações</th>
+              <th>Usuário</th><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Criado em</th><th>Ações</th>
             </tr></thead>
             <tbody>
               ${admins.map(a => `
                 <tr>
                   <td><code>${a.usuario}</code></td>
                   <td>${a.nome_completo}</td>
+                  <td style="font-size:.82rem">${a.email || '<span class="text-muted">—</span>'}</td>
                   <td>${a.is_master ? '<span class="badge badge-urgente">Master</span>' : 'Admin'}</td>
                   <td>${a.ativo ? '<span class="badge badge-concluido">Ativo</span>' : '<span class="badge badge-encerrado">Inativo</span>'}</td>
                   <td style="font-size:.8rem">${new Date(a.criado_em).toLocaleDateString('pt-BR')}</td>
@@ -132,6 +134,7 @@ async function abrirModalAdmin(id) {
   editandoAdminId = id;
   document.getElementById('msg-modal-admin').innerHTML = '';
   document.getElementById('f-senha').value = '';
+  document.getElementById('f-email').value = '';
   document.getElementById('f-master').checked = false;
 
   if (id) {
@@ -144,6 +147,7 @@ async function abrirModalAdmin(id) {
     if (admin) {
       document.getElementById('f-usuario').value = admin.usuario;
       document.getElementById('f-nome').value = admin.nome_completo;
+      document.getElementById('f-email').value = admin.email || '';
       document.getElementById('f-master').checked = !!admin.is_master;
     }
   } else {

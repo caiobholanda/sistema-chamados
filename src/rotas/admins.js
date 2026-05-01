@@ -243,19 +243,22 @@ router.get('/usuarios', requireMaster, (req, res) => {
 // POST /api/admin/usuarios
 router.post('/usuarios', requireMaster, async (req, res) => {
   try {
-    let { usuario, nome_completo, senha, is_master } = req.body;
+    let { usuario, nome_completo, email, senha, is_master } = req.body;
     usuario = (usuario || '').trim();
     nome_completo = sanitizarTexto(nome_completo || '');
+    email = (email || '').trim().toLowerCase();
     senha = (senha || '').trim();
 
     if (!usuario || usuario.length < 3) return res.status(400).json({ erro: 'Usuário deve ter ao menos 3 caracteres' });
     if (!nome_completo || nome_completo.length < 2) return res.status(400).json({ erro: 'Nome completo obrigatório' });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ erro: 'E-mail inválido' });
     if (!senha || senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
     const id = db.criarAdmin({
       usuario,
       nome_completo,
+      email,
       senha_hash,
       is_master: is_master ? 1 : 0,
     });
@@ -277,6 +280,11 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
 
     const dados = {};
     if (req.body.nome_completo !== undefined) dados.nome_completo = sanitizarTexto(req.body.nome_completo);
+    if (req.body.email !== undefined) {
+      const email = (req.body.email || '').trim().toLowerCase();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ erro: 'E-mail inválido' });
+      dados.email = email || null;
+    }
     if (req.body.ativo !== undefined) dados.ativo = req.body.ativo ? 1 : 0;
     if (req.body.senha) {
       if (req.body.senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres' });
