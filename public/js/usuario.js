@@ -155,18 +155,19 @@ function renderPainel(usuario) {
     <div class="painel-usuario">
       <div class="painel-header">
         <div>
-          <div class="painel-saudacao">Bem-vindo, <strong>${usuario.nome}</strong></div>
+          <div class="painel-saudacao">Bem-vindo ao Portal de TI</div>
+          <div class="painel-nome">${usuario.nome}</div>
           <div class="painel-email">${usuario.email}</div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
           <button class="btn btn-primary btn-sm" id="btn-novo-chamado">Abrir chamado</button>
-          <button class="btn btn-secondary btn-sm" id="btn-logout-usuario">Sair</button>
+          <button class="btn btn-ghost btn-sm" id="btn-logout-usuario">Sair</button>
         </div>
       </div>
 
       <div id="area-form-chamado" style="display:none"></div>
 
-      <div class="tabs-bar" style="margin-top:1.5rem">
+      <div class="tabs-bar">
         <button class="tab-btn ativo" id="tab-abertos">Em Aberto <span class="tab-badge" id="badge-abertos-u"></span></button>
         <button class="tab-btn" id="tab-encerrados">Encerrados <span class="tab-badge" id="badge-encerrados-u"></span></button>
       </div>
@@ -321,11 +322,11 @@ function renderCardChamado(c) {
         </div>
         <span class="text-muted" style="font-size:.76rem">${fmtData(c.criado_em)}</span>
       </div>
-      <div class="chamado-card-setor">${c.setor} · Ramal ${c.ramal}</div>
+      <div class="chamado-card-setor">${c.setor} <span style="color:var(--text-muted);font-family:Inter,sans-serif;font-size:.8rem;font-weight:400">· Ramal ${c.ramal}</span></div>
       <div class="chamado-card-desc">${c.descricao}</div>
-      ${c.admin_nome ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.35rem">Responsável: ${c.admin_nome}</div>` : ''}
+      ${c.admin_nome ? `<div style="font-size:.75rem;color:var(--gold-dark);font-weight:600;margin-top:.4rem;letter-spacing:.02em">Responsável: <span style="color:var(--text-secondary);font-weight:400">${c.admin_nome}</span></div>` : ''}
+      ${c.prazo ? `<div style="font-size:.74rem;color:var(--text-muted);margin-top:.2rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
       ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${c.solucao}</div>` : ''}
-      ${c.prazo ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
       ${avaliacaoHtml()}
     </div>
   `;
@@ -333,9 +334,9 @@ function renderCardChamado(c) {
 
 function renderFormChamado(usuario, container, onSuccess) {
   container.innerHTML = `
-    <div class="card" style="margin-top:1rem;border-left:3px solid var(--gold)">
-      <div class="card-header">
-        <div class="card-title">Novo Chamado</div>
+    <div class="card" style="margin-top:1rem;border-top:2px solid var(--gold);border-left:none">
+      <div class="card-header" style="border-bottom-color:rgba(197,165,90,.18)">
+        <div class="card-title" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.05rem;letter-spacing:.01em">Novo Chamado</div>
       </div>
       <div id="msg-form-chamado"></div>
       <form id="form-chamado-usuario" novalidate>
