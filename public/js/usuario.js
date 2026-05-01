@@ -15,7 +15,6 @@ async function apiFetch(url, opts = {}) {
   return fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
 }
 
-// ── Init: verificar sessão ─────────────────────────────────────
 (async () => {
   const r = await apiFetch('/api/usuarios/me');
   if (r.ok) {
@@ -26,69 +25,62 @@ async function apiFetch(url, opts = {}) {
   }
 })();
 
-// ── Auth: Login / Cadastro ─────────────────────────────────────
 function renderAuth(abaInicial = 'login') {
+  const header = document.querySelector('header');
+  if (header) header.style.display = 'none';
+  document.body.classList.add('auth-mode');
+
   app.innerHTML = `
     <div class="auth-page">
 
-      <!-- Painel esquerdo -->
-      <div class="auth-left">
-        <div class="auth-left-logo">🏨</div>
-        <h2>Portal de Chamados de TI</h2>
-        <p>Abra, acompanhe e avalie seus chamados com o setor de tecnologia do Hotel Fortaleza.</p>
-        <div class="auth-left-features">
-          <div class="auth-feature"><div class="auth-feature-dot">📋</div> Abra chamados a qualquer momento</div>
-          <div class="auth-feature"><div class="auth-feature-dot">🔔</div> Acompanhe o status em tempo real</div>
-          <div class="auth-feature"><div class="auth-feature-dot">⭐</div> Avalie a qualidade do atendimento</div>
-        </div>
+      <div class="auth-brand">
+        <div class="auth-brand-monogram">GM</div>
+        <div class="auth-brand-name">Gran Marquise</div>
+        <div class="auth-brand-sub">Portal de Chamados de TI</div>
+        <p class="auth-brand-desc">Registre e acompanhe suas solicitações ao setor de<br>Tecnologia da Informação do Hotel Gran Marquise.</p>
       </div>
 
-      <!-- Formulário -->
-      <div class="auth-right">
-        <div class="auth-card">
-          <div class="tabs-bar" style="margin-bottom:1.75rem">
-            <button class="tab-btn ${abaInicial === 'login' ? 'ativo' : ''}" id="tab-login">Entrar</button>
-            <button class="tab-btn ${abaInicial === 'cadastro' ? 'ativo' : ''}" id="tab-cadastro">Criar conta</button>
-          </div>
-
-          <div id="msg-auth"></div>
-
-          <!-- Login -->
-          <form id="form-login" style="display:${abaInicial === 'login' ? 'block' : 'none'}">
-            <div class="form-group">
-              <label for="login-email">E-mail</label>
-              <input class="form-control" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" required>
-            </div>
-            <div class="form-group">
-              <label for="login-senha">Senha</label>
-              <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required placeholder="••••••••">
-            </div>
-            <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
-            <p style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--text-muted)">
-              Não tem conta? <button type="button" id="ir-cadastro" style="background:none;border:none;color:var(--primary);cursor:pointer;font-weight:600;font-size:.8rem">Criar conta</button>
-            </p>
-          </form>
-
-          <!-- Cadastro -->
-          <form id="form-cadastro" style="display:${abaInicial === 'cadastro' ? 'block' : 'none'}">
-            <div class="form-group">
-              <label for="cad-nome">Nome completo <span class="req">*</span></label>
-              <input class="form-control" type="text" id="cad-nome" placeholder="Seu nome completo" minlength="2" maxlength="80" required>
-            </div>
-            <div class="form-group">
-              <label for="cad-email">E-mail <span class="req">*</span></label>
-              <input class="form-control" type="email" id="cad-email" placeholder="seu@email.com" autocomplete="email" required>
-            </div>
-            <div class="form-group">
-              <label for="cad-senha">Senha <span class="req">*</span></label>
-              <input class="form-control" type="password" id="cad-senha" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Criar conta</button>
-            <p style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--text-muted)">
-              Já tem conta? <button type="button" id="ir-login" style="background:none;border:none;color:var(--primary);cursor:pointer;font-weight:600;font-size:.8rem">Entrar</button>
-            </p>
-          </form>
+      <div class="auth-card">
+        <div class="tabs-bar" style="margin-bottom:1.75rem">
+          <button class="tab-btn ${abaInicial === 'login' ? 'ativo' : ''}" id="tab-login">Entrar</button>
+          <button class="tab-btn ${abaInicial === 'cadastro' ? 'ativo' : ''}" id="tab-cadastro">Criar conta</button>
         </div>
+
+        <div id="msg-auth"></div>
+
+        <form id="form-login" style="display:${abaInicial === 'login' ? 'block' : 'none'}">
+          <div class="form-group">
+            <label for="login-email">E-mail</label>
+            <input class="form-control" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label for="login-senha">Senha</label>
+            <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
+          <p style="text-align:center;margin-top:1rem;font-size:.78rem;color:var(--text-muted)">
+            Não tem conta? <button type="button" id="ir-cadastro" style="background:none;border:none;color:var(--gold-dark);cursor:pointer;font-weight:600;font-size:.78rem">Criar conta</button>
+          </p>
+        </form>
+
+        <form id="form-cadastro" style="display:${abaInicial === 'cadastro' ? 'block' : 'none'}">
+          <div class="form-group">
+            <label for="cad-nome">Nome completo <span class="req">*</span></label>
+            <input class="form-control" type="text" id="cad-nome" placeholder="Seu nome completo" minlength="2" maxlength="80" required>
+          </div>
+          <div class="form-group">
+            <label for="cad-email">E-mail <span class="req">*</span></label>
+            <input class="form-control" type="email" id="cad-email" placeholder="seu@email.com" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label for="cad-senha">Senha <span class="req">*</span></label>
+            <input class="form-control" type="password" id="cad-senha" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Criar conta</button>
+          <p style="text-align:center;margin-top:1rem;font-size:.78rem;color:var(--text-muted)">
+            Já tem conta? <button type="button" id="ir-login" style="background:none;border:none;color:var(--gold-dark);cursor:pointer;font-weight:600;font-size:.78rem">Entrar</button>
+          </p>
+        </form>
       </div>
 
     </div>
@@ -155,17 +147,19 @@ function renderAuth(abaInicial = 'login') {
   });
 }
 
-// ── Painel do usuário ──────────────────────────────────────────
 function renderPainel(usuario) {
+  const header = document.querySelector('header');
+  if (header) header.style.display = '';
+  document.body.classList.remove('auth-mode');
   app.innerHTML = `
     <div class="painel-usuario">
       <div class="painel-header">
         <div>
-          <div class="painel-saudacao">Olá, <strong>${usuario.nome}</strong> 👋</div>
-          <div class="text-muted" style="font-size:.82rem">${usuario.email}</div>
+          <div class="painel-saudacao">Bem-vindo, <strong>${usuario.nome}</strong></div>
+          <div class="painel-email">${usuario.email}</div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-primary btn-sm" id="btn-novo-chamado">+ Abrir chamado</button>
+          <button class="btn btn-primary btn-sm" id="btn-novo-chamado">Abrir chamado</button>
           <button class="btn btn-secondary btn-sm" id="btn-logout-usuario">Sair</button>
         </div>
       </div>
@@ -173,8 +167,8 @@ function renderPainel(usuario) {
       <div id="area-form-chamado" style="display:none"></div>
 
       <div class="tabs-bar" style="margin-top:1.5rem">
-        <button class="tab-btn ativo" id="tab-abertos">📋 Em Aberto <span class="tab-badge" id="badge-abertos-u"></span></button>
-        <button class="tab-btn" id="tab-encerrados">✅ Encerrados <span class="tab-badge" id="badge-encerrados-u"></span></button>
+        <button class="tab-btn ativo" id="tab-abertos">Em Aberto <span class="tab-badge" id="badge-abertos-u"></span></button>
+        <button class="tab-btn" id="tab-encerrados">Encerrados <span class="tab-badge" id="badge-encerrados-u"></span></button>
       </div>
 
       <div class="filtros-card">
@@ -245,7 +239,15 @@ function renderPainel(usuario) {
 
     if (!filtrados.length) {
       const msg = aba === 'abertos' ? 'Nenhum chamado em aberto.' : 'Nenhum chamado encerrado ainda.';
-      lista.innerHTML = `<div class="empty-state"><div class="empty-icon">${aba === 'abertos' ? '📭' : '✅'}</div><p>${msg}</p></div>`;
+      lista.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>
+            </svg>
+          </div>
+          <p>${msg}</p>
+        </div>`;
       return;
     }
 
@@ -291,12 +293,12 @@ function renderCardChamado(c) {
     if (c.status !== 'concluido') return '';
     if (c.nota !== null) {
       return `<div class="alert alert-success" style="margin-top:.75rem;margin-bottom:0;font-size:.85rem">
-        ⭐ <strong>Sua avaliação:</strong> ${c.nota}/10${c.comentario_avaliacao ? ` — <em>${c.comentario_avaliacao}</em>` : ''}
+        <strong>Sua avaliação:</strong> ${c.nota}/10${c.comentario_avaliacao ? ` — <em>${c.comentario_avaliacao}</em>` : ''}
       </div>`;
     }
     return `
       <div class="avaliacao-box">
-        <p style="font-size:.85rem;font-weight:600;margin-bottom:.5rem">Avalie o atendimento:</p>
+        <p style="font-size:.82rem;font-weight:600;margin-bottom:.5rem;color:var(--text)">Avalie o atendimento:</p>
         <div id="msg-av-${c.id}"></div>
         <form id="form-avaliacao-${c.id}">
           <div class="stars" style="margin-bottom:.5rem">
@@ -317,13 +319,13 @@ function renderCardChamado(c) {
           ${badgeStatus(c.status)}
           ${c.prioridade ? `<span class="badge badge-${c.prioridade}">${c.prioridade.charAt(0).toUpperCase()+c.prioridade.slice(1)}</span>` : ''}
         </div>
-        <span class="text-muted" style="font-size:.78rem">${fmtData(c.criado_em)}</span>
+        <span class="text-muted" style="font-size:.76rem">${fmtData(c.criado_em)}</span>
       </div>
       <div class="chamado-card-setor">${c.setor} · Ramal ${c.ramal}</div>
       <div class="chamado-card-desc">${c.descricao}</div>
-      ${c.admin_nome ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.35rem">👤 Responsável: ${c.admin_nome}</div>` : ''}
+      ${c.admin_nome ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.35rem">Responsável: ${c.admin_nome}</div>` : ''}
       ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${c.solucao}</div>` : ''}
-      ${c.prazo ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.25rem">⏰ Prazo: ${fmtData(c.prazo)}</div>` : ''}
+      ${c.prazo ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
       ${avaliacaoHtml()}
     </div>
   `;
@@ -331,8 +333,10 @@ function renderCardChamado(c) {
 
 function renderFormChamado(usuario, container, onSuccess) {
   container.innerHTML = `
-    <div class="card" style="margin-top:1rem;border-left:4px solid var(--primary)">
-      <h3 style="margin-bottom:1rem;font-size:1rem">Novo Chamado</h3>
+    <div class="card" style="margin-top:1rem;border-left:3px solid var(--gold)">
+      <div class="card-header">
+        <div class="card-title">Novo Chamado</div>
+      </div>
       <div id="msg-form-chamado"></div>
       <form id="form-chamado-usuario" novalidate>
         <div class="form-row">

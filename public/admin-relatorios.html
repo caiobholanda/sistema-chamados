@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Relatórios — TI Hotel</title>
+  <title>Relatórios — Gran Marquise TI</title>
   <link rel="stylesheet" href="/css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <header>
   <div class="header-brand">
-    <div class="header-logo-box">🏨</div>
+    <div class="header-logo-box">
+      <span class="header-monogram">GM</span>
+    </div>
     <div class="header-brand-text">
-      <div class="header-brand-name">Hotel Fortaleza</div>
-      <div class="header-brand-sub">Sistema de TI</div>
+      <div class="header-brand-name">Gran Marquise</div>
+      <div class="header-brand-sub">Suporte de TI</div>
     </div>
   </div>
   <div class="header-divider"></div>
@@ -21,7 +23,7 @@
     <a href="/admin-painel.html">Chamados</a>
     <a href="/admin-relatorios.html" class="ativo">Relatórios</a>
     <span id="nav-usuarios-wrap"></span>
-    <button id="btn-logout" class="btn btn-ghost btn-sm" style="margin-left:.5rem;color:rgba(255,255,255,.6)">Sair</button>
+    <button id="btn-logout" class="btn btn-ghost btn-sm" style="margin-left:.5rem">Sair</button>
   </nav>
 </header>
 
@@ -32,7 +34,7 @@
       <div class="page-subtitle">Indicadores de desempenho do suporte técnico</div>
     </div>
     <div class="flex gap-1 flex-wrap" style="align-items:center">
-      <label for="sel-mes" style="font-size:.8rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em">Mês</label>
+      <label for="sel-mes" style="font-size:.68rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em">Período</label>
       <input type="month" class="form-control" id="sel-mes" style="width:auto">
       <button class="btn btn-primary btn-sm" id="btn-carregar">Carregar</button>
     </div>

@@ -27,7 +27,6 @@ async function api(url, opts = {}) {
   return res;
 }
 
-// ── Init ──────────────────────────────────────────────────────
 (async () => {
   try {
     const r = await api('/api/admin/me');
@@ -45,7 +44,6 @@ async function api(url, opts = {}) {
   } catch {}
 })();
 
-// ── Abas ──────────────────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
@@ -74,7 +72,6 @@ function atualizarFiltrosDeAba() {
   }
 }
 
-// ── Estatísticas ──────────────────────────────────────────────
 async function carregarEstatisticas() {
   try {
     const r = await api('/api/admin/chamados?limit=9999');
@@ -166,7 +163,15 @@ async function carregarChamados() {
       const msg = abaAtiva === 'abertos'
         ? 'Nenhum chamado em aberto no momento.'
         : 'Nenhum chamado encerrado encontrado.';
-      lista.innerHTML = `<div class="empty-state"><div class="empty-icon">${abaAtiva === 'abertos' ? '📭' : '✅'}</div><p>${msg}</p></div>`;
+      lista.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>
+            </svg>
+          </div>
+          <p>${msg}</p>
+        </div>`;
       return;
     }
     lista.innerHTML = chamados.map(c => renderChamadoItem(c)).join('');
@@ -187,7 +192,7 @@ function renderChamadoItem(c) {
         <span class="chamado-id">#${c.id}</span>
         ${badgePrio(c.prioridade)}
         ${badgeStatus(c.status)}
-        ${c.admin_nome ? `<span class="tag"><span style="opacity:.6">👤</span> ${c.admin_nome}</span>` : ''}
+        ${c.admin_nome ? `<span class="tag">${c.admin_nome}</span>` : ''}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
       </div>
       <div class="chamado-nome">${c.nome}</div>
@@ -197,7 +202,6 @@ function renderChamadoItem(c) {
   `;
 }
 
-// ── Modal ─────────────────────────────────────────────────────
 async function abrirModal(id) {
   chamadoAtual = null;
   document.getElementById('modal-title').textContent = `Chamado #${id}`;
@@ -223,7 +227,7 @@ function fecharModal() {
 function renderModalBody(c) {
   const historicoPrazos = (c.historico || []).filter(h => h.acao === 'prazo_alterado');
   const bannerPrazo = historicoPrazos.length > 0
-    ? `<div class="banner-prazo">⚠️ <strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último: ${fmtData(historicoPrazos[historicoPrazos.length-1].timestamp)} por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'} — de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
+    ? `<div class="banner-prazo"><strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último: ${fmtData(historicoPrazos[historicoPrazos.length-1].timestamp)} por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'} — de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
     : '';
 
   const podeAssumir  = c.status === 'aberto';
@@ -247,7 +251,7 @@ function renderModalBody(c) {
       ${bannerPrazo}
       <div class="flex gap-1 flex-wrap">
         ${badgeStatus(c.status)} ${badgePrio(c.prioridade)}
-        ${c.admin_nome ? `<span class="tag">👤 Responsável: ${c.admin_nome}</span>` : ''}
+        ${c.admin_nome ? `<span class="tag">Responsável: ${c.admin_nome}</span>` : ''}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.88rem">
         <div><span class="text-muted">Solicitante</span><br><strong>${c.nome}</strong></div>
@@ -257,15 +261,14 @@ function renderModalBody(c) {
         ${c.prazo ? `<div><span class="text-muted">Prazo</span><br><strong>${fmtData(c.prazo)}</strong></div>` : ''}
         ${c.concluido_em ? `<div><span class="text-muted">Concluído em</span><br>${fmtData(c.concluido_em)}</div>` : ''}
       </div>
-      <div><span class="text-muted" style="font-size:.8rem">Descrição</span><br>${c.descricao}</div>
-      ${c.anexo_nome_original ? `<div><a href="/api/chamados/${c.id}/anexo" class="btn btn-secondary btn-sm" download>⬇ ${c.anexo_nome_original}</a></div>` : ''}
-      ${c.solucao ? `<div><span class="text-muted" style="font-size:.8rem">Solução / Motivo</span><br>${c.solucao}</div>` : ''}
+      <div><span class="text-muted" style="font-size:.78rem">Descrição</span><br>${c.descricao}</div>
+      ${c.anexo_nome_original ? `<div><a href="/api/chamados/${c.id}/anexo" class="btn btn-secondary btn-sm" download>Baixar anexo: ${c.anexo_nome_original}</a></div>` : ''}
+      ${c.solucao ? `<div><span class="text-muted" style="font-size:.78rem">Solução / Motivo</span><br>${c.solucao}</div>` : ''}
       ${c.nota !== null ? `<div class="alert alert-success" style="margin:0"><strong>Avaliação do usuário:</strong> ${c.nota}/10${c.comentario_avaliacao ? ' — '+c.comentario_avaliacao : ''}</div>` : ''}
 
       <hr>
       <div id="msg-modal"></div>
 
-      <!-- Prioridade -->
       <div class="form-group" style="margin-bottom:.5rem">
         <label for="sel-prioridade">Prioridade</label>
         <select class="form-control" id="sel-prioridade">
@@ -278,7 +281,6 @@ function renderModalBody(c) {
       </div>
       <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar prioridade</button>
 
-      <!-- Prazo -->
       <div class="form-group mt-2" style="margin-bottom:.5rem">
         <label for="input-prazo">Prazo (data e hora)</label>
         <input class="form-control" type="datetime-local" id="input-prazo" value="${c.prazo ? c.prazo.replace(' ','T').slice(0,16) : ''}">
@@ -288,13 +290,12 @@ function renderModalBody(c) {
         ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo">Remover prazo</button>` : ''}
       </div>
 
-      <!-- Botões de transição -->
       <div class="modal-footer" style="margin-top:0;padding-top:0;border:none;flex-wrap:wrap">
         ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir">Assumir chamado</button>` : ''}
         ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir">Concluir</button>` : ''}
         ${podeEncerrar ? `<button class="btn btn-danger btn-sm"  id="btn-encerrar">Encerrar</button>` : ''}
-        ${podeReabrir  ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir">↩ Reabrir</button>` : ''}
-        ${adminInfo && adminInfo.is_master ? `<button class="btn btn-danger btn-sm" id="btn-deletar" style="margin-left:auto">🗑 Excluir</button>` : ''}
+        ${podeReabrir  ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir">Reabrir</button>` : ''}
+        ${adminInfo && adminInfo.is_master ? `<button class="btn btn-danger btn-sm" id="btn-deletar" style="margin-left:auto">Excluir</button>` : ''}
       </div>
 
       <div id="area-concluir" style="display:none">
@@ -314,7 +315,7 @@ function renderModalBody(c) {
 
       <hr>
       <details>
-        <summary style="cursor:pointer;font-size:.88rem;font-weight:600">Histórico de ações</summary>
+        <summary style="cursor:pointer;font-size:.82rem;font-weight:600;color:var(--text-secondary);letter-spacing:.04em;text-transform:uppercase">Histórico de ações</summary>
         <div style="margin-top:.75rem">${historicoHtml}</div>
       </details>
     </div>
@@ -358,7 +359,7 @@ function setupModalEventos(c) {
     btnAssumir.addEventListener('click', async () => {
       const r = await api(`/api/admin/chamados/${c.id}/assumir`, { method: 'PATCH', body: JSON.stringify({}) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado assumido!</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Chamado assumido.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
@@ -377,7 +378,7 @@ function setupModalEventos(c) {
       const solucao = document.getElementById('txt-solucao').value.trim();
       const r = await api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado concluído!</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Chamado concluído.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 700);
     });
   }
@@ -407,7 +408,7 @@ function setupModalEventos(c) {
       if (!confirm(`Reabrir o chamado #${c.id}? Ele voltará para o status "Aberto".`)) return;
       const r = await api(`/api/admin/chamados/${c.id}/reabrir`, { method: 'PATCH', body: JSON.stringify({}) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado reaberto!</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Chamado reaberto.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }

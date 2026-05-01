@@ -55,15 +55,17 @@ function fmtMesAbrev(mesStr) {
   return new Date(a, m - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' });
 }
 
-// ── Paleta consistente com o design system ───────────────────────
 const COR = {
-  aberto:    '#0052CC',
-  andamento: '#6554C0',
-  concluido: '#00875A',
-  encerrado: '#6B778C',
-  primary:   '#0062B1',
-  accent:    '#F97316',
-  warning:   '#FF8B00',
+  gold:      '#C5A55A',
+  goldDark:  '#A88742',
+  goldPale:  'rgba(197,165,90,.15)',
+  navy:      '#0D1B2A',
+  aberto:    '#1D4ED8',
+  andamento: '#7C3AED',
+  concluido: '#15803D',
+  encerrado: '#6B7280',
+  gridLine:  '#E5DDD0',
+  textMuted: '#7A726A',
 };
 
 function renderRelatorio(d, mes) {
@@ -83,24 +85,24 @@ function renderRelatorio(d, mes) {
   if (semDados) {
     conteudo.innerHTML = `
       <div class="relat-empty">
-        <div class="relat-empty-icon">📊</div>
+        <div class="relat-empty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+          </svg>
+        </div>
         <div class="relat-empty-title">Nenhum dado encontrado</div>
-        <div class="relat-empty-sub">Não há chamados registrados em <strong>${nomeMes(mes)}</strong>.<br>Selecione outro mês ou aguarde novos chamados.</div>
+        <div class="relat-empty-sub">Não há chamados registrados em <strong>${nomeMes(mes)}</strong>.<br>Selecione outro período ou aguarde novos chamados.</div>
       </div>`;
     return;
   }
 
   conteudo.innerHTML = `
-    <!-- Título do período -->
     <div class="relat-periodo">
       <div class="relat-periodo-label">Período analisado</div>
       <div class="relat-periodo-mes">${nomeMes(mes)}</div>
     </div>
 
-    <!-- ── Seção 1: Visão Geral ── -->
-    <div class="relat-section-title">
-      <span class="relat-section-icon">📊</span> Visão Geral do Mês
-    </div>
+    <div class="relat-section-title">Visão Geral do Mês</div>
     <div class="relat-kpis">
       <div class="relat-kpi relat-kpi-primary">
         <div class="relat-kpi-value">${total}</div>
@@ -129,10 +131,9 @@ function renderRelatorio(d, mes) {
       </div>
     </div>
 
-    <!-- ── Linha métricas compostas ── -->
     <div class="relat-metrics">
       <div class="relat-metric">
-        <div class="relat-metric-circle" style="--pct:${taxaResolucao}%;--cor:${taxaResolucao >= 70 ? '#00875A' : taxaResolucao >= 40 ? '#FF8B00' : '#DE350B'}">
+        <div class="relat-metric-circle" style="--pct:${taxaResolucao}%;--cor:${taxaResolucao >= 70 ? '#15803D' : taxaResolucao >= 40 ? '#B45309' : '#B91C1C'}">
           <span>${taxaResolucao}%</span>
         </div>
         <div>
@@ -141,7 +142,7 @@ function renderRelatorio(d, mes) {
         </div>
       </div>
       <div class="relat-metric">
-        <div class="relat-metric-circle" style="--pct:${notaMedia ? (notaMedia/10)*100 : 0}%;--cor:${notaMedia >= 7 ? '#00875A' : notaMedia >= 5 ? '#FF8B00' : '#DE350B'}">
+        <div class="relat-metric-circle" style="--pct:${notaMedia ? (notaMedia/10)*100 : 0}%;--cor:${notaMedia >= 7 ? '#15803D' : notaMedia >= 5 ? '#B45309' : '#B91C1C'}">
           <span>${notaMedia !== null ? notaMedia : '—'}</span>
         </div>
         <div>
@@ -151,10 +152,7 @@ function renderRelatorio(d, mes) {
       </div>
     </div>
 
-    <!-- ── Seção 2: Histórico ── -->
-    <div class="relat-section-title">
-      <span class="relat-section-icon">📈</span> Histórico de Volume
-    </div>
+    <div class="relat-section-title">Histórico de Volume</div>
     <div class="card relat-chart-card">
       <div class="relat-chart-header">
         <div>
@@ -165,10 +163,7 @@ function renderRelatorio(d, mes) {
       <canvas id="grafico-abertos" height="160"></canvas>
     </div>
 
-    <!-- ── Seção 3: Satisfação ── -->
-    <div class="relat-section-title">
-      <span class="relat-section-icon">⭐</span> Satisfação dos Usuários
-    </div>
+    <div class="relat-section-title">Satisfação dos Usuários</div>
     <div class="card relat-chart-card">
       <div class="relat-chart-header">
         <div>
@@ -177,7 +172,7 @@ function renderRelatorio(d, mes) {
         </div>
         ${notaMedia !== null ? `
         <div class="relat-chart-badge ${notaMedia >= 7 ? 'badge-ok' : notaMedia >= 5 ? 'badge-med' : 'badge-low'}">
-          ${notaMedia >= 7 ? '😊 Boa' : notaMedia >= 5 ? '😐 Regular' : '😟 Baixa'}
+          ${notaMedia >= 7 ? 'Boa' : notaMedia >= 5 ? 'Regular' : 'Baixa'}
         </div>` : ''}
       </div>
       ${d.tendencia6m.length === 0
@@ -186,10 +181,7 @@ function renderRelatorio(d, mes) {
       }
     </div>
 
-    <!-- ── Seção 4: Setores ── -->
-    <div class="relat-section-title">
-      <span class="relat-section-icon">🏢</span> Chamados por Setor
-    </div>
+    <div class="relat-section-title">Chamados por Setor</div>
     <div class="card relat-chart-card">
       <div class="relat-chart-header">
         <div>
@@ -204,25 +196,21 @@ function renderRelatorio(d, mes) {
     </div>
   `;
 
-  // Configurações globais Chart.js
   Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
   Chart.defaults.font.size = 12;
-  Chart.defaults.color = '#5E6C84';
+  Chart.defaults.color = COR.textMuted;
   Chart.defaults.plugins.legend.display = false;
 
-  const gridStyle = { color: '#DFE1E6', drawBorder: false };
+  const gridStyle = { color: COR.gridLine, drawBorder: false };
 
-  // Gráfico 1 — Volume histórico
   graficos.push(new Chart(document.getElementById('grafico-abertos'), {
     type: 'bar',
     data: {
       labels: d.abertosUltimos12.map(i => fmtMesAbrev(i.mes)),
       datasets: [{
         data: d.abertosUltimos12.map(i => i.total),
-        backgroundColor: d.abertosUltimos12.map((i, idx) =>
-          i.mes === mes ? COR.primary : '#DEEBFF'
-        ),
-        borderRadius: 6,
+        backgroundColor: d.abertosUltimos12.map(i => i.mes === mes ? COR.gold : COR.goldPale),
+        borderRadius: 4,
         borderSkipped: false,
       }],
     },
@@ -231,10 +219,7 @@ function renderRelatorio(d, mes) {
       plugins: {
         tooltip: {
           callbacks: {
-            title: (items) => {
-              const mesStr = d.abertosUltimos12[items[0].dataIndex].mes;
-              return nomeMes(mesStr);
-            },
+            title: (items) => nomeMes(d.abertosUltimos12[items[0].dataIndex].mes),
             label: (item) => ` ${item.raw} chamado${item.raw !== 1 ? 's' : ''} aberto${item.raw !== 1 ? 's' : ''}`,
           },
         },
@@ -246,7 +231,6 @@ function renderRelatorio(d, mes) {
     },
   }));
 
-  // Gráfico 2 — Tendência de nota
   if (d.tendencia6m.length > 0) {
     graficos.push(new Chart(document.getElementById('grafico-tendencia'), {
       type: 'line',
@@ -254,12 +238,12 @@ function renderRelatorio(d, mes) {
         labels: d.tendencia6m.map(i => fmtMesAbrev(i.mes)),
         datasets: [{
           data: d.tendencia6m.map(i => i.media ? +i.media.toFixed(1) : null),
-          borderColor: COR.warning,
-          backgroundColor: 'rgba(255,139,0,.08)',
+          borderColor: COR.gold,
+          backgroundColor: COR.goldPale,
           tension: .4,
           fill: true,
           pointRadius: 6,
-          pointBackgroundColor: COR.warning,
+          pointBackgroundColor: COR.gold,
           pointBorderColor: '#fff',
           pointBorderWidth: 2,
           spanGaps: true,
@@ -278,21 +262,16 @@ function renderRelatorio(d, mes) {
           x: { grid: gridStyle },
           y: {
             grid: gridStyle,
-            min: 0,
-            max: 10,
-            ticks: {
-              callback: (v) => v % 2 === 0 ? v : '',
-              stepSize: 2,
-            },
+            min: 0, max: 10,
+            ticks: { callback: (v) => v % 2 === 0 ? v : '', stepSize: 2 },
           },
         },
       },
     }));
   }
 
-  // Gráfico 3 — Top setores
   if (d.top5Setores.length > 0) {
-    const cores = ['#0062B1', '#0284C7', '#0369A1', '#075985', '#0C4A6E'];
+    const cores = [COR.gold, COR.goldDark, '#8B6B2E', '#6B5022', '#4A3818'];
     graficos.push(new Chart(document.getElementById('grafico-setores'), {
       type: 'bar',
       data: {
