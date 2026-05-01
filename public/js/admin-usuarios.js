@@ -1,5 +1,5 @@
 let meAdmin = null;
-let editandoId = null;
+let editandoAdminId = null;
 
 async function api(url, opts = {}) {
   const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
@@ -7,12 +7,20 @@ async function api(url, opts = {}) {
   return res;
 }
 
+function msgGlobal(html, dur = 3500) {
+  const el = document.getElementById('msg-global');
+  el.innerHTML = html;
+  setTimeout(() => { el.innerHTML = ''; }, dur);
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+
 (async () => {
   const r = await api('/api/admin/me');
   if (!r.ok) { location.replace('/admin-login.html'); return; }
   meAdmin = await r.json();
   if (!meAdmin.is_master) { location.replace('/admin-painel.html'); return; }
-  await carregarAdmins();
+  await Promise.all([carregarAdmins(), carregarUsuarios()]);
 })();
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
@@ -20,15 +28,35 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   location.replace('/admin-login.html');
 });
 
-document.getElementById('btn-novo').addEventListener('click', () => abrirModal(null));
-document.getElementById('btn-fechar').addEventListener('click', fecharModal);
-document.getElementById('btn-cancelar').addEventListener('click', fecharModal);
-document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModal(); });
+// ── Tabs ──────────────────────────────────────────────────────
+
+document.getElementById('tab-admins').addEventListener('click', () => {
+  document.getElementById('tab-admins').classList.add('ativo');
+  document.getElementById('tab-usuarios').classList.remove('ativo');
+  document.getElementById('section-admins').style.display = '';
+  document.getElementById('section-usuarios').style.display = 'none';
+});
+
+document.getElementById('tab-usuarios').addEventListener('click', () => {
+  document.getElementById('tab-usuarios').classList.add('ativo');
+  document.getElementById('tab-admins').classList.remove('ativo');
+  document.getElementById('section-usuarios').style.display = '';
+  document.getElementById('section-admins').style.display = 'none';
+});
+
+// ══════════════════════════════════════════════════════════════
+//  ADMINISTRADORES
+// ══════════════════════════════════════════════════════════════
+
+document.getElementById('btn-novo-admin').addEventListener('click', () => abrirModalAdmin(null));
+document.getElementById('btn-fechar-admin').addEventListener('click', fecharModalAdmin);
+document.getElementById('btn-cancelar-admin').addEventListener('click', fecharModalAdmin);
+document.getElementById('modal-admin-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalAdmin(); });
 
 document.getElementById('form-admin').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const msg = document.getElementById('msg-modal');
-  const btn = document.getElementById('btn-salvar');
+  const msg = document.getElementById('msg-modal-admin');
+  const btn = document.getElementById('btn-salvar-admin');
   msg.innerHTML = '';
   btn.disabled = true;
 
@@ -40,20 +68,19 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
   };
 
   try {
-    let r, d;
-    if (editandoId) {
+    let r;
+    if (editandoAdminId) {
       const patch = { nome_completo: body.nome_completo, is_master: body.is_master };
       if (body.senha) patch.senha = body.senha;
-      r = await api(`/api/admin/usuarios/${editandoId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+      r = await api(`/api/admin/usuarios/${editandoAdminId}`, { method: 'PATCH', body: JSON.stringify(patch) });
     } else {
       r = await api('/api/admin/usuarios', { method: 'POST', body: JSON.stringify(body) });
     }
-    d = await r.json();
+    const d = await r.json();
     if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
-    fecharModal();
+    fecharModalAdmin();
     await carregarAdmins();
-    document.getElementById('msg-global').innerHTML = `<div class="alert alert-success">${d.mensagem}</div>`;
-    setTimeout(() => document.getElementById('msg-global').innerHTML = '', 3000);
+    msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
   } catch (err) {
     if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
   } finally {
@@ -62,7 +89,7 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
 });
 
 async function carregarAdmins() {
-  const lista = document.getElementById('lista');
+  const lista = document.getElementById('lista-admins');
   try {
     const r = await api('/api/admin/usuarios');
     const admins = await r.json();
@@ -83,11 +110,11 @@ async function carregarAdmins() {
                   <td style="font-size:.8rem">${new Date(a.criado_em).toLocaleDateString('pt-BR')}</td>
                   <td>
                     <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-                      <button class="btn btn-secondary btn-sm" onclick="abrirModal(${a.id})">Editar</button>
+                      <button class="btn btn-secondary btn-sm" onclick="abrirModalAdmin(${a.id})">Editar</button>
                       ${a.id !== meAdmin.id ? `
-                        <button class="btn btn-secondary btn-sm" onclick="toggleAtivo(${a.id}, ${a.ativo})">${a.ativo ? 'Desativar' : 'Reativar'}</button>
-                        <button class="btn btn-danger btn-sm" onclick="removerAdmin(${a.id})">Remover</button>
-                      ` : '<span class="text-muted" style="font-size:.75rem">você</span>'}
+                        <button class="btn btn-secondary btn-sm" onclick="toggleAdmin(${a.id}, ${a.ativo})">${a.ativo ? 'Desativar' : 'Reativar'}</button>
+                        <button class="btn btn-danger btn-sm" onclick="excluirAdmin(${a.id})">Excluir</button>
+                      ` : '<span class="text-muted" style="font-size:.75rem;padding:.3rem .5rem">você</span>'}
                     </div>
                   </td>
                 </tr>
@@ -95,21 +122,20 @@ async function carregarAdmins() {
             </tbody>
           </table>
         </div>
-      </div>
-    `;
+      </div>`;
   } catch (err) {
     if (err.message !== '401') lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar.</div>';
   }
 }
 
-async function abrirModal(id) {
-  editandoId = id;
-  document.getElementById('msg-modal').innerHTML = '';
+async function abrirModalAdmin(id) {
+  editandoAdminId = id;
+  document.getElementById('msg-modal-admin').innerHTML = '';
   document.getElementById('f-senha').value = '';
   document.getElementById('f-master').checked = false;
 
   if (id) {
-    document.getElementById('modal-title').textContent = 'Editar administrador';
+    document.getElementById('modal-admin-title').textContent = 'Editar administrador';
     document.getElementById('f-usuario').disabled = true;
     document.getElementById('lbl-senha-dica').textContent = '(deixe em branco para não alterar)';
     const r = await api('/api/admin/usuarios');
@@ -121,33 +147,151 @@ async function abrirModal(id) {
       document.getElementById('f-master').checked = !!admin.is_master;
     }
   } else {
-    document.getElementById('modal-title').textContent = 'Novo administrador';
+    document.getElementById('modal-admin-title').textContent = 'Novo administrador';
     document.getElementById('f-usuario').disabled = false;
     document.getElementById('f-usuario').value = '';
     document.getElementById('f-nome').value = '';
-    document.getElementById('lbl-senha-dica').textContent = '(mínimo 6 caracteres)';
+    document.getElementById('lbl-senha-dica').textContent = '(mín. 6 caracteres)';
   }
 
-  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('modal-admin-overlay').classList.add('open');
   document.getElementById('f-usuario').focus();
 }
 
-function fecharModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-  editandoId = null;
+function fecharModalAdmin() {
+  document.getElementById('modal-admin-overlay').classList.remove('open');
+  editandoAdminId = null;
 }
 
-async function toggleAtivo(id, ativo) {
+async function toggleAdmin(id, ativo) {
   const r = await api(`/api/admin/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
   const d = await r.json();
-  if (!r.ok) { alert(d.erro); return; }
+  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
   await carregarAdmins();
+  msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
 }
 
-async function removerAdmin(id) {
-  if (!confirm('Tem certeza? Esta ação excluirá o administrador permanentemente e não pode ser desfeita.')) return;
+async function excluirAdmin(id) {
+  if (!confirm('Excluir este administrador permanentemente? Esta ação não pode ser desfeita.')) return;
   const r = await api(`/api/admin/usuarios/${id}`, { method: 'DELETE' });
   const d = await r.json();
-  if (!r.ok) { alert(d.erro); return; }
+  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
   await carregarAdmins();
+  msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  USUÁRIOS DO PORTAL
+// ══════════════════════════════════════════════════════════════
+
+document.getElementById('btn-novo-usuario').addEventListener('click', () => abrirModalUsuario());
+document.getElementById('btn-fechar-usuario').addEventListener('click', fecharModalUsuario);
+document.getElementById('btn-cancelar-usuario').addEventListener('click', fecharModalUsuario);
+document.getElementById('modal-usuario-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalUsuario(); });
+
+document.getElementById('form-usuario').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg-modal-usuario');
+  const btn = document.getElementById('btn-salvar-usuario');
+  msg.innerHTML = '';
+  btn.disabled = true;
+
+  const body = {
+    nome: document.getElementById('fu-nome').value.trim(),
+    email: document.getElementById('fu-email').value.trim(),
+    senha: document.getElementById('fu-senha').value,
+  };
+
+  try {
+    const r = await api('/api/admin/portal-usuarios', { method: 'POST', body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+    fecharModalUsuario();
+    await carregarUsuarios();
+    msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+  } catch (err) {
+    if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+async function carregarUsuarios() {
+  const lista = document.getElementById('lista-usuarios');
+  try {
+    const r = await api('/api/admin/portal-usuarios');
+    const usuarios = await r.json();
+
+    if (!usuarios.length) {
+      lista.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+          </div>
+          <p>Nenhum usuário cadastrado ainda.</p>
+        </div>`;
+      return;
+    }
+
+    lista.innerHTML = `
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Nome</th><th>E-mail</th><th>Status</th><th>Cadastrado em</th><th>Ações</th>
+            </tr></thead>
+            <tbody>
+              ${usuarios.map(u => `
+                <tr>
+                  <td>${u.nome}</td>
+                  <td style="font-size:.82rem">${u.email}</td>
+                  <td>${u.ativo !== 0 ? '<span class="badge badge-concluido">Ativo</span>' : '<span class="badge badge-encerrado">Inativo</span>'}</td>
+                  <td style="font-size:.8rem">${new Date(u.criado_em).toLocaleDateString('pt-BR')}</td>
+                  <td>
+                    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+                      <button class="btn btn-secondary btn-sm" onclick="toggleUsuario(${u.id}, ${u.ativo !== 0})">${u.ativo !== 0 ? 'Desativar' : 'Reativar'}</button>
+                      <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Excluir</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch (err) {
+    if (err.message !== '401') lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar.</div>';
+  }
+}
+
+function abrirModalUsuario() {
+  document.getElementById('msg-modal-usuario').innerHTML = '';
+  document.getElementById('fu-nome').value = '';
+  document.getElementById('fu-email').value = '';
+  document.getElementById('fu-senha').value = '';
+  document.getElementById('modal-usuario-overlay').classList.add('open');
+  document.getElementById('fu-nome').focus();
+}
+
+function fecharModalUsuario() {
+  document.getElementById('modal-usuario-overlay').classList.remove('open');
+}
+
+async function toggleUsuario(id, ativo) {
+  const r = await api(`/api/admin/portal-usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
+  const d = await r.json();
+  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
+  await carregarUsuarios();
+  msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+}
+
+async function excluirUsuario(id, nome) {
+  if (!confirm(`Excluir permanentemente o usuário "${nome}"?\n\nSeus chamados serão mantidos, mas a conta será removida definitivamente.`)) return;
+  const r = await api(`/api/admin/portal-usuarios/${id}`, { method: 'DELETE' });
+  const d = await r.json();
+  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
+  await carregarUsuarios();
+  msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
 }

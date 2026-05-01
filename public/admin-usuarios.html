@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Administradores — Gran Marquise TI</title>
+  <title>Gerenciamento — Gran Marquise TI</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -29,29 +29,49 @@
 <main>
   <div class="page-header flex-between flex-wrap gap-2">
     <div>
-      <div class="page-title">Administradores</div>
-      <div class="page-subtitle">Gerencie os usuários com acesso ao painel administrativo</div>
+      <div class="page-title">Gerenciamento</div>
+      <div class="page-subtitle">Administradores e usuários do Portal de TI</div>
     </div>
-    <button class="btn btn-primary btn-sm" id="btn-novo">Novo administrador</button>
   </div>
 
   <div id="msg-global"></div>
-  <div id="lista"></div>
+
+  <div class="tabs-bar" style="margin-bottom:0">
+    <button class="tab-btn ativo" id="tab-admins">Administradores</button>
+    <button class="tab-btn" id="tab-usuarios">Usuários do Portal</button>
+  </div>
+
+  <!-- Seção Administradores -->
+  <div id="section-admins">
+    <div style="display:flex;justify-content:flex-end;padding:.85rem 0 1rem">
+      <button class="btn btn-primary btn-sm" id="btn-novo-admin">Novo administrador</button>
+    </div>
+    <div id="lista-admins"></div>
+  </div>
+
+  <!-- Seção Usuários do Portal -->
+  <div id="section-usuarios" style="display:none">
+    <div style="display:flex;justify-content:flex-end;padding:.85rem 0 1rem">
+      <button class="btn btn-primary btn-sm" id="btn-novo-usuario">Novo usuário</button>
+    </div>
+    <div id="lista-usuarios"></div>
+  </div>
 </main>
 
-<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+<!-- Modal Administrador -->
+<div class="modal-overlay" id="modal-admin-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-admin-title">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
-      <h2 id="modal-title">Novo administrador</h2>
-      <button class="modal-close" id="btn-fechar" aria-label="Fechar">&#x2715;</button>
+      <h2 id="modal-admin-title">Novo administrador</h2>
+      <button class="modal-close" id="btn-fechar-admin" aria-label="Fechar">&#x2715;</button>
     </div>
     <div class="modal-body">
-      <div id="msg-modal"></div>
+      <div id="msg-modal-admin"></div>
       <form id="form-admin" novalidate>
         <input type="hidden" id="admin-id">
         <div class="form-group">
           <label for="f-usuario">Login (usuário)</label>
-          <input class="form-control" type="text" id="f-usuario" name="usuario" required minlength="3" maxlength="40" autocomplete="username" placeholder="ex: joao.silva">
+          <input class="form-control" type="text" id="f-usuario" name="usuario" required minlength="3" maxlength="40" autocomplete="off" placeholder="ex: joao.silva">
         </div>
         <div class="form-group">
           <label for="f-nome">Nome completo</label>
@@ -69,8 +89,39 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="btn-cancelar">Cancelar</button>
-      <button type="submit" form="form-admin" class="btn btn-primary" id="btn-salvar">Salvar</button>
+      <button type="button" class="btn btn-secondary" id="btn-cancelar-admin">Cancelar</button>
+      <button type="submit" form="form-admin" class="btn btn-primary" id="btn-salvar-admin">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Usuário do Portal -->
+<div class="modal-overlay" id="modal-usuario-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-usuario-title">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2 id="modal-usuario-title">Novo usuário</h2>
+      <button class="modal-close" id="btn-fechar-usuario" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div id="msg-modal-usuario"></div>
+      <form id="form-usuario" novalidate>
+        <div class="form-group">
+          <label for="fu-nome">Nome completo</label>
+          <input class="form-control" type="text" id="fu-nome" required minlength="2" maxlength="80" placeholder="Nome do colaborador">
+        </div>
+        <div class="form-group">
+          <label for="fu-email">E-mail</label>
+          <input class="form-control" type="email" id="fu-email" required autocomplete="off" placeholder="colaborador@granmarquise.com.br">
+        </div>
+        <div class="form-group">
+          <label for="fu-senha">Senha <span class="text-muted" style="font-size:.72rem;text-transform:none;letter-spacing:0">(mín. 6 caracteres)</span></label>
+          <input class="form-control" type="password" id="fu-senha" required minlength="6" autocomplete="new-password" placeholder="••••••••">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-cancelar-usuario">Cancelar</button>
+      <button type="submit" form="form-usuario" class="btn btn-primary" id="btn-salvar-usuario">Criar usuário</button>
     </div>
   </div>
 </div>

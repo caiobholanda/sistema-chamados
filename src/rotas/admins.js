@@ -305,4 +305,66 @@ router.delete('/usuarios/:id', requireMaster, (req, res) => {
   }
 });
 
+// ── Gerenciamento de usuários do portal (master) ─────────────
+
+// GET /api/admin/portal-usuarios
+router.get('/portal-usuarios', requireMaster, (req, res) => {
+  try {
+    return res.json(db.listarUsuarios());
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+// POST /api/admin/portal-usuarios
+router.post('/portal-usuarios', requireMaster, async (req, res) => {
+  try {
+    let { nome, email, senha } = req.body;
+    nome = sanitizarTexto(nome || '');
+    email = (email || '').trim().toLowerCase();
+    senha = (senha || '').trim();
+
+    if (!nome || nome.length < 2) return res.status(400).json({ erro: 'Nome deve ter ao menos 2 caracteres' });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ erro: 'E-mail inválido' });
+    if (!senha || senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres' });
+
+    const existente = db.buscarUsuarioPorEmail(email);
+    if (existente) return res.status(409).json({ erro: 'E-mail já cadastrado' });
+
+    const senha_hash = await require('bcrypt').hash(senha, 12);
+    const id = db.registrarUsuario({ nome, email, senha_hash });
+    return res.status(201).json({ id, mensagem: 'Usuário criado com sucesso' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+// PATCH /api/admin/portal-usuarios/:id
+router.patch('/portal-usuarios/:id', requireMaster, (req, res) => {
+  try {
+    const u = db.buscarUsuarioPorId(req.params.id);
+    if (!u) return res.status(404).json({ erro: 'Usuário não encontrado' });
+    db.atualizarUsuario(u.id, { ativo: req.body.ativo ? 1 : 0 });
+    return res.json({ mensagem: req.body.ativo ? 'Usuário reativado' : 'Usuário desativado' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+// DELETE /api/admin/portal-usuarios/:id
+router.delete('/portal-usuarios/:id', requireMaster, (req, res) => {
+  try {
+    const u = db.buscarUsuarioPorId(req.params.id);
+    if (!u) return res.status(404).json({ erro: 'Usuário não encontrado' });
+    db.deletarUsuario(u.id);
+    return res.json({ mensagem: 'Usuário excluído permanentemente' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 module.exports = router;

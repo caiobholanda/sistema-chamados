@@ -49,6 +49,7 @@ router.post('/login', async (req, res) => {
 
     const ok = await bcrypt.compare(senha, usuario.senha_hash);
     if (!ok) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
+    if (usuario.ativo === 0) return res.status(403).json({ erro: 'Conta desativada. Entre em contato com o suporte.' });
 
     const token = jwt.sign({ sub: usuario.id, nome: usuario.nome, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
