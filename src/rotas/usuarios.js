@@ -11,31 +11,9 @@ function sanitizar(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#x27;').trim();
 }
 
-// POST /api/usuarios/registro
-router.post('/registro', async (req, res) => {
-  try {
-    let { nome, email, senha } = req.body;
-    nome = sanitizar(nome || '');
-    email = (email || '').trim().toLowerCase();
-
-    if (!nome || nome.length < 2 || nome.length > 80) return res.status(400).json({ erro: 'Nome deve ter 2–80 caracteres' });
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ erro: 'E-mail inválido' });
-    if (!senha || senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter pelo menos 6 caracteres' });
-
-    const existente = db.buscarUsuarioPorEmail(email);
-    if (existente) return res.status(400).json({ erro: 'E-mail já cadastrado' });
-
-    const senha_hash = await bcrypt.hash(senha, 12);
-    const id = db.registrarUsuario({ nome, email, senha_hash });
-
-    const token = jwt.sign({ sub: id, nome, email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
-
-    return res.status(201).json({ mensagem: 'Conta criada com sucesso', nome });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ erro: 'Erro interno' });
-  }
+// Registro público desativado — contas são criadas pelo admin master
+router.post('/registro', (req, res) => {
+  return res.status(403).json({ erro: 'Cadastro público desativado. Solicite acesso ao administrador.' });
 });
 
 // POST /api/usuarios/login

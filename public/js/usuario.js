@@ -25,7 +25,7 @@ async function apiFetch(url, opts = {}) {
   }
 })();
 
-function renderAuth(abaInicial = 'login') {
+function renderAuth() {
   const header = document.querySelector('header');
   if (header) header.style.display = 'none';
   document.body.classList.add('auth-mode');
@@ -41,14 +41,8 @@ function renderAuth(abaInicial = 'login') {
       </div>
 
       <div class="auth-card">
-        <div class="tabs-bar" style="margin-bottom:1.75rem">
-          <button class="tab-btn ${abaInicial === 'login' ? 'ativo' : ''}" id="tab-login">Entrar</button>
-          <button class="tab-btn ${abaInicial === 'cadastro' ? 'ativo' : ''}" id="tab-cadastro">Criar conta</button>
-        </div>
-
         <div id="msg-auth"></div>
-
-        <form id="form-login" style="display:${abaInicial === 'login' ? 'block' : 'none'}">
+        <form id="form-login">
           <div class="form-group">
             <label for="login-email">E-mail</label>
             <input class="form-control" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" required>
@@ -58,53 +52,11 @@ function renderAuth(abaInicial = 'login') {
             <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required placeholder="••••••••">
           </div>
           <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
-          <p style="text-align:center;margin-top:1rem;font-size:.78rem;color:var(--text-muted)">
-            Não tem conta? <button type="button" id="ir-cadastro" style="background:none;border:none;color:var(--gold-dark);cursor:pointer;font-weight:600;font-size:.78rem">Criar conta</button>
-          </p>
-        </form>
-
-        <form id="form-cadastro" style="display:${abaInicial === 'cadastro' ? 'block' : 'none'}">
-          <div class="form-group">
-            <label for="cad-nome">Nome completo <span class="req">*</span></label>
-            <input class="form-control" type="text" id="cad-nome" placeholder="Seu nome completo" minlength="2" maxlength="80" required>
-          </div>
-          <div class="form-group">
-            <label for="cad-email">E-mail <span class="req">*</span></label>
-            <input class="form-control" type="email" id="cad-email" placeholder="seu@email.com" autocomplete="email" required>
-          </div>
-          <div class="form-group">
-            <label for="cad-senha">Senha <span class="req">*</span></label>
-            <input class="form-control" type="password" id="cad-senha" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
-          </div>
-          <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Criar conta</button>
-          <p style="text-align:center;margin-top:1rem;font-size:.78rem;color:var(--text-muted)">
-            Já tem conta? <button type="button" id="ir-login" style="background:none;border:none;color:var(--gold-dark);cursor:pointer;font-weight:600;font-size:.78rem">Entrar</button>
-          </p>
         </form>
       </div>
 
     </div>
   `;
-
-  function mostrarLogin() {
-    document.getElementById('tab-login').classList.add('ativo');
-    document.getElementById('tab-cadastro').classList.remove('ativo');
-    document.getElementById('form-login').style.display = 'block';
-    document.getElementById('form-cadastro').style.display = 'none';
-    document.getElementById('msg-auth').innerHTML = '';
-  }
-  function mostrarCadastro() {
-    document.getElementById('tab-cadastro').classList.add('ativo');
-    document.getElementById('tab-login').classList.remove('ativo');
-    document.getElementById('form-cadastro').style.display = 'block';
-    document.getElementById('form-login').style.display = 'none';
-    document.getElementById('msg-auth').innerHTML = '';
-  }
-
-  document.getElementById('tab-login').addEventListener('click', mostrarLogin);
-  document.getElementById('tab-cadastro').addEventListener('click', mostrarCadastro);
-  document.getElementById('ir-cadastro') && document.getElementById('ir-cadastro').addEventListener('click', mostrarCadastro);
-  document.getElementById('ir-login') && document.getElementById('ir-login').addEventListener('click', mostrarLogin);
 
   document.getElementById('form-login').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -122,28 +74,6 @@ function renderAuth(abaInicial = 'login') {
       renderPainel(u);
     } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Entrar'; }
-  });
-
-  document.getElementById('form-cadastro').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById('msg-auth');
-    const btn = e.target.querySelector('button[type=submit]');
-    btn.disabled = true; btn.textContent = 'Criando conta...';
-    try {
-      const r = await apiFetch('/api/usuarios/registro', {
-        method: 'POST',
-        body: JSON.stringify({
-          nome: document.getElementById('cad-nome').value,
-          email: document.getElementById('cad-email').value,
-          senha: document.getElementById('cad-senha').value,
-        }),
-      });
-      const d = await r.json();
-      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
-      const u = await (await apiFetch('/api/usuarios/me')).json();
-      renderPainel(u);
-    } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
-    finally { btn.disabled = false; btn.textContent = 'Criar conta'; }
   });
 }
 
