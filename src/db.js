@@ -405,7 +405,10 @@ function atualizarAdmin(id, dados) {
 }
 
 function deletarAdmin(id) {
-  getDb().prepare('DELETE FROM admins WHERE id = ?').run(id);
+  const db = getDb();
+  db.prepare('UPDATE chamados SET admin_responsavel_id = NULL WHERE admin_responsavel_id = ?').run(id);
+  db.prepare('UPDATE historico_chamados SET admin_id = NULL WHERE admin_id = ?').run(id);
+  db.prepare('DELETE FROM admins WHERE id = ?').run(id);
 }
 
 // ── Equipamentos ─────────────────────────────────────────────
