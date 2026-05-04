@@ -226,7 +226,14 @@ async function carregarChamados() {
       return;
     }
     const PRIO_ORDEM = { urgente: 0, alta: 1, media: 2, baixa: 3 };
-    chamados.sort((a, b) => (PRIO_ORDEM[a.prioridade] ?? 4) - (PRIO_ORDEM[b.prioridade] ?? 4));
+    chamados.sort((a, b) => {
+      const prioDiff = (PRIO_ORDEM[a.prioridade] ?? 4) - (PRIO_ORDEM[b.prioridade] ?? 4);
+      if (prioDiff !== 0) return prioDiff;
+      if (!a.prazo && !b.prazo) return 0;
+      if (!a.prazo) return 1;
+      if (!b.prazo) return -1;
+      return new Date(a.prazo) - new Date(b.prazo);
+    });
     lista.innerHTML = chamados.map(c => renderChamadoItem(c)).join('');
     lista.querySelectorAll('.chamado-item').forEach(el => {
       el.addEventListener('click', () => abrirModal(el.dataset.id));

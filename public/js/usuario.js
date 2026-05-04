@@ -312,7 +312,14 @@ function renderPainel(usuario) {
     const filtrados = (aba === 'abertos'
       ? todos.filter(c => ['aberto', 'em_andamento'].includes(c.status))
       : todos.filter(c => ['concluido', 'encerrado'].includes(c.status)))
-      .sort((a, b) => (PRIO_ORDEM[a.prioridade] ?? 4) - (PRIO_ORDEM[b.prioridade] ?? 4));
+      .sort((a, b) => {
+        const prioDiff = (PRIO_ORDEM[a.prioridade] ?? 4) - (PRIO_ORDEM[b.prioridade] ?? 4);
+        if (prioDiff !== 0) return prioDiff;
+        if (!a.prazo && !b.prazo) return 0;
+        if (!a.prazo) return 1;
+        if (!b.prazo) return -1;
+        return new Date(a.prazo) - new Date(b.prazo);
+      });
 
     if (!filtrados.length) {
       const msg = aba === 'abertos' ? 'Nenhum chamado em aberto.' : 'Nenhum chamado encerrado ainda.';
