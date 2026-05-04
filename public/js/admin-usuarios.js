@@ -251,18 +251,18 @@ function renderAdmins() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Usuário</th><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Criado em</th><th>Ações</th>
+            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Tipo</th><th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
           </tr></thead>
           <tbody>
             ${filtrados.map(a => `
               <tr>
-                <td><code>${a.usuario}</code></td>
-                <td>${a.nome_completo}</td>
-                <td style="font-size:.82rem">${a.email || '<span class="text-muted">—</span>'}</td>
-                <td>${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
-                <td style="font-size:.8rem">${new Date(a.criado_em).toLocaleDateString('pt-BR')}</td>
-                <td>
-                  <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+                <td style="text-align:center"><code>${a.usuario}</code></td>
+                <td style="text-align:center">${a.nome_completo}</td>
+                <td style="text-align:center;font-size:.82rem">${a.email || '<span class="text-muted">—</span>'}</td>
+                <td style="text-align:center">${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
+                <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em).toLocaleDateString('pt-BR')}</td>
+                <td style="text-align:center">
+                  <div style="display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center">
                     <button class="btn btn-secondary btn-sm" onclick="abrirModalAdmin(${a.id})">Editar</button>
                     ${a.id !== meAdmin.id ? `
                       <button class="btn btn-secondary btn-sm" onclick="toggleAdmin(${a.id}, ${a.ativo})">${a.ativo ? 'Desativar' : 'Reativar'}</button>
