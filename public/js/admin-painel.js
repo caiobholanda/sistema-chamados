@@ -157,6 +157,7 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('filtro-admin').value = '';
   document.getElementById('filtro-inicio').value = '';
   document.getElementById('filtro-fim').value = '';
+  document.getElementById('filtro-prioridade').value = '';
   carregarChamados();
 });
 
@@ -191,6 +192,7 @@ async function carregarChamados() {
   const adminId = document.getElementById('filtro-admin').value;
   const inicio = document.getElementById('filtro-inicio').value;
   const fim = document.getElementById('filtro-fim').value;
+  const prioridade = document.getElementById('filtro-prioridade').value;
 
   if (statusFiltro) {
     params.set('status', statusFiltro);
@@ -203,6 +205,7 @@ async function carregarChamados() {
   if (adminId) params.set('admin_id', adminId);
   if (inicio) params.set('periodo_inicio', inicio);
   if (fim) params.set('periodo_fim', fim);
+  if (prioridade) params.set('prioridade', prioridade);
 
   try {
     const r = await api('/api/admin/chamados?' + params);

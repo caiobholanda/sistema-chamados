@@ -78,6 +78,7 @@ router.get('/chamados', requireAdmin, (req, res) => {
       admin_id: req.query.admin_id,
       periodo_inicio: req.query.periodo_inicio,
       periodo_fim: req.query.periodo_fim,
+      prioridade: req.query.prioridade,
     };
     const chamados = db.listarChamadosAdmin(filtros);
     return res.json(chamados);

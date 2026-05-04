@@ -208,6 +208,14 @@ function listarChamadosAdmin(filtros = {}) {
     sql += ' AND c.admin_responsavel_id = ?';
     params.push(filtros.admin_id);
   }
+  if (filtros.prioridade) {
+    if (filtros.prioridade === 'sem') {
+      sql += ' AND c.prioridade IS NULL';
+    } else {
+      sql += ' AND c.prioridade = ?';
+      params.push(filtros.prioridade);
+    }
+  }
   if (filtros.periodo_inicio) {
     sql += ' AND c.criado_em >= ?';
     params.push(filtros.periodo_inicio);
