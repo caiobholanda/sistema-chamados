@@ -296,12 +296,15 @@ function renderPainel(usuario) {
 
   carregarChamados();
 
+  const PRIO_ORDEM = { urgente: 0, alta: 1, media: 2, baixa: 3 };
+
   function renderListaChamados(todos, aba) {
     _limparChats();
     const lista = document.getElementById('lista-usuario');
-    const filtrados = aba === 'abertos'
+    const filtrados = (aba === 'abertos'
       ? todos.filter(c => ['aberto', 'em_andamento'].includes(c.status))
-      : todos.filter(c => ['concluido', 'encerrado'].includes(c.status));
+      : todos.filter(c => ['concluido', 'encerrado'].includes(c.status)))
+      .sort((a, b) => (PRIO_ORDEM[a.prioridade] ?? 4) - (PRIO_ORDEM[b.prioridade] ?? 4));
 
     if (!filtrados.length) {
       const msg = aba === 'abertos' ? 'Nenhum chamado em aberto.' : 'Nenhum chamado encerrado ainda.';

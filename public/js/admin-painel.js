@@ -225,6 +225,8 @@ async function carregarChamados() {
         </div>`;
       return;
     }
+    const PRIO_ORDEM = { urgente: 0, alta: 1, media: 2, baixa: 3 };
+    chamados.sort((a, b) => (PRIO_ORDEM[a.prioridade] ?? 4) - (PRIO_ORDEM[b.prioridade] ?? 4));
     lista.innerHTML = chamados.map(c => renderChamadoItem(c)).join('');
     lista.querySelectorAll('.chamado-item').forEach(el => {
       el.addEventListener('click', () => abrirModal(el.dataset.id));
