@@ -107,30 +107,38 @@ function renderAuth() {
   document.body.classList.add('auth-mode');
 
   app.innerHTML = `
-    <div class="auth-page">
+    <div class="login-page">
 
-      <div class="auth-brand">
-        <div class="auth-brand-monogram">GM</div>
-        <div class="auth-brand-name">Gran Marquise</div>
-        <div class="auth-brand-sub">Portal de Chamados de TI</div>
-        <p class="auth-brand-desc">Registre e acompanhe suas solicitações ao setor de<br>Tecnologia da Informação do Hotel Gran Marquise.</p>
+      <div class="login-left">
+        <div class="login-left-logo">GM</div>
+        <div class="login-badge">Portal de Chamados</div>
+        <h2>Suporte de TI<br>Gran Marquise</h2>
+        <p>Registre e acompanhe suas solicitações ao setor de Tecnologia da Informação do Hotel Gran Marquise.</p>
       </div>
 
-      <div class="auth-card">
-        <div class="auth-card-title">Entrar no portal</div>
-        <div class="auth-card-sub">Utilize seu e-mail e senha para acessar</div>
-        <div id="msg-auth"></div>
-        <form id="form-login">
-          <div class="form-group">
-            <label for="login-email">E-mail</label>
-            <input class="form-control" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" required>
+      <div class="login-right">
+        <div class="login-card">
+          <div class="login-card-title">Entrar no portal</div>
+          <div class="login-card-sub">Utilize seu e-mail e senha para acessar</div>
+
+          <div id="msg-auth"></div>
+
+          <form id="form-login" novalidate>
+            <div class="form-group">
+              <label for="login-email">E-mail</label>
+              <input class="form-control" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+              <label for="login-senha">Senha</label>
+              <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
+          </form>
+
+          <div style="text-align:center;margin-top:1.5rem">
+            <a href="/admin-login.html" style="font-size:.78rem;color:var(--text-muted);text-decoration:none;letter-spacing:.04em">Acesso administrativo</a>
           </div>
-          <div class="form-group">
-            <label for="login-senha">Senha</label>
-            <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required placeholder="••••••••">
-          </div>
-          <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
-        </form>
+        </div>
       </div>
 
     </div>
