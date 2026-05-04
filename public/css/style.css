@@ -527,12 +527,13 @@ tbody tr:hover td { background: #FAF7F2; }
 .dot-encerrado { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 .stat-info { display: flex; flex-direction: column; }
 .stat-num {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 1.85rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
   line-height: 1;
-  letter-spacing: -.01em;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
 }
 .stat-label {
   font-size: .66rem;
@@ -833,12 +834,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
 .relat-kpi-primary .relat-kpi-desc  { color: rgba(255,255,255,.35); }
 
 .relat-kpi-value {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 2.2rem;
-  font-weight: 600;
-  letter-spacing: -.02em;
+  font-weight: 700;
+  letter-spacing: -.04em;
   line-height: 1;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 .relat-kpi-label {
   font-size: .66rem;
@@ -1650,11 +1652,13 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   text-overflow: ellipsis;
 }
 .ranking-podio-num {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 2.1rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
   line-height: 1;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
 }
 .ranking-podio-label {
   font-size: .63rem;
