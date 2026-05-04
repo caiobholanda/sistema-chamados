@@ -27,7 +27,7 @@ function _limparChats() {
 function _renderMsgChat(m) {
   const mine = m.autor_tipo === 'usuario';
   return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}">
-    ${!mine ? `<div class="chat-msg-author">${m.autor_nome}</div>` : ''}
+    <div class="chat-msg-author">${m.autor_nome}</div>
     <div class="chat-msg-bubble">${m.mensagem}</div>
     <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
   </div>`;
