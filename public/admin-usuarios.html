@@ -26,7 +26,7 @@
   </nav>
 </header>
 
-<main>
+<main class="wide">
   <div class="page-header flex-between flex-wrap gap-2">
     <div>
       <div class="page-title">Gerenciamento</div>
@@ -37,22 +37,42 @@
   <div id="msg-global"></div>
 
   <div class="tabs-bar" style="margin-bottom:0">
-    <button class="tab-btn ativo" id="tab-admins">Administradores</button>
-    <button class="tab-btn" id="tab-usuarios">Usuários do Portal</button>
+    <button class="tab-btn ativo" id="tab-admins">
+      Administradores <span class="tab-badge" id="badge-tab-admins"></span>
+    </button>
+    <button class="tab-btn" id="tab-usuarios">
+      Usuários do Portal <span class="tab-badge" id="badge-tab-usuarios"></span>
+    </button>
   </div>
 
   <!-- Seção Administradores -->
   <div id="section-admins">
-    <div style="display:flex;justify-content:flex-end;padding:.85rem 0 1rem">
-      <button class="btn btn-primary btn-sm" id="btn-novo-admin">Novo administrador</button>
+    <div class="section-toolbar">
+      <div class="sub-tabs-bar">
+        <button class="sub-tab-btn ativo" id="sub-admins-ativos">
+          Ativos <span class="tab-badge" id="badge-admins-ativos"></span>
+        </button>
+        <button class="sub-tab-btn" id="sub-admins-inativos">
+          Inativos <span class="tab-badge" id="badge-admins-inativos"></span>
+        </button>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-novo-admin">+ Novo administrador</button>
     </div>
     <div id="lista-admins"></div>
   </div>
 
   <!-- Seção Usuários do Portal -->
   <div id="section-usuarios" style="display:none">
-    <div style="display:flex;justify-content:flex-end;padding:.85rem 0 1rem">
-      <button class="btn btn-primary btn-sm" id="btn-novo-usuario">Novo usuário</button>
+    <div class="section-toolbar">
+      <div class="sub-tabs-bar">
+        <button class="sub-tab-btn ativo" id="sub-usuarios-ativos">
+          Ativos <span class="tab-badge" id="badge-usuarios-ativos"></span>
+        </button>
+        <button class="sub-tab-btn" id="sub-usuarios-inativos">
+          Inativos <span class="tab-badge" id="badge-usuarios-inativos"></span>
+        </button>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-novo-usuario">+ Novo usuário</button>
     </div>
     <div id="lista-usuarios"></div>
   </div>

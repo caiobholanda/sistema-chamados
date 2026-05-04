@@ -1,5 +1,9 @@
 let meAdmin = null;
 let editandoAdminId = null;
+let abaAdmins = 'ativos';
+let abaUsuarios = 'ativos';
+let todosAdmins = [];
+let todosUsuarios = [];
 
 const DOMINIO_EMAIL = '@granmarquise.com.br';
 
@@ -106,7 +110,7 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   location.replace('/admin-login.html');
 });
 
-// ── Tabs ──────────────────────────────────────────────────────
+// ── Tabs principais ───────────────────────────────────────────
 
 document.getElementById('tab-admins').addEventListener('click', () => {
   document.getElementById('tab-admins').classList.add('ativo');
@@ -120,6 +124,38 @@ document.getElementById('tab-usuarios').addEventListener('click', () => {
   document.getElementById('tab-admins').classList.remove('ativo');
   document.getElementById('section-usuarios').style.display = '';
   document.getElementById('section-admins').style.display = 'none';
+});
+
+// ── Sub-tabs Administradores ──────────────────────────────────
+
+document.getElementById('sub-admins-ativos').addEventListener('click', () => {
+  abaAdmins = 'ativos';
+  document.getElementById('sub-admins-ativos').classList.add('ativo');
+  document.getElementById('sub-admins-inativos').classList.remove('ativo');
+  renderAdmins();
+});
+
+document.getElementById('sub-admins-inativos').addEventListener('click', () => {
+  abaAdmins = 'inativos';
+  document.getElementById('sub-admins-inativos').classList.add('ativo');
+  document.getElementById('sub-admins-ativos').classList.remove('ativo');
+  renderAdmins();
+});
+
+// ── Sub-tabs Usuários ─────────────────────────────────────────
+
+document.getElementById('sub-usuarios-ativos').addEventListener('click', () => {
+  abaUsuarios = 'ativos';
+  document.getElementById('sub-usuarios-ativos').classList.add('ativo');
+  document.getElementById('sub-usuarios-inativos').classList.remove('ativo');
+  renderUsuarios();
+});
+
+document.getElementById('sub-usuarios-inativos').addEventListener('click', () => {
+  abaUsuarios = 'inativos';
+  document.getElementById('sub-usuarios-inativos').classList.add('ativo');
+  document.getElementById('sub-usuarios-ativos').classList.remove('ativo');
+  renderUsuarios();
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -184,41 +220,62 @@ async function carregarAdmins() {
   const lista = document.getElementById('lista-admins');
   try {
     const r = await api('/api/admin/usuarios');
-    const admins = await r.json();
-    lista.innerHTML = `
-      <div class="card" style="padding:0;overflow:hidden">
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>Usuário</th><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Criado em</th><th>Ações</th>
-            </tr></thead>
-            <tbody>
-              ${admins.map(a => `
-                <tr>
-                  <td><code>${a.usuario}</code></td>
-                  <td>${a.nome_completo}</td>
-                  <td style="font-size:.82rem">${a.email || '<span class="text-muted">—</span>'}</td>
-                  <td>${a.is_master ? '<span class="badge badge-urgente">Master</span>' : 'Admin'}</td>
-                  <td>${a.ativo ? '<span class="badge badge-concluido">Ativo</span>' : '<span class="badge badge-encerrado">Inativo</span>'}</td>
-                  <td style="font-size:.8rem">${new Date(a.criado_em).toLocaleDateString('pt-BR')}</td>
-                  <td>
-                    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-                      <button class="btn btn-secondary btn-sm" onclick="abrirModalAdmin(${a.id})">Editar</button>
-                      ${a.id !== meAdmin.id ? `
-                        <button class="btn btn-secondary btn-sm" onclick="toggleAdmin(${a.id}, ${a.ativo})">${a.ativo ? 'Desativar' : 'Reativar'}</button>
-                        <button class="btn btn-danger btn-sm" onclick="excluirAdmin(${a.id})">Excluir</button>
-                      ` : '<span class="text-muted" style="font-size:.75rem;padding:.3rem .5rem">você</span>'}
-                    </div>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
+    todosAdmins = await r.json();
+    const ativos = todosAdmins.filter(a => a.ativo);
+    const inativos = todosAdmins.filter(a => !a.ativo);
+    document.getElementById('badge-admins-ativos').textContent = ativos.length || '';
+    document.getElementById('badge-admins-inativos').textContent = inativos.length || '';
+    document.getElementById('badge-tab-admins').textContent = todosAdmins.length || '';
+    renderAdmins();
   } catch (err) {
     if (err.message !== '401') lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar.</div>';
   }
+}
+
+function renderAdmins() {
+  const lista = document.getElementById('lista-admins');
+  const filtrados = todosAdmins.filter(a => abaAdmins === 'ativos' ? a.ativo : !a.ativo);
+
+  if (!filtrados.length) {
+    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg></div>
+      <p>Nenhum administrador ${abaAdmins === 'ativos' ? 'ativo' : 'inativo'}.</p>
+    </div>`;
+    return;
+  }
+
+  lista.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Usuário</th><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Criado em</th><th>Ações</th>
+          </tr></thead>
+          <tbody>
+            ${filtrados.map(a => `
+              <tr>
+                <td><code>${a.usuario}</code></td>
+                <td>${a.nome_completo}</td>
+                <td style="font-size:.82rem">${a.email || '<span class="text-muted">—</span>'}</td>
+                <td>${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
+                <td style="font-size:.8rem">${new Date(a.criado_em).toLocaleDateString('pt-BR')}</td>
+                <td>
+                  <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+                    <button class="btn btn-secondary btn-sm" onclick="abrirModalAdmin(${a.id})">Editar</button>
+                    ${a.id !== meAdmin.id ? `
+                      <button class="btn btn-secondary btn-sm" onclick="toggleAdmin(${a.id}, ${a.ativo})">${a.ativo ? 'Desativar' : 'Reativar'}</button>
+                      <button class="btn btn-danger btn-sm" onclick="excluirAdmin(${a.id})">Excluir</button>
+                    ` : '<span class="text-muted" style="font-size:.75rem;padding:.3rem .5rem">você</span>'}
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 async function abrirModalAdmin(id) {
@@ -264,7 +321,13 @@ async function toggleAdmin(id, ativo) {
   const r = await api(`/api/admin/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
   const d = await r.json();
   if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
-  await carregarAdmins();
+  const a = todosAdmins.find(x => x.id === id);
+  if (a) a.ativo = !ativo ? 1 : 0;
+  const ativos = todosAdmins.filter(x => x.ativo);
+  const inativos = todosAdmins.filter(x => !x.ativo);
+  document.getElementById('badge-admins-ativos').textContent = ativos.length || '';
+  document.getElementById('badge-admins-inativos').textContent = inativos.length || '';
+  renderAdmins();
   msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
 }
 
@@ -327,50 +390,57 @@ async function carregarUsuarios() {
   const lista = document.getElementById('lista-usuarios');
   try {
     const r = await api('/api/admin/portal-usuarios');
-    const usuarios = await r.json();
-
-    if (!usuarios.length) {
-      lista.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-            </svg>
-          </div>
-          <p>Nenhum usuário cadastrado ainda.</p>
-        </div>`;
-      return;
-    }
-
-    lista.innerHTML = `
-      <div class="card" style="padding:0;overflow:hidden">
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>Nome</th><th>E-mail</th><th>Status</th><th>Cadastrado em</th><th>Ações</th>
-            </tr></thead>
-            <tbody>
-              ${usuarios.map(u => `
-                <tr>
-                  <td>${u.nome}</td>
-                  <td style="font-size:.82rem">${u.email}</td>
-                  <td>${u.ativo !== 0 ? '<span class="badge badge-concluido">Ativo</span>' : '<span class="badge badge-encerrado">Inativo</span>'}</td>
-                  <td style="font-size:.8rem">${new Date(u.criado_em).toLocaleDateString('pt-BR')}</td>
-                  <td>
-                    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-                      <button class="btn btn-secondary btn-sm" onclick="toggleUsuario(${u.id}, ${u.ativo !== 0})">${u.ativo !== 0 ? 'Desativar' : 'Reativar'}</button>
-                      <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Excluir</button>
-                    </div>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
+    todosUsuarios = await r.json();
+    const ativos = todosUsuarios.filter(u => u.ativo !== 0);
+    const inativos = todosUsuarios.filter(u => u.ativo === 0);
+    document.getElementById('badge-usuarios-ativos').textContent = ativos.length || '';
+    document.getElementById('badge-usuarios-inativos').textContent = inativos.length || '';
+    document.getElementById('badge-tab-usuarios').textContent = todosUsuarios.length || '';
+    renderUsuarios();
   } catch (err) {
     if (err.message !== '401') lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar.</div>';
   }
+}
+
+function renderUsuarios() {
+  const lista = document.getElementById('lista-usuarios');
+  const filtrados = todosUsuarios.filter(u => abaUsuarios === 'ativos' ? u.ativo !== 0 : u.ativo === 0);
+
+  if (!filtrados.length) {
+    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg></div>
+      <p>Nenhum usuário ${abaUsuarios === 'ativos' ? 'ativo' : 'inativo'}.</p>
+    </div>`;
+    return;
+  }
+
+  lista.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Nome</th><th>E-mail</th><th>Cadastrado em</th><th>Ações</th>
+          </tr></thead>
+          <tbody>
+            ${filtrados.map(u => `
+              <tr>
+                <td>${u.nome}</td>
+                <td style="font-size:.82rem">${u.email}</td>
+                <td style="font-size:.8rem">${new Date(u.criado_em).toLocaleDateString('pt-BR')}</td>
+                <td>
+                  <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+                    <button class="btn btn-secondary btn-sm" onclick="toggleUsuario(${u.id}, ${u.ativo !== 0})">${u.ativo !== 0 ? 'Desativar' : 'Reativar'}</button>
+                    <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Excluir</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function abrirModalUsuario() {
@@ -392,7 +462,13 @@ async function toggleUsuario(id, ativo) {
   const r = await api(`/api/admin/portal-usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
   const d = await r.json();
   if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
-  await carregarUsuarios();
+  const u = todosUsuarios.find(x => x.id === id);
+  if (u) u.ativo = !ativo ? 1 : 0;
+  const ativos = todosUsuarios.filter(x => x.ativo !== 0);
+  const inativos = todosUsuarios.filter(x => x.ativo === 0);
+  document.getElementById('badge-usuarios-ativos').textContent = ativos.length || '';
+  document.getElementById('badge-usuarios-inativos').textContent = inativos.length || '';
+  renderUsuarios();
   msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
 }
 
