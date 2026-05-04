@@ -38,14 +38,20 @@ const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluid
 const PRIO_LABELS = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
 const CATEGORIAS_MAP = {
-  software:   { nome: 'Software',   cor: '#6366F1', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>' },
-  hardware:   { nome: 'Hardware',   cor: '#0EA5E9', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 18v3M8 21h8"/></svg>' },
-  impressora: { nome: 'Impressora', cor: '#8B5CF6', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' },
-  ramal:      { nome: 'Ramal',      cor: '#EC4899', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>' },
-  nobreak:    { nome: 'Nobreak',    cor: '#F59E0B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>' },
-  monitor:    { nome: 'Monitor',    cor: '#0891B2', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
-  mouse:      { nome: 'Mouse',      cor: '#10B981', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="7"/><path d="M12 2v8M5 10h14"/></svg>' },
-  teclado:    { nome: 'Teclado',    cor: '#EF4444', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>' },
+  software:     { nome: 'Software',        cor: '#6366F1', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>' },
+  hardware:     { nome: 'Hardware',        cor: '#0EA5E9', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 18v3M8 21h8"/></svg>' },
+  impressora:   { nome: 'Impressora',      cor: '#8B5CF6', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' },
+  ramal:        { nome: 'Ramal',           cor: '#EC4899', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>' },
+  nobreak:      { nome: 'Nobreak',         cor: '#F59E0B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>' },
+  monitor:      { nome: 'Monitor',         cor: '#0891B2', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+  mouse:        { nome: 'Mouse',           cor: '#10B981', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="7"/><path d="M12 2v8M5 10h14"/></svg>' },
+  teclado:      { nome: 'Teclado',         cor: '#EF4444', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>' },
+  rede:         { nome: 'Rede / Internet', cor: '#059669', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' },
+  acesso_senha: { nome: 'Acesso / Senha',  cor: '#DC2626', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' },
+  cameras:      { nome: 'Câmeras / CFTV', cor: '#D97706', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>' },
+  email:        { nome: 'E-mail',          cor: '#64748B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' },
+  tv_projetor:  { nome: 'TV / Projetor',   cor: '#7C3AED', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+  outros:       { nome: 'Outros',          cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>' },
 };
 
 function badgeCategoria(cat) {
@@ -109,6 +115,13 @@ function atualizarFiltrosDeAba() {
       <option value="aberto">Aberto</option>
       <option value="em_andamento">Em andamento</option>
     `;
+  } else if (abaAtiva === 'meus') {
+    sel.innerHTML = `
+      <option value="">Todos os meus</option>
+      <option value="em_andamento">Em andamento</option>
+      <option value="concluido">Concluído</option>
+      <option value="encerrado">Encerrado</option>
+    `;
   } else {
     sel.innerHTML = `
       <option value="">Todos (encerrados)</option>
@@ -120,9 +133,12 @@ function atualizarFiltrosDeAba() {
 
 async function carregarEstatisticas() {
   try {
-    const r = await api('/api/admin/chamados?limit=9999');
-    if (!r.ok) return;
-    const todos = await r.json();
+    const [rTodos, rMeus] = await Promise.all([
+      api('/api/admin/chamados?status=aberto,em_andamento,concluido,encerrado'),
+      adminInfo ? api(`/api/admin/chamados?admin_id=${adminInfo.id}&status=em_andamento,concluido,encerrado`) : Promise.resolve(null),
+    ]);
+    if (!rTodos.ok) return;
+    const todos = await rTodos.json();
 
     const contagem = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
     todos.forEach(c => { if (contagem[c.status] !== undefined) contagem[c.status]++; });
@@ -136,6 +152,12 @@ async function carregarEstatisticas() {
     const totalEncerrados = contagem.concluido + contagem.encerrado;
     document.getElementById('badge-abertos').textContent = totalAbertos || '';
     document.getElementById('badge-encerrados').textContent = totalEncerrados || '';
+
+    if (rMeus && rMeus.ok) {
+      const meus = await rMeus.json();
+      const meusPendentes = meus.filter(c => c.status === 'em_andamento').length;
+      document.getElementById('badge-meus').textContent = meusPendentes || '';
+    }
   } catch {}
 }
 
@@ -192,15 +214,21 @@ async function carregarChamados() {
   const fim = document.getElementById('filtro-fim').value;
   const prioridade = document.getElementById('filtro-prioridade').value;
 
-  if (statusFiltro) {
-    params.set('status', statusFiltro);
+  if (abaAtiva === 'meus') {
+    params.set('admin_id', adminInfo.id);
+    const statusMeus = statusFiltro || [...STATUS_ABERTOS, ...STATUS_ENCERRADOS].join(',');
+    params.set('status', statusMeus);
   } else {
-    const statusDaAba = abaAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
-    params.set('status', statusDaAba.join(','));
+    if (statusFiltro) {
+      params.set('status', statusFiltro);
+    } else {
+      const statusDaAba = abaAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
+      params.set('status', statusDaAba.join(','));
+    }
+    if (adminId) params.set('admin_id', adminId);
   }
 
   if (setor) params.set('setor', setor);
-  if (adminId) params.set('admin_id', adminId);
   if (inicio) params.set('periodo_inicio', inicio);
   if (fim) params.set('periodo_fim', fim);
   if (prioridade) params.set('prioridade', prioridade);
@@ -347,10 +375,16 @@ function renderModalBody(c) {
           ${c.concluido_em ? `<div><span class="modal-info-label">Concluído em</span>${fmtData(c.concluido_em)}</div>` : '<div></div>'}
         </div>
         <div class="modal-categoria-row">
-          <span class="modal-info-label">Categoria detectada</span>
-          ${c.categoria && CATEGORIAS_MAP[c.categoria]
-            ? badgeCategoria(c.categoria)
-            : '<span style="font-size:.82rem;color:var(--text-muted)">Não classificado</span>'}
+          <span class="modal-info-label">Categoria</span>
+          ${badgeCategoria(c.categoria)}
+          ${adminInfo && adminInfo.is_master ? `
+            <select class="form-control form-control-sm" id="sel-categoria" style="margin-left:.5rem;flex:1;max-width:180px">
+              ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) =>
+                `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`
+              ).join('')}
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria">Salvar</button>
+          ` : ''}
         </div>
         <div class="modal-desc">${c.descricao}</div>
         ${c.anexo_nome_original ? `
@@ -457,6 +491,20 @@ function renderModalBody(c) {
 function setupModalEventos(c) {
   const msg = () => document.getElementById('msg-modal');
   const setMsg = (html) => { msg().innerHTML = html; };
+
+  const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
+  if (btnSalvarCategoria) {
+    btnSalvarCategoria.addEventListener('click', async () => {
+      const cat = document.getElementById('sel-categoria').value;
+      const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
+      const d = await r.json();
+      setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      if (r.ok) {
+        c.categoria = cat;
+        document.getElementById('modal-title').innerHTML = `Chamado #${c.id} ${badgeStatus(c.status)} ${badgeCategoria(cat)}`;
+      }
+    });
+  }
 
   const btnSalvarPrio = document.getElementById('btn-salvar-prio');
   if (btnSalvarPrio) {
@@ -623,6 +671,7 @@ function traduzirAcao(acao) {
     prazo_alterado: 'Prazo alterado',
     solucao_registrada: 'Solução registrada',
     assumido: 'Chamado assumido',
+    categoria_alterada: 'Categoria alterada',
   };
   return t[acao] || acao;
 }

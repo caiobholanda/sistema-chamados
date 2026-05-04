@@ -266,6 +266,17 @@ function atualizarPrazo(id, prazo, adminId) {
   `).run(id, adminId, anterior || null, prazo);
 }
 
+function atualizarCategoria(id, categoria, adminId) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+  const anterior = chamado.categoria;
+  db.prepare(`UPDATE chamados SET categoria = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(categoria, id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'categoria_alterada', ?, ?)
+  `).run(id, adminId, anterior || null, categoria);
+}
+
 function assumirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
@@ -538,6 +549,7 @@ module.exports = {
   listarChamadosAdmin,
   atualizarPrioridade,
   atualizarPrazo,
+  atualizarCategoria,
   assumirChamado,
   concluirChamado,
   encerrarChamado,

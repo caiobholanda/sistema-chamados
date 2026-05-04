@@ -273,6 +273,27 @@ router.patch('/chamados/:id/encerrar', requireAdmin, (req, res) => {
   }
 });
 
+// PATCH /api/admin/chamados/:id/categoria
+const CATEGORIAS_VALIDAS = [
+  'software','hardware','impressora','ramal','nobreak','monitor',
+  'mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','outros',
+];
+router.patch('/chamados/:id/categoria', requireMaster, (req, res) => {
+  try {
+    const { categoria } = req.body;
+    if (!categoria || !CATEGORIAS_VALIDAS.includes(categoria)) {
+      return res.status(400).json({ erro: 'Categoria inválida' });
+    }
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    db.atualizarCategoria(chamado.id, categoria, req.admin.sub);
+    return res.json({ mensagem: 'Categoria atualizada' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 // ── Gerenciamento de usuários admin (master) ──────────────────
 
 // GET /api/admin/usuarios
