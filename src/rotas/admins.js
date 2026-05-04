@@ -27,14 +27,14 @@ function sanitizarTexto(str) {
 // POST /api/admin/login
 router.post('/login', async (req, res) => {
   try {
-    const { usuario, senha } = req.body;
-    if (!usuario || !senha) return res.status(400).json({ erro: 'Usuário e senha obrigatórios' });
+    const { email, senha } = req.body;
+    if (!email || !senha) return res.status(400).json({ erro: 'E-mail e senha obrigatórios' });
 
-    const admin = db.buscarAdminPorUsuario(usuario.trim());
-    if (!admin) return res.status(401).json({ erro: 'Usuário ou senha inválidos' });
+    const admin = db.buscarAdminPorEmail(email.trim().toLowerCase());
+    if (!admin || !admin.ativo) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
 
     const ok = await bcrypt.compare(senha, admin.senha_hash);
-    if (!ok) return res.status(401).json({ erro: 'Usuário ou senha inválidos' });
+    if (!ok) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
 
     const token = jwt.sign(
       { sub: admin.id, is_master: admin.is_master === 1, nome: admin.nome_completo },
