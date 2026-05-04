@@ -385,6 +385,7 @@ function renderFormChamado(usuario, container, onSuccess) {
                 <option>Room Service</option>
                 <option>Cozinha</option>
                 <option>Confeitaria / Padaria</option>
+                <option>Nutrição</option>
                 <option>Banquetes</option>
               </optgroup>
               <optgroup label="Eventos">
