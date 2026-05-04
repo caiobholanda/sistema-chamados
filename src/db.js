@@ -380,6 +380,10 @@ function buscarAdminPorId(id) {
   return getDb().prepare('SELECT * FROM admins WHERE id = ?').get(id);
 }
 
+function buscarAdminPorEmail(email) {
+  return getDb().prepare('SELECT * FROM admins WHERE email = ?').get(email);
+}
+
 function listarAdmins() {
   return getDb().prepare('SELECT id, usuario, nome_completo, email, is_master, ativo, criado_em FROM admins ORDER BY criado_em ASC').all();
 }
@@ -548,6 +552,7 @@ module.exports = {
   listarChamadosPorUsuario,
   buscarAdminPorUsuario,
   buscarAdminPorId,
+  buscarAdminPorEmail,
   listarAdmins,
   criarAdmin,
   atualizarAdmin,
