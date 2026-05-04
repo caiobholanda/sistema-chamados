@@ -1645,3 +1645,83 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border-radius: 3px;
 }
 .ranking-zero td { opacity: .5; }
+
+/* ── Widget Equipamentos ─────────────────────────────────── */
+.equipamentos-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .85rem 1rem;
+  margin-bottom: 1rem;
+}
+.equipamentos-header {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .75rem;
+}
+.equipamentos-badge-ia {
+  margin-left: auto;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: #fff;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  border-radius: 4px;
+  padding: .1rem .38rem;
+}
+.equipamentos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+.eq-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  cursor: default;
+}
+.eq-rank {
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 1.1rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+.eq-info {
+  flex: 1;
+  min-width: 0;
+}
+.eq-nome {
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eq-bar-wrap {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: .22rem;
+  overflow: hidden;
+}
+.eq-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .4s ease;
+}
+.eq-vezes {
+  font-size: .78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  min-width: 2rem;
+  text-align: right;
+}

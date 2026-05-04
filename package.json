@@ -8,6 +8,7 @@
     "seed": "node scripts/seed.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^12.9.0",
     "cookie-parser": "^1.4.6",

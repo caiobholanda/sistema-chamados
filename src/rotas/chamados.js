@@ -6,6 +6,7 @@ const router = express.Router();
 const db = require('../db');
 const { upload, renomearAnexoComId, UPLOADS_DIR } = require('../upload');
 const { classificar } = require('../categorizador');
+const { extrairEquipamentos } = require('../analisador-equipamentos');
 
 function getUsuarioIdFromCookie(req) {
   try {
@@ -65,6 +66,13 @@ router.post('/', upload.single('anexo'), (req, res) => {
       db.getDb().prepare('UPDATE chamados SET anexo_path = ?, anexo_nome_original = ? WHERE id = ?')
         .run(novoNome, anexo_nome_original, id);
     }
+
+    // Analisa equipamentos em background — não bloqueia a resposta
+    extrairEquipamentos(descricao).then(equipamentos => {
+      if (equipamentos.length > 0) {
+        db.inserirMencoesEquipamentos(id, equipamentos);
+      }
+    }).catch(() => {});
 
     return res.status(201).json({ id, mensagem: 'Chamado aberto com sucesso' });
   } catch (err) {

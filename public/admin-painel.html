@@ -81,6 +81,15 @@
     </div>
   </div>
 
+  <div class="equipamentos-widget" id="equipamentos-widget" style="display:none">
+    <div class="equipamentos-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span>Equipamentos mais problemáticos</span>
+      <span class="equipamentos-badge-ia">IA</span>
+    </div>
+    <div class="equipamentos-lista" id="equipamentos-lista"></div>
+  </div>
+
   <div class="tabs-bar">
     <button class="tab-btn ativo" id="tab-abertos" data-tab="abertos">
       Em Aberto <span class="tab-badge" id="badge-abertos"></span>
@@ -108,6 +117,8 @@
           <option>Bar Rooftop</option>
           <option>Lobby Bar</option>
           <option>Room Service</option>
+          <option>Cozinha</option>
+          <option>Confeitaria / Padaria</option>
           <option>Banquetes</option>
         </optgroup>
         <optgroup label="Eventos">
@@ -117,14 +128,17 @@
           <option>Spa by L'Occitane</option>
           <option>Fitness Center</option>
           <option>Piscina</option>
+          <option>Play Gran</option>
         </optgroup>
         <optgroup label="Administrativo">
+          <option>Gerência Geral</option>
           <option>Recursos Humanos</option>
           <option>Financeiro</option>
           <option>Controladoria</option>
           <option>Compras / Almoxarifado</option>
           <option>Comercial / Vendas</option>
           <option>Marketing</option>
+          <option>Revenue Management</option>
           <option>Tecnologia da Informação</option>
           <option>Jurídico</option>
         </optgroup>
@@ -132,6 +146,8 @@
           <option>Manutenção</option>
           <option>Segurança</option>
           <option>Lavanderia</option>
+          <option>Rouparia</option>
+          <option>Estacionamento</option>
           <option>Transportes</option>
         </optgroup>
       </select>

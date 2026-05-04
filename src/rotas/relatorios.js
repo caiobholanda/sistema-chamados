@@ -71,4 +71,15 @@ router.get('/exportar', requireAdmin, (req, res) => {
   }
 });
 
+// GET /api/admin/relatorios/equipamentos?limite=20
+router.get('/equipamentos', requireAdmin, (req, res) => {
+  try {
+    const limite = Math.min(parseInt(req.query.limite) || 20, 50);
+    return res.json(db.rankingEquipamentos({ limite }));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 module.exports = router;

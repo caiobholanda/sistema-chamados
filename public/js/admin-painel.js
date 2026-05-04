@@ -88,7 +88,7 @@ async function api(url, opts = {}) {
 
     await carregarAdminsParaFiltro();
     atualizarFiltrosDeAba();
-    await Promise.all([carregarChamados(), carregarEstatisticas()]);
+    await Promise.all([carregarChamados(), carregarEstatisticas(), carregarEquipamentos()]);
   } catch {}
 })();
 
@@ -571,6 +571,39 @@ function setupModalEventos(c) {
       finally { btn.disabled = false; input.focus(); }
     });
   }
+}
+
+async function carregarEquipamentos() {
+  try {
+    const r = await api('/api/admin/relatorios/equipamentos');
+    if (!r.ok) return;
+    const lista = await r.json();
+    if (!lista.length) return;
+
+    const widget = document.getElementById('equipamentos-widget');
+    const container = document.getElementById('equipamentos-lista');
+    const max = lista[0].vezes;
+
+    container.innerHTML = lista.map((item, i) => {
+      const pct = max > 0 ? Math.round((item.vezes / max) * 100) : 0;
+      const urgente = item.vezes >= 5;
+      const alerta  = item.vezes >= 3 && item.vezes < 5;
+      const cor = urgente ? 'var(--danger, #EF4444)' : alerta ? 'var(--gold, #C5A55A)' : 'var(--text-muted, #9CA3AF)';
+      return `
+        <div class="eq-item" title="Último chamado: ${fmtData(item.ultimo_chamado)}">
+          <div class="eq-rank">${i + 1}</div>
+          <div class="eq-info">
+            <div class="eq-nome">${item.equipamento}</div>
+            <div class="eq-bar-wrap">
+              <div class="eq-bar" style="width:${pct}%;background:${cor}"></div>
+            </div>
+          </div>
+          <div class="eq-vezes" style="color:${cor}">${item.vezes}×</div>
+        </div>`;
+    }).join('');
+
+    widget.style.display = 'block';
+  } catch {}
 }
 
 function traduzirAcao(acao) {

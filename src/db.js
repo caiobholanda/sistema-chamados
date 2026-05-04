@@ -79,6 +79,16 @@ function initDb() {
     );
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS equipamentos_mencoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      equipamento TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_eq_equipamento ON equipamentos_mencoes(equipamento);
+  `);
+
   // Migrações de colunas em bancos existentes
   try { db.exec('ALTER TABLE chamados ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN ativo INTEGER DEFAULT 1'); } catch {}
@@ -388,6 +398,32 @@ function deletarAdmin(id) {
   getDb().prepare('DELETE FROM admins WHERE id = ?').run(id);
 }
 
+// ── Equipamentos ─────────────────────────────────────────────
+
+function inserirMencoesEquipamentos(chamado_id, equipamentos) {
+  const db = getDb();
+  const stmt = db.prepare('INSERT INTO equipamentos_mencoes (chamado_id, equipamento) VALUES (?, ?)');
+  const inserir = db.transaction((list) => {
+    for (const eq of list) stmt.run(chamado_id, eq);
+  });
+  inserir(equipamentos);
+}
+
+function rankingEquipamentos({ limite = 20 } = {}) {
+  return getDb().prepare(`
+    SELECT
+      em.equipamento,
+      COUNT(*) AS vezes,
+      MAX(c.criado_em) AS ultimo_chamado,
+      GROUP_CONCAT(em.chamado_id ORDER BY em.chamado_id DESC) AS chamado_ids
+    FROM equipamentos_mencoes em
+    JOIN chamados c ON c.id = em.chamado_id
+    GROUP BY em.equipamento
+    ORDER BY vezes DESC, ultimo_chamado DESC
+    LIMIT ?
+  `).all(limite);
+}
+
 // ── Relatórios ────────────────────────────────────────────────
 
 function relatorioMes(mes) {
@@ -508,4 +544,6 @@ module.exports = {
   exportarCsvMes,
   listarMensagensChamado,
   criarMensagem,
+  inserirMencoesEquipamentos,
+  rankingEquipamentos,
 };
