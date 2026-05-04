@@ -1592,6 +1592,22 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 
 /* ═══════════════════════════════════════════
+   MODAL DE CONFIRMAÇÃO
+═══════════════════════════════════════════ */
+#modal-confirmar-overlay {
+  align-items: center;
+  padding: 1rem;
+}
+#modal-confirmar-overlay .modal-footer .btn {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: .95rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: none;
+  padding: .5rem 1.5rem;
+}
+
+/* ═══════════════════════════════════════════
    RANKING DE ADMINS
 ═══════════════════════════════════════════ */
 .ranking-podio {
