@@ -155,34 +155,81 @@ function renderAuth() {
 
 function renderPainel(usuario) {
   const header = document.querySelector('header');
-  if (header) header.style.display = '';
+  if (header) {
+    header.style.display = '';
+    const nav = header.querySelector('nav');
+    if (nav) nav.innerHTML = `
+      <span style="font-size:.82rem;color:var(--text-muted);margin-right:.25rem">${usuario.nome}</span>
+      <button id="btn-logout-usuario" class="btn btn-ghost btn-sm" style="margin-left:.25rem">Sair</button>
+    `;
+  }
   document.body.classList.remove('auth-mode');
   app.innerHTML = `
-    <div class="painel-usuario">
-      <div class="painel-header">
-        <div>
-          <div class="painel-saudacao">Bem-vindo ao Portal de TI</div>
-          <div class="painel-nome">${usuario.nome}</div>
-          <div class="painel-email">${usuario.email}</div>
+    <div id="msg-global"></div>
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Meus Chamados</div>
+        <div class="page-subtitle">Acompanhe suas solicitações de TI — ${usuario.email}</div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-novo-chamado">+ Abrir chamado</button>
+    </div>
+
+    <div class="stats-strip" id="stats-strip-u">
+      <div class="stat-pill">
+        <div class="stat-dot dot-aberto">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>
+          </svg>
         </div>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-primary btn-sm" id="btn-novo-chamado">Abrir chamado</button>
-          <button class="btn btn-ghost btn-sm" id="btn-logout-usuario">Sair</button>
+        <div class="stat-info">
+          <div class="stat-num" id="cnt-u-aberto">—</div>
+          <div class="stat-label">Abertos</div>
         </div>
       </div>
-
-      <div id="area-form-chamado" style="display:none"></div>
-
-      <div class="tabs-bar">
-        <button class="tab-btn ativo" id="tab-abertos">Em Aberto <span class="tab-badge" id="badge-abertos-u"></span></button>
-        <button class="tab-btn" id="tab-encerrados">Encerrados <span class="tab-badge" id="badge-encerrados-u"></span></button>
+      <div class="stat-pill">
+        <div class="stat-dot dot-andamento">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-num" id="cnt-u-andamento">—</div>
+          <div class="stat-label">Em andamento</div>
+        </div>
       </div>
-
-      <div class="filtros-card">
-        <div id="msg-painel"></div>
-        <div id="lista-usuario"><div class="loading"><div class="spinner"></div></div></div>
+      <div class="stat-pill">
+        <div class="stat-dot dot-concluido">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-num" id="cnt-u-concluido">—</div>
+          <div class="stat-label">Concluídos</div>
+        </div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-dot dot-encerrado">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-num" id="cnt-u-encerrado">—</div>
+          <div class="stat-label">Encerrados</div>
+        </div>
       </div>
     </div>
+
+    <div id="area-form-chamado" style="display:none"></div>
+
+    <div class="tabs-bar">
+      <button class="tab-btn ativo" id="tab-abertos">Em Aberto <span class="tab-badge" id="badge-abertos-u"></span></button>
+      <button class="tab-btn" id="tab-encerrados">Encerrados <span class="tab-badge" id="badge-encerrados-u"></span></button>
+    </div>
+
+    <div id="lista-usuario"><div class="loading"><div class="spinner"></div></div></div>
   `;
 
   let abaAtiva = 'abertos';
@@ -225,10 +272,19 @@ function renderPainel(usuario) {
       if (r.status === 401) { renderAuth(); return; }
       todosChamados = await r.json();
 
-      const abertos = todosChamados.filter(c => ['aberto', 'em_andamento'].includes(c.status));
-      const encerrados = todosChamados.filter(c => ['concluido', 'encerrado'].includes(c.status));
-      document.getElementById('badge-abertos-u').textContent = abertos.length || '';
-      document.getElementById('badge-encerrados-u').textContent = encerrados.length || '';
+      const qtd = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
+      todosChamados.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
+
+      const el = id => document.getElementById(id);
+      if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = qtd.aberto;
+      if (el('cnt-u-andamento')) el('cnt-u-andamento').textContent = qtd.em_andamento;
+      if (el('cnt-u-concluido')) el('cnt-u-concluido').textContent = qtd.concluido;
+      if (el('cnt-u-encerrado')) el('cnt-u-encerrado').textContent = qtd.encerrado;
+
+      const abertos = qtd.aberto + qtd.em_andamento;
+      const encerrados = qtd.concluido + qtd.encerrado;
+      el('badge-abertos-u').textContent = abertos || '';
+      el('badge-encerrados-u').textContent = encerrados || '';
 
       renderListaChamados(todosChamados, abaAtiva);
     } catch {
