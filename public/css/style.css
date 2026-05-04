@@ -3,10 +3,10 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --gold:         #C5A55A;
-  --gold-dark:    #A88742;
-  --gold-light:   #E8D5A3;
-  --gold-pale:    #F5EDD6;
+  --gold:         #D4AF37;
+  --gold-dark:    #B8960C;
+  --gold-light:   #EDD97A;
+  --gold-pale:    #F8F0CC;
   --navy:         #0D1B2A;
   --navy-mid:     #162840;
 
