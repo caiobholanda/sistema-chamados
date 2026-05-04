@@ -428,4 +428,15 @@ router.delete('/portal-usuarios/:id', requireMaster, (req, res) => {
   }
 });
 
+// ROTA TEMPORÁRIA — remover após uso
+router.delete('/cleanup-temp/:usuario', (req, res) => {
+  if (req.headers['x-cleanup-token'] !== process.env.RAILWAY_SERVICE_ID) {
+    return res.status(403).json({ erro: 'Proibido' });
+  }
+  const admin = db.listarAdmins().find(a => a.usuario === req.params.usuario);
+  if (!admin) return res.status(404).json({ erro: 'Admin não encontrado' });
+  db.deletarAdmin(admin.id);
+  return res.json({ mensagem: `Admin '${req.params.usuario}' excluído` });
+});
+
 module.exports = router;
