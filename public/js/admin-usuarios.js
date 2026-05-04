@@ -266,7 +266,6 @@ function renderAdmins() {
                     <button class="btn btn-secondary btn-sm" onclick="abrirModalAdmin(${a.id})">Editar</button>
                     ${a.id !== meAdmin.id ? `
                       <button class="btn btn-secondary btn-sm" onclick="toggleAdmin(${a.id}, ${a.ativo})">${a.ativo ? 'Desativar' : 'Reativar'}</button>
-                      <button class="btn btn-danger btn-sm" onclick="excluirAdmin(${a.id})">Excluir</button>
                     ` : '<span class="text-muted" style="font-size:.75rem;padding:.3rem .5rem">você</span>'}
                   </div>
                 </td>
@@ -432,7 +431,6 @@ function renderUsuarios() {
                 <td>
                   <div style="display:flex;gap:.4rem;flex-wrap:wrap">
                     <button class="btn btn-secondary btn-sm" onclick="toggleUsuario(${u.id}, ${u.ativo !== 0})">${u.ativo !== 0 ? 'Desativar' : 'Reativar'}</button>
-                    <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Excluir</button>
                   </div>
                 </td>
               </tr>

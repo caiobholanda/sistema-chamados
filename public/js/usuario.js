@@ -117,6 +117,8 @@ function renderAuth() {
       </div>
 
       <div class="auth-card">
+        <div class="auth-card-title">Entrar no portal</div>
+        <div class="auth-card-sub">Utilize seu e-mail e senha para acessar</div>
         <div id="msg-auth"></div>
         <form id="form-login">
           <div class="form-group">
