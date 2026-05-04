@@ -128,7 +128,7 @@ function renderAuth() {
           <form id="form-login" novalidate>
             <div class="form-group">
               <label for="login-email">E-mail</label>
-              <input class="form-control" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" required>
+              <input class="form-control" type="email" id="login-email" placeholder="seu@granmarquise.com.br" autocomplete="email" required>
             </div>
             <div class="form-group">
               <label for="login-senha">Senha</label>
