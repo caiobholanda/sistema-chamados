@@ -975,6 +975,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
 .empty-state .empty-sub { font-size: .8rem; margin-top: .3rem; }
 
 /* ═══════════════════════════════════════════
+   GOLD SUAVE — PORTAL (fundo claro)
+   Sobrescreve o gold vivo apenas fora do login
+═══════════════════════════════════════════ */
+body:not(.auth-mode) {
+  --gold:       #B8965A;
+  --gold-dark:  #9E7B3E;
+  --gold-light: #DFC898;
+  --gold-pale:  #F5EDDC;
+}
+
+/* ═══════════════════════════════════════════
    AUTH — LOGIN DO USUÁRIO
 ═══════════════════════════════════════════ */
 body.auth-mode { background: var(--bg); }
