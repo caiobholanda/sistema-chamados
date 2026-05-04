@@ -979,10 +979,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
    Sobrescreve o gold vivo apenas fora do login
 ═══════════════════════════════════════════ */
 body:not(.auth-mode) {
-  --gold:       #B8965A;
-  --gold-dark:  #9E7B3E;
-  --gold-light: #DFC898;
-  --gold-pale:  #F5EDDC;
+  --gold:       #C4A96E;
+  --gold-dark:  #A88E52;
+  --gold-light: #E8D4A8;
+  --gold-pale:  #F7F0E2;
 }
 
 /* ═══════════════════════════════════════════
