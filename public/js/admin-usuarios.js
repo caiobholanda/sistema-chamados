@@ -285,7 +285,7 @@ function renderAdmins() {
                 <td style="text-align:center">${a.nome_completo}</td>
                 <td style="text-align:center;font-size:.82rem">${a.email || '<span class="text-muted">—</span>'}</td>
                 <td style="text-align:center">${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
-                <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em).toLocaleDateString('pt-BR')}</td>
+                <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
                   <div style="display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center">
                     <button class="btn btn-secondary btn-sm" onclick="abrirModalAdmin(${a.id})">Editar</button>
@@ -462,7 +462,7 @@ function renderUsuarios() {
               <tr>
                 <td>${u.nome}</td>
                 <td style="font-size:.82rem">${u.email}</td>
-                <td style="font-size:.8rem">${new Date(u.criado_em).toLocaleDateString('pt-BR')}</td>
+                <td style="font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td>
                   <div style="display:flex;gap:.4rem;flex-wrap:wrap">
                     <button class="btn btn-secondary btn-sm" onclick="toggleUsuario(${u.id}, ${u.ativo !== 0})">${u.ativo !== 0 ? 'Desativar' : 'Reativar'}</button>

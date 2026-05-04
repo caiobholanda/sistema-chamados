@@ -62,7 +62,9 @@ function badgeCategoria(cat) {
 
 function fmtData(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  const iso = d.includes('T') ? d : d.replace(' ', 'T');
+  const date = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
 }
 
 function badgeStatus(s) {
