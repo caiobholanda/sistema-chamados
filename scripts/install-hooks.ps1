@@ -4,7 +4,7 @@
 $hooksDir = Join-Path $PSScriptRoot "..\\.git\\hooks"
 $hooksDir = [System.IO.Path]::GetFullPath($hooksDir)
 
-$railwayToken  = "664a1821-bad5-495b-b0ef-c7514f9db2fc"
+$railwayToken  = "0395193f-6965-484f-bc2c-d13e5c78888a"
 $projectId     = "46c9a99e-7824-4c7f-8c15-886f825a461e"
 $environmentId = "5a1be2d0-373d-4a3f-8c3b-e27f169b596b"
 $serviceId     = "2acb4524-0b02-4dc9-918c-d6f0b5ebbae2"
