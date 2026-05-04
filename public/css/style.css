@@ -105,6 +105,12 @@ header {
   color: var(--gold);
   letter-spacing: .08em;
 }
+.header-logo-img {
+  height: 30px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  flex-shrink: 0;
+}
 .logo-placeholder {
   width: 38px; height: 38px;
   background: rgba(197,165,90,.1);
@@ -1080,7 +1086,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 @media(max-width:768px) { .login-page { grid-template-columns: 1fr; } }
 
 .login-left {
-  background: #2A4A6B;
+  background: #1C1814;
   display: flex; flex-direction: column; justify-content: center;
   padding: 3.5rem 2.5rem;
   position: relative; overflow: hidden;

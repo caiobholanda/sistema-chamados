@@ -112,7 +112,7 @@ function renderAuth() {
       <div class="login-left">
         <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png"
              alt="Gran Marquise"
-             style="width:170px;margin-bottom:2rem;position:relative;z-index:1;filter:brightness(0) invert(1)">
+             style="width:220px;margin-bottom:2.5rem;position:relative;z-index:1;filter:brightness(0) invert(1)">
         <div class="login-badge">Portal de Chamados</div>
         <h2>Suporte de TI<br>Gran Marquise</h2>
         <p>Registre e acompanhe suas solicitações ao setor de Tecnologia da Informação do Hotel Gran Marquise.</p>
