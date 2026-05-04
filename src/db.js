@@ -236,6 +236,8 @@ function listarChamadosAdmin(filtros = {}) {
         WHEN c.prioridade = 'baixa' THEN 4
         ELSE 5
       END ASC,
+      CASE WHEN c.prazo IS NULL THEN 1 ELSE 0 END ASC,
+      c.prazo ASC,
       c.criado_em ASC
   `;
 
