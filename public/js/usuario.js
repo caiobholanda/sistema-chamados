@@ -2,6 +2,19 @@ const app = document.getElementById('app');
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 
+const RAMAIS_VALIDOS = new Set([
+  '5001','5002','5003','5004','5005','5010','5012','5015',
+  '5050','5051','5055','5056','5058','5061','5062','5066','5067',
+  '5093','5094',
+  '5207','5208','5216','5221','5222','5223','5224','5225','5226',
+  '5227','5228','5230','5231','5237','5238','5239','5240','5241',
+  '5242','5243','5244','5245','5246','5248','5250','5252','5253',
+  '5255','5256','5257','5258','5259','5261','5262','5265','5267',
+  '5269','5271','5273','5285','5286','5288',
+  '5305','5310','5311','5332','5334','5340','5363','5364','5369',
+  '8406','8415','8421','8424','8425','8426','8464','8471','8494'
+]);
+
 // ── Chat (usuário) ─────────────────────────────────────────────
 
 const _chatIntervals = new Map();
@@ -370,6 +383,8 @@ function renderFormChamado(usuario, container, onSuccess) {
                 <option>Bar Rooftop</option>
                 <option>Lobby Bar</option>
                 <option>Room Service</option>
+                <option>Cozinha</option>
+                <option>Confeitaria / Padaria</option>
                 <option>Banquetes</option>
               </optgroup>
               <optgroup label="Eventos">
@@ -379,14 +394,17 @@ function renderFormChamado(usuario, container, onSuccess) {
                 <option>Spa by L'Occitane</option>
                 <option>Fitness Center</option>
                 <option>Piscina</option>
+                <option>Play Gran</option>
               </optgroup>
               <optgroup label="Administrativo">
+                <option>Gerência Geral</option>
                 <option>Recursos Humanos</option>
                 <option>Financeiro</option>
                 <option>Controladoria</option>
                 <option>Compras / Almoxarifado</option>
                 <option>Comercial / Vendas</option>
                 <option>Marketing</option>
+                <option>Revenue Management</option>
                 <option>Tecnologia da Informação</option>
                 <option>Jurídico</option>
               </optgroup>
@@ -394,6 +412,8 @@ function renderFormChamado(usuario, container, onSuccess) {
                 <option>Manutenção</option>
                 <option>Segurança</option>
                 <option>Lavanderia</option>
+                <option>Rouparia</option>
+                <option>Estacionamento</option>
                 <option>Transportes</option>
               </optgroup>
             </select>
@@ -401,7 +421,7 @@ function renderFormChamado(usuario, container, onSuccess) {
           <div class="form-group">
             <label for="ch-ramal">Ramal <span class="req">*</span></label>
             <input class="form-control" type="text" id="ch-ramal" required pattern="\\d{4}" minlength="4" maxlength="4" placeholder="0000" inputmode="numeric">
-            <p class="form-hint">Exatamente 4 dígitos</p>
+            <p class="form-hint">4 dígitos — apenas ramais cadastrados são aceitos</p>
           </div>
         </div>
         <div class="form-group">
@@ -436,6 +456,12 @@ function renderFormChamado(usuario, container, onSuccess) {
     const ramal = document.getElementById('ch-ramal').value.trim();
     if (!/^\d{4}$/.test(ramal)) {
       msg.innerHTML = '<div class="alert alert-danger">Ramal deve ter exatamente 4 dígitos.</div>';
+      document.getElementById('ch-ramal').focus();
+      return;
+    }
+    if (!RAMAIS_VALIDOS.has(ramal)) {
+      msg.innerHTML = '<div class="alert alert-danger">Ramal <strong>' + ramal + '</strong> não existe. Verifique o número e tente novamente.</div>';
+      document.getElementById('ch-ramal').focus();
       return;
     }
     const descricao = document.getElementById('ch-descricao').value.trim();

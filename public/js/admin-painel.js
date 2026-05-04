@@ -336,6 +336,12 @@ function renderModalBody(c) {
           <div><span class="modal-info-label">${c.prazo ? 'Prazo' : 'Atualizado em'}</span>${c.prazo ? `<strong style="color:var(--gold-dark)">${fmtData(c.prazo)}</strong>` : fmtData(c.atualizado_em)}</div>
           ${c.concluido_em ? `<div><span class="modal-info-label">Concluído em</span>${fmtData(c.concluido_em)}</div>` : '<div></div>'}
         </div>
+        <div class="modal-categoria-row">
+          <span class="modal-info-label">Categoria detectada</span>
+          ${c.categoria && CATEGORIAS_MAP[c.categoria]
+            ? badgeCategoria(c.categoria)
+            : '<span style="font-size:.82rem;color:var(--text-muted)">Não classificado</span>'}
+        </div>
         <div class="modal-desc">${c.descricao}</div>
         ${c.anexo_nome_original ? `
           <a href="/api/chamados/${c.id}/anexo" class="btn btn-secondary btn-sm" download style="margin-top:.55rem;display:inline-flex;align-items:center;gap:.35rem">

@@ -1291,8 +1291,8 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   flex-direction: column;
   max-width: 72%;
 }
-.chat-msg.mine   { align-self: flex-end;   align-items: flex-end; }
-.chat-msg.theirs { align-self: flex-start; align-items: flex-start; }
+.chat-msg.mine   { align-self: flex-start; align-items: flex-start; }
+.chat-msg.theirs { align-self: flex-end;   align-items: flex-end; }
 
 .chat-msg-author {
   font-size: .64rem;
@@ -1313,12 +1313,12 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .chat-msg.mine   .chat-msg-bubble {
   background: #DCF8C6;
   color: #1a1a1a;
-  border-radius: 8px 8px 2px 8px;
+  border-radius: 8px 8px 8px 2px;
 }
 .chat-msg.theirs .chat-msg-bubble {
   background: #FFFFFF;
   color: #1a1a1a;
-  border-radius: 8px 8px 8px 2px;
+  border-radius: 8px 8px 2px 8px;
 }
 
 .chat-msg-time {
@@ -1488,6 +1488,17 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   margin-bottom: .75rem;
 }
 @media(max-width:540px) { .modal-info-grid-3 { grid-template-columns: 1fr 1fr; } }
+.modal-categoria-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-top: -.3rem;
+  margin-bottom: .75rem;
+}
+.modal-categoria-row .modal-info-label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
 .modal-section-divider {
   border: none;
   border-top: 1px solid var(--border);
