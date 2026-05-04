@@ -95,6 +95,31 @@ function msgGlobal(html, dur = 3500) {
   setTimeout(() => { el.innerHTML = ''; }, dur);
 }
 
+// ── Modal de confirmação ──────────────────────────────────────
+let _confirmarResolve = null;
+
+function confirmar(titulo, msg, btnLabel = 'Confirmar') {
+  return new Promise(resolve => {
+    _confirmarResolve = resolve;
+    document.getElementById('confirmar-title').textContent = titulo;
+    document.getElementById('confirmar-msg').textContent = msg;
+    document.getElementById('btn-ok-confirmar').textContent = btnLabel;
+    document.getElementById('modal-confirmar-overlay').classList.add('open');
+  });
+}
+
+function fecharModalConfirmar(resultado) {
+  document.getElementById('modal-confirmar-overlay').classList.remove('open');
+  if (_confirmarResolve) { _confirmarResolve(resultado); _confirmarResolve = null; }
+}
+
+document.getElementById('btn-fechar-confirmar').addEventListener('click', () => fecharModalConfirmar(false));
+document.getElementById('btn-cancelar-confirmar').addEventListener('click', () => fecharModalConfirmar(false));
+document.getElementById('btn-ok-confirmar').addEventListener('click', () => fecharModalConfirmar(true));
+document.getElementById('modal-confirmar-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) fecharModalConfirmar(false);
+});
+
 // ── Boot ──────────────────────────────────────────────────────
 
 (async () => {
@@ -317,6 +342,16 @@ function fecharModalAdmin() {
 }
 
 async function toggleAdmin(id, ativo) {
+  const admin = todosAdmins.find(x => x.id === id);
+  const nome = admin ? admin.nome_completo : 'este administrador';
+  const ok = await confirmar(
+    ativo ? 'Desativar administrador' : 'Reativar administrador',
+    ativo
+      ? `Tem certeza que deseja desativar "${nome}"? Ele não conseguirá mais acessar o sistema.`
+      : `Tem certeza que deseja reativar "${nome}"?`,
+    ativo ? 'Desativar' : 'Reativar'
+  );
+  if (!ok) return;
   const r = await api(`/api/admin/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
   const d = await r.json();
   if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
@@ -457,6 +492,16 @@ function fecharModalUsuario() {
 }
 
 async function toggleUsuario(id, ativo) {
+  const usuario = todosUsuarios.find(x => x.id === id);
+  const nome = usuario ? usuario.nome : 'este usuário';
+  const ok = await confirmar(
+    ativo ? 'Desativar usuário' : 'Reativar usuário',
+    ativo
+      ? `Tem certeza que deseja desativar "${nome}"? Ele não conseguirá mais acessar o portal.`
+      : `Tem certeza que deseja reativar "${nome}"?`,
+    ativo ? 'Desativar' : 'Reativar'
+  );
+  if (!ok) return;
   const r = await api(`/api/admin/portal-usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
   const d = await r.json();
   if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
