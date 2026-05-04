@@ -83,6 +83,7 @@ function initDb() {
   try { db.exec('ALTER TABLE chamados ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN ativo INTEGER DEFAULT 1'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN email TEXT'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN categoria TEXT'); } catch {}
 
   return db;
 }
@@ -115,10 +116,10 @@ async function criarAdminMasterSeNecessario() {
 function inserirChamado(dados) {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original)
-    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original)
+    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original, categoria)
+    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria)
   `);
-  const result = stmt.run({ usuario_id: null, ...dados });
+  const result = stmt.run({ usuario_id: null, categoria: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -435,6 +436,30 @@ function relatorioMes(mes) {
   return { volumeStatus, abertosUltimos12, notaMedia, tendencia6m, top5Setores };
 }
 
+function rankingAdminsMes(mes) {
+  const db = getDb();
+  const inicio = `${mes}-01`;
+  const fim = `${mes}-31`;
+
+  return db.prepare(`
+    SELECT
+      a.id,
+      a.nome_completo,
+      COUNT(DISTINCT CASE WHEN h.valor_novo = 'concluido' THEN h.chamado_id END) AS concluidos,
+      COUNT(DISTINCT CASE WHEN h.valor_novo = 'encerrado' THEN h.chamado_id END) AS encerrados,
+      COUNT(DISTINCT h.chamado_id) AS total
+    FROM admins a
+    LEFT JOIN historico_chamados h
+      ON h.admin_id = a.id
+      AND h.acao = 'status_alterado'
+      AND h.valor_novo IN ('concluido', 'encerrado')
+      AND h.timestamp BETWEEN ? AND ?
+    WHERE a.ativo = 1
+    GROUP BY a.id, a.nome_completo
+    ORDER BY total DESC, concluidos DESC, a.nome_completo ASC
+  `).all(inicio, fim + ' 23:59:59');
+}
+
 function exportarCsvMes(mes) {
   const db = getDb();
   const inicio = `${mes}-01`;
@@ -479,6 +504,7 @@ module.exports = {
   atualizarAdmin,
   deletarAdmin,
   relatorioMes,
+  rankingAdminsMes,
   exportarCsvMes,
   listarMensagensChamado,
   criarMensagem,

@@ -31,9 +31,13 @@ async function carregarRelatorio() {
   graficos.forEach(g => g.destroy());
   graficos = [];
   try {
-    const r = await api(`/api/admin/relatorios?mes=${mes}`);
+    const [r, rRanking] = await Promise.all([
+      api(`/api/admin/relatorios?mes=${mes}`),
+      api(`/api/admin/relatorios/ranking?mes=${mes}`),
+    ]);
     if (!r.ok) { conteudo.innerHTML = '<div class="alert alert-danger">Erro ao carregar.</div>'; return; }
-    renderRelatorio(await r.json(), mes);
+    const ranking = rRanking.ok ? await rRanking.json() : [];
+    renderRelatorio(await r.json(), mes, ranking);
   } catch (err) {
     if (err.message !== '401')
       conteudo.innerHTML = '<div class="alert alert-danger">Erro ao carregar relatório.</div>';
@@ -68,7 +72,67 @@ const COR = {
   textMuted: '#7A726A',
 };
 
-function renderRelatorio(d, mes) {
+function renderRanking(ranking) {
+  if (!ranking || ranking.length === 0) {
+    return '<div class="relat-chart-empty">Nenhum admin cadastrado.</div>';
+  }
+
+  const maxTotal = ranking[0].total || 1;
+  const comAtividade = ranking.filter(a => a.total > 0);
+
+  let podioHtml = '';
+  if (comAtividade.length >= 2) {
+    const top = comAtividade.slice(0, 3);
+    const ordem  = top.length >= 3 ? [top[1], top[0], top[2]] : [top[1], top[0]];
+    const emojis = top.length >= 3 ? ['🥈', '🥇', '🥉'] : ['🥈', '🥇'];
+    const cls    = top.length >= 3 ? ['rank-2', 'rank-1', 'rank-3'] : ['rank-2', 'rank-1'];
+    podioHtml = `<div class="ranking-podio">${ordem.map((a, i) => `
+      <div class="ranking-podio-item ${cls[i]}">
+        <div class="ranking-podio-medal">${emojis[i]}</div>
+        <div class="ranking-podio-nome">${a.nome_completo}</div>
+        <div class="ranking-podio-num">${a.total}</div>
+        <div class="ranking-podio-label">resolvido${a.total !== 1 ? 's' : ''}</div>
+        <div class="ranking-podio-detalhe">${a.concluidos} concluído${a.concluidos !== 1 ? 's' : ''} · ${a.encerrados} encerrado${a.encerrados !== 1 ? 's' : ''}</div>
+      </div>`).join('')}</div>`;
+  } else if (comAtividade.length === 1) {
+    const a = comAtividade[0];
+    podioHtml = `<div class="ranking-podio"><div class="ranking-podio-item rank-1">
+      <div class="ranking-podio-medal">🥇</div>
+      <div class="ranking-podio-nome">${a.nome_completo}</div>
+      <div class="ranking-podio-num">${a.total}</div>
+      <div class="ranking-podio-label">resolvido${a.total !== 1 ? 's' : ''}</div>
+      <div class="ranking-podio-detalhe">${a.concluidos} concluído${a.concluidos !== 1 ? 's' : ''} · ${a.encerrados} encerrado${a.encerrados !== 1 ? 's' : ''}</div>
+    </div></div>`;
+  }
+
+  const linhas = ranking.map((a, idx) => {
+    const pos = idx + 1;
+    const pct = maxTotal > 0 ? Math.round((a.total / maxTotal) * 100) : 0;
+    const medalha = pos <= 3 && a.total > 0 ? ['🥇', '🥈', '🥉'][pos - 1] : pos;
+    return `<tr class="${a.total === 0 ? 'ranking-zero' : ''}">
+      <td><span class="ranking-pos">${medalha}</span></td>
+      <td><strong>${a.nome_completo}</strong></td>
+      <td style="color:var(--success);font-weight:600">${a.concluidos}</td>
+      <td style="color:var(--text-muted)">${a.encerrados}</td>
+      <td><strong>${a.total}</strong></td>
+      <td><div class="ranking-bar-wrap"><div class="ranking-bar" style="width:${pct}%"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  return `${podioHtml}
+    <div class="ranking-table-wrap">
+      <table class="ranking-table">
+        <thead><tr>
+          <th>#</th><th>Responsável</th>
+          <th>Concluídos</th><th>Encerrados</th><th>Total</th>
+          <th style="width:100px"></th>
+        </tr></thead>
+        <tbody>${linhas}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderRelatorio(d, mes, ranking) {
   const aberto    = cnt(d.volumeStatus, 'aberto');
   const andamento = cnt(d.volumeStatus, 'em_andamento');
   const concluido = cnt(d.volumeStatus, 'concluido');
@@ -193,6 +257,17 @@ function renderRelatorio(d, mes) {
         ? `<div class="relat-chart-empty">Nenhum dado de setor disponível</div>`
         : `<canvas id="grafico-setores" height="${Math.max(140, d.top5Setores.length * 44)}"></canvas>`
       }
+    </div>
+
+    <div class="relat-section-title">Ranking de Atendimento</div>
+    <div class="card relat-chart-card">
+      <div class="relat-chart-header">
+        <div>
+          <div class="relat-chart-title">Admins que mais resolveram chamados</div>
+          <div class="relat-chart-sub">Contagem de chamados concluídos e encerrados no mês por responsável</div>
+        </div>
+      </div>
+      ${renderRanking(ranking)}
     </div>
   `;
 

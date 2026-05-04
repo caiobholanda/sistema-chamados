@@ -12,9 +12,11 @@ function _limparChats() {
 }
 
 function _renderMsgChat(m) {
-  return `<div class="chat-msg ${m.autor_tipo}">
+  const mine = m.autor_tipo === 'usuario';
+  return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}">
+    ${!mine ? `<div class="chat-msg-author">${m.autor_nome}</div>` : ''}
     <div class="chat-msg-bubble">${m.mensagem}</div>
-    <div class="chat-msg-meta">${m.autor_nome} · ${fmtData(m.criado_em)}</div>
+    <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
   </div>`;
 }
 
@@ -353,7 +355,48 @@ function renderFormChamado(usuario, container, onSuccess) {
         <div class="form-row">
           <div class="form-group">
             <label for="ch-setor">Setor <span class="req">*</span></label>
-            <input class="form-control" type="text" id="ch-setor" required minlength="2" maxlength="60" placeholder="Ex: Recepção, Restaurante...">
+            <select class="form-control" id="ch-setor" required>
+              <option value="">Selecione seu setor...</option>
+              <optgroup label="Hospedagem">
+                <option>Recepção</option>
+                <option>Concierge</option>
+                <option>Governança</option>
+                <option>Reservas</option>
+                <option>Mensageria / Portaria</option>
+              </optgroup>
+              <optgroup label="Alimentos &amp; Bebidas">
+                <option>Restaurante Mucuripe</option>
+                <option>Restaurante Mangostin</option>
+                <option>Bar Rooftop</option>
+                <option>Lobby Bar</option>
+                <option>Room Service</option>
+                <option>Banquetes</option>
+              </optgroup>
+              <optgroup label="Eventos">
+                <option>Eventos e Convenções</option>
+              </optgroup>
+              <optgroup label="Bem-estar &amp; Lazer">
+                <option>Spa by L'Occitane</option>
+                <option>Fitness Center</option>
+                <option>Piscina</option>
+              </optgroup>
+              <optgroup label="Administrativo">
+                <option>Recursos Humanos</option>
+                <option>Financeiro</option>
+                <option>Controladoria</option>
+                <option>Compras / Almoxarifado</option>
+                <option>Comercial / Vendas</option>
+                <option>Marketing</option>
+                <option>Tecnologia da Informação</option>
+                <option>Jurídico</option>
+              </optgroup>
+              <optgroup label="Operacional">
+                <option>Manutenção</option>
+                <option>Segurança</option>
+                <option>Lavanderia</option>
+                <option>Transportes</option>
+              </optgroup>
+            </select>
           </div>
           <div class="form-group">
             <label for="ch-ramal">Ramal <span class="req">*</span></label>
@@ -384,6 +427,12 @@ function renderFormChamado(usuario, container, onSuccess) {
     e.preventDefault();
     const msg = document.getElementById('msg-form-chamado');
     const btn = document.getElementById('btn-enviar-chamado');
+    const setor = document.getElementById('ch-setor').value;
+    if (!setor) {
+      msg.innerHTML = '<div class="alert alert-danger">Selecione o seu setor.</div>';
+      document.getElementById('ch-setor').focus();
+      return;
+    }
     const ramal = document.getElementById('ch-ramal').value.trim();
     if (!/^\d{4}$/.test(ramal)) {
       msg.innerHTML = '<div class="alert alert-danger">Ramal deve ter exatamente 4 dígitos.</div>';

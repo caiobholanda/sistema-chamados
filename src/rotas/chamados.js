@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../db');
 const { upload, renomearAnexoComId, UPLOADS_DIR } = require('../upload');
+const { classificar } = require('../categorizador');
 
 function getUsuarioIdFromCookie(req) {
   try {
@@ -53,7 +54,9 @@ router.post('/', upload.single('anexo'), (req, res) => {
     let anexo_nome_original = null;
 
     const usuario_id = getUsuarioIdFromCookie(req);
-    const id = db.inserirChamado({ usuario_id, nome, setor, ramal, descricao, anexo_path: null, anexo_nome_original: null });
+    const cat = classificar(descricao);
+    const categoria = cat ? cat.id : null;
+    const id = db.inserirChamado({ usuario_id, nome, setor, ramal, descricao, anexo_path: null, anexo_nome_original: null, categoria });
 
     if (req.file) {
       const novoNome = renomearAnexoComId(id, req.file.path, req.file.originalname);

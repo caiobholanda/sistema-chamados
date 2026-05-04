@@ -18,11 +18,15 @@ async function _atualizarChatAdmin(chamadoId) {
         box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem trocada ainda.</div>';
       return;
     }
-    box.innerHTML = msgs.map(m => `
-      <div class="chat-msg ${m.autor_tipo}">
+    box.innerHTML = msgs.map(m => {
+      const mine = m.autor_tipo === 'admin';
+      return `
+      <div class="chat-msg ${mine ? 'mine' : 'theirs'}">
+        ${!mine ? `<div class="chat-msg-author">${m.autor_nome}</div>` : ''}
         <div class="chat-msg-bubble">${m.mensagem}</div>
-        <div class="chat-msg-meta">${m.autor_nome} · ${fmtData(m.criado_em)}</div>
-      </div>`).join('');
+        <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
+      </div>`;
+    }).join('');
     if (atFundo || anterior < msgs.length) box.scrollTop = box.scrollHeight;
   } catch {}
 }
@@ -32,6 +36,25 @@ const STATUS_ENCERRADOS = ['concluido', 'encerrado'];
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+
+const CATEGORIAS_MAP = {
+  software:      { nome: 'Software',         cor: '#6366F1', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>' },
+  hardware:      { nome: 'Hardware',          cor: '#0EA5E9', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 18v3M8 21h8"/></svg>' },
+  rede:          { nome: 'Rede / Internet',   cor: '#10B981', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' },
+  cameras:       { nome: 'Câmeras / CFTV',   cor: '#F59E0B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>' },
+  impressora:    { nome: 'Impressora',        cor: '#8B5CF6', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' },
+  telefonia:     { nome: 'Telefonia',         cor: '#EC4899', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>' },
+  acesso_senha:  { nome: 'Acesso / Senha',    cor: '#EF4444', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' },
+  email:         { nome: 'E-mail',            cor: '#64748B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' },
+  cabos:         { nome: 'Cabos / Cabeamento',cor: '#78716C', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>' },
+  tv_projetor:   { nome: 'TV / Projetor',     cor: '#0891B2', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+};
+
+function badgeCategoria(cat) {
+  if (!cat || !CATEGORIAS_MAP[cat]) return '';
+  const { nome, cor, icone } = CATEGORIAS_MAP[cat];
+  return `<span class="badge-categoria" style="--cat-cor:${cor}">${icone} ${nome}</span>`;
+}
 
 function fmtData(d) {
   if (!d) return '—';
@@ -164,7 +187,7 @@ async function carregarChamados() {
 
   const params = new URLSearchParams();
   const statusFiltro = document.getElementById('filtro-status').value;
-  const setor = document.getElementById('filtro-setor').value.trim();
+  const setor = document.getElementById('filtro-setor').value;
   const adminId = document.getElementById('filtro-admin').value;
   const inicio = document.getElementById('filtro-inicio').value;
   const fim = document.getElementById('filtro-fim').value;
@@ -217,6 +240,7 @@ function renderChamadoItem(c) {
         <span class="chamado-id">#${c.id}</span>
         ${badgeStatus(c.status)}
         ${badgePrio(c.prioridade)}
+        ${badgeCategoria(c.categoria)}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
       </div>
       <div class="chamado-nome">${c.nome}</div>
@@ -282,7 +306,7 @@ function renderModalBody(c) {
         </div>`).join('')
     : '<p class="text-muted" style="font-size:.85rem">Sem histórico.</p>';
 
-  document.getElementById('modal-title').innerHTML = `Chamado #${c.id} ${badgeStatus(c.status)}`;
+  document.getElementById('modal-title').innerHTML = `Chamado #${c.id} ${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
 
   document.getElementById('modal-body').innerHTML = `
     <div style="display:grid;gap:1rem">
@@ -392,15 +416,21 @@ function renderModalBody(c) {
         </div>
       </div>` : ''}
 
-      <!-- ④ Histórico + excluir -->
+      <!-- ④ Histórico -->
       <details>
         <summary style="cursor:pointer;font-size:.75rem;font-weight:700;color:var(--text-secondary);letter-spacing:.05em;text-transform:uppercase;user-select:none">Histórico de ações</summary>
         <div style="margin-top:.65rem">${historicoHtml}</div>
-        ${adminInfo && adminInfo.is_master ? `
-          <div style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)">
-            <button class="btn btn-danger btn-sm" id="btn-deletar">Excluir chamado permanentemente</button>
-          </div>` : ''}
       </details>
+
+      <!-- ⑤ Zona de perigo (só master) -->
+      ${adminInfo && adminInfo.is_master ? `
+        <div class="modal-danger-zone">
+          <div class="modal-danger-label">Zona de perigo</div>
+          <button class="btn btn-danger btn-sm" id="btn-deletar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            Excluir chamado permanentemente
+          </button>
+        </div>` : ''}
 
     </div>
   `;
