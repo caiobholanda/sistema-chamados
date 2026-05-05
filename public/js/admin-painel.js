@@ -196,6 +196,34 @@ document.getElementById('btn-atualizar').addEventListener('click', () => {
   carregarChamados();
   carregarEstatisticas();
 });
+
+// Stat pills: click to filter by specific status
+document.querySelectorAll('#stats-strip .stat-pill').forEach(pill => {
+  pill.style.cursor = 'pointer';
+  pill.title = 'Clique para filtrar';
+});
+document.getElementById('stats-strip').addEventListener('click', e => {
+  const pill = e.target.closest('.stat-pill');
+  if (!pill) return;
+  const num = pill.querySelector('.stat-num');
+  if (!num) return;
+  const map = {
+    'cnt-aberto':    ['abertos',    'aberto'],
+    'cnt-andamento': ['abertos',    'em_andamento'],
+    'cnt-concluido': ['encerrados', 'concluido'],
+    'cnt-encerrado': ['encerrados', 'encerrado'],
+  };
+  const entry = map[num.id];
+  if (!entry) return;
+  const [tabTarget, statusValue] = entry;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+  document.getElementById('tab-' + tabTarget).classList.add('ativo');
+  abaAtiva = tabTarget;
+  document.getElementById('subtabs-meus').style.display = 'none';
+  atualizarFiltrosDeAba();
+  document.getElementById('filtro-status').value = statusValue;
+  carregarChamados();
+});
 document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('filtro-status').value = '';
   document.getElementById('filtro-setor').value = '';
