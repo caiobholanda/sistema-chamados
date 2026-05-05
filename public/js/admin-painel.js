@@ -69,7 +69,18 @@ function fmtData(d) {
 }
 
 function badgeStatus(s) {
-  return `<span class="badge badge-${s}">${STATUS_LABELS[s] || s}</span>`;
+  return `<span class="badge badge-${s}" data-status="${s}" title="Filtrar por: ${STATUS_LABELS[s] || s}" style="cursor:pointer">${STATUS_LABELS[s] || s}</span>`;
+}
+
+function filtrarPorStatus(status) {
+  const tabTarget = STATUS_ABERTOS.includes(status) ? 'abertos' : 'encerrados';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+  document.getElementById('tab-' + tabTarget).classList.add('ativo');
+  abaAtiva = tabTarget;
+  document.getElementById('subtabs-meus').style.display = 'none';
+  atualizarFiltrosDeAba();
+  document.getElementById('filtro-status').value = status;
+  carregarChamados();
 }
 function badgePrio(p) {
   if (!p) return `<span class="badge badge-sem-prioridade">Sem prioridade</span>`;
@@ -207,22 +218,9 @@ document.getElementById('stats-strip').addEventListener('click', e => {
   if (!pill) return;
   const num = pill.querySelector('.stat-num');
   if (!num) return;
-  const map = {
-    'cnt-aberto':    ['abertos',    'aberto'],
-    'cnt-andamento': ['abertos',    'em_andamento'],
-    'cnt-concluido': ['encerrados', 'concluido'],
-    'cnt-encerrado': ['encerrados', 'encerrado'],
-  };
-  const entry = map[num.id];
-  if (!entry) return;
-  const [tabTarget, statusValue] = entry;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
-  document.getElementById('tab-' + tabTarget).classList.add('ativo');
-  abaAtiva = tabTarget;
-  document.getElementById('subtabs-meus').style.display = 'none';
-  atualizarFiltrosDeAba();
-  document.getElementById('filtro-status').value = statusValue;
-  carregarChamados();
+  const map = { 'cnt-aberto': 'aberto', 'cnt-andamento': 'em_andamento', 'cnt-concluido': 'concluido', 'cnt-encerrado': 'encerrado' };
+  const status = map[num.id];
+  if (status) filtrarPorStatus(status);
 });
 document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('filtro-status').value = '';
@@ -319,7 +317,11 @@ async function carregarChamados() {
     });
     lista.innerHTML = chamados.map(c => renderChamadoItem(c)).join('');
     lista.querySelectorAll('.chamado-item').forEach(el => {
-      el.addEventListener('click', () => abrirModal(el.dataset.id));
+      el.addEventListener('click', e => {
+        const badge = e.target.closest('.badge[data-status]');
+        if (badge) { filtrarPorStatus(badge.dataset.status); return; }
+        abrirModal(el.dataset.id);
+      });
     });
   } catch (err) {
     if (err.message !== '401')
