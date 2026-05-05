@@ -134,7 +134,12 @@ function renderAuth() {
             </div>
             <div class="form-group">
               <label for="login-senha">Senha</label>
-              <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required placeholder="••••••••">
+              <div class="input-senha-wrap">
+                <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required placeholder="••••••••">
+                <button type="button" class="btn-eye" id="btn-eye-login-senha" title="Mostrar/ocultar senha">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
             </div>
             <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
           </form>
@@ -147,6 +152,13 @@ function renderAuth() {
 
     </div>
   `;
+
+  document.getElementById('btn-eye-login-senha').addEventListener('click', () => {
+    const inp = document.getElementById('login-senha');
+    const btn = document.getElementById('btn-eye-login-senha');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.style.color = inp.type === 'text' ? 'var(--gold)' : '';
+  });
 
   document.getElementById('form-login').addEventListener('submit', async (e) => {
     e.preventDefault();

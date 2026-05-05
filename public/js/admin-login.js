@@ -3,6 +3,13 @@ fetch('/api/admin/me').then(r => {
   if (r.ok) location.replace('/admin-painel.html');
 }).catch(() => {});
 
+document.getElementById('btn-eye-senha').addEventListener('click', () => {
+  const inp = document.getElementById('senha');
+  const btn = document.getElementById('btn-eye-senha');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.style.color = inp.type === 'text' ? 'var(--gold)' : '';
+});
+
 document.getElementById('form-login').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('msg');
