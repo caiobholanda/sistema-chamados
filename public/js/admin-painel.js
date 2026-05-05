@@ -1,6 +1,7 @@
 let adminInfo = null;
 let chamadoAtual = null;
 let abaAtiva = 'abertos';
+let subAbaMeusAtiva = 'abertos';
 let _chatAdminIv = null;
 
 async function _atualizarChatAdmin(chamadoId) {
@@ -103,6 +104,18 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
     btn.classList.add('ativo');
     abaAtiva = btn.dataset.tab;
+    const subtabs = document.getElementById('subtabs-meus');
+    subtabs.style.display = abaAtiva === 'meus' ? 'inline-flex' : 'none';
+    atualizarFiltrosDeAba();
+    carregarChamados();
+  });
+});
+
+document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    subAbaMeusAtiva = btn.dataset.subtab;
     atualizarFiltrosDeAba();
     carregarChamados();
   });
@@ -118,12 +131,19 @@ function atualizarFiltrosDeAba() {
       <option value="em_andamento">Em andamento</option>
     `;
   } else if (abaAtiva === 'meus') {
-    sel.innerHTML = `
-      <option value="">Todos os meus</option>
-      <option value="em_andamento">Em andamento</option>
-      <option value="concluido">Concluído</option>
-      <option value="encerrado">Encerrado</option>
-    `;
+    if (subAbaMeusAtiva === 'abertos') {
+      sel.innerHTML = `
+        <option value="">Todos (abertos)</option>
+        <option value="aberto">Aberto</option>
+        <option value="em_andamento">Em andamento</option>
+      `;
+    } else {
+      sel.innerHTML = `
+        <option value="">Todos (encerrados)</option>
+        <option value="concluido">Concluído</option>
+        <option value="encerrado">Encerrado</option>
+      `;
+    }
   } else {
     sel.innerHTML = `
       <option value="">Todos (encerrados)</option>
@@ -137,7 +157,7 @@ async function carregarEstatisticas() {
   try {
     const [rTodos, rMeus] = await Promise.all([
       api('/api/admin/chamados?status=aberto,em_andamento,concluido,encerrado'),
-      adminInfo ? api(`/api/admin/chamados?admin_id=${adminInfo.id}&status=em_andamento,concluido,encerrado`) : Promise.resolve(null),
+      adminInfo ? api(`/api/admin/chamados?admin_id=${adminInfo.id}&status=aberto,em_andamento,concluido,encerrado`) : Promise.resolve(null),
     ]);
     if (!rTodos.ok) return;
     const todos = await rTodos.json();
@@ -157,8 +177,11 @@ async function carregarEstatisticas() {
 
     if (rMeus && rMeus.ok) {
       const meus = await rMeus.json();
-      const meusPendentes = meus.filter(c => c.status === 'em_andamento').length;
-      document.getElementById('badge-meus').textContent = meusPendentes || '';
+      const meusAbertos    = meus.filter(c => STATUS_ABERTOS.includes(c.status)).length;
+      const meusEncerrados = meus.filter(c => STATUS_ENCERRADOS.includes(c.status)).length;
+      document.getElementById('badge-meus').textContent = meusAbertos || '';
+      document.getElementById('badge-meus-abertos').textContent = meusAbertos || '';
+      document.getElementById('badge-meus-encerrados').textContent = meusEncerrados || '';
     }
   } catch {}
 }
@@ -218,8 +241,12 @@ async function carregarChamados() {
 
   if (abaAtiva === 'meus') {
     params.set('admin_id', adminInfo.id);
-    const statusMeus = statusFiltro || [...STATUS_ABERTOS, ...STATUS_ENCERRADOS].join(',');
-    params.set('status', statusMeus);
+    if (statusFiltro) {
+      params.set('status', statusFiltro);
+    } else {
+      const statusDaSubAba = subAbaMeusAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
+      params.set('status', statusDaSubAba.join(','));
+    }
   } else {
     if (statusFiltro) {
       params.set('status', statusFiltro);
@@ -239,7 +266,7 @@ async function carregarChamados() {
     const r = await api('/api/admin/chamados?' + params);
     const chamados = await r.json();
     if (!chamados.length) {
-      const msg = abaAtiva === 'abertos'
+      const msg = (abaAtiva === 'abertos' || (abaAtiva === 'meus' && subAbaMeusAtiva === 'abertos'))
         ? 'Nenhum chamado em aberto no momento.'
         : 'Nenhum chamado encerrado encontrado.';
       lista.innerHTML = `
