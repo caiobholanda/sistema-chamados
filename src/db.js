@@ -95,6 +95,7 @@ function initDb() {
   try { db.exec('ALTER TABLE admins ADD COLUMN email TEXT'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN categoria TEXT'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
+  try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
 
   return db;
 }
@@ -401,14 +402,14 @@ function buscarAdminPorEmail(email) {
 }
 
 function listarAdmins() {
-  return getDb().prepare('SELECT id, usuario, nome_completo, email, is_master, ativo, criado_em FROM admins ORDER BY criado_em ASC').all();
+  return getDb().prepare('SELECT id, usuario, nome_completo, email, is_master, ativo, senha_plain, criado_em FROM admins ORDER BY criado_em ASC').all();
 }
 
 function criarAdmin(dados) {
   const result = getDb().prepare(`
-    INSERT INTO admins (usuario, nome_completo, email, senha_hash, is_master)
-    VALUES (@usuario, @nome_completo, @email, @senha_hash, @is_master)
-  `).run(dados);
+    INSERT INTO admins (usuario, nome_completo, email, senha_hash, senha_plain, is_master)
+    VALUES (@usuario, @nome_completo, @email, @senha_hash, @senha_plain, @is_master)
+  `).run({ senha_plain: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -418,6 +419,7 @@ function atualizarAdmin(id, dados) {
   if (dados.nome_completo !== undefined) { campos.push('nome_completo = ?'); values.push(dados.nome_completo); }
   if (dados.email !== undefined) { campos.push('email = ?'); values.push(dados.email); }
   if (dados.senha_hash !== undefined) { campos.push('senha_hash = ?'); values.push(dados.senha_hash); }
+  if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
   if (dados.ativo !== undefined) { campos.push('ativo = ?'); values.push(dados.ativo); }
   if (campos.length === 0) return;
   values.push(id);

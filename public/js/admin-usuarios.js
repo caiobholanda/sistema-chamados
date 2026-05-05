@@ -76,6 +76,16 @@ function resetarEmailDica(dicaId) {
 
 document.getElementById('f-senha').addEventListener('input', () =>
   atualizarForca('f-senha', 'forca-admin', 'barra-admin', 'reqs-admin'));
+
+document.getElementById('btn-eye-f-senha').addEventListener('click', () => {
+  const input = document.getElementById('f-senha');
+  const icon  = document.getElementById('icon-eye-f');
+  const oculto = input.type === 'password';
+  input.type = oculto ? 'text' : 'password';
+  icon.innerHTML = oculto
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+});
 document.getElementById('f-email').addEventListener('input', () =>
   atualizarEmailDica('f-email', 'dica-email-admin'));
 document.getElementById('fu-senha').addEventListener('input', () =>
@@ -316,6 +326,8 @@ async function abrirModalAdmin(id) {
   editandoAdminId = id;
   document.getElementById('msg-modal-admin').innerHTML = '';
   document.getElementById('f-senha').value = '';
+  document.getElementById('f-senha').type = 'password';
+  document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   document.getElementById('f-email').value = '';
   document.getElementById('f-master').checked = false;
 
@@ -323,14 +335,17 @@ async function abrirModalAdmin(id) {
     document.getElementById('modal-admin-title').textContent = 'Editar administrador';
     document.getElementById('f-usuario').disabled = true;
     document.getElementById('lbl-senha-dica').textContent = '(deixe em branco para não alterar)';
-    const r = await api('/api/admin/usuarios');
-    const admins = await r.json();
-    const admin = admins.find(a => a.id === id);
+    const admin = todosAdmins.find(a => a.id === id);
     if (admin) {
       document.getElementById('f-usuario').value = admin.usuario;
       document.getElementById('f-nome').value = admin.nome_completo;
       document.getElementById('f-email').value = admin.email || '';
       document.getElementById('f-master').checked = !!admin.is_master;
+      if (admin.senha_plain) {
+        document.getElementById('f-senha').value = admin.senha_plain;
+        document.getElementById('f-senha').type = 'text';
+        document.getElementById('icon-eye-f').innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+      }
     }
   } else {
     document.getElementById('modal-admin-title').textContent = 'Novo administrador';

@@ -329,6 +329,7 @@ router.post('/usuarios', requireMaster, async (req, res) => {
       nome_completo,
       email,
       senha_hash,
+      senha_plain: senha,
       is_master: is_master ? 1 : 0,
     });
     return res.status(201).json({ id, mensagem: 'Admin criado com sucesso' });
@@ -363,6 +364,7 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
     if (req.body.senha) {
       if (!senhaForte(req.body.senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
       dados.senha_hash = await bcrypt.hash(req.body.senha, 12);
+      dados.senha_plain = req.body.senha;
     }
 
     db.atualizarAdmin(alvo.id, dados);

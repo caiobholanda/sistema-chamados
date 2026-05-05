@@ -102,7 +102,12 @@
         </div>
         <div class="form-group">
           <label for="f-senha">Senha <span id="lbl-senha-dica" class="text-muted" style="font-size:.72rem;text-transform:none;letter-spacing:0">(mín. 8 caracteres)</span></label>
-          <input class="form-control" type="password" id="f-senha" name="senha" autocomplete="new-password" placeholder="••••••••">
+          <div class="input-senha-wrap">
+            <input class="form-control" type="password" id="f-senha" name="senha" autocomplete="new-password" placeholder="••••••••">
+            <button type="button" class="btn-eye" id="btn-eye-f-senha" title="Mostrar/ocultar senha">
+              <svg id="icon-eye-f" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
           <div class="senha-forca" id="forca-admin">
             <div class="senha-barra"><div class="senha-barra-fill" id="barra-admin"></div></div>
             <ul class="senha-reqs" id="reqs-admin">
