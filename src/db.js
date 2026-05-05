@@ -111,9 +111,9 @@ async function criarAdminMasterSeNecessario() {
 
   const hash = await bcrypt.hash(senha, 12);
   db.prepare(`
-    INSERT INTO admins (usuario, nome_completo, senha_hash, is_master)
-    VALUES (?, ?, ?, 1)
-  `).run(usuario, nome, hash);
+    INSERT INTO admins (usuario, nome_completo, senha_hash, senha_plain, is_master)
+    VALUES (?, ?, ?, ?, 1)
+  `).run(usuario, nome, hash, senha);
 
   console.log('='.repeat(60));
   console.log('ADMIN MASTER CRIADO (primeiro boot):');
