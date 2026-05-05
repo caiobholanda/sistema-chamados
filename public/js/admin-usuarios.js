@@ -83,6 +83,16 @@ document.getElementById('fu-senha').addEventListener('input', () =>
 document.getElementById('fu-email').addEventListener('input', () =>
   atualizarEmailDica('fu-email', 'dica-email-usuario'));
 
+document.getElementById('btn-eye-fu-senha').addEventListener('click', () => {
+  const input = document.getElementById('fu-senha');
+  const icon  = document.getElementById('icon-eye-fu');
+  const oculto = input.type === 'password';
+  input.type = oculto ? 'text' : 'password';
+  icon.innerHTML = oculto
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+});
+
 async function api(url, opts = {}) {
   const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
   if (res.status === 401) { location.replace('/admin-login.html'); throw new Error('401'); }
@@ -465,6 +475,7 @@ function renderUsuarios() {
                 <td style="font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td>
                   <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+                    <button class="btn btn-secondary btn-sm" onclick="abrirModalEditarUsuario(${u.id})">Editar</button>
                     <button class="btn btn-secondary btn-sm" onclick="toggleUsuario(${u.id}, ${u.ativo !== 0})">${u.ativo !== 0 ? 'Desativar' : 'Reativar'}</button>
                   </div>
                 </td>
@@ -475,6 +486,88 @@ function renderUsuarios() {
       </div>
     </div>`;
 }
+
+// ── Editar Usuário do Portal ──────────────────────────────────
+
+let editandoUsuarioId = null;
+
+document.getElementById('btn-fechar-editar-usuario').addEventListener('click', fecharModalEditarUsuario);
+document.getElementById('btn-cancelar-editar-usuario').addEventListener('click', fecharModalEditarUsuario);
+document.getElementById('modal-editar-usuario-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalEditarUsuario(); });
+document.getElementById('feu-email').addEventListener('input', () => atualizarEmailDica('feu-email', 'dica-email-editar-usuario'));
+document.getElementById('feu-senha').addEventListener('input', () => atualizarForca('feu-senha', 'forca-editar-usuario', 'barra-editar-usuario', 'reqs-editar-usuario'));
+
+document.getElementById('btn-eye-feu-senha').addEventListener('click', () => {
+  const input = document.getElementById('feu-senha');
+  const icon  = document.getElementById('icon-eye-feu');
+  const oculto = input.type === 'password';
+  input.type = oculto ? 'text' : 'password';
+  icon.innerHTML = oculto
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+});
+
+async function abrirModalEditarUsuario(id) {
+  editandoUsuarioId = id;
+  document.getElementById('msg-modal-editar-usuario').innerHTML = '';
+  const usuario = todosUsuarios.find(u => u.id === id);
+  if (!usuario) return;
+
+  document.getElementById('feu-nome').value  = usuario.nome;
+  document.getElementById('feu-email').value = usuario.email;
+  document.getElementById('feu-senha').value = usuario.senha_plain || '';
+  document.getElementById('feu-senha').type  = 'password';
+  document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+
+  resetarForca('forca-editar-usuario', 'barra-editar-usuario', 'reqs-editar-usuario');
+  atualizarEmailDica('feu-email', 'dica-email-editar-usuario');
+  document.getElementById('modal-editar-usuario-overlay').classList.add('open');
+  document.getElementById('feu-nome').focus();
+}
+
+function fecharModalEditarUsuario() {
+  document.getElementById('modal-editar-usuario-overlay').classList.remove('open');
+  editandoUsuarioId = null;
+}
+
+document.getElementById('form-editar-usuario').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg-modal-editar-usuario');
+  const btn = document.getElementById('btn-salvar-editar-usuario');
+  msg.innerHTML = '';
+  btn.disabled = true;
+
+  const email = document.getElementById('feu-email').value.trim().toLowerCase();
+  const senha = document.getElementById('feu-senha').value;
+
+  if (!email.endsWith(DOMINIO_EMAIL)) {
+    msg.innerHTML = `<div class="alert alert-danger">E-mail deve terminar com ${DOMINIO_EMAIL}</div>`;
+    btn.disabled = false; return;
+  }
+  if (senha && !senhaForte(senha)) {
+    msg.innerHTML = '<div class="alert alert-danger">Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.</div>';
+    btn.disabled = false; return;
+  }
+
+  const body = {
+    nome:  document.getElementById('feu-nome').value.trim(),
+    email,
+  };
+  if (senha) body.senha = senha;
+
+  try {
+    const r = await api(`/api/admin/portal-usuarios/${editandoUsuarioId}`, { method: 'PATCH', body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+    fecharModalEditarUsuario();
+    await carregarUsuarios();
+    msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+  } catch (err) {
+    if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 function abrirModalUsuario() {
   document.getElementById('msg-modal-usuario').innerHTML = '';

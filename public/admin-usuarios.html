@@ -149,7 +149,12 @@
         </div>
         <div class="form-group">
           <label for="fu-senha">Senha <span class="text-muted" style="font-size:.72rem;text-transform:none;letter-spacing:0">(mín. 8 caracteres)</span></label>
-          <input class="form-control" type="password" id="fu-senha" required autocomplete="new-password" placeholder="••••••••">
+          <div class="input-senha-wrap">
+            <input class="form-control" type="password" id="fu-senha" required autocomplete="new-password" placeholder="••••••••">
+            <button type="button" class="btn-eye" id="btn-eye-fu-senha" title="Mostrar/ocultar senha">
+              <svg id="icon-eye-fu" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
           <div class="senha-forca" id="forca-usuario">
             <div class="senha-barra"><div class="senha-barra-fill" id="barra-usuario"></div></div>
             <ul class="senha-reqs" id="reqs-usuario">
@@ -166,6 +171,53 @@
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" id="btn-cancelar-usuario">Cancelar</button>
       <button type="submit" form="form-usuario" class="btn btn-primary" id="btn-salvar-usuario">Criar usuário</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Usuário do Portal -->
+<div class="modal-overlay" id="modal-editar-usuario-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-editar-usuario-title">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2 id="modal-editar-usuario-title">Editar usuário</h2>
+      <button class="modal-close" id="btn-fechar-editar-usuario" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div id="msg-modal-editar-usuario"></div>
+      <form id="form-editar-usuario" novalidate>
+        <div class="form-group">
+          <label for="feu-nome">Nome completo</label>
+          <input class="form-control" type="text" id="feu-nome" required minlength="2" maxlength="80" placeholder="Nome do colaborador">
+        </div>
+        <div class="form-group">
+          <label for="feu-email">E-mail</label>
+          <input class="form-control" type="email" id="feu-email" required autocomplete="off" placeholder="colaborador@granmarquise.com.br">
+          <div class="email-dominio-dica" id="dica-email-editar-usuario">Use apenas @granmarquise.com.br</div>
+        </div>
+        <div class="form-group">
+          <label for="feu-senha">Senha</label>
+          <div class="input-senha-wrap">
+            <input class="form-control" type="password" id="feu-senha" autocomplete="new-password" placeholder="••••••••">
+            <button type="button" class="btn-eye" id="btn-eye-feu-senha" title="Mostrar/ocultar senha">
+              <svg id="icon-eye-feu" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="senha-forca" id="forca-editar-usuario">
+            <div class="senha-barra"><div class="senha-barra-fill" id="barra-editar-usuario"></div></div>
+            <ul class="senha-reqs" id="reqs-editar-usuario">
+              <li data-req="len">Mínimo 8 caracteres</li>
+              <li data-req="upper">Letra maiúscula (A-Z)</li>
+              <li data-req="lower">Letra minúscula (a-z)</li>
+              <li data-req="digit">Número (0-9)</li>
+              <li data-req="special">Caractere especial (!@#$…)</li>
+            </ul>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-cancelar-editar-usuario">Cancelar</button>
+      <button type="submit" form="form-editar-usuario" class="btn btn-primary" id="btn-salvar-editar-usuario">Salvar</button>
     </div>
   </div>
 </div>

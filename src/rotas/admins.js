@@ -415,7 +415,7 @@ router.post('/portal-usuarios', requireMaster, async (req, res) => {
       return res.status(409).json({ erro: 'E-mail já cadastrado no sistema' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
-    const id = db.registrarUsuario({ nome, email, senha_hash });
+    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha });
     return res.status(201).json({ id, mensagem: 'Usuário criado com sucesso' });
   } catch (err) {
     console.error(err);
@@ -424,12 +424,42 @@ router.post('/portal-usuarios', requireMaster, async (req, res) => {
 });
 
 // PATCH /api/admin/portal-usuarios/:id
-router.patch('/portal-usuarios/:id', requireMaster, (req, res) => {
+router.patch('/portal-usuarios/:id', requireMaster, async (req, res) => {
   try {
     const u = db.buscarUsuarioPorId(req.params.id);
     if (!u) return res.status(404).json({ erro: 'Usuário não encontrado' });
-    db.atualizarUsuario(u.id, { ativo: req.body.ativo ? 1 : 0 });
-    return res.json({ mensagem: req.body.ativo ? 'Usuário reativado' : 'Usuário desativado' });
+
+    // Apenas ativo/inativo (toggle)
+    if (req.body.ativo !== undefined && Object.keys(req.body).length === 1) {
+      db.atualizarUsuario(u.id, { ativo: req.body.ativo ? 1 : 0 });
+      return res.json({ mensagem: req.body.ativo ? 'Usuário reativado' : 'Usuário desativado' });
+    }
+
+    // Edição completa do perfil
+    const dados = {};
+    if (req.body.nome !== undefined) {
+      const nome = sanitizarTexto(req.body.nome || '');
+      if (nome.length < 2) return res.status(400).json({ erro: 'Nome deve ter ao menos 2 caracteres' });
+      dados.nome = nome;
+    }
+    if (req.body.email !== undefined) {
+      const email = (req.body.email || '').trim().toLowerCase();
+      if (!email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
+      const existente = db.buscarUsuarioPorEmail(email);
+      if (existente && existente.id !== u.id) return res.status(409).json({ erro: 'E-mail já cadastrado' });
+      const adminComEmail = db.buscarAdminPorEmail(email);
+      if (adminComEmail) return res.status(409).json({ erro: 'E-mail já cadastrado' });
+      dados.email = email;
+    }
+    if (req.body.senha) {
+      const senha = req.body.senha;
+      if (!senhaForte(senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
+      dados.senha_hash = await bcrypt.hash(senha, 12);
+      dados.senha_plain = senha;
+    }
+
+    db.atualizarUsuario(u.id, dados);
+    return res.json({ mensagem: 'Usuário atualizado com sucesso' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });
