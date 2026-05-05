@@ -309,15 +309,14 @@ router.get('/usuarios', requireMaster, (req, res) => {
 // POST /api/admin/usuarios
 router.post('/usuarios', requireMaster, async (req, res) => {
   try {
-    let { usuario, nome_completo, email, senha, is_master } = req.body;
-    usuario = (usuario || '').trim();
+    let { nome_completo, email, senha, is_master } = req.body;
     nome_completo = sanitizarTexto(nome_completo || '');
     email = (email || '').trim().toLowerCase();
     senha = (senha || '').trim();
 
-    if (!usuario || usuario.length < 3) return res.status(400).json({ erro: 'Usuário deve ter ao menos 3 caracteres' });
     if (!nome_completo || nome_completo.length < 2) return res.status(400).json({ erro: 'Nome completo obrigatório' });
     if (!email || !email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
+    const usuario = email.split('@')[0];
     if (!senha || !senhaForte(senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
 
     if (db.buscarAdminPorEmail(email) || db.buscarUsuarioPorEmail(email))
@@ -389,10 +388,10 @@ router.delete('/usuarios/:id', requireMaster, (req, res) => {
   }
 });
 
-// ── Gerenciamento de usuários do portal (master) ─────────────
+// ── Gerenciamento de usuários do portal (qualquer admin) ─────
 
 // GET /api/admin/portal-usuarios
-router.get('/portal-usuarios', requireMaster, (req, res) => {
+router.get('/portal-usuarios', requireAdmin, (req, res) => {
   try {
     return res.json(db.listarUsuarios());
   } catch (err) {
@@ -402,7 +401,7 @@ router.get('/portal-usuarios', requireMaster, (req, res) => {
 });
 
 // POST /api/admin/portal-usuarios
-router.post('/portal-usuarios', requireMaster, async (req, res) => {
+router.post('/portal-usuarios', requireAdmin, async (req, res) => {
   try {
     let { nome, email, senha } = req.body;
     nome = sanitizarTexto(nome || '');
@@ -426,7 +425,7 @@ router.post('/portal-usuarios', requireMaster, async (req, res) => {
 });
 
 // PATCH /api/admin/portal-usuarios/:id
-router.patch('/portal-usuarios/:id', requireMaster, async (req, res) => {
+router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
   try {
     const u = db.buscarUsuarioPorId(req.params.id);
     if (!u) return res.status(404).json({ erro: 'Usuário não encontrado' });

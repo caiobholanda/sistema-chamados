@@ -146,8 +146,17 @@ document.getElementById('modal-confirmar-overlay').addEventListener('click', e =
   const r = await api('/api/admin/me');
   if (!r.ok) { location.replace('/admin-login.html'); return; }
   meAdmin = await r.json();
-  if (!meAdmin.is_master) { location.replace('/admin-painel.html'); return; }
-  await Promise.all([carregarAdmins(), carregarUsuarios()]);
+
+  if (!meAdmin.is_master) {
+    // Admins comuns só veem usuários do portal
+    document.getElementById('tab-admins').style.display = 'none';
+    document.getElementById('section-admins').style.display = 'none';
+    document.getElementById('tab-usuarios').classList.add('ativo');
+    document.getElementById('section-usuarios').style.display = '';
+    await carregarUsuarios();
+  } else {
+    await Promise.all([carregarAdmins(), carregarUsuarios()]);
+  }
 })();
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
@@ -207,7 +216,10 @@ document.getElementById('sub-usuarios-inativos').addEventListener('click', () =>
 //  ADMINISTRADORES
 // ══════════════════════════════════════════════════════════════
 
-document.getElementById('btn-novo-admin').addEventListener('click', () => abrirModalAdmin(null));
+document.getElementById('btn-novo-admin').addEventListener('click', () => {
+  if (!meAdmin || !meAdmin.is_master) return;
+  abrirModalAdmin(null);
+});
 document.getElementById('btn-fechar-admin').addEventListener('click', fecharModalAdmin);
 document.getElementById('btn-cancelar-admin').addEventListener('click', fecharModalAdmin);
 document.getElementById('modal-admin-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalAdmin(); });
@@ -220,7 +232,6 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
   btn.disabled = true;
 
   const body = {
-    usuario: document.getElementById('f-usuario').value.trim(),
     nome_completo: document.getElementById('f-nome').value.trim(),
     email: document.getElementById('f-email').value.trim().toLowerCase(),
     senha: document.getElementById('f-senha').value,
@@ -333,11 +344,9 @@ async function abrirModalAdmin(id) {
 
   if (id) {
     document.getElementById('modal-admin-title').textContent = 'Editar administrador';
-    document.getElementById('f-usuario').disabled = true;
     document.getElementById('lbl-senha-dica').textContent = '(deixe em branco para não alterar)';
     const admin = todosAdmins.find(a => a.id === id);
     if (admin) {
-      document.getElementById('f-usuario').value = admin.usuario;
       document.getElementById('f-nome').value = admin.nome_completo;
       document.getElementById('f-email').value = admin.email || '';
       document.getElementById('f-master').checked = !!admin.is_master;
@@ -349,8 +358,6 @@ async function abrirModalAdmin(id) {
     }
   } else {
     document.getElementById('modal-admin-title').textContent = 'Novo administrador';
-    document.getElementById('f-usuario').disabled = false;
-    document.getElementById('f-usuario').value = '';
     document.getElementById('f-nome').value = '';
     document.getElementById('lbl-senha-dica').textContent = '(mín. 6 caracteres)';
   }
@@ -358,7 +365,7 @@ async function abrirModalAdmin(id) {
   resetarForca('forca-admin', 'barra-admin', 'reqs-admin');
   resetarEmailDica('dica-email-admin');
   document.getElementById('modal-admin-overlay').classList.add('open');
-  document.getElementById('f-usuario').focus();
+  document.getElementById('f-nome').focus();
 }
 
 function fecharModalAdmin() {
