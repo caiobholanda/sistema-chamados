@@ -421,6 +421,7 @@ function atualizarAdmin(id, dados) {
   if (dados.senha_hash !== undefined) { campos.push('senha_hash = ?'); values.push(dados.senha_hash); }
   if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
   if (dados.ativo !== undefined) { campos.push('ativo = ?'); values.push(dados.ativo); }
+  if (dados.is_master !== undefined) { campos.push('is_master = ?'); values.push(dados.is_master); }
   if (campos.length === 0) return;
   values.push(id);
   getDb().prepare(`UPDATE admins SET ${campos.join(', ')} WHERE id = ?`).run(...values);

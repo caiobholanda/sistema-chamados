@@ -341,6 +341,8 @@ async function abrirModalAdmin(id) {
   document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   document.getElementById('f-email').value = '';
   document.getElementById('f-master').checked = false;
+  document.getElementById('f-master').disabled = false;
+  document.getElementById('f-master').title = '';
 
   if (id) {
     document.getElementById('modal-admin-title').textContent = 'Editar administrador';
@@ -350,6 +352,9 @@ async function abrirModalAdmin(id) {
       document.getElementById('f-nome').value = admin.nome_completo;
       document.getElementById('f-email').value = admin.email || '';
       document.getElementById('f-master').checked = !!admin.is_master;
+      const eSiMesmo = id === meAdmin.id;
+      document.getElementById('f-master').disabled = eSiMesmo;
+      document.getElementById('f-master').title = eSiMesmo ? 'Você não pode remover seu próprio status de master' : '';
       if (admin.senha_plain) {
         document.getElementById('f-senha').value = admin.senha_plain;
         document.getElementById('f-senha').type = 'text';

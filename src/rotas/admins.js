@@ -360,6 +360,11 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
       dados.email = email || null;
     }
     if (req.body.ativo !== undefined) dados.ativo = req.body.ativo ? 1 : 0;
+    if (req.body.is_master !== undefined) {
+      if (alvo.id === req.admin.sub && !req.body.is_master)
+        return res.status(400).json({ erro: 'Você não pode remover seu próprio status de master' });
+      dados.is_master = req.body.is_master ? 1 : 0;
+    }
     if (req.body.senha) {
       if (!senhaForte(req.body.senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
       dados.senha_hash = await bcrypt.hash(req.body.senha, 12);
