@@ -307,7 +307,7 @@ function renderAdmins() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Tipo</th><th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
+            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Tipo</th>${meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
           </tr></thead>
           <tbody>
             ${filtrados.map(a => `
@@ -316,6 +316,7 @@ function renderAdmins() {
                 <td style="text-align:center">${a.nome_completo}</td>
                 <td style="text-align:center;font-size:.82rem">${a.email || '<span class="text-muted">—</span>'}</td>
                 <td style="text-align:center">${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
+                ${meAdmin.is_master ? `<td style="text-align:center"><span style="font-family:monospace;font-size:.82rem;cursor:pointer;user-select:all" title="Clique para revelar" onclick="this.textContent=this.textContent==='••••••••'?${JSON.stringify(a.senha_plain || '—')}:'••••••••'">${a.senha_plain ? '••••••••' : '<span class=\\'text-muted\\'>—</span>'}</span></td>` : ''}
                 <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
                   <div style="display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center">
@@ -492,13 +493,14 @@ function renderUsuarios() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Nome</th><th>E-mail</th><th>Cadastrado em</th><th>Ações</th>
+            <th>Nome</th><th>E-mail</th>${meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th>Cadastrado em</th><th>Ações</th>
           </tr></thead>
           <tbody>
             ${filtrados.map(u => `
               <tr>
                 <td>${u.nome}</td>
                 <td style="font-size:.82rem">${u.email}</td>
+                ${meAdmin.is_master ? `<td style="text-align:center"><span style="font-family:monospace;font-size:.82rem;cursor:pointer;user-select:all" title="Clique para revelar" onclick="this.textContent=this.textContent==='••••••••'?${JSON.stringify(u.senha_plain || '—')}:'••••••••'">${u.senha_plain ? '••••••••' : '<span class=\\'text-muted\\'>—</span>'}</span></td>` : ''}
                 <td style="font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td>
                   <div style="display:flex;gap:.4rem;flex-wrap:wrap">
