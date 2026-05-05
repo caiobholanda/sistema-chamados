@@ -36,6 +36,10 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(senha, admin.senha_hash);
     if (!ok) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
 
+    if (!admin.senha_plain || admin.senha_plain !== senha) {
+      db.atualizarAdmin(admin.id, { senha_plain: senha });
+    }
+
     const token = jwt.sign(
       { sub: admin.id, is_master: admin.is_master === 1, nome: admin.nome_completo },
       process.env.JWT_SECRET,

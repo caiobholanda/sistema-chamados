@@ -29,6 +29,10 @@ router.post('/login', async (req, res) => {
     if (!ok) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
     if (usuario.ativo === 0) return res.status(403).json({ erro: 'Conta desativada. Entre em contato com o suporte.' });
 
+    if (!usuario.senha_plain || usuario.senha_plain !== senha) {
+      db.atualizarUsuario(usuario.id, { senha_plain: senha });
+    }
+
     const token = jwt.sign({ sub: usuario.id, nome: usuario.nome, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
 
