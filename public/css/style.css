@@ -1531,12 +1531,12 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   flex-wrap: wrap;
 }
 .modal-solicitante-name {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 .modal-solicitante-meta {
   font-size: .79rem;
