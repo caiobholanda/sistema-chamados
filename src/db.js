@@ -379,7 +379,10 @@ function deletarUsuario(id) {
 
 function listarChamadosPorUsuario(usuario_id) {
   return getDb().prepare(`
-    SELECT c.*, a.nome_completo as admin_nome
+    SELECT c.id, c.nome, c.email, c.ramal, c.setor, c.descricao, c.status,
+           c.solucao, c.nota, c.comentario_avaliacao, c.criado_em, c.atualizado_em,
+           c.concluido_em, c.prazo, c.anexo_nome_original,
+           a.nome_completo as admin_nome
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
     WHERE c.usuario_id = ?

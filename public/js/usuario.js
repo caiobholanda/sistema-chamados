@@ -434,7 +434,6 @@ function renderCardChamado(c) {
       <div class="chamado-card-header">
         <div class="flex gap-1 flex-wrap" style="align-items:center">
           ${badgeStatus(c.status)}
-          ${c.prioridade ? `<span class="badge badge-${c.prioridade}">${c.prioridade.charAt(0).toUpperCase()+c.prioridade.slice(1)}</span>` : ''}
         </div>
         <span class="text-muted" style="font-size:.76rem">${fmtData(c.criado_em)}</span>
       </div>
