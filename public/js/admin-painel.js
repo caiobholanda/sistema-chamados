@@ -109,12 +109,12 @@ async function api(url, opts = {}) {
     atualizarFiltrosDeAba();
     await Promise.all([carregarChamados(), carregarEstatisticas(), carregarEquipamentos()]);
 
-    // Auto-refresh silencioso a cada 15s (não atualiza se o modal estiver aberto)
+    // Auto-refresh silencioso a cada 5s (não atualiza se o modal estiver aberto)
     setInterval(() => {
       if (chamadoAtual) return;
       carregarChamados(true);
       carregarEstatisticas();
-    }, 15000);
+    }, 5000);
   } catch {}
 })();
 

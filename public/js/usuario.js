@@ -283,9 +283,9 @@ function renderPainel(usuario) {
     renderListaChamados(todosChamados, abaAtiva);
   });
 
-  async function carregarChamados() {
+  async function carregarChamados(silencioso = false) {
     const lista = document.getElementById('lista-usuario');
-    lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    if (!silencioso) lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
     try {
       const r = await apiFetch('/api/usuarios/meus-chamados');
       if (r.status === 401) { renderAuth(); return; }
@@ -311,6 +311,7 @@ function renderPainel(usuario) {
   }
 
   carregarChamados();
+  setInterval(() => carregarChamados(true), 5000);
 
   const PRIO_ORDEM = { urgente: 0, alta: 1, media: 2, baixa: 3 };
 
