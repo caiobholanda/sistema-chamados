@@ -239,7 +239,12 @@ function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem 
 }
 
 function buscarChamadoPorId(id) {
-  return getDb().prepare('SELECT * FROM chamados WHERE id = ?').get(id);
+  return getDb().prepare(`
+    SELECT c.*, a.nome_completo as admin_nome
+    FROM chamados c
+    LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    WHERE c.id = ?
+  `).get(id);
 }
 
 function buscarHistoricoPrazos(chamadoId) {
