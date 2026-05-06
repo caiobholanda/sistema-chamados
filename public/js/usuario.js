@@ -313,7 +313,20 @@ function renderPainel(usuario) {
   carregarChamados();
   setInterval(() => carregarChamados(true), 5000);
 
-  const PRIO_ORDEM = { urgente: 0, alta: 1, media: 2, baixa: 3 };
+  function _estaAtrasado(c) {
+    if (!c.prazo) return false;
+    if (['concluido', 'encerrado'].includes(c.status)) return false;
+    return new Date(c.prazo.replace(' ', 'T')) < new Date();
+  }
+
+  function _scorePrio(c) {
+    if (c.prioridade === 'urgente') return 0;
+    if (_estaAtrasado(c))           return 1;
+    if (c.prioridade === 'alta')    return 2;
+    if (c.prioridade === 'media')   return 3;
+    if (c.prioridade === 'baixa')   return 4;
+    return 5;
+  }
 
   function renderListaChamados(todos, aba) {
     _limparChats();
@@ -322,12 +335,14 @@ function renderPainel(usuario) {
       ? todos.filter(c => ['aberto', 'em_andamento'].includes(c.status))
       : todos.filter(c => ['concluido', 'encerrado'].includes(c.status)))
       .sort((a, b) => {
-        const prioDiff = (PRIO_ORDEM[a.prioridade] ?? 4) - (PRIO_ORDEM[b.prioridade] ?? 4);
+        const prioDiff = _scorePrio(a) - _scorePrio(b);
         if (prioDiff !== 0) return prioDiff;
-        if (!a.prazo && !b.prazo) return 0;
+        if (!a.prazo && !b.prazo) return new Date(b.criado_em) - new Date(a.criado_em);
         if (!a.prazo) return 1;
         if (!b.prazo) return -1;
-        return new Date(a.prazo) - new Date(b.prazo);
+        const prazoDiff = new Date(a.prazo) - new Date(b.prazo);
+        if (prazoDiff !== 0) return prazoDiff;
+        return new Date(b.criado_em) - new Date(a.criado_em);
       });
 
     if (!filtrados.length) {

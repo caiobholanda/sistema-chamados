@@ -310,10 +310,10 @@ async function carregarChamados(silencioso = false) {
         </div>`;
       return;
     }
-    const PRIO_ORDEM = { urgente: 0, alta: 1, media: 2, baixa: 3 };
     chamados.sort((a, b) => {
-      const prioDiff = (PRIO_ORDEM[a.prioridade] ?? 4) - (PRIO_ORDEM[b.prioridade] ?? 4);
+      const prioDiff = scorePrioridade(a) - scorePrioridade(b);
       if (prioDiff !== 0) return prioDiff;
+      // mesmo nível: prazo mais próximo primeiro; sem prazo, mais recente primeiro
       if (!a.prazo && !b.prazo) return new Date(b.criado_em) - new Date(a.criado_em);
       if (!a.prazo) return 1;
       if (!b.prazo) return -1;
@@ -339,6 +339,15 @@ function estaAtrasado(c) {
   if (!c.prazo) return false;
   if (['concluido', 'encerrado'].includes(c.status)) return false;
   return new Date(c.prazo.replace(' ', 'T')) < new Date();
+}
+
+function scorePrioridade(c) {
+  if (c.prioridade === 'urgente') return 0;
+  if (estaAtrasado(c))           return 1;
+  if (c.prioridade === 'alta')   return 2;
+  if (c.prioridade === 'media')  return 3;
+  if (c.prioridade === 'baixa')  return 4;
+  return 5; // sem prioridade
 }
 
 function renderChamadoItem(c) {
