@@ -358,7 +358,7 @@ function renderChamadoItem(c) {
       <div class="chamado-item-footer">
         <span class="chamado-footer-meta">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-          ${c.setor}
+          ${c.usuario_setor || c.setor}
         </span>
         <span class="chamado-footer-meta">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -435,10 +435,10 @@ function renderModalBody(c) {
             <div class="modal-solicitante-name">${c.nome}</div>
             <div class="modal-solicitante-meta">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-              ${c.setor}
+              ${c.usuario_setor || c.setor}
               <span style="color:var(--border-strong)">·</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              Ramal ${c.ramal}
+              Ramal ${c.usuario_ramal || c.ramal}
             </div>
           </div>
           <div class="modal-title-badges">
@@ -447,9 +447,13 @@ function renderModalBody(c) {
         </div>
         <div class="modal-responsavel-card ${c.admin_nome ? 'tem-responsavel' : 'sem-responsavel'}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <div>
+          <div style="flex:1">
             <div class="modal-responsavel-label">Administrador responsável</div>
             <div class="modal-responsavel-nome">${c.admin_nome || 'Nenhum administrador responsável'}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="modal-responsavel-label">Setor do chamado</div>
+            <div style="font-size:.82rem;font-weight:500;color:var(--text-secondary)">${c.setor}</div>
           </div>
         </div>
         <div class="modal-info-grid-3">

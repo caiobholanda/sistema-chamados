@@ -251,9 +251,11 @@ function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem 
 
 function buscarChamadoPorId(id) {
   return getDb().prepare(`
-    SELECT c.*, a.nome_completo as admin_nome
+    SELECT c.*, a.nome_completo as admin_nome,
+           u.setor as usuario_setor, u.ramal as usuario_ramal
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    LEFT JOIN usuarios u ON c.usuario_id = u.id
     WHERE c.id = ?
   `).get(id);
 }
@@ -281,9 +283,11 @@ function buscarHistoricoCompleto(chamadoId) {
 function listarChamadosAdmin(filtros = {}) {
   const db = getDb();
   let sql = `
-    SELECT c.*, a.nome_completo as admin_nome
+    SELECT c.*, a.nome_completo as admin_nome,
+           u.setor as usuario_setor, u.ramal as usuario_ramal
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    LEFT JOIN usuarios u ON c.usuario_id = u.id
     WHERE 1=1
   `;
   const params = [];
