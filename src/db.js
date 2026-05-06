@@ -457,8 +457,9 @@ function avaliarChamado(id, nota, comentario) {
 
 function registrarUsuario(dados) {
   const result = getDb().prepare(`
-    INSERT INTO usuarios (nome, email, senha_hash, senha_plain) VALUES (@nome, @email, @senha_hash, @senha_plain)
-  `).run({ senha_plain: null, ...dados });
+    INSERT INTO usuarios (nome, email, senha_hash, senha_plain, ramal, setor)
+    VALUES (@nome, @email, @senha_hash, @senha_plain, @ramal, @setor)
+  `).run({ senha_plain: null, ramal: null, setor: null, ...dados });
   return result.lastInsertRowid;
 }
 
