@@ -92,6 +92,26 @@ router.get('/chamados', requireAdmin, (req, res) => {
   }
 });
 
+// PATCH /api/admin/chamados/:id/transferir
+router.patch('/chamados/:id/transferir', requireAdmin, async (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
+      return res.status(400).json({ erro: 'Só é possível transferir chamados abertos ou em andamento' });
+    }
+    const { admin_id } = req.body;
+    if (!admin_id) return res.status(400).json({ erro: 'Admin de destino obrigatório' });
+    const alvo = db.buscarAdminPorId(admin_id);
+    if (!alvo || !alvo.ativo) return res.status(404).json({ erro: 'Admin não encontrado' });
+    db.transferirChamado(chamado.id, req.admin.sub, admin_id, alvo.nome_completo);
+    return res.json({ mensagem: `Chamado transferido para ${alvo.nome_completo}` });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 // PATCH /api/admin/chamados/:id/reabrir
 router.patch('/chamados/:id/reabrir', requireAdmin, (req, res) => {
   try {

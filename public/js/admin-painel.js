@@ -485,8 +485,18 @@ function renderModalBody(c) {
           </div>
           <div class="modal-action-btns">
             ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir">Assumir chamado</button>` : ''}
+            ${isAberto     ? `<button class="btn btn-secondary btn-sm" id="btn-transferir">Transferir chamado</button>` : ''}
             ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir">Concluir</button>` : ''}
             ${podeEncerrar ? `<button class="btn btn-danger  btn-sm" id="btn-encerrar">Encerrar</button>` : ''}
+          </div>
+          <div id="area-transferir" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)">
+            <div class="form-group" style="margin-bottom:.5rem">
+              <label>Transferir para</label>
+              <select class="form-control form-control-sm" id="sel-transferir-admin">
+                <option value="">Selecione um admin...</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir">Confirmar transferência</button>
           </div>
           <div id="area-concluir" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)">
             <div class="form-group" style="margin-bottom:.5rem">
@@ -604,6 +614,39 @@ function setupModalEventos(c) {
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Chamado assumido.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+    });
+  }
+
+  const btnTransferir = document.getElementById('btn-transferir');
+  if (btnTransferir) {
+    btnTransferir.addEventListener('click', async () => {
+      const area = document.getElementById('area-transferir');
+      if (area.style.display === 'none') {
+        area.style.display = 'block';
+        const r = await api('/api/admin/usuarios');
+        if (r.ok) {
+          const admins = await r.json();
+          const sel = document.getElementById('sel-transferir-admin');
+          sel.innerHTML = '<option value="">Selecione um admin...</option>' +
+            admins.filter(a => a.ativo && a.id !== adminInfo.id).map(a =>
+              `<option value="${a.id}">${a.nome_completo}${a.is_master ? ' ★' : ''}</option>`
+            ).join('');
+        }
+      } else {
+        area.style.display = 'none';
+      }
+    });
+  }
+
+  const btnConfTransferir = document.getElementById('btn-confirmar-transferir');
+  if (btnConfTransferir) {
+    btnConfTransferir.addEventListener('click', async () => {
+      const adminId = document.getElementById('sel-transferir-admin').value;
+      if (!adminId) { setMsg('<div class="alert alert-danger">Selecione um admin.</div>'); return; }
+      const r = await api(`/api/admin/chamados/${c.id}/transferir`, { method: 'PATCH', body: JSON.stringify({ admin_id: parseInt(adminId) }) });
+      const d = await r.json();
+      setMsg(r.ok ? `<div class="alert alert-success">${d.mensagem}</div>` : `<div class="alert alert-danger">${d.erro}</div>`);
+      if (r.ok) setTimeout(() => abrirModal(c.id), 700);
     });
   }
 
@@ -730,6 +773,7 @@ function traduzirAcao(acao) {
     prazo_alterado: 'Prazo alterado',
     solucao_registrada: 'Solução registrada',
     assumido: 'Chamado assumido',
+    transferido: 'Chamado transferido',
     categoria_alterada: 'Categoria alterada',
   };
   return t[acao] || acao;

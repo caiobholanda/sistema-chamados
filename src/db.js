@@ -349,6 +349,21 @@ function encerrarChamado(id, motivo, adminId) {
   `).run(id, adminId, chamado.status);
 }
 
+function transferirChamado(id, adminId, novoAdminId, nomeNovoAdmin) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+  const adminAnterior = chamado.admin_responsavel_id
+    ? db.prepare('SELECT nome_completo FROM admins WHERE id = ?').get(chamado.admin_responsavel_id)
+    : null;
+  db.prepare(`
+    UPDATE chamados SET admin_responsavel_id = ?, status = 'em_andamento', atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+  `).run(novoAdminId, id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'transferido', ?, ?)
+  `).run(id, adminId, adminAnterior ? adminAnterior.nome_completo : null, nomeNovoAdmin);
+}
+
 function reabrirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
@@ -581,6 +596,7 @@ module.exports = {
   criarAdminMasterSeNecessario,
   recuperarSenhasPlain,
   inserirChamado,
+  transferirChamado,
   deletarChamado,
   buscarChamadoPorId,
   buscarHistoricoPrazos,
