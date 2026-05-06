@@ -108,6 +108,13 @@ async function api(url, opts = {}) {
     await carregarAdminsParaFiltro();
     atualizarFiltrosDeAba();
     await Promise.all([carregarChamados(), carregarEstatisticas(), carregarEquipamentos()]);
+
+    // Auto-refresh silencioso a cada 15s (não atualiza se o modal estiver aberto)
+    setInterval(() => {
+      if (chamadoAtual) return;
+      carregarChamados(true);
+      carregarEstatisticas();
+    }, 15000);
   } catch {}
 })();
 
@@ -254,9 +261,9 @@ async function carregarAdminsParaFiltro() {
   } catch {}
 }
 
-async function carregarChamados() {
+async function carregarChamados(silencioso = false) {
   const lista = document.getElementById('lista-chamados');
-  lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  if (!silencioso) lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
   const params = new URLSearchParams();
   const statusFiltro = document.getElementById('filtro-status').value;
