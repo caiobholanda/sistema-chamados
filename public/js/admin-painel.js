@@ -354,7 +354,6 @@ function renderChamadoItem(c) {
   return `
     <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}" data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
       <div class="chamado-item-header">
-        <span class="chamado-id">#${c.id}</span>
         ${badgeStatus(c.status)}
         ${atrasado ? `<span class="badge badge-atraso">⚠ Em atraso</span>` : ''}
         ${badgePrio(c.prioridade)}
