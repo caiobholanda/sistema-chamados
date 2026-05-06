@@ -35,7 +35,8 @@ const storage = multer.diskStorage({
 
 function fileFilter(_req, file, cb) {
   const ext = path.extname(file.originalname).toLowerCase();
-  if (!EXTENSOES_PERMITIDAS.includes(ext) || !TIPOS_PERMITIDOS.includes(file.mimetype)) {
+  const mimeOk = TIPOS_PERMITIDOS.includes(file.mimetype) || file.mimetype.startsWith('video/');
+  if (!EXTENSOES_PERMITIDAS.includes(ext) || !mimeOk) {
     return cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Tipo de arquivo não permitido'));
   }
   cb(null, true);
