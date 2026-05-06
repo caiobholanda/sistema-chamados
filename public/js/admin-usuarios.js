@@ -375,14 +375,24 @@ async function abrirModalAdmin(id) {
       const eSiMesmo = id === meAdmin.id;
       document.getElementById('f-master').disabled = eSiMesmo;
       document.getElementById('f-master').title = eSiMesmo ? 'Você não pode remover seu próprio status de master' : '';
-      document.getElementById('f-senha').value = admin.senha_plain || '';
-      document.getElementById('f-senha').type = 'text';
-      document.getElementById('icon-eye-f').innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+      const dicaF = document.getElementById('dica-senha-f');
+      if (admin.senha_plain) {
+        document.getElementById('f-senha').value = admin.senha_plain;
+        document.getElementById('f-senha').type = 'text';
+        document.getElementById('icon-eye-f').innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+        dicaF.style.display = 'none';
+      } else {
+        document.getElementById('f-senha').value = '';
+        document.getElementById('f-senha').type = 'password';
+        document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        dicaF.style.display = '';
+      }
     }
   } else {
     document.getElementById('modal-admin-title').textContent = 'Novo administrador';
     document.getElementById('f-nome').value = '';
     document.getElementById('lbl-senha-dica').textContent = '(mín. 6 caracteres)';
+    document.getElementById('dica-senha-f').style.display = 'none';
   }
 
   resetarForca('forca-admin', 'barra-admin', 'reqs-admin');
@@ -561,9 +571,22 @@ async function abrirModalEditarUsuario(id) {
 
   document.getElementById('feu-nome').value  = usuario.nome;
   document.getElementById('feu-email').value = usuario.email;
-  document.getElementById('feu-senha').value = usuario.senha_plain || '';
-  document.getElementById('feu-senha').type  = 'text';
-  document.getElementById('icon-eye-feu').innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+  const senhaInput = document.getElementById('feu-senha');
+  const dicaSenha  = document.getElementById('dica-senha-feu');
+  if (usuario.senha_plain) {
+    senhaInput.value = usuario.senha_plain;
+    senhaInput.type  = 'text';
+    senhaInput.placeholder = '••••••••';
+    document.getElementById('icon-eye-feu').innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    dicaSenha.style.display = 'none';
+  } else {
+    senhaInput.value = '';
+    senhaInput.type  = 'password';
+    senhaInput.placeholder = '••••••••';
+    document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    dicaSenha.style.display = '';
+  }
 
   resetarForca('forca-editar-usuario', 'barra-editar-usuario', 'reqs-editar-usuario');
   atualizarEmailDica('feu-email', 'dica-email-editar-usuario');

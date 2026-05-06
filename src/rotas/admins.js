@@ -370,9 +370,14 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
       dados.is_master = req.body.is_master ? 1 : 0;
     }
     if (req.body.senha) {
-      if (!senhaForte(req.body.senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
-      dados.senha_hash = await bcrypt.hash(req.body.senha, 12);
-      dados.senha_plain = req.body.senha;
+      const mesma = await bcrypt.compare(req.body.senha, alvo.senha_hash);
+      if (mesma) {
+        dados.senha_plain = req.body.senha;
+      } else {
+        if (!senhaForte(req.body.senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
+        dados.senha_hash = await bcrypt.hash(req.body.senha, 12);
+        dados.senha_plain = req.body.senha;
+      }
     }
 
     db.atualizarAdmin(alvo.id, dados);
@@ -463,9 +468,14 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
     }
     if (req.body.senha) {
       const senha = req.body.senha;
-      if (!senhaForte(senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
-      dados.senha_hash = await bcrypt.hash(senha, 12);
-      dados.senha_plain = senha;
+      const mesma = await bcrypt.compare(senha, u.senha_hash);
+      if (mesma) {
+        dados.senha_plain = senha;
+      } else {
+        if (!senhaForte(senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
+        dados.senha_hash = await bcrypt.hash(senha, 12);
+        dados.senha_plain = senha;
+      }
     }
 
     db.atualizarUsuario(u.id, dados);
