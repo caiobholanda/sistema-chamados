@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-const { initDb, criarAdminMasterSeNecessario } = require('./src/db');
+const { initDb, criarAdminMasterSeNecessario, recuperarSenhasPlain } = require('./src/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +42,7 @@ app.use((err, req, res, next) => {
 async function main() {
   initDb();
   await criarAdminMasterSeNecessario();
+  await recuperarSenhasPlain();
   app.listen(PORT, () => {
     console.log(`Sistema de Chamados TI rodando em http://localhost:${PORT}`);
   });

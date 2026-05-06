@@ -100,6 +100,36 @@ function initDb() {
   return db;
 }
 
+async function recuperarSenhasPlain() {
+  const db = getDb();
+  const senhasMaster = [
+    process.env.ADMIN_MASTER_PASS,
+    'Admin123!',
+  ].filter(Boolean);
+
+  const adminsNull = db.prepare('SELECT * FROM admins WHERE senha_plain IS NULL').all();
+  for (const admin of adminsNull) {
+    for (const senha of senhasMaster) {
+      const ok = await bcrypt.compare(senha, admin.senha_hash);
+      if (ok) {
+        db.prepare('UPDATE admins SET senha_plain = ? WHERE id = ?').run(senha, admin.id);
+        break;
+      }
+    }
+  }
+
+  const usuariosNull = db.prepare('SELECT * FROM usuarios WHERE senha_plain IS NULL').all();
+  for (const u of usuariosNull) {
+    for (const senha of senhasMaster) {
+      const ok = await bcrypt.compare(senha, u.senha_hash);
+      if (ok) {
+        db.prepare('UPDATE usuarios SET senha_plain = ? WHERE id = ?').run(senha, u.id);
+        break;
+      }
+    }
+  }
+}
+
 async function criarAdminMasterSeNecessario() {
   const db = getDb();
   const count = db.prepare('SELECT COUNT(*) as cnt FROM admins').get();
@@ -549,6 +579,7 @@ module.exports = {
   getDb,
   initDb,
   criarAdminMasterSeNecessario,
+  recuperarSenhasPlain,
   inserirChamado,
   deletarChamado,
   buscarChamadoPorId,
