@@ -10,6 +10,9 @@ const CATEGORIAS = [
       'firefox', 'excel', 'word', 'office', 'teams', 'zoom', 'navegador', 'browser',
       'adobe', 'outlook', 'sistema operacional', 'crash', 'erro no sistema',
       'não abre', 'não inicia', 'atualizar', 'reinstalar', 'configuração do sistema',
+      'totvs', 'protheus', 'fluig', 'rm totvs', 'microsoft', 'azure', 'office 365',
+      'google', 'gmail', 'workspace', 'google meet', 'google drive', 'whatsapp',
+      'sap', 'oracle', 'salesforce', 'slack', 'dropbox', 'onedrive', 'sharepoint',
     ],
   },
   {

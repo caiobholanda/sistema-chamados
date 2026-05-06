@@ -4,18 +4,6 @@ let abaAtiva = 'abertos';
 let subAbaMeusAtiva = 'abertos';
 let _chatAdminIv = null;
 
-const EMPRESAS_MONITORADAS = [
-  { palavras: ['totvs','protheus','rm ','fluig'],        nome: 'TOTVS',             url: 'https://status.totvs.com.br',           site: 'https://suporte.totvs.com.br' },
-  { palavras: ['microsoft','office','teams','outlook','azure','365'], nome: 'Microsoft', url: 'https://status.microsoft.com',     site: 'https://status.microsoft.com' },
-  { palavras: ['google','gmail','workspace','meet','drive'], nome: 'Google Workspace', url: 'https://status.workspace.google.com', site: 'https://status.workspace.google.com' },
-  { palavras: ['zoom'],                                  nome: 'Zoom',              url: 'https://status.zoom.us',                site: 'https://status.zoom.us' },
-  { palavras: ['whatsapp'],                              nome: 'WhatsApp',          url: 'https://www.whatsapp.com',              site: 'https://downdetector.com.br/status/whatsapp' },
-];
-
-function detectarEmpresas(texto) {
-  const t = (texto || '').toLowerCase();
-  return EMPRESAS_MONITORADAS.filter(e => e.palavras.some(p => t.includes(p)));
-}
 
 async function _atualizarChatAdmin(chamadoId) {
   const box = document.getElementById('chat-modal-msgs');
@@ -378,48 +366,6 @@ function renderChamadoItem(c) {
   `;
 }
 
-async function verificarEmpresasNoChamado(c) {
-  const card = document.getElementById('card-verificacao-externa');
-  if (!card) return;
-  const texto = (c.descricao || '') + ' ' + (c.nome || '') + ' ' + (c.setor || '');
-  const empresas = detectarEmpresas(texto);
-  if (!empresas.length) return;
-
-  card.innerHTML = `
-    <div class="modal-controls-card" style="padding:.7rem 1rem">
-      <div class="modal-section-label" style="margin-bottom:.5rem">Verificação de serviços externos</div>
-      <div id="empresas-resultados" style="display:flex;flex-direction:column;gap:.4rem">
-        ${empresas.map(e => `
-          <div id="emp-${e.nome.replace(/\s/g,'_')}" style="display:flex;align-items:center;gap:.6rem;font-size:.83rem">
-            <span class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0"></span>
-            <span style="color:var(--text-secondary)">Verificando ${e.nome}…</span>
-          </div>`).join('')}
-      </div>
-    </div>`;
-
-  for (const e of empresas) {
-    const rowId = 'emp-' + e.nome.replace(/\s/g, '_');
-    try {
-      const r = await api('/api/admin/verificar-empresa?url=' + encodeURIComponent(e.url));
-      const d = r.ok ? await r.json() : { ok: false };
-      const row = document.getElementById(rowId);
-      if (!row) continue;
-      const cor = d.ok ? 'var(--success,#22c55e)' : 'var(--danger,#EF4444)';
-      const icone = d.ok
-        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-      const label = d.ok ? 'Online' : (d.erro || 'Offline / sem resposta');
-      row.innerHTML = `
-        <span style="color:${cor};flex-shrink:0">${icone}</span>
-        <strong style="min-width:120px">${e.nome}</strong>
-        <span style="color:${cor}">${label}${d.status ? ` (HTTP ${d.status})` : ''}</span>
-        <a href="${e.site}" target="_blank" rel="noopener" style="margin-left:auto;font-size:.78rem;color:var(--text-secondary)">Status →</a>`;
-    } catch {
-      const row = document.getElementById(rowId);
-      if (row) row.innerHTML = `<span style="color:var(--text-secondary);font-size:.83rem">${e.nome}: erro na verificação</span>`;
-    }
-  }
-}
 
 async function abrirModal(id) {
   chamadoAtual = null;
@@ -433,7 +379,6 @@ async function abrirModal(id) {
     if (!r.ok) { document.getElementById('modal-body').innerHTML = '<div class="alert alert-danger">Erro ao carregar.</div>'; return; }
     chamadoAtual = await r.json();
     renderModalBody(chamadoAtual);
-    verificarEmpresasNoChamado(chamadoAtual);
   } catch {}
 }
 
@@ -530,9 +475,6 @@ function renderModalBody(c) {
             <strong>Avaliação:</strong> ${c.nota}/10${c.comentario_avaliacao ? ' — ' + c.comentario_avaliacao : ''}
           </div>` : ''}
       </div>
-
-      <!-- ① Verificação externa de empresas -->
-      <div id="card-verificacao-externa"></div>
 
       <!-- ② Ações -->
       <div class="modal-controls-card">
