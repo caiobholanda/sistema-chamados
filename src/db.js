@@ -119,6 +119,15 @@ function initDb() {
   try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
 
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_chamados_status ON chamados(status);
+    CREATE INDEX IF NOT EXISTS idx_chamados_admin ON chamados(admin_responsavel_id);
+    CREATE INDEX IF NOT EXISTS idx_chamados_usuario ON chamados(usuario_id);
+    CREATE INDEX IF NOT EXISTS idx_chamados_criado ON chamados(criado_em);
+    CREATE INDEX IF NOT EXISTS idx_mensagens_chamado ON mensagens_chamado(chamado_id);
+    CREATE INDEX IF NOT EXISTS idx_historico_chamado ON historico_chamados(chamado_id);
+  `);
+
   return db;
 }
 

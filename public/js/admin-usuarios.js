@@ -241,45 +241,61 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('msg-modal-admin');
   const btn = document.getElementById('btn-salvar-admin');
+  const txtOriginal = btn.textContent;
   msg.innerHTML = '';
   btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const senhaInput = document.getElementById('f-senha');
+  const senha = senhaInput.value;
+  const senhaOriginal = senhaInput.dataset.original || '';
+  const senhaMudou = senha !== senhaOriginal;
 
   const body = {
     nome_completo: document.getElementById('f-nome').value.trim(),
     email: document.getElementById('f-email').value.trim().toLowerCase(),
-    senha: document.getElementById('f-senha').value,
     is_master: document.getElementById('f-master').checked,
   };
 
   if (!body.email.endsWith(DOMINIO_EMAIL)) {
     msg.innerHTML = `<div class="alert alert-danger">E-mail deve terminar com ${DOMINIO_EMAIL}</div>`;
-    btn.disabled = false; return;
+    btn.disabled = false; btn.textContent = txtOriginal; return;
   }
-  if (!editandoAdminId && !senhaForte(body.senha)) {
+  if (!editandoAdminId && !senhaForte(senha)) {
     msg.innerHTML = '<div class="alert alert-danger">Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.</div>';
-    btn.disabled = false; return;
+    btn.disabled = false; btn.textContent = txtOriginal; return;
   }
-  if (editandoAdminId && body.senha && !senhaForte(body.senha)) {
+  if (editandoAdminId && senhaMudou && senha && !senhaForte(senha)) {
     msg.innerHTML = '<div class="alert alert-danger">Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.</div>';
-    btn.disabled = false; return;
+    btn.disabled = false; btn.textContent = txtOriginal; return;
   }
+  if (!editandoAdminId) body.senha = senha;
+  else if (senhaMudou && senha) body.senha = senha;
 
   try {
     const idSalvoAdmin = editandoAdminId;
     let r;
     if (idSalvoAdmin) {
-      const patch = { nome_completo: body.nome_completo, email: body.email, is_master: body.is_master };
-      if (body.senha) patch.senha = body.senha;
-      r = await api(`/api/admin/usuarios/${idSalvoAdmin}`, { method: 'PATCH', body: JSON.stringify(patch) });
+      r = await api(`/api/admin/usuarios/${idSalvoAdmin}`, { method: 'PATCH', body: JSON.stringify(body) });
     } else {
       r = await api('/api/admin/usuarios', { method: 'POST', body: JSON.stringify(body) });
     }
     const d = await r.json();
     if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
-    await carregarAdmins();
-    if (idSalvoAdmin && body.senha) {
-      abrirModalAdmin(idSalvoAdmin);
+
+    if (idSalvoAdmin) {
+      const a = todosAdmins.find(x => x.id === idSalvoAdmin);
+      if (a) {
+        a.nome_completo = body.nome_completo;
+        a.email = body.email;
+        a.is_master = body.is_master ? 1 : 0;
+        if (body.senha) a.senha_plain = body.senha;
+      }
+      renderAdmins();
+      fecharModalAdmin();
+      msgGlobal(`<div class="alert alert-success">${d.mensagem || 'Admin atualizado'}</div>`);
     } else {
+      await carregarAdmins();
       fecharModalAdmin();
       msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
     }
@@ -287,6 +303,7 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
     if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
   } finally {
     btn.disabled = false;
+    btn.textContent = txtOriginal;
   }
 });
 
@@ -377,11 +394,13 @@ async function abrirModalAdmin(id) {
       const dicaF = document.getElementById('dica-senha-f');
       if (admin.senha_plain) {
         document.getElementById('f-senha').value = admin.senha_plain;
+        document.getElementById('f-senha').dataset.original = admin.senha_plain;
         document.getElementById('f-senha').type = 'text';
         document.getElementById('icon-eye-f').innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
         dicaF.style.display = 'none';
       } else {
         document.getElementById('f-senha').value = '';
+        document.getElementById('f-senha').dataset.original = '';
         document.getElementById('f-senha').type = 'password';
         document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
         dicaF.style.display = '';
@@ -563,12 +582,14 @@ async function abrirModalEditarUsuario(id) {
   const dicaSenha  = document.getElementById('dica-senha-feu');
   if (usuario.senha_plain) {
     senhaInput.value = usuario.senha_plain;
+    senhaInput.dataset.original = usuario.senha_plain;
     senhaInput.type  = 'text';
     senhaInput.placeholder = '••••••••';
     document.getElementById('icon-eye-feu').innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
     dicaSenha.style.display = 'none';
   } else {
     senhaInput.value = '';
+    senhaInput.dataset.original = '';
     senhaInput.type  = 'password';
     senhaInput.placeholder = '••••••••';
     document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
@@ -590,43 +611,49 @@ document.getElementById('form-editar-usuario').addEventListener('submit', async 
   e.preventDefault();
   const msg = document.getElementById('msg-modal-editar-usuario');
   const btn = document.getElementById('btn-salvar-editar-usuario');
+  const txtOriginal = btn.textContent;
   msg.innerHTML = '';
   btn.disabled = true;
+  btn.textContent = 'Salvando...';
 
+  const senhaInput = document.getElementById('feu-senha');
   const email = document.getElementById('feu-email').value.trim().toLowerCase();
-  const senha = document.getElementById('feu-senha').value;
+  const senha = senhaInput.value;
+  const senhaOriginal = senhaInput.dataset.original || '';
+  const senhaMudou = senha !== senhaOriginal;
 
   if (!email.endsWith(DOMINIO_EMAIL)) {
     msg.innerHTML = `<div class="alert alert-danger">E-mail deve terminar com ${DOMINIO_EMAIL}</div>`;
-    btn.disabled = false; return;
+    btn.disabled = false; btn.textContent = txtOriginal; return;
   }
-  if (senha && !senhaForte(senha)) {
+  if (senhaMudou && senha && !senhaForte(senha)) {
     msg.innerHTML = '<div class="alert alert-danger">Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.</div>';
-    btn.disabled = false; return;
+    btn.disabled = false; btn.textContent = txtOriginal; return;
   }
 
-  const body = {
-    nome:  document.getElementById('feu-nome').value.trim(),
-    email,
-  };
-  if (senha) body.senha = senha;
+  const body = { nome: document.getElementById('feu-nome').value.trim(), email };
+  if (senhaMudou && senha) body.senha = senha;
 
   try {
     const idSalvo = editandoUsuarioId;
     const r = await api(`/api/admin/portal-usuarios/${idSalvo}`, { method: 'PATCH', body: JSON.stringify(body) });
     const d = await r.json();
     if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
-    await carregarUsuarios();
-    if (senha) {
-      abrirModalEditarUsuario(idSalvo);
-    } else {
-      fecharModalEditarUsuario();
-      msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+
+    const u = todosUsuarios.find(x => x.id === idSalvo);
+    if (u) {
+      u.nome = body.nome;
+      u.email = body.email;
+      if (body.senha) u.senha_plain = body.senha;
     }
+    renderUsuarios();
+    fecharModalEditarUsuario();
+    msgGlobal(`<div class="alert alert-success">${d.mensagem || 'Usuário atualizado com sucesso'}</div>`);
   } catch (err) {
     if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
   } finally {
     btn.disabled = false;
+    btn.textContent = txtOriginal;
   }
 });
 
