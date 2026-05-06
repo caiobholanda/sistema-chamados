@@ -14,9 +14,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  lastModified: false,
   setHeaders(res, filePath) {
     if (/\.(js|css|html)$/.test(filePath)) {
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Cache-Control', 'no-store');
     } else {
       res.setHeader('Cache-Control', 'public, max-age=3600');
     }
@@ -37,7 +39,7 @@ function servirHtmlComVersao(res, arquivo) {
   const html = raw.replace(/(src|href)="(\/[^"]+\.(js|css))(\?[^"]*)?"([^>]*>)/g,
     (_, attr, url, _ext, _q, rest) => `${attr}="${url}?v=${BUILD_TS}"${rest}`);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-store');
   res.send(html);
 }
 
