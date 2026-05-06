@@ -449,7 +449,13 @@ function renderModalBody(c) {
           </div>
           <div class="modal-title-badges">
             ${badgePrio(c.prioridade)}
-            ${c.admin_nome ? `<span class="tag">👤 ${c.admin_nome}</span>` : ''}
+          </div>
+        </div>
+        <div class="modal-responsavel-card ${c.admin_nome ? 'tem-responsavel' : 'sem-responsavel'}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <div>
+            <div class="modal-responsavel-label">Administrador responsável</div>
+            <div class="modal-responsavel-nome">${c.admin_nome || 'Nenhum administrador responsável'}</div>
           </div>
         </div>
         <div class="modal-info-grid-3">

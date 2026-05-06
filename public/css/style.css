@@ -1834,6 +1834,39 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   text-align: right;
 }
 
+/* ── Responsável card no modal ── */
+.modal-responsavel-card {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .55rem .85rem;
+  border-radius: var(--radius-sm);
+  margin: .4rem 0 .1rem;
+  font-size: .83rem;
+}
+.modal-responsavel-card.tem-responsavel {
+  background: rgba(21,128,61,.07);
+  border: 1px solid rgba(21,128,61,.2);
+  color: #166534;
+}
+.modal-responsavel-card.sem-responsavel {
+  background: rgba(107,114,128,.07);
+  border: 1px solid rgba(107,114,128,.2);
+  color: var(--text-secondary);
+}
+.modal-responsavel-label {
+  font-size: .7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  opacity: .75;
+  margin-bottom: .1rem;
+}
+.modal-responsavel-nome {
+  font-weight: 600;
+  font-size: .88rem;
+}
+
 /* ── Toast Notifications ── */
 #toast-container {
   position: fixed;
