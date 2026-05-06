@@ -318,10 +318,12 @@ async function carregarChamados(silencioso = false) {
     chamados.sort((a, b) => {
       const prioDiff = (PRIO_ORDEM[a.prioridade] ?? 4) - (PRIO_ORDEM[b.prioridade] ?? 4);
       if (prioDiff !== 0) return prioDiff;
-      if (!a.prazo && !b.prazo) return 0;
+      if (!a.prazo && !b.prazo) return new Date(b.criado_em) - new Date(a.criado_em);
       if (!a.prazo) return 1;
       if (!b.prazo) return -1;
-      return new Date(a.prazo) - new Date(b.prazo);
+      const prazoDiff = new Date(a.prazo) - new Date(b.prazo);
+      if (prazoDiff !== 0) return prazoDiff;
+      return new Date(b.criado_em) - new Date(a.criado_em);
     });
     lista.innerHTML = chamados.map(c => renderChamadoItem(c)).join('');
     lista.querySelectorAll('.chamado-item').forEach(el => {
