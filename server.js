@@ -3,21 +3,43 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const path = require('path');
+const fs = require('fs');
 const { initDb, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo } = require('./src/db');
 const push = require('./src/push');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BUILD_TS = Date.now();
 
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Rotas HTML — devem vir ANTES do express.static para que servirHtmlComVersao
+// seja chamada e injete o BUILD_TS nos links de JS/CSS
+function servirHtmlComVersao(res, arquivo) {
+  const raw = fs.readFileSync(path.join(__dirname, 'public', arquivo), 'utf8');
+  const html = raw.replace(/(src|href)="(\/[^"]+\.(js|css))(\?[^"]*)?"([^>]*>)/g,
+    (_, attr, url, _ext, _q, rest) => `${attr}="${url}?v=${BUILD_TS}"${rest}`);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(html);
+}
+
+app.get('/', (req, res) => servirHtmlComVersao(res, 'index.html'));
+app.get('/index.html', (req, res) => servirHtmlComVersao(res, 'index.html'));
+app.get('/admin-painel.html', (req, res) => servirHtmlComVersao(res, 'admin-painel.html'));
+app.get('/admin-usuarios.html', (req, res) => servirHtmlComVersao(res, 'admin-usuarios.html'));
+app.get('/admin-relatorios.html', (req, res) => servirHtmlComVersao(res, 'admin-relatorios.html'));
+app.get('/admin-login.html', (req, res) => servirHtmlComVersao(res, 'admin-login.html'));
+
+// Arquivos estáticos (JS, CSS, imagens) — html excluído porque as rotas acima já tratam
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: false,
   lastModified: false,
   setHeaders(res, filePath) {
-    if (/\.(js|css|html)$/.test(filePath)) {
+    if (/\.(js|css)$/.test(filePath)) {
       res.setHeader('Cache-Control', 'no-store');
     } else {
       res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -31,29 +53,11 @@ app.use('/api/usuarios', require('./src/rotas/usuarios'));
 app.use('/api/admin/relatorios', require('./src/rotas/relatorios'));
 app.use('/api/admin', require('./src/rotas/admins'));
 
-const BUILD_TS = Date.now();
-const fs = require('fs');
-
-function servirHtmlComVersao(res, arquivo) {
-  const raw = fs.readFileSync(path.join(__dirname, 'public', arquivo), 'utf8');
-  const html = raw.replace(/(src|href)="(\/[^"]+\.(js|css))(\?[^"]*)?"([^>]*>)/g,
-    (_, attr, url, _ext, _q, rest) => `${attr}="${url}?v=${BUILD_TS}"${rest}`);
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
-  res.send(html);
-}
-
-app.get('/', (req, res) => servirHtmlComVersao(res, 'index.html'));
-app.get('/admin-painel.html', (req, res) => servirHtmlComVersao(res, 'admin-painel.html'));
-app.get('/admin-usuarios.html', (req, res) => servirHtmlComVersao(res, 'admin-usuarios.html'));
-app.get('/admin-relatorios.html', (req, res) => servirHtmlComVersao(res, 'admin-relatorios.html'));
-app.get('/admin-login.html', (req, res) => servirHtmlComVersao(res, 'admin-login.html'));
-
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ erro: 'Rota não encontrada' });
   }
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  servirHtmlComVersao(res, 'index.html');
 });
 
 // Error handler para erros do multer
