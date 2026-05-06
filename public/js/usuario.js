@@ -359,7 +359,22 @@ function renderPainel(usuario) {
       return;
     }
 
+    // Preservar texto digitado nos chats antes de re-renderizar
+    const chatState = {};
+    filtrados.forEach(c => {
+      const inp = document.getElementById('chat-input-' + c.id);
+      if (inp) chatState[c.id] = { value: inp.value, focused: document.activeElement === inp };
+    });
+
     lista.innerHTML = filtrados.map(c => renderCardChamado(c)).join('');
+
+    // Restaurar texto e foco depois de re-renderizar
+    Object.entries(chatState).forEach(([id, s]) => {
+      const inp = document.getElementById('chat-input-' + id);
+      if (!inp) return;
+      if (s.value) inp.value = s.value;
+      if (s.focused) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    });
 
     filtrados.filter(c => c.status === 'concluido' && c.nota === null).forEach(c => {
       const form = document.getElementById(`form-avaliacao-${c.id}`);
