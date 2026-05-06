@@ -419,7 +419,7 @@ function fecharModal() {
 
 function renderModalBody(c) {
   const isAberto = ['aberto', 'em_andamento'].includes(c.status);
-  const podeAssumir  = c.status === 'aberto' || (c.status === 'em_andamento' && c.admin_responsavel_id !== adminInfo?.id);
+  const podeAssumir  = ['aberto', 'em_andamento'].includes(c.status);
   const podeConcluir = ['aberto', 'em_andamento'].includes(c.status);
   const podeReabrir  = ['concluido', 'encerrado'].includes(c.status);
   const atrasado = estaAtrasado(c);
