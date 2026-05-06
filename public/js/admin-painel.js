@@ -706,7 +706,7 @@ function setupModalEventos(c) {
   const btnReabrir = document.getElementById('btn-reabrir');
   if (btnReabrir) {
     btnReabrir.addEventListener('click', async () => {
-      if (!confirm(`Reabrir o chamado #${c.id}? Ele voltará para o status "Aberto".`)) return;
+      if (!confirm(`Reabrir o chamado? Ele voltará para o status "Aberto".`)) return;
       const r = await api(`/api/admin/chamados/${c.id}/reabrir`, { method: 'PATCH', body: JSON.stringify({}) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Chamado reaberto.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
@@ -717,7 +717,7 @@ function setupModalEventos(c) {
   const btnDeletar = document.getElementById('btn-deletar');
   if (btnDeletar) {
     btnDeletar.addEventListener('click', async () => {
-      if (!confirm(`Excluir permanentemente o chamado #${c.id}? Esta ação não pode ser desfeita.`)) return;
+      if (!confirm(`Excluir permanentemente este chamado? Esta ação não pode ser desfeita.`)) return;
       const r = await api(`/api/admin/chamados/${c.id}`, { method: 'DELETE' });
       const d = await r.json();
       if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
