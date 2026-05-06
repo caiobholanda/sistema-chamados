@@ -7,6 +7,7 @@ const db = require('../db');
 const { upload, renomearAnexoComId, UPLOADS_DIR } = require('../upload');
 const { classificar } = require('../categorizador');
 const { extrairEquipamentos } = require('../analisador-equipamentos');
+const push = require('../push');
 
 function getUsuarioIdFromCookie(req) {
   try {
@@ -74,6 +75,7 @@ router.post('/', upload.single('anexo'), (req, res) => {
       }
     }).catch(() => {});
 
+    push.enviarParaTodos('🆕 Novo chamado aberto', `${nome} (${setor}): ${descricao.slice(0, 80)}${descricao.length > 80 ? '…' : ''}`).catch(() => {});
     return res.status(201).json({ id, mensagem: 'Chamado aberto com sucesso' });
   } catch (err) {
     if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
@@ -167,6 +169,11 @@ router.post('/:id/mensagens', (req, res) => {
       autor_nome: usuario ? usuario.nome : 'Usuário',
       mensagem,
     });
+    if (chamado.admin_responsavel_id) {
+      push.enviarParaAdmin(chamado.admin_responsavel_id, `💬 ${usuario ? usuario.nome : 'Usuário'}`, mensagem.slice(0, 100)).catch(() => {});
+    } else {
+      push.enviarParaTodos(`💬 ${usuario ? usuario.nome : 'Usuário'}`, mensagem.slice(0, 100)).catch(() => {});
+    }
     return res.status(201).json({ mensagem: 'Mensagem enviada' });
   } catch (err) {
     console.error(err);

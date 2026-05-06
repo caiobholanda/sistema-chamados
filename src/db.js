@@ -89,6 +89,29 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_eq_equipamento ON equipamentos_mencoes(equipamento);
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS config (
+      chave TEXT PRIMARY KEY,
+      valor TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS prazo_alertas (
+      chamado_id INTEGER NOT NULL,
+      tipo TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (chamado_id, tipo)
+    );
+  `);
+
   // Migrações de colunas em bancos existentes
   try { db.exec('ALTER TABLE chamados ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN ativo INTEGER DEFAULT 1'); } catch {}
@@ -98,6 +121,34 @@ function initDb() {
   try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
 
   return db;
+}
+
+function salvarPushSubscription(adminId, { endpoint, p256dh, auth }) {
+  getDb().prepare(`
+    INSERT OR REPLACE INTO push_subscriptions (admin_id, endpoint, p256dh, auth)
+    VALUES (?, ?, ?, ?)
+  `).run(adminId, endpoint, p256dh, auth);
+}
+
+function removerPushSubscription(adminId, endpoint) {
+  getDb().prepare('DELETE FROM push_subscriptions WHERE admin_id = ? AND endpoint = ?').run(adminId, endpoint);
+}
+
+function getChamadosComPrazoPendente() {
+  return getDb().prepare(`
+    SELECT c.*, a.id as admin_id_resp
+    FROM chamados c
+    LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    WHERE c.status IN ('aberto', 'em_andamento')
+    AND c.prazo IS NOT NULL
+  `).all();
+}
+
+function registrarAlertaPrazo(chamadoId, tipo) {
+  try {
+    getDb().prepare('INSERT INTO prazo_alertas (chamado_id, tipo) VALUES (?, ?)').run(chamadoId, tipo);
+    return true;
+  } catch { return false; }
 }
 
 async function recuperarSenhasPlain() {
@@ -631,4 +682,8 @@ module.exports = {
   criarMensagem,
   inserirMencoesEquipamentos,
   rankingEquipamentos,
+  salvarPushSubscription,
+  removerPushSubscription,
+  getChamadosComPrazoPendente,
+  registrarAlertaPrazo,
 };

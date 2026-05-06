@@ -793,3 +793,71 @@ function traduzirAcao(acao) {
   };
   return t[acao] || acao;
 }
+
+// ── Push Notifications ────────────────────────────────────────
+
+let _swReg = null;
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function iniciarPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    _swReg = await navigator.serviceWorker.register('/sw.js');
+    const perm = Notification.permission;
+    if (perm === 'granted') await _subscribePush();
+    atualizarBotaoNotificacao(perm);
+  } catch (err) {
+    console.warn('[Push] SW registro falhou:', err);
+  }
+}
+
+async function _subscribePush() {
+  if (!_swReg) return;
+  try {
+    const r = await api('/api/admin/push/vapid-public-key');
+    const { publicKey } = await r.json();
+    const sub = await _swReg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+    await api('/api/admin/push/subscribe', { method: 'POST', body: JSON.stringify(sub.toJSON()) });
+  } catch (err) {
+    console.warn('[Push] Subscribe falhou:', err);
+  }
+}
+
+function atualizarBotaoNotificacao(perm) {
+  const btn = document.getElementById('btn-notificacoes');
+  if (!btn) return;
+  if (perm === 'granted') {
+    btn.textContent = '🔔';
+    btn.title = 'Notificações ativas';
+    btn.style.opacity = '1';
+  } else if (perm === 'denied') {
+    btn.textContent = '🔕';
+    btn.title = 'Notificações bloqueadas pelo navegador';
+    btn.style.opacity = '0.5';
+  } else {
+    btn.textContent = '🔔';
+    btn.title = 'Clique para ativar notificações';
+    btn.style.opacity = '0.6';
+  }
+}
+
+document.getElementById('btn-notificacoes').addEventListener('click', async () => {
+  if (!('Notification' in window)) { alert('Seu navegador não suporta notificações.'); return; }
+  if (Notification.permission === 'denied') {
+    alert('Notificações estão bloqueadas. Libere nas configurações do navegador.'); return;
+  }
+  const perm = await Notification.requestPermission();
+  atualizarBotaoNotificacao(perm);
+  if (perm === 'granted') await _subscribePush();
+});
+
+iniciarPush();

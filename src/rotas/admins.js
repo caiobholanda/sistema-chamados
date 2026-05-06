@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../db');
 const { requireAdmin, requireMaster } = require('../auth');
+const push = require('../push');
 
 const STATUS_VALIDOS = ['aberto', 'em_andamento', 'concluido', 'encerrado'];
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
@@ -105,6 +106,7 @@ router.patch('/chamados/:id/transferir', requireAdmin, async (req, res) => {
     const alvo = db.buscarAdminPorId(admin_id);
     if (!alvo || !alvo.ativo) return res.status(404).json({ erro: 'Admin não encontrado' });
     db.transferirChamado(chamado.id, req.admin.sub, admin_id, alvo.nome_completo);
+    push.enviarParaAdmin(admin_id, '📋 Chamado transferido para você', `Chamado de ${chamado.nome} (${chamado.setor}) foi atribuído a você.`).catch(() => {});
     return res.json({ mensagem: `Chamado transferido para ${alvo.nome_completo}` });
   } catch (err) {
     console.error(err);
@@ -312,6 +314,38 @@ router.patch('/chamados/:id/categoria', requireMaster, (req, res) => {
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
     db.atualizarCategoria(chamado.id, categoria, req.admin.sub);
     return res.json({ mensagem: 'Categoria atualizada' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+// ── Push Notifications ────────────────────────────────────────
+
+router.get('/push/vapid-public-key', requireAdmin, (req, res) => {
+  res.json({ publicKey: push.getPublicKey() });
+});
+
+router.post('/push/subscribe', requireAdmin, (req, res) => {
+  try {
+    const { endpoint, keys } = req.body;
+    if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
+      return res.status(400).json({ erro: 'Dados de subscription inválidos' });
+    }
+    db.salvarPushSubscription(req.admin.sub, { endpoint, p256dh: keys.p256dh, auth: keys.auth });
+    return res.json({ mensagem: 'Inscrito' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.post('/push/unsubscribe', requireAdmin, (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (!endpoint) return res.status(400).json({ erro: 'endpoint obrigatório' });
+    db.removerPushSubscription(req.admin.sub, endpoint);
+    return res.json({ mensagem: 'Desinscrito' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });
