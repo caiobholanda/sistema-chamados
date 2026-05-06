@@ -423,7 +423,7 @@ async function verificarEmpresasNoChamado(c) {
 
 async function abrirModal(id) {
   chamadoAtual = null;
-  document.getElementById('modal-title').textContent = `Chamado #${id}`;
+  document.getElementById('modal-title').textContent = 'Chamado';
   document.getElementById('modal-body').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   document.getElementById('modal-overlay').classList.add('open');
   document.getElementById('btn-fechar-modal').focus();
@@ -472,7 +472,7 @@ function renderModalBody(c) {
         </div>`).join('')
     : '<p class="text-muted" style="font-size:.85rem">Sem histórico.</p>';
 
-  document.getElementById('modal-title').innerHTML = `Chamado #${c.id} ${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
+  document.getElementById('modal-title').innerHTML = `Chamado ${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
 
   document.getElementById('modal-body').innerHTML = `
     <div style="display:grid;gap:1rem">
@@ -643,7 +643,7 @@ function setupModalEventos(c) {
       setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) {
         c.categoria = cat;
-        document.getElementById('modal-title').innerHTML = `Chamado #${c.id} ${badgeStatus(c.status)} ${badgeCategoria(cat)}`;
+        document.getElementById('modal-title').innerHTML = `Chamado ${badgeStatus(c.status)} ${badgeCategoria(cat)}`;
       }
     });
   }
