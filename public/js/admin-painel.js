@@ -860,4 +860,30 @@ document.getElementById('btn-notificacoes').addEventListener('click', async () =
   if (perm === 'granted') await _subscribePush();
 });
 
+function mostrarToast(titulo, corpo) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const el = document.createElement('div');
+  el.className = 'toast-notif';
+  el.innerHTML = `<button class="toast-close" aria-label="Fechar">✕</button><strong>${titulo}</strong><span>${corpo}</span>`;
+  el.querySelector('.toast-close').addEventListener('click', () => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 350);
+  });
+  container.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 350);
+  }, 6000);
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'notif') {
+      mostrarToast(event.data.title || 'Chamados TI', event.data.body || '');
+    }
+  });
+}
+
 iniciarPush();
