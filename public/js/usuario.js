@@ -522,8 +522,8 @@ function renderFormChamado(usuario, container, onSuccess) {
         </div>
         <div class="form-group">
           <label for="ch-anexo">Anexo (opcional)</label>
-          <input class="form-control" type="file" id="ch-anexo" name="anexo" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx">
-          <p class="form-hint">jpg, png, pdf, txt, log, docx — máx. 10 MB</p>
+          <input class="form-control" type="file" id="ch-anexo" name="anexo" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
+          <p class="form-hint">jpg, png, pdf, txt, docx, mp4, mov, webm, avi, mkv — máx. 200 MB</p>
         </div>
         <div style="display:flex;gap:.5rem">
           <button type="submit" class="btn btn-primary" id="btn-enviar-chamado">Enviar Chamado</button>

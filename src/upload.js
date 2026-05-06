@@ -10,8 +10,9 @@ const TIPOS_PERMITIDOS = [
   'application/pdf',
   'text/plain',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/x-ms-wmv',
 ];
-const EXTENSOES_PERMITIDAS = ['.jpg', '.jpeg', '.png', '.pdf', '.txt', '.log', '.docx'];
+const EXTENSOES_PERMITIDAS = ['.jpg', '.jpeg', '.png', '.pdf', '.txt', '.log', '.docx', '.mp4', '.webm', '.mov', '.avi', '.mkv', '.wmv'];
 
 function sanitizarNome(nome) {
   return nome
@@ -43,7 +44,7 @@ function fileFilter(_req, file, cb) {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB
 });
 
 function renomearAnexoComId(chamadoId, tempPath, nomeOriginal) {
