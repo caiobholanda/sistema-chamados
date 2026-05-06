@@ -29,7 +29,24 @@ app.use('/api/usuarios', require('./src/rotas/usuarios'));
 app.use('/api/admin/relatorios', require('./src/rotas/relatorios'));
 app.use('/api/admin', require('./src/rotas/admins'));
 
-// SPA fallback — serve index.html para rotas não reconhecidas
+const BUILD_TS = Date.now();
+const fs = require('fs');
+
+function servirHtmlComVersao(res, arquivo) {
+  const raw = fs.readFileSync(path.join(__dirname, 'public', arquivo), 'utf8');
+  const html = raw.replace(/(src|href)="(\/[^"]+\.(js|css))(\?[^"]*)?"([^>]*>)/g,
+    (_, attr, url, _ext, _q, rest) => `${attr}="${url}?v=${BUILD_TS}"${rest}`);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(html);
+}
+
+app.get('/', (req, res) => servirHtmlComVersao(res, 'index.html'));
+app.get('/admin-painel.html', (req, res) => servirHtmlComVersao(res, 'admin-painel.html'));
+app.get('/admin-usuarios.html', (req, res) => servirHtmlComVersao(res, 'admin-usuarios.html'));
+app.get('/admin-relatorios.html', (req, res) => servirHtmlComVersao(res, 'admin-relatorios.html'));
+app.get('/admin-login.html', (req, res) => servirHtmlComVersao(res, 'admin-login.html'));
+
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ erro: 'Rota não encontrada' });
