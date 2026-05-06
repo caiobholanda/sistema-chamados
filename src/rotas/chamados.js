@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../db');
 const { upload, renomearAnexoComId, UPLOADS_DIR } = require('../upload');
-const { classificar } = require('../categorizador');
+const { classificarInteligente } = require('../categorizador');
 const { extrairEquipamentos } = require('../analisador-equipamentos');
 const push = require('../push');
 
@@ -33,7 +33,7 @@ function sanitizarTexto(str) {
 }
 
 // POST /api/chamados — abrir chamado
-router.post('/', upload.single('anexo'), (req, res) => {
+router.post('/', upload.single('anexo'), async (req, res) => {
   try {
     let { nome, setor, ramal, descricao } = req.body;
     nome = sanitizarTexto(nome);
@@ -56,7 +56,7 @@ router.post('/', upload.single('anexo'), (req, res) => {
     let anexo_nome_original = null;
 
     const usuario_id = getUsuarioIdFromCookie(req);
-    const cat = classificar(descricao);
+    const cat = await classificarInteligente(descricao);
     const categoria = cat ? cat.id : null;
     const id = db.inserirChamado({ usuario_id, nome, setor, ramal, descricao, anexo_path: null, anexo_nome_original: null, categoria });
 

@@ -180,11 +180,48 @@ function classificar(descricao) {
   }
 
   const melhor = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
-  if (!melhor || melhor[1] === 0) {
-    return CATEGORIAS.find(c => c.id === 'outros');
-  }
-
+  if (!melhor || melhor[1] === 0) return null;
   return CATEGORIAS.find(c => c.id === melhor[0]);
 }
 
-module.exports = { classificar, CATEGORIAS };
+const _idsValidos = CATEGORIAS.filter(c => c.id !== 'outros').map(c => c.id);
+const _nomesValidos = CATEGORIAS.filter(c => c.id !== 'outros').map(c => `${c.id} (${c.nome})`).join(', ');
+
+async function classificarInteligente(descricao) {
+  // 1. Tenta por keywords
+  const porKeyword = classificar(descricao);
+  if (porKeyword) return porKeyword;
+
+  // 2. Fallback: IA
+  try {
+    const Anthropic = require('@anthropic-ai/sdk');
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return CATEGORIAS.find(c => c.id === 'outros');
+
+    const ai = new Anthropic({ apiKey });
+    const msg = await ai.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 30,
+      messages: [{
+        role: 'user',
+        content: `Classifique este chamado de suporte de TI em UMA das categorias abaixo. Responda APENAS com o id da categoria, sem explicação.
+
+Categorias disponíveis: ${_nomesValidos}
+
+Chamado: "${descricao.replace(/"/g, "'").slice(0, 500)}"
+
+Resposta (apenas o id):`,
+      }],
+    });
+
+    const id = msg.content[0]?.text?.trim().toLowerCase().replace(/[^a-z_]/g, '');
+    if (_idsValidos.includes(id)) return CATEGORIAS.find(c => c.id === id);
+  } catch (err) {
+    console.error('[categorizador-ia] erro:', err.message);
+  }
+
+  // 3. Último recurso: outros
+  return CATEGORIAS.find(c => c.id === 'outros');
+}
+
+module.exports = { classificar, classificarInteligente, CATEGORIAS };
