@@ -36,7 +36,7 @@ async function _atualizarChatAdmin(chamadoId) {
 const STATUS_ABERTOS = ['aberto', 'em_andamento'];
 const STATUS_ENCERRADOS = ['concluido', 'encerrado'];
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Concluído' };
 const PRIO_LABELS = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
 const CATEGORIAS_MAP = {
@@ -158,16 +158,14 @@ function atualizarFiltrosDeAba() {
       `;
     } else {
       sel.innerHTML = `
-        <option value="">Todos (encerrados)</option>
-        <option value="concluido">Concluído</option>
-        <option value="encerrado">Encerrado</option>
+        <option value="">Todos (concluídos)</option>
+        <option value="concluido,encerrado">Concluído</option>
       `;
     }
   } else {
     sel.innerHTML = `
-      <option value="">Todos (encerrados)</option>
-      <option value="concluido">Concluído</option>
-      <option value="encerrado">Encerrado</option>
+      <option value="">Todos (concluídos)</option>
+      <option value="concluido,encerrado">Concluído</option>
     `;
   }
 }
@@ -186,8 +184,7 @@ async function carregarEstatisticas() {
 
     document.getElementById('cnt-aberto').textContent = contagem.aberto;
     document.getElementById('cnt-andamento').textContent = contagem.em_andamento;
-    document.getElementById('cnt-concluido').textContent = contagem.concluido;
-    document.getElementById('cnt-encerrado').textContent = contagem.encerrado;
+    document.getElementById('cnt-concluido').textContent = contagem.concluido + contagem.encerrado;
 
     const totalAbertos = contagem.aberto + contagem.em_andamento;
     const totalEncerrados = contagem.concluido + contagem.encerrado;
@@ -225,7 +222,7 @@ document.getElementById('stats-strip').addEventListener('click', e => {
   if (!pill) return;
   const num = pill.querySelector('.stat-num');
   if (!num) return;
-  const map = { 'cnt-aberto': 'aberto', 'cnt-andamento': 'em_andamento', 'cnt-concluido': 'concluido', 'cnt-encerrado': 'encerrado' };
+  const map = { 'cnt-aberto': 'aberto', 'cnt-andamento': 'em_andamento', 'cnt-concluido': 'concluido,encerrado' };
   const status = map[num.id];
   if (status) filtrarPorStatus(status);
 });
@@ -401,8 +398,7 @@ function fecharModal() {
 function renderModalBody(c) {
   const isAberto = ['aberto', 'em_andamento'].includes(c.status);
   const podeAssumir  = c.status === 'aberto' || (c.status === 'em_andamento' && c.admin_responsavel_id !== adminInfo?.id);
-  const podeConcluir = c.status === 'em_andamento';
-  const podeEncerrar = isAberto;
+  const podeConcluir = ['aberto', 'em_andamento'].includes(c.status);
   const podeReabrir  = ['concluido', 'encerrado'].includes(c.status);
 
   const atrasado = estaAtrasado(c);
@@ -514,7 +510,6 @@ function renderModalBody(c) {
             ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir">Assumir chamado</button>` : ''}
             ${isAberto     ? `<button class="btn btn-secondary btn-sm" id="btn-transferir">Transferir chamado</button>` : ''}
             ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir">Concluir</button>` : ''}
-            ${podeEncerrar ? `<button class="btn btn-danger  btn-sm" id="btn-encerrar">Encerrar</button>` : ''}
           </div>
           <div id="area-transferir" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)">
             <div class="form-group" style="margin-bottom:.5rem">
@@ -531,13 +526,6 @@ function renderModalBody(c) {
               <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
             </div>
             <button class="btn btn-success btn-sm" id="btn-confirmar-concluir">Confirmar conclusão</button>
-          </div>
-          <div id="area-encerrar" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)">
-            <div class="form-group" style="margin-bottom:.5rem">
-              <label for="txt-motivo">Motivo do encerramento <span class="req">*</span></label>
-              <textarea class="form-control" id="txt-motivo" minlength="3" maxlength="500" rows="2" placeholder="Informe o motivo..."></textarea>
-            </div>
-            <button class="btn btn-danger btn-sm" id="btn-confirmar-encerrar">Confirmar encerramento</button>
           </div>
         ` : `
           <div class="modal-closed-actions">
@@ -689,25 +677,6 @@ function setupModalEventos(c) {
       const r = await api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Chamado concluído.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-      if (r.ok) setTimeout(() => abrirModal(c.id), 700);
-    });
-  }
-
-  const btnEncerrar = document.getElementById('btn-encerrar');
-  if (btnEncerrar) {
-    btnEncerrar.addEventListener('click', () => {
-      const area = document.getElementById('area-encerrar');
-      area.style.display = area.style.display === 'none' ? 'block' : 'none';
-    });
-  }
-
-  const btnConfEncerrar = document.getElementById('btn-confirmar-encerrar');
-  if (btnConfEncerrar) {
-    btnConfEncerrar.addEventListener('click', async () => {
-      const motivo = document.getElementById('txt-motivo').value.trim();
-      const r = await api(`/api/admin/chamados/${c.id}/encerrar`, { method: 'PATCH', body: JSON.stringify({ motivo }) });
-      const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado encerrado.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 700);
     });
   }

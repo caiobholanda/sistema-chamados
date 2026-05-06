@@ -247,8 +247,8 @@ router.patch('/chamados/:id/concluir', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (chamado.status !== 'em_andamento') {
-      return res.status(400).json({ erro: 'Só é possível concluir chamados em andamento' });
+    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
+      return res.status(400).json({ erro: 'Só é possível concluir chamados abertos ou em andamento' });
     }
 
     const solucao = sanitizarTexto(req.body.solucao || '');

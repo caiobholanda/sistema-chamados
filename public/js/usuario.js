@@ -1,6 +1,6 @@
 const app = document.getElementById('app');
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Concluído' };
 
 const RAMAIS_VALIDOS = new Set([
   '5001','5002','5003','5004','5005','5010','5012','5015',
@@ -235,24 +235,13 @@ function renderPainel(usuario) {
           <div class="stat-label">Concluídos</div>
         </div>
       </div>
-      <div class="stat-pill">
-        <div class="stat-dot dot-encerrado">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/>
-          </svg>
-        </div>
-        <div class="stat-info">
-          <div class="stat-num" id="cnt-u-encerrado">—</div>
-          <div class="stat-label">Encerrados</div>
-        </div>
-      </div>
     </div>
 
     <div id="area-form-chamado" style="display:none"></div>
 
     <div class="tabs-bar">
       <button class="tab-btn ativo" id="tab-abertos">Em Aberto <span class="tab-badge" id="badge-abertos-u"></span></button>
-      <button class="tab-btn" id="tab-encerrados">Encerrados <span class="tab-badge" id="badge-encerrados-u"></span></button>
+      <button class="tab-btn" id="tab-encerrados">Concluídos <span class="tab-badge" id="badge-encerrados-u"></span></button>
     </div>
 
     <div id="lista-usuario"><div class="loading"><div class="spinner"></div></div></div>
@@ -304,8 +293,7 @@ function renderPainel(usuario) {
       const el = id => document.getElementById(id);
       if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = qtd.aberto;
       if (el('cnt-u-andamento')) el('cnt-u-andamento').textContent = qtd.em_andamento;
-      if (el('cnt-u-concluido')) el('cnt-u-concluido').textContent = qtd.concluido;
-      if (el('cnt-u-encerrado')) el('cnt-u-encerrado').textContent = qtd.encerrado;
+      if (el('cnt-u-concluido')) el('cnt-u-concluido').textContent = qtd.concluido + qtd.encerrado;
 
       const abertos = qtd.aberto + qtd.em_andamento;
       const encerrados = qtd.concluido + qtd.encerrado;
