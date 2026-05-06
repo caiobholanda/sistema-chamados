@@ -344,6 +344,8 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
   letter-spacing: .07em;
 }
 .badge-urgente        { background: var(--danger-light);  color: var(--danger);   border: 1px solid #fecaca; }
+.badge-atraso         { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; animation: pulso-atraso 1.8s ease-in-out infinite; }
+@keyframes pulso-atraso { 0%,100% { opacity:1; } 50% { opacity:.6; } }
 .badge-alta           { background: #FFEDD5;               color: #C2410C;         border: 1px solid #fdba74; }
 .badge-media          { background: #DBEAFE;               color: #1D4ED8;         border: 1px solid #93c5fd; }
 .badge-baixa          { background: var(--success-light);  color: var(--success);  border: 1px solid #86efac; }
@@ -704,6 +706,8 @@ tbody tr:hover td { background: #FAF7F2; }
 }
 .chamado-encerrado { opacity: .65; }
 .chamado-encerrado:hover { opacity: 1; }
+.chamado-atraso { border-left: 3px solid var(--danger) !important; }
+.prazo-vencido { color: var(--danger) !important; font-weight: 600; }
 .chamado-data-rel { margin-left: auto; font-size: .7rem; color: var(--text-muted); }
 
 /* ═══════════════════════════════════════════
@@ -717,6 +721,19 @@ tbody tr:hover td { background: #FAF7F2; }
   padding: .65rem 1rem;
   font-size: .82rem;
   color: #78350f;
+  margin-bottom: .75rem;
+}
+.banner-atraso {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-sm);
+  padding: .65rem 1rem;
+  font-size: .84rem;
+  color: #b91c1c;
   margin-bottom: .75rem;
 }
 

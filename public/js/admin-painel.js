@@ -329,13 +329,21 @@ async function carregarChamados() {
   }
 }
 
+function estaAtrasado(c) {
+  if (!c.prazo) return false;
+  if (['concluido', 'encerrado'].includes(c.status)) return false;
+  return new Date(c.prazo.replace(' ', 'T')) < new Date();
+}
+
 function renderChamadoItem(c) {
   const encerrado = ['concluido', 'encerrado'].includes(c.status);
+  const atrasado  = estaAtrasado(c);
   return `
-    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}" data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
+    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}" data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
       <div class="chamado-item-header">
         <span class="chamado-id">#${c.id}</span>
         ${badgeStatus(c.status)}
+        ${atrasado ? `<span class="badge badge-atraso">⚠ Em atraso</span>` : ''}
         ${badgePrio(c.prioridade)}
         ${badgeCategoria(c.categoria)}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
@@ -351,7 +359,7 @@ function renderChamadoItem(c) {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           Ramal ${c.ramal}
         </span>
-        ${c.prazo ? `<span class="chamado-footer-prazo"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Prazo: ${fmtData(c.prazo)}</span>` : ''}
+        ${c.prazo ? `<span class="chamado-footer-prazo${atrasado ? ' prazo-vencido' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Prazo: ${fmtData(c.prazo)}</span>` : ''}
         ${c.admin_nome ? `<span class="tag">${c.admin_nome}</span>` : ''}
       </div>
     </div>
@@ -388,6 +396,11 @@ function renderModalBody(c) {
   const podeEncerrar = isAberto;
   const podeReabrir  = ['concluido', 'encerrado'].includes(c.status);
 
+  const atrasado = estaAtrasado(c);
+  const bannerAtraso = atrasado
+    ? `<div class="banner-atraso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> <strong>Chamado em atraso</strong> — prazo vencido em ${fmtData(c.prazo)}</div>`
+    : '';
+
   const historicoPrazos = (c.historico || []).filter(h => h.acao === 'prazo_alterado');
   const bannerPrazo = historicoPrazos.length > 0
     ? `<div class="banner-prazo"><strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'}: de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
@@ -408,6 +421,7 @@ function renderModalBody(c) {
   document.getElementById('modal-body').innerHTML = `
     <div style="display:grid;gap:1rem">
 
+      ${bannerAtraso}
       ${bannerPrazo}
 
       <!-- ① Informações do chamado -->
