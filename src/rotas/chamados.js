@@ -43,7 +43,7 @@ router.post('/', upload.single('anexo'), async (req, res) => {
     const erros = [];
     if (!nome || nome.length < 2 || nome.length > 80) erros.push('Nome deve ter 2–80 caracteres');
     if (!setor || setor.length < 2 || setor.length > 60) erros.push('Setor deve ter 2–60 caracteres');
-    if (!/^\d{4}$/.test(ramal)) erros.push('Ramal deve ter exatamente 4 dígitos');
+    if (ramal && !/^\d{4}$/.test(ramal)) erros.push('Ramal deve ter exatamente 4 dígitos');
     if (!descricao || descricao.length < 10 || descricao.length > 2000) erros.push('Descrição deve ter 10–2000 caracteres');
 
     if (erros.length > 0) {

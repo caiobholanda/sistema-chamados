@@ -498,11 +498,6 @@ function renderFormChamado(usuario, container, onSuccess) {
               </optgroup>
             </select>
           </div>
-          <div class="form-group">
-            <label for="ch-ramal">Ramal <span class="req">*</span></label>
-            <input class="form-control" type="text" id="ch-ramal" required pattern="\\d{4}" minlength="4" maxlength="4" placeholder="0000" inputmode="numeric">
-            <p class="form-hint">4 dígitos — apenas ramais cadastrados são aceitos</p>
-          </div>
         </div>
         <div class="form-group">
           <label for="ch-descricao">Descrição do problema <span class="req">*</span></label>
@@ -521,7 +516,6 @@ function renderFormChamado(usuario, container, onSuccess) {
     </div>
   `;
 
-  if (usuario.ramal) document.getElementById('ch-ramal').value = usuario.ramal;
   if (usuario.setor) {
     const sel = document.getElementById('ch-setor');
     sel.value = usuario.setor;
@@ -539,17 +533,6 @@ function renderFormChamado(usuario, container, onSuccess) {
       document.getElementById('ch-setor').focus();
       return;
     }
-    const ramal = document.getElementById('ch-ramal').value.trim();
-    if (!/^\d{4}$/.test(ramal)) {
-      msg.innerHTML = '<div class="alert alert-danger">Ramal deve ter exatamente 4 dígitos.</div>';
-      document.getElementById('ch-ramal').focus();
-      return;
-    }
-    if (!RAMAIS_VALIDOS.has(ramal)) {
-      msg.innerHTML = '<div class="alert alert-danger">Ramal <strong>' + ramal + '</strong> não existe. Verifique o número e tente novamente.</div>';
-      document.getElementById('ch-ramal').focus();
-      return;
-    }
     const descricao = document.getElementById('ch-descricao').value.trim();
     if (descricao.length < 10) {
       msg.innerHTML = '<div class="alert alert-danger">Por favor, descreva melhor o problema. A descrição precisa ter ao menos 10 caracteres para que o suporte entenda o que está acontecendo.</div>';
@@ -561,7 +544,7 @@ function renderFormChamado(usuario, container, onSuccess) {
       const fd = new FormData();
       fd.append('nome', usuario.nome);
       fd.append('setor', document.getElementById('ch-setor').value);
-      fd.append('ramal', ramal);
+      fd.append('ramal', usuario.ramal || '');
       fd.append('descricao', document.getElementById('ch-descricao').value);
       const anexo = document.getElementById('ch-anexo').files[0];
       if (anexo) fd.append('anexo', anexo);
