@@ -366,9 +366,15 @@ function atualizarCategoria(id, categoria, adminId) {
 function assumirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
-  db.prepare(`
-    UPDATE chamados SET status = 'em_andamento', admin_responsavel_id = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
-  `).run(adminId, id);
+  if (chamado.status === 'aberto') {
+    db.prepare(`
+      UPDATE chamados SET status = 'em_andamento', admin_responsavel_id = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(adminId, id);
+  } else {
+    db.prepare(`
+      UPDATE chamados SET admin_responsavel_id = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(adminId, id);
+  }
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'assumido', ?, 'em_andamento')

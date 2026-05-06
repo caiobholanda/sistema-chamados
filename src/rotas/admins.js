@@ -232,7 +232,7 @@ router.patch('/chamados/:id/assumir', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (chamado.status !== 'aberto') {
+    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
       return res.status(400).json({ erro: `Não é possível assumir um chamado com status "${chamado.status}"` });
     }
     db.assumirChamado(chamado.id, req.admin.sub);
