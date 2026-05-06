@@ -197,10 +197,10 @@ function renderPainel(usuario) {
       <div>
         <div class="page-title">Meus Chamados</div>
         <div class="page-subtitle">Acompanhe suas solicitações de TI — ${usuario.email}</div>
-        ${(usuario.setor || usuario.ramal) ? `<div style="margin-top:.3rem;display:flex;gap:.5rem;flex-wrap:wrap">
-          ${usuario.setor ? `<span style="font-size:.75rem;background:var(--surface-2,#f3f0e8);color:var(--text-secondary);padding:.2rem .6rem;border-radius:99px;font-weight:500">${usuario.setor}</span>` : ''}
-          ${usuario.ramal ? `<span style="font-size:.75rem;background:var(--surface-2,#f3f0e8);color:var(--text-secondary);padding:.2rem .6rem;border-radius:99px;font-weight:500">Ramal ${usuario.ramal}</span>` : ''}
-        </div>` : ''}
+        <div style="margin-top:.4rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:.78rem;color:var(--text-muted)">
+          <span><strong style="color:var(--text-secondary)">Setor:</strong> ${usuario.setor || '—'}</span>
+          <span><strong style="color:var(--text-secondary)">Ramal:</strong> ${usuario.ramal || '—'}</span>
+        </div>
       </div>
       <button class="btn btn-primary btn-sm" id="btn-novo-chamado">+ Abrir chamado</button>
     </div>
