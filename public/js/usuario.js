@@ -2,6 +2,11 @@ const app = document.getElementById('app');
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Concluído' };
 
+let _refreshInterval = null;
+function _pararRefresh() {
+  if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
+}
+
 const RAMAIS_VALIDOS = new Set([
   '5001','5002','5003','5004','5005','5010','5012','5015',
   '5050','5051','5055','5056','5058','5061','5062','5066','5067',
@@ -256,6 +261,8 @@ function renderPainel(usuario) {
   let _chamadosHash = null;
 
   document.getElementById('btn-logout-usuario').addEventListener('click', async () => {
+    _pararRefresh();
+    _limparChats();
     await apiFetch('/api/usuarios/logout', { method: 'POST' });
     renderAuth();
   });
@@ -289,7 +296,7 @@ function renderPainel(usuario) {
     if (!silencioso) lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
     try {
       const r = await apiFetch('/api/usuarios/meus-chamados');
-      if (r.status === 401) { renderAuth(); return; }
+      if (r.status === 401) { _pararRefresh(); _limparChats(); renderAuth(); return; }
       const novos = await r.json();
 
       // Silencioso: só atualiza se os dados mudaram
@@ -325,7 +332,8 @@ function renderPainel(usuario) {
   }
 
   carregarChamados();
-  setInterval(() => carregarChamados(true), 5000);
+  _pararRefresh();
+  _refreshInterval = setInterval(() => carregarChamados(true), 5000);
 
   function _estaAtrasado(c) {
     if (!c.prazo) return false;
