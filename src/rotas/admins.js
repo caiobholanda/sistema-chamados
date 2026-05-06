@@ -25,7 +25,6 @@ function sanitizarTexto(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#x27;').trim();
 }
 
-// POST /api/admin/login
 router.post('/login', async (req, res) => {
   try {
     const { email, senha } = req.body;
@@ -60,13 +59,11 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/admin/logout
 router.post('/logout', (req, res) => {
   res.clearCookie('token');
   return res.json({ mensagem: 'Logout realizado' });
 });
 
-// GET /api/admin/me
 router.get('/me', requireAdmin, (req, res) => {
   const admin = db.buscarAdminPorId(req.admin.sub);
   if (!admin) return res.status(404).json({ erro: 'Admin não encontrado' });
@@ -74,7 +71,6 @@ router.get('/me', requireAdmin, (req, res) => {
   return res.json(dados);
 });
 
-// GET /api/admin/chamados
 router.get('/chamados', requireAdmin, (req, res) => {
   try {
     const filtros = {
@@ -93,7 +89,6 @@ router.get('/chamados', requireAdmin, (req, res) => {
   }
 });
 
-// PATCH /api/admin/chamados/:id/transferir
 router.patch('/chamados/:id/transferir', requireAdmin, async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -114,7 +109,6 @@ router.patch('/chamados/:id/transferir', requireAdmin, async (req, res) => {
   }
 });
 
-// PATCH /api/admin/chamados/:id/reabrir
 router.patch('/chamados/:id/reabrir', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -130,7 +124,6 @@ router.patch('/chamados/:id/reabrir', requireAdmin, (req, res) => {
   }
 });
 
-// DELETE /api/admin/chamados/:id — somente master
 router.delete('/chamados/:id', requireMaster, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -153,7 +146,6 @@ router.delete('/chamados/:id', requireMaster, (req, res) => {
   }
 });
 
-// GET /api/admin/chamados/:id/mensagens
 router.get('/chamados/:id/mensagens', requireAdmin, (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store');
@@ -166,7 +158,6 @@ router.get('/chamados/:id/mensagens', requireAdmin, (req, res) => {
   }
 });
 
-// POST /api/admin/chamados/:id/mensagens
 router.post('/chamados/:id/mensagens', requireAdmin, async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -193,7 +184,6 @@ router.post('/chamados/:id/mensagens', requireAdmin, async (req, res) => {
   }
 });
 
-// GET /api/admin/chamados/:id
 router.get('/chamados/:id', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -206,7 +196,6 @@ router.get('/chamados/:id', requireAdmin, (req, res) => {
   }
 });
 
-// PATCH /api/admin/chamados/:id/prioridade
 router.patch('/chamados/:id/prioridade', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -225,7 +214,6 @@ router.patch('/chamados/:id/prioridade', requireAdmin, (req, res) => {
   }
 });
 
-// PATCH /api/admin/chamados/:id/prazo
 router.patch('/chamados/:id/prazo', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -240,7 +228,6 @@ router.patch('/chamados/:id/prazo', requireAdmin, (req, res) => {
   }
 });
 
-// PATCH /api/admin/chamados/:id/assumir
 router.patch('/chamados/:id/assumir', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -256,7 +243,6 @@ router.patch('/chamados/:id/assumir', requireAdmin, (req, res) => {
   }
 });
 
-// PATCH /api/admin/chamados/:id/concluir
 router.patch('/chamados/:id/concluir', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -278,7 +264,6 @@ router.patch('/chamados/:id/concluir', requireAdmin, (req, res) => {
   }
 });
 
-// PATCH /api/admin/chamados/:id/encerrar
 router.patch('/chamados/:id/encerrar', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -300,7 +285,6 @@ router.patch('/chamados/:id/encerrar', requireAdmin, (req, res) => {
   }
 });
 
-// PATCH /api/admin/chamados/:id/categoria
 const CATEGORIAS_VALIDAS = [
   'software','hardware','impressora','ramal','nobreak','monitor',
   'mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','outros',
@@ -321,7 +305,6 @@ router.patch('/chamados/:id/categoria', requireMaster, (req, res) => {
   }
 });
 
-// ── Push Notifications ────────────────────────────────────────
 
 router.get('/push/vapid-public-key', requireAdmin, (req, res) => {
   res.json({ publicKey: push.getPublicKey() });
@@ -353,9 +336,7 @@ router.post('/push/unsubscribe', requireAdmin, (req, res) => {
   }
 });
 
-// ── Gerenciamento de usuários admin (master) ──────────────────
 
-// GET /api/admin/usuarios
 router.get('/usuarios', requireMaster, (req, res) => {
   try {
     return res.json(db.listarAdmins());
@@ -365,7 +346,6 @@ router.get('/usuarios', requireMaster, (req, res) => {
   }
 });
 
-// POST /api/admin/usuarios
 router.post('/usuarios', requireMaster, async (req, res) => {
   try {
     let { nome_completo, email, senha, is_master } = req.body;
@@ -400,7 +380,6 @@ router.post('/usuarios', requireMaster, async (req, res) => {
   }
 });
 
-// PATCH /api/admin/usuarios/:id
 router.patch('/usuarios/:id', requireMaster, async (req, res) => {
   try {
     const alvo = db.buscarAdminPorId(req.params.id);
@@ -443,7 +422,6 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
   }
 });
 
-// DELETE /api/admin/usuarios/:id
 router.delete('/usuarios/:id', requireMaster, (req, res) => {
   try {
     const alvo = db.buscarAdminPorId(req.params.id);
@@ -457,9 +435,7 @@ router.delete('/usuarios/:id', requireMaster, (req, res) => {
   }
 });
 
-// ── Gerenciamento de usuários do portal (qualquer admin) ─────
 
-// GET /api/admin/portal-usuarios
 router.get('/portal-usuarios', requireAdmin, (req, res) => {
   try {
     return res.json(db.listarUsuarios());
@@ -469,7 +445,6 @@ router.get('/portal-usuarios', requireAdmin, (req, res) => {
   }
 });
 
-// POST /api/admin/portal-usuarios
 router.post('/portal-usuarios', requireAdmin, async (req, res) => {
   try {
     let { nome, email, senha } = req.body;
@@ -493,7 +468,6 @@ router.post('/portal-usuarios', requireAdmin, async (req, res) => {
   }
 });
 
-// PATCH /api/admin/portal-usuarios/:id
 router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
   try {
     const u = db.buscarUsuarioPorId(req.params.id);
@@ -541,7 +515,6 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/admin/portal-usuarios/:id
 router.delete('/portal-usuarios/:id', requireMaster, (req, res) => {
   try {
     const u = db.buscarUsuarioPorId(req.params.id);

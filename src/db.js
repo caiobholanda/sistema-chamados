@@ -112,7 +112,6 @@ function initDb() {
     );
   `);
 
-  // Migrações de colunas em bancos existentes
   try { db.exec('ALTER TABLE chamados ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN ativo INTEGER DEFAULT 1'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN email TEXT'); } catch {}
@@ -204,7 +203,7 @@ async function criarAdminMasterSeNecessario() {
   console.log('='.repeat(60));
 }
 
-// ── Chamados ──────────────────────────────────────────────────
+
 
 function inserirChamado(dados) {
   const db = getDb();
@@ -308,7 +307,6 @@ function listarChamadosAdmin(filtros = {}) {
     params.push(filtros.periodo_fim + ' 23:59:59');
   }
 
-  // Ordenação: sem prioridade primeiro, depois urgente, alta, media, baixa; dentro do nível, mais antigos primeiro
   sql += `
     ORDER BY
       CASE WHEN c.prioridade IS NULL THEN 0 ELSE 1 END ASC,
@@ -433,7 +431,7 @@ function avaliarChamado(id, nota, comentario) {
   `).run(nota, comentario || null, id);
 }
 
-// ── Usuarios ──────────────────────────────────────────────────
+
 
 function registrarUsuario(dados) {
   const result = getDb().prepare(`
@@ -483,7 +481,7 @@ function listarChamadosPorUsuario(usuario_id) {
   `).all(usuario_id);
 }
 
-// ── Admins ────────────────────────────────────────────────────
+
 
 function buscarAdminPorUsuario(usuario) {
   return getDb().prepare('SELECT * FROM admins WHERE usuario = ? AND ativo = 1').get(usuario);
@@ -530,7 +528,7 @@ function deletarAdmin(id) {
   db.prepare('DELETE FROM admins WHERE id = ?').run(id);
 }
 
-// ── Equipamentos ─────────────────────────────────────────────
+
 
 function inserirMencoesEquipamentos(chamado_id, equipamentos) {
   const db = getDb();
@@ -556,7 +554,7 @@ function rankingEquipamentos({ limite = 20 } = {}) {
   `).all(limite);
 }
 
-// ── Relatórios ────────────────────────────────────────────────
+
 
 function relatorioMes(mes) {
   const db = getDb();

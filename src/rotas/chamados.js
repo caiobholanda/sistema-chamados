@@ -32,7 +32,6 @@ function sanitizarTexto(str) {
     .trim();
 }
 
-// POST /api/chamados — abrir chamado
 router.post('/', upload.single('anexo'), async (req, res) => {
   try {
     let { nome, setor, ramal, descricao } = req.body;
@@ -68,7 +67,6 @@ router.post('/', upload.single('anexo'), async (req, res) => {
         .run(novoNome, anexo_nome_original, id);
     }
 
-    // Analisa equipamentos em background — não bloqueia a resposta
     extrairEquipamentos(descricao).then(equipamentos => {
       if (equipamentos.length > 0) {
         db.inserirMencoesEquipamentos(id, equipamentos);
@@ -84,7 +82,6 @@ router.post('/', upload.single('anexo'), async (req, res) => {
   }
 });
 
-// GET /api/chamados/:id — consultar (público)
 router.get('/:id', (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -97,7 +94,6 @@ router.get('/:id', (req, res) => {
   }
 });
 
-// POST /api/chamados/:id/avaliar
 router.post('/:id/avaliar', (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -117,7 +113,6 @@ router.post('/:id/avaliar', (req, res) => {
   }
 });
 
-// GET /api/chamados/:id/anexo — download do anexo
 router.get('/:id/anexo', (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
@@ -131,7 +126,6 @@ router.get('/:id/anexo', (req, res) => {
   }
 });
 
-// GET /api/chamados/:id/mensagens — requer autenticação do usuário dono do chamado
 router.get('/:id/mensagens', (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store');
@@ -147,7 +141,6 @@ router.get('/:id/mensagens', (req, res) => {
   }
 });
 
-// POST /api/chamados/:id/mensagens
 router.post('/:id/mensagens', (req, res) => {
   try {
     const usuario_id = getUsuarioIdFromCookie(req);

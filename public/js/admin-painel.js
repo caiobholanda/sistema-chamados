@@ -216,7 +216,6 @@ document.getElementById('btn-atualizar').addEventListener('click', () => {
   carregarEstatisticas();
 });
 
-// Stat pills: click to filter by specific status
 document.querySelectorAll('#stats-strip .stat-pill').forEach(pill => {
   pill.style.cursor = 'pointer';
   pill.title = 'Clique para filtrar';
@@ -434,7 +433,6 @@ function renderModalBody(c) {
       ${bannerAtraso}
       ${bannerPrazo}
 
-      <!-- ① Informações do chamado -->
       <div>
         <div class="modal-solicitante-row">
           <div>
@@ -491,7 +489,6 @@ function renderModalBody(c) {
           </div>` : ''}
       </div>
 
-      <!-- ② Ações -->
       <div class="modal-controls-card">
         <div class="modal-section-label">${isAberto ? 'Ações' : 'Gerenciar'}</div>
         <div id="msg-modal"></div>
@@ -549,7 +546,6 @@ function renderModalBody(c) {
         `}
       </div>
 
-      <!-- ③ Chat (só se aberto) -->
       ${isAberto ? `
       <div>
         <div class="modal-section-label">Conversa com o usuário</div>
@@ -565,13 +561,11 @@ function renderModalBody(c) {
         </div>
       </div>` : ''}
 
-      <!-- ④ Histórico -->
       <details>
         <summary style="cursor:pointer;font-size:.75rem;font-weight:700;color:var(--text-secondary);letter-spacing:.05em;text-transform:uppercase;user-select:none">Histórico de ações</summary>
         <div style="margin-top:.65rem">${historicoHtml}</div>
       </details>
 
-      <!-- ⑤ Zona de perigo (só master) -->
       ${adminInfo && adminInfo.is_master ? `
         <div class="modal-danger-zone">
           <div class="modal-danger-label">Zona de perigo</div>
@@ -808,8 +802,6 @@ function traduzirAcao(acao) {
   };
   return t[acao] || acao;
 }
-
-// ── Push Notifications ────────────────────────────────────────
 
 let _swReg = null;
 

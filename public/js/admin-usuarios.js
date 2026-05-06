@@ -134,7 +134,7 @@ function msgGlobal(html, dur = 3500) {
   setTimeout(() => { el.innerHTML = ''; }, dur);
 }
 
-// ── Modal de confirmação ──────────────────────────────────────
+
 let _confirmarResolve = null;
 
 function confirmar(titulo, msg, btnLabel = 'Confirmar') {
@@ -159,15 +159,12 @@ document.getElementById('modal-confirmar-overlay').addEventListener('click', e =
   if (e.target === e.currentTarget) fecharModalConfirmar(false);
 });
 
-// ── Boot ──────────────────────────────────────────────────────
-
 (async () => {
   const r = await api('/api/admin/me');
   if (!r.ok) { location.replace('/admin-login.html'); return; }
   meAdmin = await r.json();
 
   if (!meAdmin.is_master) {
-    // Admins comuns só veem usuários do portal
     document.getElementById('tab-admins').style.display = 'none';
     document.getElementById('section-admins').style.display = 'none';
     document.getElementById('tab-usuarios').classList.add('ativo');
@@ -183,7 +180,6 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
   location.replace('/admin-login.html');
 });
 
-// ── Tabs principais ───────────────────────────────────────────
 
 document.getElementById('tab-admins').addEventListener('click', () => {
   document.getElementById('tab-admins').classList.add('ativo');
@@ -199,7 +195,6 @@ document.getElementById('tab-usuarios').addEventListener('click', () => {
   document.getElementById('section-admins').style.display = 'none';
 });
 
-// ── Sub-tabs Administradores ──────────────────────────────────
 
 document.getElementById('sub-admins-ativos').addEventListener('click', () => {
   abaAdmins = 'ativos';
@@ -215,7 +210,6 @@ document.getElementById('sub-admins-inativos').addEventListener('click', () => {
   renderAdmins();
 });
 
-// ── Sub-tabs Usuários ─────────────────────────────────────────
 
 document.getElementById('sub-usuarios-ativos').addEventListener('click', () => {
   abaUsuarios = 'ativos';
@@ -435,18 +429,6 @@ async function toggleAdmin(id, ativo) {
   msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
 }
 
-async function excluirAdmin(id) {
-  if (!confirm('Excluir este administrador permanentemente? Esta ação não pode ser desfeita.')) return;
-  const r = await api(`/api/admin/usuarios/${id}`, { method: 'DELETE' });
-  const d = await r.json();
-  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
-  await carregarAdmins();
-  msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
-}
-
-// ══════════════════════════════════════════════════════════════
-//  USUÁRIOS DO PORTAL
-// ══════════════════════════════════════════════════════════════
 
 document.getElementById('btn-novo-usuario').addEventListener('click', () => abrirModalUsuario());
 document.getElementById('btn-fechar-usuario').addEventListener('click', fecharModalUsuario);
@@ -687,11 +669,3 @@ async function toggleUsuario(id, ativo) {
   msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
 }
 
-async function excluirUsuario(id, nome) {
-  if (!confirm(`Excluir permanentemente o usuário "${nome}"?\n\nSeus chamados serão mantidos, mas a conta será removida definitivamente.`)) return;
-  const r = await api(`/api/admin/portal-usuarios/${id}`, { method: 'DELETE' });
-  const d = await r.json();
-  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
-  await carregarUsuarios();
-  msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
-}

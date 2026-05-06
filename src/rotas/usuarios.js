@@ -11,7 +11,6 @@ function sanitizar(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#x27;').trim();
 }
 
-// Registro público desativado — contas são criadas pelo admin master
 router.post('/registro', (req, res) => {
   return res.status(403).json({ erro: 'Cadastro público desativado. Solicite acesso ao administrador.' });
 });
