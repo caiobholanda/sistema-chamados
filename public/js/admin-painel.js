@@ -422,8 +422,8 @@ function renderModalBody(c) {
   const podeAssumir  = c.status === 'aberto' || (c.status === 'em_andamento' && c.admin_responsavel_id !== adminInfo?.id);
   const podeConcluir = ['aberto', 'em_andamento'].includes(c.status);
   const podeReabrir  = ['concluido', 'encerrado'].includes(c.status);
-
   const atrasado = estaAtrasado(c);
+
   const bannerAtraso = atrasado
     ? `<div class="banner-atraso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> <strong>Chamado em atraso</strong> — prazo vencido em ${fmtData(c.prazo)}</div>`
     : '';
@@ -443,152 +443,209 @@ function renderModalBody(c) {
         </div>`).join('')
     : '<p class="text-muted" style="font-size:.85rem">Sem histórico.</p>';
 
-  document.getElementById('modal-title').innerHTML = `Chamado ${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
+  const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
+
+  document.getElementById('modal-title').innerHTML = `<span style="font-size:.82rem;font-weight:500;color:var(--text-muted);font-family:Inter,sans-serif">#${c.id}</span> ${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
 
   document.getElementById('modal-body').innerHTML = `
-    <div style="display:grid;gap:1rem">
+    <div class="mv2">
+      ${bannerAtraso}${bannerPrazo}
 
-      ${bannerAtraso}
-      ${bannerPrazo}
-
-      <div>
-        <div class="modal-solicitante-row">
-          <div>
-            <div class="modal-solicitante-name">${c.nome}</div>
-            <div class="modal-solicitante-meta">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-              ${c.usuario_setor || c.setor}
-              <span style="color:var(--border-strong)">·</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              Ramal ${c.usuario_ramal || c.ramal}
-            </div>
-          </div>
-          <div class="modal-title-badges">
-            ${badgePrio(c.prioridade)}
+      <!-- Hero do solicitante -->
+      <div class="mv2-hero">
+        <div class="mv2-avatar">${initial}</div>
+        <div class="mv2-hero-info">
+          <div class="mv2-nome">${c.nome}</div>
+          <div class="mv2-meta">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            ${c.usuario_setor || c.setor}
+            <span class="mv2-sep">·</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Ramal ${c.usuario_ramal || c.ramal}
           </div>
         </div>
-        <div class="modal-responsavel-card ${c.admin_nome ? 'tem-responsavel' : 'sem-responsavel'}">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <div style="flex:1">
-            <div class="modal-responsavel-label">Administrador responsável</div>
-            <div class="modal-responsavel-nome">${c.admin_nome || 'Nenhum administrador responsável'}</div>
-          </div>
-          <div style="text-align:right">
-            <div class="modal-responsavel-label">Setor do chamado</div>
-            <div style="font-size:.82rem;font-weight:500;color:var(--text-secondary)">${c.setor}</div>
-          </div>
-        </div>
-        <div class="modal-info-grid-3">
-          <div><span class="modal-info-label">Aberto em</span>${fmtData(c.criado_em)}</div>
-          <div><span class="modal-info-label">${c.prazo ? 'Prazo' : 'Atualizado em'}</span>${c.prazo ? `<strong style="color:var(--gold-dark)">${fmtData(c.prazo)}</strong>` : fmtData(c.atualizado_em)}</div>
-          ${c.concluido_em ? `<div><span class="modal-info-label">Concluído em</span>${fmtData(c.concluido_em)}</div>` : '<div></div>'}
-        </div>
-        <div class="modal-categoria-row">
-          <span class="modal-info-label">Categoria</span>
-          ${badgeCategoria(c.categoria)}
-          ${adminInfo && adminInfo.is_master ? `
-            <select class="form-control form-control-sm" id="sel-categoria" style="margin-left:.5rem;flex:1;max-width:180px">
-              ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) =>
-                `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`
-              ).join('')}
-            </select>
-            <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria">Salvar</button>
-          ` : ''}
-        </div>
-        <div class="modal-desc"><span class="modal-info-label">Descrição do problema</span>${c.descricao}</div>
-        ${c.anexo_nome_original ? `
-          <a href="/api/chamados/${c.id}/anexo" class="btn btn-secondary btn-sm" download style="margin-top:.55rem;display:inline-flex;align-items:center;gap:.35rem">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            ${c.anexo_nome_original}
-          </a>` : ''}
-        ${c.solucao ? `
-          <div style="margin-top:.6rem;background:rgba(21,128,61,.06);border-left:3px solid var(--success);border-radius:var(--radius-sm);padding:.5rem .8rem;font-size:.83rem;color:#166534">
-            <strong>Solução / Motivo:</strong> ${c.solucao}
-          </div>` : ''}
-        ${c.nota !== null ? `
-          <div class="alert alert-success" style="margin:.55rem 0 0;font-size:.83rem">
-            <strong>Avaliação:</strong> ${c.nota}/10${c.comentario_avaliacao ? ' — ' + c.comentario_avaliacao : ''}
-          </div>` : ''}
+        <div class="mv2-hero-badge">${badgePrio(c.prioridade)}</div>
       </div>
 
-      <div class="modal-controls-card">
-        <div class="modal-section-label">${isAberto ? 'Ações' : 'Gerenciar'}</div>
-        <div id="msg-modal"></div>
-        ${isAberto ? `
-          <div class="modal-controls-row">
-            <span class="modal-ctrl-label">Prioridade</span>
-            <select class="form-control form-control-sm" id="sel-prioridade" style="flex:1;max-width:155px">
-              <option value="">Sem prioridade</option>
-              <option value="baixa"   ${c.prioridade==='baixa'  ?'selected':''}>Baixa</option>
-              <option value="media"   ${c.prioridade==='media'  ?'selected':''}>Média</option>
-              <option value="alta"    ${c.prioridade==='alta'   ?'selected':''}>Alta</option>
-              <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
-            </select>
-            <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar</button>
+      <!-- Layout principal: coluna info + coluna lateral -->
+      <div class="mv2-layout">
+
+        <!-- Coluna esquerda: informações -->
+        <div class="mv2-main">
+
+          <!-- Cards: admin responsável + setor do chamado -->
+          <div class="mv2-cards-row">
+            <div class="mv2-card ${c.admin_nome ? 'mv2-card-ok' : 'mv2-card-vazio'}">
+              <div class="mv2-card-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div>
+                <div class="mv2-card-label">Administrador responsável</div>
+                <div class="mv2-card-val">${c.admin_nome || 'Não atribuído'}</div>
+              </div>
+            </div>
+            <div class="mv2-card">
+              <div class="mv2-card-icon mv2-card-icon-neutral">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              </div>
+              <div>
+                <div class="mv2-card-label">Setor do chamado</div>
+                <div class="mv2-card-val">${c.setor}</div>
+              </div>
+            </div>
           </div>
-          <div class="modal-controls-row">
-            <span class="modal-ctrl-label">Prazo</span>
-            <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${c.prazo ? c.prazo.replace(' ','T').slice(0,16) : ''}" style="flex:1;max-width:195px">
-            <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
-            ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .6rem">✕</button>` : ''}
+
+          <!-- Chips de tempo -->
+          <div class="mv2-ts-row">
+            <div class="mv2-ts-chip">
+              <span class="mv2-ts-label">Aberto em</span>
+              <span class="mv2-ts-val">${fmtData(c.criado_em)}</span>
+            </div>
+            ${c.prazo ? `<div class="mv2-ts-chip ${atrasado ? 'mv2-ts-danger' : 'mv2-ts-warn'}">
+              <span class="mv2-ts-label">${atrasado ? '⚠ Prazo vencido' : 'Prazo'}</span>
+              <span class="mv2-ts-val">${fmtData(c.prazo)}</span>
+            </div>` : ''}
+            ${c.concluido_em ? `<div class="mv2-ts-chip mv2-ts-ok">
+              <span class="mv2-ts-label">Concluído em</span>
+              <span class="mv2-ts-val">${fmtData(c.concluido_em)}</span>
+            </div>` : ''}
           </div>
-          <div class="modal-action-btns">
-            ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir">Assumir chamado</button>` : ''}
-            ${isAberto     ? `<button class="btn btn-secondary btn-sm" id="btn-transferir">Transferir chamado</button>` : ''}
-            ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir">Concluir</button>` : ''}
-          </div>
-          <div id="area-transferir" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)">
-            <div class="form-group" style="margin-bottom:.5rem">
-              <label>Transferir para</label>
-              <select class="form-control form-control-sm" id="sel-transferir-admin">
-                <option value="">Selecione um admin...</option>
+
+          <!-- Categoria -->
+          <div class="mv2-cat-row">
+            <span class="mv2-field-label">Categoria</span>
+            ${badgeCategoria(c.categoria) || '<span class="mv2-empty-text">Não classificado</span>'}
+            ${adminInfo && adminInfo.is_master ? `
+              <select class="form-control form-control-sm" id="sel-categoria" style="flex:1;max-width:160px;margin-left:.25rem">
+                ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) => `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`).join('')}
               </select>
-            </div>
-            <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir">Confirmar transferência</button>
+              <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria">Salvar</button>
+            ` : ''}
           </div>
-          <div id="area-concluir" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border)">
-            <div class="form-group" style="margin-bottom:.5rem">
-              <label for="txt-solucao">Solução aplicada <span class="req">*</span></label>
-              <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
-            </div>
-            <button class="btn btn-success btn-sm" id="btn-confirmar-concluir">Confirmar conclusão</button>
-          </div>
-        ` : `
-          <div class="modal-closed-actions">
-            ${podeReabrir ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir">Reabrir chamado</button>` : ''}
-          </div>
-        `}
-      </div>
 
-      ${isAberto ? `
-      <div>
-        <div class="modal-section-label">Conversa com o usuário</div>
-        <div class="chat-wrap">
-          <div class="chat-header">Chat em tempo real</div>
-          <div class="chat-messages" id="chat-modal-msgs" data-cnt="0">
-            <div class="chat-vazio">Carregando...</div>
+          <!-- Descrição -->
+          <div class="mv2-section">
+            <span class="mv2-field-label">Descrição do problema</span>
+            <div class="mv2-desc">${c.descricao}</div>
           </div>
-          <form class="chat-input-row" id="chat-modal-form">
-            <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
-            <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-          </form>
+
+          ${c.anexo_nome_original ? `
+            <a href="/api/chamados/${c.id}/anexo" class="mv2-anexo-btn" download>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              ${c.anexo_nome_original}
+            </a>` : ''}
+
+          ${c.solucao ? `
+            <div class="mv2-solucao">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#16a34a"><polyline points="20 6 9 17 4 12"/></svg>
+              <div>
+                <div class="mv2-field-label" style="color:#16a34a">Solução aplicada</div>
+                <div style="font-size:.86rem;color:#166534;margin-top:.1rem">${c.solucao}</div>
+              </div>
+            </div>` : ''}
+
+          ${c.nota !== null ? `
+            <div class="mv2-avaliacao">
+              <span style="font-size:1rem">⭐</span>
+              <div>
+                <div class="mv2-field-label">Avaliação do usuário</div>
+                <div style="font-size:.86rem;font-weight:600;color:var(--text)">${c.nota}/10${c.comentario_avaliacao ? `<span style="font-weight:400;color:var(--text-muted)"> — ${c.comentario_avaliacao}</span>` : ''}</div>
+              </div>
+            </div>` : ''}
+
+          <!-- Histórico -->
+          <details class="mv2-historico">
+            <summary>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Histórico de ações
+            </summary>
+            <div class="mv2-historico-body">${historicoHtml}</div>
+          </details>
+
+          ${adminInfo && adminInfo.is_master ? `
+            <div class="modal-danger-zone" style="margin-top:.25rem">
+              <div class="modal-danger-label">Zona de perigo</div>
+              <button class="btn btn-danger btn-sm" id="btn-deletar">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                Excluir chamado permanentemente
+              </button>
+            </div>` : ''}
         </div>
-      </div>` : ''}
 
-      <details>
-        <summary style="cursor:pointer;font-size:.75rem;font-weight:700;color:var(--text-secondary);letter-spacing:.05em;text-transform:uppercase;user-select:none">Histórico de ações</summary>
-        <div style="margin-top:.65rem">${historicoHtml}</div>
-      </details>
+        <!-- Coluna lateral: ações + chat -->
+        <div class="mv2-side">
+          <div id="msg-modal" style="margin-bottom:.4rem"></div>
 
-      ${adminInfo && adminInfo.is_master ? `
-        <div class="modal-danger-zone">
-          <div class="modal-danger-label">Zona de perigo</div>
-          <button class="btn btn-danger btn-sm" id="btn-deletar">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-            Excluir chamado permanentemente
-          </button>
-        </div>` : ''}
+          <!-- Card de ações -->
+          <div class="mv2-actions-card">
+            <div class="mv2-side-title">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Gerenciar chamado
+            </div>
+            ${isAberto ? `
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Prioridade</span>
+                <select class="form-control form-control-sm" id="sel-prioridade" style="flex:1">
+                  <option value="">Sem prioridade</option>
+                  <option value="baixa"   ${c.prioridade==='baixa'  ?'selected':''}>Baixa</option>
+                  <option value="media"   ${c.prioridade==='media'  ?'selected':''}>Média</option>
+                  <option value="alta"    ${c.prioridade==='alta'   ?'selected':''}>Alta</option>
+                  <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar</button>
+              </div>
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Prazo</span>
+                <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${c.prazo ? c.prazo.replace(' ','T').slice(0,16) : ''}" style="flex:1">
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
+                ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
+              </div>
+              <div class="mv2-action-btns">
+                ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">Assumir</button>` : ''}
+                ${isAberto     ? `<button class="btn btn-secondary btn-sm" id="btn-transferir" style="flex:1">Transferir</button>` : ''}
+                ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1">Concluir</button>` : ''}
+              </div>
+              <div id="area-transferir" style="display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border)">
+                <div class="form-group" style="margin-bottom:.4rem">
+                  <label style="font-size:.8rem">Transferir para</label>
+                  <select class="form-control form-control-sm" id="sel-transferir-admin">
+                    <option value="">Selecione um admin...</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir" style="width:100%">Confirmar transferência</button>
+              </div>
+              <div id="area-concluir" style="display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border)">
+                <div class="form-group" style="margin-bottom:.4rem">
+                  <label for="txt-solucao" style="font-size:.8rem">Solução aplicada <span class="req">*</span></label>
+                  <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
+                </div>
+                <button class="btn btn-success btn-sm" id="btn-confirmar-concluir" style="width:100%">Confirmar conclusão</button>
+              </div>
+            ` : `
+              <div style="padding:.2rem 0">
+                ${podeReabrir ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir" style="width:100%">Reabrir chamado</button>` : '<p class="text-muted" style="font-size:.83rem;margin:0">Chamado encerrado.</p>'}
+              </div>
+            `}
+          </div>
 
+          ${isAberto ? `
+          <!-- Chat em tempo real -->
+          <div class="mv2-chat-card">
+            <div class="mv2-chat-head">
+              <span class="mv2-chat-dot"></span>
+              Conversa em tempo real
+            </div>
+            <div class="chat-messages" id="chat-modal-msgs" data-cnt="0">
+              <div class="chat-vazio">Carregando...</div>
+            </div>
+            <form class="chat-input-row" id="chat-modal-form">
+              <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
+              <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+            </form>
+          </div>` : ''}
+        </div>
+
+      </div>
     </div>
   `;
 
