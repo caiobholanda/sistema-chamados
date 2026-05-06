@@ -271,19 +271,24 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
   }
 
   try {
+    const idSalvoAdmin = editandoAdminId;
     let r;
-    if (editandoAdminId) {
+    if (idSalvoAdmin) {
       const patch = { nome_completo: body.nome_completo, email: body.email, is_master: body.is_master };
       if (body.senha) patch.senha = body.senha;
-      r = await api(`/api/admin/usuarios/${editandoAdminId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+      r = await api(`/api/admin/usuarios/${idSalvoAdmin}`, { method: 'PATCH', body: JSON.stringify(patch) });
     } else {
       r = await api('/api/admin/usuarios', { method: 'POST', body: JSON.stringify(body) });
     }
     const d = await r.json();
     if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
-    fecharModalAdmin();
     await carregarAdmins();
-    msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+    if (idSalvoAdmin && body.senha) {
+      abrirModalAdmin(idSalvoAdmin);
+    } else {
+      fecharModalAdmin();
+      msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+    }
   } catch (err) {
     if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
   } finally {
@@ -625,12 +630,17 @@ document.getElementById('form-editar-usuario').addEventListener('submit', async 
   if (senha) body.senha = senha;
 
   try {
-    const r = await api(`/api/admin/portal-usuarios/${editandoUsuarioId}`, { method: 'PATCH', body: JSON.stringify(body) });
+    const idSalvo = editandoUsuarioId;
+    const r = await api(`/api/admin/portal-usuarios/${idSalvo}`, { method: 'PATCH', body: JSON.stringify(body) });
     const d = await r.json();
     if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
-    fecharModalEditarUsuario();
     await carregarUsuarios();
-    msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+    if (senha) {
+      abrirModalEditarUsuario(idSalvo);
+    } else {
+      fecharModalEditarUsuario();
+      msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+    }
   } catch (err) {
     if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
   } finally {
