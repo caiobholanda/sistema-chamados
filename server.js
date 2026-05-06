@@ -48,18 +48,12 @@ async function checarPrazos() {
       const prazo = new Date(c.prazo.replace(' ', 'T') + (c.prazo.includes('T') ? '' : 'Z'));
       const diffH = (prazo - agora) / 3600000;
       if (diffH > 0 && diffH <= 1) {
-        if (registrarAlertaPrazo(c.id, '1h')) {
-          const dest = c.admin_responsavel_id;
-          const msg = `Chamado de ${c.nome} (${c.setor}) vence em menos de 1 hora.`;
-          dest ? push.enviarParaAdmin(dest, '⏰ Prazo em menos de 1 hora!', msg).catch(() => {})
-               : push.enviarParaTodos('⏰ Prazo em menos de 1 hora!', msg).catch(() => {});
+        if (c.admin_responsavel_id && registrarAlertaPrazo(c.id, '1h')) {
+          push.enviarParaAdmin(c.admin_responsavel_id, '⏰ Prazo em menos de 1 hora!', `Chamado de ${c.nome} (${c.setor}) vence em menos de 1 hora.`).catch(() => {});
         }
       } else if (diffH > 0 && diffH <= 24) {
-        if (registrarAlertaPrazo(c.id, '24h')) {
-          const dest = c.admin_responsavel_id;
-          const msg = `Chamado de ${c.nome} (${c.setor}) vence em menos de 1 dia.`;
-          dest ? push.enviarParaAdmin(dest, '⚠ Prazo em menos de 1 dia', msg).catch(() => {})
-               : push.enviarParaTodos('⚠ Prazo em menos de 1 dia', msg).catch(() => {});
+        if (c.admin_responsavel_id && registrarAlertaPrazo(c.id, '24h')) {
+          push.enviarParaAdmin(c.admin_responsavel_id, '⚠ Prazo em menos de 1 dia', `Chamado de ${c.nome} (${c.setor}) vence em menos de 1 dia.`).catch(() => {});
         }
       }
     }
