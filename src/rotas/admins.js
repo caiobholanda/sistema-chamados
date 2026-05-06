@@ -318,6 +318,21 @@ router.patch('/chamados/:id/categoria', requireMaster, (req, res) => {
   }
 });
 
+// GET /api/admin/verificar-empresa?url=https://...
+router.get('/verificar-empresa', requireAdmin, async (req, res) => {
+  const { url } = req.query;
+  if (!url || !/^https?:\/\//.test(url)) return res.status(400).json({ erro: 'URL inválida' });
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(url, { method: 'GET', signal: ctrl.signal, redirect: 'follow' });
+    clearTimeout(timer);
+    return res.json({ status: r.status, ok: r.status < 400 });
+  } catch (err) {
+    return res.json({ status: null, ok: false, erro: 'Sem resposta' });
+  }
+});
+
 // ── Gerenciamento de usuários admin (master) ──────────────────
 
 // GET /api/admin/usuarios
