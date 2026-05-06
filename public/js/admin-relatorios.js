@@ -92,7 +92,7 @@ function renderRanking(ranking) {
         <div class="ranking-podio-nome">${a.nome_completo}</div>
         <div class="ranking-podio-num">${a.total}</div>
         <div class="ranking-podio-label">resolvido${a.total !== 1 ? 's' : ''}</div>
-        <div class="ranking-podio-detalhe">${a.concluidos} concluído${a.concluidos !== 1 ? 's' : ''} · ${a.encerrados} encerrado${a.encerrados !== 1 ? 's' : ''}</div>
+        <div class="ranking-podio-detalhe">${a.concluidos + (a.encerrados || 0)} concluído${(a.concluidos + (a.encerrados || 0)) !== 1 ? 's' : ''}</div>
       </div>`).join('')}</div>`;
   } else if (comAtividade.length === 1) {
     const a = comAtividade[0];
@@ -112,8 +112,7 @@ function renderRanking(ranking) {
     return `<tr class="${a.total === 0 ? 'ranking-zero' : ''}">
       <td><span class="ranking-pos">${medalha}</span></td>
       <td><strong>${a.nome_completo}</strong></td>
-      <td style="color:var(--success);font-weight:600">${a.concluidos}</td>
-      <td style="color:var(--text-muted)">${a.encerrados}</td>
+      <td style="color:var(--success);font-weight:600">${a.concluidos + (a.encerrados || 0)}</td>
       <td><strong>${a.total}</strong></td>
       <td><div class="ranking-bar-wrap"><div class="ranking-bar" style="width:${pct}%"></div></div></td>
     </tr>`;
@@ -124,7 +123,7 @@ function renderRanking(ranking) {
       <table class="ranking-table">
         <thead><tr>
           <th>#</th><th>Responsável</th>
-          <th>Concluídos</th><th>Encerrados</th><th>Total</th>
+          <th>Concluídos</th><th>Total</th>
           <th style="width:100px"></th>
         </tr></thead>
         <tbody>${linhas}</tbody>
@@ -135,10 +134,9 @@ function renderRanking(ranking) {
 function renderRelatorio(d, mes, ranking) {
   const aberto    = cnt(d.volumeStatus, 'aberto');
   const andamento = cnt(d.volumeStatus, 'em_andamento');
-  const concluido = cnt(d.volumeStatus, 'concluido');
-  const encerrado = cnt(d.volumeStatus, 'encerrado');
-  const total     = aberto + andamento + concluido + encerrado;
-  const resolvidos = concluido + encerrado;
+  const concluido  = cnt(d.volumeStatus, 'concluido') + cnt(d.volumeStatus, 'encerrado');
+  const total      = aberto + andamento + concluido;
+  const resolvidos = concluido;
   const taxaResolucao = total > 0 ? Math.round((resolvidos / total) * 100) : 0;
   const notaMedia = d.notaMedia && d.notaMedia.media ? +d.notaMedia.media.toFixed(1) : null;
   const totalAval  = d.notaMedia ? d.notaMedia.total : 0;
@@ -187,11 +185,6 @@ function renderRelatorio(d, mes, ranking) {
         <div class="relat-kpi-value" style="color:var(--cor-concluido)">${concluido}</div>
         <div class="relat-kpi-label">Concluídos</div>
         <div class="relat-kpi-desc">resolvidos com solução</div>
-      </div>
-      <div class="relat-kpi">
-        <div class="relat-kpi-value" style="color:var(--cor-encerrado)">${encerrado}</div>
-        <div class="relat-kpi-label">Encerrados</div>
-        <div class="relat-kpi-desc">finalizados sem solução</div>
       </div>
     </div>
 
@@ -264,7 +257,7 @@ function renderRelatorio(d, mes, ranking) {
       <div class="relat-chart-header">
         <div>
           <div class="relat-chart-title">Admins que mais resolveram chamados</div>
-          <div class="relat-chart-sub">Contagem de chamados concluídos e encerrados no mês por responsável</div>
+          <div class="relat-chart-sub">Contagem de chamados concluídos no mês por responsável</div>
         </div>
       </div>
       ${renderRanking(ranking)}
