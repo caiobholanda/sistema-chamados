@@ -381,7 +381,7 @@ function buscarUsuarioPorEmail(email) {
 }
 
 function buscarUsuarioPorId(id) {
-  return getDb().prepare('SELECT id, nome, email, ativo, senha_plain, criado_em FROM usuarios WHERE id = ?').get(id);
+  return getDb().prepare('SELECT * FROM usuarios WHERE id = ?').get(id);
 }
 
 function listarUsuarios() {
