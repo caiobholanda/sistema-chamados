@@ -134,6 +134,7 @@ router.get('/:id/anexo', (req, res) => {
 // GET /api/chamados/:id/mensagens — requer autenticação do usuário dono do chamado
 router.get('/:id/mensagens', (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store');
     const usuario_id = getUsuarioIdFromCookie(req);
     if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);

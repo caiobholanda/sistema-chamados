@@ -11,7 +11,7 @@ async function _atualizarChatAdmin(chamadoId) {
   const atFundo = box.scrollTop + box.clientHeight >= box.scrollHeight - 6;
   const anterior = +(box.dataset.cnt || 0);
   try {
-    const r = await api('/api/admin/chamados/' + chamadoId + '/mensagens');
+    const r = await api('/api/admin/chamados/' + chamadoId + '/mensagens?_t=' + Date.now());
     if (!r.ok) return;
     const msgs = await r.json();
     box.dataset.cnt = msgs.length;
@@ -727,7 +727,7 @@ function setupModalEventos(c) {
   const chatForm = document.getElementById('chat-modal-form');
   if (chatForm) {
     _atualizarChatAdmin(c.id);
-    _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 10000);
+    _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 3000);
 
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();

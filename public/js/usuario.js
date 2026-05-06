@@ -39,7 +39,7 @@ async function _atualizarChat(chamadoId) {
   const atFundo = box.scrollTop + box.clientHeight >= box.scrollHeight - 6;
   const anterior = +(box.dataset.cnt || 0);
   try {
-    const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens');
+    const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens?_t=' + Date.now());
     if (!r.ok) return;
     const msgs = await r.json();
     box.dataset.cnt = msgs.length;
@@ -55,7 +55,7 @@ async function _atualizarChat(chamadoId) {
 
 function _iniciarChat(chamadoId) {
   _atualizarChat(chamadoId);
-  _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 12000));
+  _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 3000));
 
   const form = document.getElementById('chat-form-' + chamadoId);
   if (!form) return;

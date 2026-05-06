@@ -156,6 +156,7 @@ router.delete('/chamados/:id', requireMaster, (req, res) => {
 // GET /api/admin/chamados/:id/mensagens
 router.get('/chamados/:id/mensagens', requireAdmin, (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store');
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
     return res.json(db.listarMensagensChamado(chamado.id));
