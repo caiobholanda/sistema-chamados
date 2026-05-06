@@ -253,6 +253,7 @@ function renderPainel(usuario) {
 
   let abaAtiva = 'abertos';
   let todosChamados = [];
+  let _chamadosHash = null;
 
   document.getElementById('btn-logout-usuario').addEventListener('click', async () => {
     await apiFetch('/api/usuarios/logout', { method: 'POST' });
@@ -289,7 +290,20 @@ function renderPainel(usuario) {
     try {
       const r = await apiFetch('/api/usuarios/meus-chamados');
       if (r.status === 401) { renderAuth(); return; }
-      todosChamados = await r.json();
+      const novos = await r.json();
+
+      // Silencioso: só atualiza se os dados mudaram
+      if (silencioso) {
+        const novoHash = JSON.stringify(novos.map(c =>
+          [c.id, c.status, c.admin_nome, c.nota, c.prazo, c.solucao, c.prioridade, c.atualizado_em]
+        ));
+        if (novoHash === _chamadosHash) return;
+        _chamadosHash = novoHash;
+      } else {
+        _chamadosHash = null;
+      }
+
+      todosChamados = novos;
 
       const qtd = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
       todosChamados.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });

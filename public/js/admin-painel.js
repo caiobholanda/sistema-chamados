@@ -3,6 +3,7 @@ let chamadoAtual = null;
 let abaAtiva = 'abertos';
 let subAbaMeusAtiva = 'abertos';
 let _chatAdminIv = null;
+let _chamadosHash = null;
 
 
 async function _atualizarChatAdmin(chamadoId) {
@@ -295,6 +296,18 @@ async function carregarChamados(silencioso = false) {
   try {
     const r = await api('/api/admin/chamados?' + params);
     const chamados = await r.json();
+
+    // Silencioso: só re-renderiza se os dados mudaram
+    if (silencioso) {
+      const novoHash = JSON.stringify(chamados.map(c =>
+        [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em]
+      ));
+      if (novoHash === _chamadosHash) return;
+      _chamadosHash = novoHash;
+    } else {
+      _chamadosHash = null;
+    }
+
     if (!chamados.length) {
       const msg = (abaAtiva === 'abertos' || (abaAtiva === 'meus' && subAbaMeusAtiva === 'abertos'))
         ? 'Nenhum chamado em aberto no momento.'
