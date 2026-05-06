@@ -447,20 +447,23 @@ router.get('/portal-usuarios', requireAdmin, (req, res) => {
 
 router.post('/portal-usuarios', requireAdmin, async (req, res) => {
   try {
-    let { nome, email, senha } = req.body;
+    let { nome, email, senha, ramal, setor } = req.body;
     nome = sanitizarTexto(nome || '');
     email = (email || '').trim().toLowerCase();
     senha = (senha || '').trim();
+    ramal = (ramal || '').trim();
+    setor = sanitizarTexto(setor || '');
 
     if (!nome || nome.length < 2) return res.status(400).json({ erro: 'Nome deve ter ao menos 2 caracteres' });
     if (!email || !email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
     if (!senha || !senhaForte(senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
+    if (ramal && !/^\d{4}$/.test(ramal)) return res.status(400).json({ erro: 'Ramal deve ter exatamente 4 dígitos' });
 
     if (db.buscarUsuarioPorEmail(email) || db.buscarAdminPorEmail(email))
       return res.status(409).json({ erro: 'E-mail já cadastrado no sistema' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
-    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha });
+    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null });
     return res.status(201).json({ id, mensagem: 'Usuário criado com sucesso' });
   } catch (err) {
     console.error(err);
@@ -505,6 +508,14 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
         dados.senha_hash = await bcrypt.hash(senha, 12);
         dados.senha_plain = senha;
       }
+    }
+    if (req.body.ramal !== undefined) {
+      const ramal = (req.body.ramal || '').trim();
+      if (ramal && !/^\d{4}$/.test(ramal)) return res.status(400).json({ erro: 'Ramal deve ter exatamente 4 dígitos' });
+      dados.ramal = ramal || null;
+    }
+    if (req.body.setor !== undefined) {
+      dados.setor = sanitizarTexto(req.body.setor || '') || null;
     }
 
     db.atualizarUsuario(u.id, dados);

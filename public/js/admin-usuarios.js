@@ -462,9 +462,11 @@ document.getElementById('form-usuario').addEventListener('submit', async (e) => 
   btn.disabled = true;
 
   const body = {
-    nome: document.getElementById('fu-nome').value.trim(),
+    nome:  document.getElementById('fu-nome').value.trim(),
     email: document.getElementById('fu-email').value.trim().toLowerCase(),
     senha: document.getElementById('fu-senha').value,
+    setor: document.getElementById('fu-setor').value.trim(),
+    ramal: document.getElementById('fu-ramal').value.trim(),
   };
 
   if (!body.email.endsWith(DOMINIO_EMAIL)) {
@@ -526,13 +528,15 @@ function renderUsuarios() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Nome</th><th>E-mail</th>${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th>Cadastrado em</th><th>Ações</th>
+            <th>Nome</th><th>E-mail</th><th>Setor</th><th style="text-align:center">Ramal</th>${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th>Cadastrado em</th><th>Ações</th>
           </tr></thead>
           <tbody>
             ${filtrados.map(u => `
               <tr>
                 <td>${u.nome}</td>
                 <td style="font-size:.82rem">${u.email}</td>
+                <td style="font-size:.82rem">${u.setor || '<span class="text-muted">—</span>'}</td>
+                <td style="text-align:center;font-size:.82rem;font-family:monospace">${u.ramal || '<span class="text-muted">—</span>'}</td>
                 ${senhaCell(u.senha_plain)}
                 <td style="font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td>
@@ -577,6 +581,8 @@ async function abrirModalEditarUsuario(id) {
 
   document.getElementById('feu-nome').value  = usuario.nome;
   document.getElementById('feu-email').value = usuario.email;
+  document.getElementById('feu-setor').value = usuario.setor || '';
+  document.getElementById('feu-ramal').value = usuario.ramal || '';
 
   const senhaInput = document.getElementById('feu-senha');
   const dicaSenha  = document.getElementById('dica-senha-feu');
@@ -631,7 +637,12 @@ document.getElementById('form-editar-usuario').addEventListener('submit', async 
     btn.disabled = false; btn.textContent = txtOriginal; return;
   }
 
-  const body = { nome: document.getElementById('feu-nome').value.trim(), email };
+  const body = {
+    nome:  document.getElementById('feu-nome').value.trim(),
+    email,
+    setor: document.getElementById('feu-setor').value.trim(),
+    ramal: document.getElementById('feu-ramal').value.trim(),
+  };
   if (senhaMudou && senha) body.senha = senha;
 
   try {
@@ -644,6 +655,8 @@ document.getElementById('form-editar-usuario').addEventListener('submit', async 
     if (u) {
       u.nome = body.nome;
       u.email = body.email;
+      u.setor = body.setor;
+      u.ramal = body.ramal;
       if (body.senha) u.senha_plain = body.senha;
     }
     renderUsuarios();
@@ -662,6 +675,8 @@ function abrirModalUsuario() {
   document.getElementById('fu-nome').value = '';
   document.getElementById('fu-email').value = '';
   document.getElementById('fu-senha').value = '';
+  document.getElementById('fu-setor').value = '';
+  document.getElementById('fu-ramal').value = '';
   resetarForca('forca-usuario', 'barra-usuario', 'reqs-usuario');
   resetarEmailDica('dica-email-usuario');
   document.getElementById('modal-usuario-overlay').classList.add('open');

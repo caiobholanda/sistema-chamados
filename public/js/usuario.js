@@ -521,6 +521,12 @@ function renderFormChamado(usuario, container, onSuccess) {
     </div>
   `;
 
+  if (usuario.ramal) document.getElementById('ch-ramal').value = usuario.ramal;
+  if (usuario.setor) {
+    const sel = document.getElementById('ch-setor');
+    sel.value = usuario.setor;
+  }
+
   document.getElementById('btn-cancelar-chamado').addEventListener('click', onSuccess);
 
   document.getElementById('form-chamado-usuario').addEventListener('submit', async (e) => {

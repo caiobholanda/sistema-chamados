@@ -118,6 +118,8 @@ function initDb() {
   try { db.exec('ALTER TABLE chamados ADD COLUMN categoria TEXT'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN ramal TEXT'); } catch {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN setor TEXT'); } catch {}
 
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_chamados_status ON chamados(status);
@@ -469,7 +471,7 @@ function buscarUsuarioPorId(id) {
 }
 
 function listarUsuarios() {
-  return getDb().prepare('SELECT id, nome, email, ativo, senha_plain, criado_em FROM usuarios ORDER BY criado_em DESC').all();
+  return getDb().prepare('SELECT id, nome, email, ativo, senha_plain, ramal, setor, criado_em FROM usuarios ORDER BY criado_em DESC').all();
 }
 
 function atualizarUsuario(id, dados) {
@@ -480,6 +482,8 @@ function atualizarUsuario(id, dados) {
   if (dados.email !== undefined) { campos.push('email = ?'); values.push(dados.email); }
   if (dados.senha_hash !== undefined) { campos.push('senha_hash = ?'); values.push(dados.senha_hash); }
   if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
+  if (dados.ramal !== undefined) { campos.push('ramal = ?'); values.push(dados.ramal); }
+  if (dados.setor !== undefined) { campos.push('setor = ?'); values.push(dados.setor); }
   if (campos.length === 0) return;
   values.push(id);
   getDb().prepare(`UPDATE usuarios SET ${campos.join(', ')} WHERE id = ?`).run(...values);

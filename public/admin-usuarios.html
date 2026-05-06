@@ -149,6 +149,16 @@
           <input class="form-control" type="email" id="fu-email" required autocomplete="off" placeholder="colaborador@granmarquise.com.br">
           <div class="email-dominio-dica" id="dica-email-usuario">Use apenas @granmarquise.com.br</div>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div class="form-group" style="margin-bottom:0">
+            <label for="fu-setor">Setor</label>
+            <input class="form-control" type="text" id="fu-setor" maxlength="60" placeholder="Ex: Recepção, TI, RH…">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="fu-ramal">Ramal</label>
+            <input class="form-control" type="text" id="fu-ramal" maxlength="4" pattern="\d{4}" inputmode="numeric" placeholder="0000">
+          </div>
+        </div>
         <div class="form-group">
           <label for="fu-senha">Senha <span class="text-muted" style="font-size:.72rem;text-transform:none;letter-spacing:0">(mín. 8 caracteres)</span></label>
           <div class="input-senha-wrap">
@@ -195,6 +205,16 @@
           <label for="feu-email">E-mail</label>
           <input class="form-control" type="email" id="feu-email" required autocomplete="off" placeholder="colaborador@granmarquise.com.br">
           <div class="email-dominio-dica" id="dica-email-editar-usuario">Use apenas @granmarquise.com.br</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div class="form-group" style="margin-bottom:0">
+            <label for="feu-setor">Setor</label>
+            <input class="form-control" type="text" id="feu-setor" maxlength="60" placeholder="Ex: Recepção, TI, RH…">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="feu-ramal">Ramal</label>
+            <input class="form-control" type="text" id="feu-ramal" maxlength="4" pattern="\d{4}" inputmode="numeric" placeholder="0000">
+          </div>
         </div>
         <div class="form-group">
           <label for="feu-senha" id="lbl-feu-senha">Senha</label>
