@@ -287,9 +287,10 @@ router.patch('/chamados/:id/encerrar', requireAdmin, (req, res) => {
 
 const CATEGORIAS_VALIDAS = [
   'software','hardware','impressora','ramal','nobreak','monitor',
-  'mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','outros',
+  'mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor',
+  'processo_compra','outros',
 ];
-router.patch('/chamados/:id/categoria', requireMaster, (req, res) => {
+router.patch('/chamados/:id/categoria', requireAdmin, (req, res) => {
   try {
     const { categoria } = req.body;
     if (!categoria || !CATEGORIAS_VALIDAS.includes(categoria)) {

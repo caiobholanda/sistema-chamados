@@ -191,12 +191,10 @@ function _renderBody(c) {
           <div class="mv2-cat-row">
             <span class="mv2-field-label">Categoria</span>
             ${_badgeCategoria(c.categoria) || '<span class="mv2-empty-text">Não classificado</span>'}
-            ${adminInfo.is_master ? `
-              <select class="form-control form-control-sm" id="cm-sel-categoria" style="flex:1;max-width:160px;margin-left:.25rem">
-                ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) => `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`).join('')}
-              </select>
-              <button class="btn btn-secondary btn-sm" id="cm-btn-salvar-categoria">Salvar</button>
-            ` : ''}
+            <select class="form-control form-control-sm" id="cm-sel-categoria" style="flex:1;max-width:180px;margin-left:.25rem">
+              ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) => `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`).join('')}
+            </select>
+            <button class="btn btn-secondary btn-sm" id="cm-btn-salvar-categoria">Salvar</button>
           </div>
 
           <div class="mv2-section">
