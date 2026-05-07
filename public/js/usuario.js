@@ -658,9 +658,24 @@ function renderCardChamado(c) {
 
   const reabrirHtml = () => {
     if (!encerrado) return '';
-    return `<button class="btn-reabrir-chamado" id="btn-reabrir-${c.id}">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
-      Reabrir chamado
+    const dataRef = c.concluido_em || c.atualizado_em;
+    const diasFechado = (() => {
+      if (!dataRef) return 0;
+      const iso = dataRef.includes('T') ? dataRef : dataRef.replace(' ', 'T');
+      const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+      return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+    })();
+    const expirado = diasFechado >= 7;
+    const restantes = 7 - diasFechado;
+    const svg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>`;
+    if (expirado) {
+      return `<button class="btn-reabrir-chamado" disabled title="Prazo expirado — o chamado foi fechado há mais de 7 dias. Abra um novo chamado se o problema persistir.">
+        ${svg} Reabrir chamado · prazo expirado
+      </button>`;
+    }
+    const aviso = restantes <= 2 ? ` · ${restantes}d restante${restantes === 1 ? '' : 's'}` : '';
+    return `<button class="btn-reabrir-chamado" id="btn-reabrir-${c.id}" title="Você pode reabrir este chamado por mais ${restantes} dia${restantes === 1 ? '' : 's'}">
+      ${svg} Reabrir chamado${aviso}
     </button>`;
   };
 

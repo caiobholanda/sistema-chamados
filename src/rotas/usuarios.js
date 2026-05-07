@@ -107,6 +107,16 @@ router.post('/chamados/:id/reabrir', requireUsuario, (req, res) => {
       return res.status(400).json({ erro: 'Só é possível reabrir chamados concluídos ou encerrados' });
     }
 
+    const dataRef = chamado.concluido_em || chamado.atualizado_em;
+    if (dataRef) {
+      const iso = dataRef.includes('T') ? dataRef : dataRef.replace(' ', 'T');
+      const fechadoEm = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+      const dias = (Date.now() - fechadoEm.getTime()) / (1000 * 60 * 60 * 24);
+      if (dias > 7) {
+        return res.status(400).json({ erro: 'O prazo para reabrir este chamado expirou. Se o problema persistir, abra um novo chamado.' });
+      }
+    }
+
     db.reabrirChamadoUsuario(chamadoId, novaDescricao);
 
     const destino = chamado.admin_responsavel_id
