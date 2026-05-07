@@ -440,11 +440,6 @@ function renderPainel(usuario) {
       });
     });
 
-    filtrados.filter(c => ['concluido', 'encerrado'].includes(c.status) && !c.assinado_em).forEach(c => {
-      const btn = document.getElementById(`btn-assinar-${c.id}`);
-      if (btn) btn.addEventListener('click', () => abrirModalAssinatura(c.id));
-    });
-
     filtrados.filter(c => ['concluido', 'encerrado'].includes(c.status)).forEach(c => {
       const btn = document.getElementById(`btn-reabrir-${c.id}`);
       if (btn) btn.addEventListener('click', () => abrirModalReabertura(c.id));
@@ -519,101 +514,6 @@ function renderPainel(usuario) {
     textarea.focus();
   }
 
-  async function abrirModalAssinatura(chamadoId) {
-    const existing = document.getElementById('assinatura-overlay');
-    if (existing) existing.remove();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'assinatura-overlay';
-    overlay.className = 'assinatura-overlay';
-    overlay.innerHTML = `
-      <div class="assinatura-modal">
-        <div class="assinatura-modal-header">
-          <div class="assinatura-modal-title">Confirmar recebimento</div>
-          <button class="modal-close" id="btn-fechar-assinatura" aria-label="Fechar">&#x2715;</button>
-        </div>
-        <div class="assinatura-modal-body">
-          <p class="assinatura-instrucao">Confirme que o chamado foi resolvido. A assinatura é opcional — você pode confirmar sem desenhar.</p>
-          <div class="assinatura-canvas-wrap">
-            <canvas id="assinatura-canvas" class="assinatura-canvas"></canvas>
-          </div>
-          <div id="msg-assinatura"></div>
-          <div class="assinatura-btns">
-            <button class="btn btn-secondary btn-sm" id="btn-limpar-assinatura">Limpar</button>
-            <button class="btn btn-primary" id="btn-confirmar-assinatura">Confirmar</button>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-
-    const canvas = document.getElementById('assinatura-canvas');
-    const ctx = canvas.getContext('2d');
-    const wrap = canvas.parentElement;
-    canvas.width = wrap.clientWidth || 340;
-    canvas.height = 180;
-    ctx.strokeStyle = '#1C1C1C';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    let desenhando = false;
-    let temTraco = false;
-
-    function getPosCanvas(e) {
-      const rect = canvas.getBoundingClientRect();
-      const src = e.touches ? e.touches[0] : e;
-      return {
-        x: (src.clientX - rect.left) * (canvas.width / rect.width),
-        y: (src.clientY - rect.top) * (canvas.height / rect.height),
-      };
-    }
-
-    canvas.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      desenhando = true;
-      temTraco = true;
-      canvas.setPointerCapture(e.pointerId);
-      const p = getPosCanvas(e);
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-    });
-    canvas.addEventListener('pointermove', (e) => {
-      e.preventDefault();
-      if (!desenhando) return;
-      const p = getPosCanvas(e);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-    });
-    canvas.addEventListener('pointerup', () => { desenhando = false; ctx.beginPath(); });
-    canvas.addEventListener('pointercancel', () => { desenhando = false; ctx.beginPath(); });
-
-    document.getElementById('btn-limpar-assinatura').addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      temTraco = false;
-      document.getElementById('msg-assinatura').innerHTML = '';
-    });
-
-    document.getElementById('btn-fechar-assinatura').addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-
-    document.getElementById('btn-confirmar-assinatura').addEventListener('click', async () => {
-      const msgEl = document.getElementById('msg-assinatura');
-      const btn = document.getElementById('btn-confirmar-assinatura');
-      btn.disabled = true; btn.textContent = 'Enviando...';
-      try {
-        const r = await apiFetch(`/api/usuarios/chamados/${chamadoId}/assinar`, {
-          method: 'POST',
-          body: JSON.stringify({ assinatura: temTraco ? canvas.toDataURL('image/png') : null }),
-        });
-        const d = await r.json();
-        if (!r.ok) { msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
-        overlay.remove();
-        await carregarChamados();
-      } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
-      finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Confirmar'; } }
-    });
-  }
 }
 
 function renderCardChamado(c) {
@@ -640,20 +540,6 @@ function renderCardChamado(c) {
         </form>
       </div>
     `;
-  };
-
-  const assinaturaHtml = () => {
-    if (!encerrado) return '';
-    if (c.assinado_em) {
-      return `<div class="assinatura-validada-badge">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        Confirmado por você em ${fmtData(c.assinado_em)}
-      </div>`;
-    }
-    return `<button class="btn btn-secondary btn-sm" id="btn-assinar-${c.id}" style="margin-top:.65rem;width:100%">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/></svg>
-      Assinar e confirmar recebimento
-    </button>`;
   };
 
   const reabrirHtml = () => {
@@ -707,7 +593,6 @@ function renderCardChamado(c) {
       ${c.prazo ? `<div style="font-size:.74rem;color:var(--text-muted);margin-top:.2rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
       ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${c.solucao}</div>` : ''}
       ${avaliacaoHtml()}
-      ${assinaturaHtml()}
       ${reabrirHtml()}
       ${chatHtml}
     </div>
