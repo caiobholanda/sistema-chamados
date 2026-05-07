@@ -133,6 +133,8 @@
 
     // Sort chronologically
     eventos.sort((a, b) => {
+      if (!a._ts) return -1;
+      if (!b._ts) return 1;
       const ta = new Date(a._ts.includes('T') ? a._ts : a._ts.replace(' ', 'T'));
       const tb = new Date(b._ts.includes('T') ? b._ts : b._ts.replace(' ', 'T'));
       return ta - tb;
@@ -206,7 +208,9 @@
     `;
 
     document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('open'));
+    // Force reflow so initial CSS state renders before transition starts
+    overlay.offsetHeight; // eslint-disable-line no-unused-expressions
+    overlay.classList.add('open');
 
     const fechar = () => {
       overlay.classList.remove('open');
