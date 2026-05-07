@@ -51,6 +51,7 @@
   <div id="itens-lista"><div class="loading"><div class="spinner"></div></div></div>
 </main>
 
+<!-- Modal de itens (estoque/inventario) -->
 <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="modal-header">
@@ -61,6 +62,18 @@
   </div>
 </div>
 
+<!-- Modal de chamado (Chamados de Compra) -->
+<div class="modal-overlay" id="cm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cm-modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="cm-modal-title">Chamado</h2>
+      <button class="modal-close" id="cm-btn-fechar-modal" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="cm-modal-body"></div>
+  </div>
+</div>
+
+<script src="/js/chamado-modal.js"></script>
 <script src="/js/admin-itens.js"></script>
 </body>
 </html>

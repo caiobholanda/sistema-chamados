@@ -206,7 +206,9 @@ function renderCompra(chamados) {
 }
 
 function abrirChamado(id) {
-  location.href = `/admin-painel.html?chamado=${id}`;
+  window._cmApi = api;
+  window._cmOnClose = () => { if (abaAtiva === 'compra') carregarItens(); };
+  window.abrirChamadoModal(id);
 }
 
 // ── Carregar conteúdo da aba ──────────────────────────────
@@ -421,10 +423,18 @@ async function confirmarDeletar(id, nome) {
       });
     });
 
+    // Expõe adminInfo para chamado-modal.js
+    window.adminInfo = adminInfo;
+
     document.getElementById('btn-novo-item').addEventListener('click', abrirModalNovo);
     document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
     document.getElementById('modal-overlay').addEventListener('click', e => {
       if (e.target === e.currentTarget) fecharModal();
+    });
+
+    document.getElementById('cm-btn-fechar-modal').addEventListener('click', () => window.fecharChamadoModal());
+    document.getElementById('cm-modal-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) window.fecharChamadoModal();
     });
 
     await carregarItens();
