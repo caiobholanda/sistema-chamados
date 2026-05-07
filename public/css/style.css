@@ -2280,7 +2280,6 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .mv2-historico > summary::-webkit-details-marker { display: none; }
 .mv2-historico > summary::after { content: '▸'; font-size: .7rem; transition: transform .15s; }
 .mv2-historico[open] > summary::after { transform: rotate(90deg); }
-.mv2-hist-completo-btn { margin-left: auto; margin-right: .35rem; }
 .mv2-historico-body {
   padding: .65rem .85rem;
   display: flex;
@@ -2736,19 +2735,21 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   background: #fff;
 }
 
-/* ─── Botão histórico completo ────────────────────────────────── */
+/* ─── Botão histórico do chamado ──────────────────────────────── */
 .mv2-hist-completo-btn {
   display: inline-flex;
   align-items: center;
-  gap: .3rem;
-  margin-left: auto;
-  font-size: .75rem;
+  gap: .35rem;
+  font-size: .82rem;
   color: var(--primary);
-  border-color: transparent;
-  padding: .15rem .5rem;
-  line-height: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  width: 100%;
+  justify-content: center;
+  padding: .55rem;
 }
-.mv2-hist-completo-btn:hover { background: var(--primary-light); }
+.mv2-hist-completo-btn:hover { background: var(--primary-light); border-color: var(--primary); }
 
 /* ─── Overlay histórico completo ──────────────────────────────── */
 .hist-overlay {
