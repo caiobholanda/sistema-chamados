@@ -1929,46 +1929,57 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 
 /* Barra de logo Gran Marquise */
 .mv2-logo-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   background: var(--navy);
-  padding: .85rem 1.5rem;
+  padding: 1rem 1.5rem;
   border-radius: var(--radius) var(--radius) 0 0;
   margin: -1.5rem -1.5rem .75rem;
 }
 .mv2-logo-img {
-  height: 36px;
+  height: 44px;
   width: auto;
   filter: brightness(0) invert(1);
-  opacity: .9;
+  opacity: .92;
   object-fit: contain;
-  flex-shrink: 0;
+  justify-self: start;
 }
 .mv2-logo-user {
-  text-align: right;
-  min-width: 0;
+  text-align: center;
 }
 .mv2-logo-user-nome {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #fff;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .mv2-logo-user-setor {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   flex-wrap: wrap;
   gap: .2rem;
-  margin-top: .2rem;
-  font-size: .75rem;
-  color: rgba(255,255,255,.55);
+  margin-top: .25rem;
+  font-size: .76rem;
+  color: rgba(255,255,255,.58);
+}
+
+/* Histórico + Zona de perigo: faixa full-width abaixo das colunas */
+.mv2-fullrow {
+  display: flex;
+  gap: .6rem;
+  align-items: flex-start;
+  margin-top: .75rem;
+}
+.mv2-fullrow .mv2-historico { flex: 1; min-width: 0; }
+.mv2-fullrow .mv2-danger-compact { flex-shrink: 0; margin-top: 0 !important; align-self: flex-start; }
+
+/* Chat full-width abaixo do histórico/perigo */
+.mv2-chat-full {
+  margin-top: .6rem;
 }
 
 /* Bottom row: histórico + zona de perigo lado a lado */
