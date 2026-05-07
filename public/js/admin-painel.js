@@ -450,9 +450,19 @@ function renderModalBody(c) {
   document.getElementById('modal-body').innerHTML = `
     <div class="mv2">
 
-      <!-- Logo Gran Marquise -->
+      <!-- Logo Gran Marquise + info do solicitante -->
       <div class="mv2-logo-bar">
         <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise" class="mv2-logo-img">
+        <div class="mv2-logo-user">
+          <div class="mv2-logo-user-nome">${c.nome}</div>
+          <div class="mv2-logo-user-setor">
+            ${c.usuario_setor || c.setor}
+            <span style="opacity:.4;margin:0 .3rem">·</span>
+            Ramal ${c.usuario_ramal || c.ramal || '—'}
+            <span style="opacity:.4;margin:0 .3rem">·</span>
+            ${badgePrio(c.prioridade)}
+          </div>
+        </div>
       </div>
 
       ${bannerAtraso}${bannerPrazo}
@@ -562,25 +572,9 @@ function renderModalBody(c) {
               </button>
             </div>` : ''}
           </div>
-
-          <!-- Chat em tempo real (abaixo do histórico + zona de perigo) -->
-          ${isAberto ? `
-          <div class="mv2-chat-card">
-            <div class="mv2-chat-head">
-              <span class="mv2-chat-dot"></span>
-              Conversa em tempo real
-            </div>
-            <div class="chat-messages mv2-chat-msgs" id="chat-modal-msgs" data-cnt="0">
-              <div class="chat-vazio">Carregando...</div>
-            </div>
-            <form class="chat-input-row" id="chat-modal-form">
-              <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
-              <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-            </form>
-          </div>` : ''}
         </div>
 
-        <!-- Coluna lateral: ações -->
+        <!-- Coluna lateral: ações + chat -->
         <div class="mv2-side">
           <div id="msg-modal" style="margin-bottom:.4rem"></div>
 
@@ -635,6 +629,22 @@ function renderModalBody(c) {
               </div>
             `}
           </div>
+
+          <!-- Chat em tempo real -->
+          ${isAberto ? `
+          <div class="mv2-chat-card">
+            <div class="mv2-chat-head">
+              <span class="mv2-chat-dot"></span>
+              Conversa em tempo real
+            </div>
+            <div class="chat-messages mv2-chat-msgs" id="chat-modal-msgs" data-cnt="0">
+              <div class="chat-vazio">Carregando...</div>
+            </div>
+            <form class="chat-input-row" id="chat-modal-form">
+              <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
+              <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+            </form>
+          </div>` : ''}
         </div>
 
       </div>
