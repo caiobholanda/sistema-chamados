@@ -423,12 +423,20 @@ function assumirChamado(id, adminId) {
   `).run(id, adminId, chamado.status);
 }
 
-function concluirChamado(id, solucao, adminId) {
+function concluirChamado(id, solucao, adminId, assinatura = null) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
-  db.prepare(`
-    UPDATE chamados SET status = 'concluido', solucao = ?, atualizado_em = CURRENT_TIMESTAMP, concluido_em = CURRENT_TIMESTAMP WHERE id = ?
-  `).run(solucao, id);
+  if (assinatura) {
+    db.prepare(`
+      UPDATE chamados SET status = 'concluido', solucao = ?, assinatura = ?, assinado_em = CURRENT_TIMESTAMP,
+      atualizado_em = CURRENT_TIMESTAMP, concluido_em = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(solucao, assinatura, id);
+  } else {
+    db.prepare(`
+      UPDATE chamados SET status = 'concluido', solucao = ?,
+      atualizado_em = CURRENT_TIMESTAMP, concluido_em = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(solucao, id);
+  }
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'status_alterado', ?, 'concluido')

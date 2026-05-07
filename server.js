@@ -34,6 +34,8 @@ app.get('/admin-usuarios.html', (req, res) => servirHtmlComVersao(res, 'admin-us
 app.get('/admin-relatorios.html', (req, res) => servirHtmlComVersao(res, 'admin-relatorios.html'));
 app.get('/admin-itens.html', (req, res) => servirHtmlComVersao(res, 'admin-itens.html'));
 app.get('/admin-login.html', (req, res) => servirHtmlComVersao(res, 'admin-login.html'));
+app.get('/mobile', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
+app.get('/mobile.html', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
 
 // Arquivos estáticos (JS, CSS, imagens) — html excluído porque as rotas acima já tratam
 app.use(express.static(path.join(__dirname, 'public'), {

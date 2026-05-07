@@ -2504,6 +2504,118 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 .pc-row-clicavel:hover td { background: rgba(212,175,55,.06) !important; }
 
+/* ─── Página Mobile (/mobile) ────────────────────────────────── */
+.mob-body { background: var(--bg); min-height: 100vh; overflow-x: hidden; }
+
+.mob-login {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 100vh;
+  padding: 2.5rem 1.5rem; background: var(--navy);
+}
+.mob-login-logo { width: 160px; filter: brightness(0) invert(1); margin-bottom: 2rem; }
+.mob-login-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.75rem; font-weight: 600; color: #fff; margin-bottom: .2rem;
+}
+.mob-login-sub { font-size: .82rem; color: rgba(255,255,255,.5); margin-bottom: 2rem; letter-spacing: .04em; }
+.mob-login form { width: 100%; max-width: 340px; }
+.mob-login .mob-field label { color: rgba(255,255,255,.8); }
+.mob-login .mob-input { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.2); color: #fff; }
+.mob-login .mob-input::placeholder { color: rgba(255,255,255,.35); }
+.mob-login .mob-input:focus { border-color: var(--gold); }
+.mob-login .mob-alert { max-width: 340px; width: 100%; }
+
+.mob-header {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  background: var(--navy); padding: .85rem 1rem; position: sticky; top: 0; z-index: 10;
+}
+.mob-header-info { flex: 1; min-width: 0; }
+.mob-header-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.05rem; font-weight: 600; color: #fff; }
+.mob-header-sub { font-size: .72rem; color: rgba(255,255,255,.5); margin-top: .1rem; }
+.mob-sair-btn {
+  flex-shrink: 0; background: transparent; border: 1px solid rgba(255,255,255,.25);
+  color: rgba(255,255,255,.75); border-radius: var(--radius-sm); font-size: .78rem;
+  padding: .35rem .7rem; cursor: pointer;
+}
+.mob-voltar-btn {
+  flex-shrink: 0; background: transparent; border: none;
+  color: var(--gold); font-size: .9rem; padding: .3rem .4rem; cursor: pointer; font-weight: 500;
+}
+
+.mob-lista { padding: .75rem; display: flex; flex-direction: column; gap: .6rem; }
+.mob-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: .9rem 1rem; cursor: pointer; -webkit-tap-highlight-color: rgba(212,175,55,.12);
+  transition: box-shadow .15s;
+}
+.mob-card:active { box-shadow: 0 0 0 2px var(--gold); }
+.mob-card-head { display: flex; gap: .35rem; align-items: center; flex-wrap: wrap; margin-bottom: .4rem; }
+.mob-card-data { margin-left: auto; font-size: .72rem; color: var(--text-muted); }
+.mob-card-nome { font-weight: 600; color: var(--text); font-size: .95rem; margin-bottom: .15rem; }
+.mob-card-setor { font-size: .78rem; color: var(--text-muted); margin-bottom: .35rem; }
+.mob-card-desc { font-size: .83rem; color: var(--text-secondary); line-height: 1.4; }
+.mob-card-resp { font-size: .74rem; color: var(--gold-dark); font-weight: 600; margin-top: .35rem; }
+
+.mob-detalhe { padding: 1rem; padding-bottom: 2rem; }
+.mob-detalhe-nome { font-weight: 700; font-size: 1.1rem; color: var(--text); margin-bottom: .2rem; }
+.mob-detalhe-setor { font-size: .8rem; color: var(--text-muted); margin-bottom: .75rem; }
+.mob-detalhe-desc {
+  font-size: .88rem; color: var(--text-secondary); line-height: 1.55;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .7rem .85rem;
+}
+
+.mob-field { margin-bottom: 1rem; }
+.mob-label { display: block; font-size: .82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: .4rem; }
+.mob-input {
+  display: block; width: 100%; background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: .7rem .9rem; font-size: 1rem; color: var(--text);
+  font-family: inherit; outline: none; -webkit-appearance: none; transition: border-color .15s;
+}
+.mob-input:focus { border-color: var(--gold); }
+.mob-textarea { resize: vertical; min-height: 110px; }
+
+.mob-assin-section { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+.mob-assin-titulo { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: .25rem; }
+.mob-assin-opcional { font-weight: 400; font-size: .78rem; color: var(--text-muted); }
+.mob-assin-instrucao { font-size: .79rem; color: var(--text-muted); margin-bottom: .75rem; line-height: 1.4; }
+.mob-canvas-wrap {
+  border: 1.5px solid var(--border-strong); border-radius: var(--radius);
+  background: #f9f7f3; overflow: hidden; touch-action: none; margin-bottom: .6rem;
+}
+.mob-canvas { display: block; width: 100%; cursor: crosshair; touch-action: none; }
+
+.mob-btn {
+  display: block; width: 100%; padding: .9rem 1rem; border: none; border-radius: var(--radius);
+  font-size: 1rem; font-weight: 600; font-family: inherit; cursor: pointer; text-align: center;
+  transition: opacity .15s; margin-top: .6rem;
+}
+.mob-btn:disabled { opacity: .6; }
+.mob-btn-primary { background: var(--gold); color: var(--navy); }
+.mob-btn-success  { background: var(--success); color: #fff; margin-top: 1.5rem; }
+.mob-btn-ghost { background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); }
+.mob-btn-sm { padding: .55rem .9rem; font-size: .85rem; width: auto; display: inline-block; }
+
+.mob-alert { padding: .65rem .85rem; border-radius: var(--radius); font-size: .85rem; margin-bottom: .75rem; margin-top: .5rem; }
+.mob-alert-danger { background: var(--danger-light); color: var(--danger); }
+
+.mob-empty, .mob-loading { text-align: center; color: var(--text-muted); font-size: .88rem; padding: 3rem 1.5rem; }
+
+.mob-sucesso {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 100vh; padding: 2rem 1.5rem; text-align: center;
+}
+.mob-sucesso-icone {
+  width: 72px; height: 72px; background: var(--success-light); color: var(--success);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;
+}
+.mob-sucesso-titulo {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.6rem; font-weight: 600; color: var(--text); margin-bottom: .4rem;
+}
+.mob-sucesso-sub { font-size: .85rem; color: var(--text-muted); margin-bottom: 2rem; }
+.mob-sucesso .mob-btn { max-width: 280px; }
+
 /* ─── Assinatura digital ──────────────────────────────────────── */
 .assinatura-overlay {
   position: fixed;

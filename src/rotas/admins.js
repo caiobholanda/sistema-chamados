@@ -256,7 +256,12 @@ router.patch('/chamados/:id/concluir', requireAdmin, (req, res) => {
       return res.status(400).json({ erro: 'Informe a solução aplicada (mínimo 5 caracteres)' });
     }
 
-    db.concluirChamado(chamado.id, solucao, req.admin.sub);
+    const { assinatura = null } = req.body;
+    if (assinatura !== null && (typeof assinatura !== 'string' || !assinatura.startsWith('data:image/png;base64,'))) {
+      return res.status(400).json({ erro: 'Assinatura inválida' });
+    }
+
+    db.concluirChamado(chamado.id, solucao, req.admin.sub, assinatura);
     return res.json({ mensagem: 'Chamado concluído' });
   } catch (err) {
     console.error(err);
