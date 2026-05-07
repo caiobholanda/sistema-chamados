@@ -2367,3 +2367,133 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   font-style: italic;
 }
 
+/* ═══════════════════════════════════════════
+   PÁGINA ITENS
+═══════════════════════════════════════════ */
+
+/* Form de 2 colunas no modal de itens */
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+@media(max-width: 520px) { .form-row-2 { grid-template-columns: 1fr; } }
+
+/* Barra de alerta de estoque baixo */
+.itens-alerta-bar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--warning-light);
+  border: 1px solid rgba(180,83,9,.22);
+  border-radius: var(--radius);
+  padding: .5rem .85rem;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--warning);
+  margin-bottom: .6rem;
+}
+
+/* Quantidade ok / alerta */
+.qtd-ok {
+  font-weight: 600;
+  color: var(--success);
+}
+.qtd-alerta {
+  font-weight: 700;
+  color: var(--danger);
+}
+.qtd-alerta-icon {
+  font-size: .78rem;
+  color: var(--warning);
+  margin-left: .2rem;
+}
+
+/* Tag de categoria no estoque */
+.itens-cat-tag {
+  display: inline-block;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: .1rem .42rem;
+}
+
+/* Status de inventário */
+.inv-status-tag {
+  display: inline-block;
+  font-size: .75rem;
+  font-weight: 600;
+  padding: .18rem .55rem;
+  border-radius: var(--radius-sm);
+}
+.inv-disponivel  { background: var(--success-light); color: var(--success); }
+.inv-em-uso      { background: rgba(29,78,216,.1);   color: #1d4ed8; }
+.inv-manutencao  { background: var(--warning-light); color: var(--warning); }
+.inv-descartado  { background: rgba(107,114,128,.1); color: var(--text-muted); }
+
+/* Widget Processo de Compra */
+.processo-compra-widget {
+  background: var(--surface);
+  border: 1px solid rgba(22,163,74,.22);
+  border-left: 3px solid #16A34A;
+  border-radius: var(--radius);
+  padding: .85rem 1rem;
+  margin-top: 1.25rem;
+}
+.processo-compra-header {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .75rem;
+}
+.processo-compra-header svg { color: #16A34A; }
+
+/* Chamado item no widget */
+.pc-chamado-item {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .65rem .85rem;
+  margin-bottom: .5rem;
+}
+.pc-chamado-item:last-child { margin-bottom: 0; }
+.pc-chamado-info {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-bottom: .28rem;
+  flex-wrap: wrap;
+}
+.pc-chamado-id {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.pc-chamado-id:hover { color: var(--text); }
+.pc-chamado-nome {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.pc-chamado-sep { color: var(--text-muted); font-size: .75rem; }
+.pc-chamado-setor { font-size: .8rem; color: var(--text-secondary); }
+.pc-chamado-desc {
+  font-size: .82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: .25rem;
+}
+.pc-chamado-meta {
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+

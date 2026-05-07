@@ -32,6 +32,7 @@ app.get('/index.html', (req, res) => servirHtmlComVersao(res, 'index.html'));
 app.get('/admin-painel.html', (req, res) => servirHtmlComVersao(res, 'admin-painel.html'));
 app.get('/admin-usuarios.html', (req, res) => servirHtmlComVersao(res, 'admin-usuarios.html'));
 app.get('/admin-relatorios.html', (req, res) => servirHtmlComVersao(res, 'admin-relatorios.html'));
+app.get('/admin-itens.html', (req, res) => servirHtmlComVersao(res, 'admin-itens.html'));
 app.get('/admin-login.html', (req, res) => servirHtmlComVersao(res, 'admin-login.html'));
 
 // Arquivos estáticos (JS, CSS, imagens) — html excluído porque as rotas acima já tratam
@@ -51,6 +52,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.use('/api/chamados', require('./src/rotas/chamados'));
 app.use('/api/usuarios', require('./src/rotas/usuarios'));
 app.use('/api/admin/relatorios', require('./src/rotas/relatorios'));
+app.use('/api/admin/itens', require('./src/rotas/itens'));
 app.use('/api/admin', require('./src/rotas/admins'));
 
 app.get('*', (req, res) => {

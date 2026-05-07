@@ -148,6 +148,20 @@ const CATEGORIAS = [
     ],
   },
   {
+    id: 'processo_compra',
+    nome: 'Processo de Compra',
+    cor: '#16A34A',
+    palavras: [
+      'comprar', 'compra', 'adquirir', 'aquisição', 'orçamento', 'fornecedor',
+      'nota fiscal', 'pedido de compra', 'processo de compra', 'cotação',
+      'licitação', 'requisição de compra', 'solicitar compra', 'necessidade de compra',
+      'sem estoque', 'estoque esgotado', 'produto novo', 'equipamento novo',
+      'substituição', 'nova aquisição', 'orçar', 'cotar', 'compra urgente',
+      'novo equipamento', 'novo notebook', 'nova impressora', 'novo computador',
+      'precisamos comprar', 'precisa comprar', 'compra de material', 'compra necessária',
+    ],
+  },
+  {
     id: 'outros',
     nome: 'Outros',
     cor: '#6B7280',

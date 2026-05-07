@@ -122,12 +122,32 @@ function initDb() {
   try { db.exec('ALTER TABLE usuarios ADD COLUMN setor TEXT'); } catch {}
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS itens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      tipo TEXT NOT NULL CHECK(tipo IN ('estoque', 'inventario')),
+      categoria TEXT,
+      quantidade INTEGER DEFAULT 0,
+      quantidade_minima INTEGER DEFAULT 0,
+      localizacao TEXT,
+      descricao TEXT,
+      status TEXT DEFAULT 'disponivel',
+      numero_serie TEXT,
+      fabricante TEXT,
+      modelo TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME
+    );
+  `);
+
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_chamados_status ON chamados(status);
     CREATE INDEX IF NOT EXISTS idx_chamados_admin ON chamados(admin_responsavel_id);
     CREATE INDEX IF NOT EXISTS idx_chamados_usuario ON chamados(usuario_id);
     CREATE INDEX IF NOT EXISTS idx_chamados_criado ON chamados(criado_em);
     CREATE INDEX IF NOT EXISTS idx_mensagens_chamado ON mensagens_chamado(chamado_id);
     CREATE INDEX IF NOT EXISTS idx_historico_chamado ON historico_chamados(chamado_id);
+    CREATE INDEX IF NOT EXISTS idx_itens_tipo ON itens(tipo);
   `);
 
   return db;
@@ -559,6 +579,53 @@ function deletarAdmin(id) {
 
 
 
+function listarItens(tipo) {
+  return getDb().prepare('SELECT * FROM itens WHERE tipo = ? ORDER BY nome ASC').all(tipo);
+}
+
+function buscarItemPorId(id) {
+  return getDb().prepare('SELECT * FROM itens WHERE id = ?').get(id);
+}
+
+function criarItem(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO itens (nome, tipo, categoria, quantidade, quantidade_minima, localizacao, descricao, status, numero_serie, fabricante, modelo)
+    VALUES (@nome, @tipo, @categoria, @quantidade, @quantidade_minima, @localizacao, @descricao, @status, @numero_serie, @fabricante, @modelo)
+  `).run({
+    categoria: null, quantidade: 0, quantidade_minima: 0, localizacao: null,
+    descricao: null, status: 'disponivel', numero_serie: null, fabricante: null, modelo: null,
+    ...dados,
+  });
+  return result.lastInsertRowid;
+}
+
+function atualizarItem(id, dados) {
+  const campos = [];
+  const values = [];
+  const CAMPOS = ['nome', 'tipo', 'categoria', 'quantidade', 'quantidade_minima', 'localizacao', 'descricao', 'status', 'numero_serie', 'fabricante', 'modelo'];
+  for (const campo of CAMPOS) {
+    if (dados[campo] !== undefined) { campos.push(`${campo} = ?`); values.push(dados[campo]); }
+  }
+  if (campos.length === 0) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  values.push(id);
+  getDb().prepare(`UPDATE itens SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarItem(id) {
+  getDb().prepare('DELETE FROM itens WHERE id = ?').run(id);
+}
+
+function listarChamadosProcessoCompra() {
+  return getDb().prepare(`
+    SELECT c.*, a.nome_completo as admin_nome
+    FROM chamados c
+    LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    WHERE c.categoria = 'processo_compra' AND c.status IN ('aberto', 'em_andamento')
+    ORDER BY c.criado_em DESC
+  `).all();
+}
+
 function inserirMencoesEquipamentos(chamado_id, equipamentos) {
   const db = getDb();
   const stmt = db.prepare('INSERT INTO equipamentos_mencoes (chamado_id, equipamento) VALUES (?, ?)');
@@ -713,4 +780,10 @@ module.exports = {
   removerPushSubscription,
   getChamadosComPrazoPendente,
   registrarAlertaPrazo,
+  listarItens,
+  buscarItemPorId,
+  criarItem,
+  atualizarItem,
+  deletarItem,
+  listarChamadosProcessoCompra,
 };
