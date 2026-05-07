@@ -72,6 +72,7 @@ function _traduzirAcao(acao) {
     transferido: 'Chamado transferido',
     categoria_alterada: 'Categoria alterada',
     avaliacao_registrada: 'Avaliação do solicitante',
+    descricao_alterada:   'Reaberto pelo solicitante',
   };
   return t[acao] || acao;
 }

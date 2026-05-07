@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../db');
 const { requireUsuario } = require('../auth');
+const push = require('../push');
 
 function sanitizar(str) {
   if (typeof str !== 'string') return str;
@@ -83,6 +84,37 @@ router.post('/chamados/:id/assinar', requireUsuario, async (req, res) => {
     if (chamado.assinado_em) return res.status(400).json({ erro: 'Este chamado já foi assinado' });
     db.assinarChamado(chamadoId, assinatura);
     return res.json({ mensagem: 'Assinatura registrada com sucesso' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+// POST /api/usuarios/chamados/:id/reabrir
+router.post('/chamados/:id/reabrir', requireUsuario, (req, res) => {
+  try {
+    const chamadoId = parseInt(req.params.id, 10);
+    const novaDescricao = sanitizar(req.body.nova_descricao || '');
+
+    if (!novaDescricao || novaDescricao.length < 10 || novaDescricao.length > 2000) {
+      return res.status(400).json({ erro: 'A nova descrição deve ter entre 10 e 2000 caracteres' });
+    }
+
+    const chamado = db.buscarChamadoPorId(chamadoId);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (Number(chamado.usuario_id) !== Number(req.usuario.sub)) return res.status(403).json({ erro: 'Sem permissão' });
+    if (!['concluido', 'encerrado'].includes(chamado.status)) {
+      return res.status(400).json({ erro: 'Só é possível reabrir chamados concluídos ou encerrados' });
+    }
+
+    db.reabrirChamadoUsuario(chamadoId, novaDescricao);
+
+    const destino = chamado.admin_responsavel_id
+      ? push.enviarParaAdmin(chamado.admin_responsavel_id, '🔄 Chamado reaberto pelo solicitante', `${chamado.nome} (${chamado.setor}): ${novaDescricao.slice(0, 80)}${novaDescricao.length > 80 ? '…' : ''}`)
+      : push.enviarParaTodos('🔄 Chamado reaberto pelo solicitante', `${chamado.nome} (${chamado.setor}): ${novaDescricao.slice(0, 80)}${novaDescricao.length > 80 ? '…' : ''}`);
+    destino.catch(() => {});
+
+    return res.json({ mensagem: 'Chamado reaberto com sucesso' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

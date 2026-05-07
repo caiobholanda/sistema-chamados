@@ -517,6 +517,41 @@ function reabrirChamado(id, adminId) {
   `).run(id, adminId, chamado.status);
 }
 
+function reabrirChamadoUsuario(id, novaDescricao) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+
+  if (chamado.nota !== null && chamado.nota !== undefined) {
+    db.prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, NULL, 'avaliacao_registrada', ?, ?)
+    `).run(id, String(chamado.nota), chamado.comentario_avaliacao || null);
+  }
+
+  if (chamado.assinado_em) {
+    const jaSalva = db.prepare('SELECT id FROM assinaturas_historico WHERE chamado_id = ? AND assinado_em = ?').get(id, chamado.assinado_em);
+    if (!jaSalva) {
+      db.prepare(`INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id) VALUES (?, ?, ?, NULL)`).run(id, chamado.assinatura, chamado.assinado_em);
+    }
+  }
+
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, NULL, 'descricao_alterada', ?, ?)
+  `).run(id, chamado.descricao, novaDescricao);
+
+  db.prepare(`
+    UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL,
+    assinatura = NULL, assinado_em = NULL, nota = NULL, comentario_avaliacao = NULL,
+    descricao = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+  `).run(novaDescricao, id);
+
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, NULL, 'status_alterado', ?, 'aberto')
+  `).run(id, chamado.status);
+}
+
 function listarAssinaturasHistorico(chamadoId) {
   return getDb().prepare(`
     SELECT ah.*, a.nome_completo as admin_nome
@@ -833,6 +868,7 @@ module.exports = {
   concluirChamado,
   encerrarChamado,
   reabrirChamado,
+  reabrirChamadoUsuario,
   avaliarChamado,
   assinarChamado,
   registrarUsuario,

@@ -15,6 +15,7 @@
     transferido:          'Chamado transferido',
     categoria_alterada:   'Categoria alterada',
     avaliacao_registrada: 'Avaliação do solicitante',
+    descricao_alterada:   'Chamado reaberto pelo solicitante',
   };
 
   const STATUS_LABEL = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
@@ -31,6 +32,7 @@
     if (acao === 'prazo_alterado') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
     if (acao === 'prioridade_definida') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
     if (acao === 'avaliacao_registrada') return '★';
+    if (acao === 'descricao_alterada') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
     return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>';
   }
 
@@ -44,6 +46,7 @@
     if (acao === 'solucao_registrada')  return '#7c3aed';
     if (acao === 'prazo_alterado')      return '#dc2626';
     if (acao === 'avaliacao_registrada') return '#f59e0b';
+    if (acao === 'descricao_alterada')  return '#0ea5e9';
     return '#64748b';
   }
 
@@ -80,6 +83,13 @@
       const n = Number(h.valor_anterior) || 0;
       const estrelas = '★'.repeat(n) + '☆'.repeat(5 - n);
       return `${label}: <span style="color:#f59e0b;font-size:1rem;letter-spacing:.05em">${estrelas}</span>${h.valor_novo ? ` — <em style="color:#555">"${h.valor_novo}"</em>` : ''}`;
+    }
+    if (h.acao === 'descricao_alterada') {
+      return `${label}
+        <div style="margin-top:.35rem;font-size:.72rem;color:#94a3b8">Descrição anterior:</div>
+        <div class="ht-desc-box" style="opacity:.65;font-style:italic;margin-top:.1rem">${h.valor_anterior || ''}</div>
+        <div style="margin-top:.35rem;font-size:.72rem;color:#94a3b8">Nova descrição:</div>
+        <div class="ht-desc-box" style="margin-top:.1rem">${h.valor_novo || ''}</div>`;
     }
     const partes = [];
     if (h.valor_anterior !== null && h.valor_anterior !== undefined) partes.push(`de "${h.valor_anterior}"`);

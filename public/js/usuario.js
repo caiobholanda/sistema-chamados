@@ -445,9 +445,78 @@ function renderPainel(usuario) {
       if (btn) btn.addEventListener('click', () => abrirModalAssinatura(c.id));
     });
 
+    filtrados.filter(c => ['concluido', 'encerrado'].includes(c.status)).forEach(c => {
+      const btn = document.getElementById(`btn-reabrir-${c.id}`);
+      if (btn) btn.addEventListener('click', () => abrirModalReabertura(c.id));
+    });
+
     filtrados.filter(c => ['aberto', 'em_andamento'].includes(c.status)).forEach(c => {
       _iniciarChat(c.id);
     });
+  }
+
+  async function abrirModalReabertura(chamadoId) {
+    const existing = document.getElementById('reabrir-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'reabrir-overlay';
+    overlay.className = 'assinatura-overlay';
+    overlay.innerHTML = `
+      <div class="assinatura-modal">
+        <div class="assinatura-modal-header">
+          <div class="assinatura-modal-title">Reabrir chamado</div>
+          <button class="modal-close" id="btn-fechar-reabrir" aria-label="Fechar">&#x2715;</button>
+        </div>
+        <div class="assinatura-modal-body">
+          <p class="assinatura-instrucao">Descreva o problema atual. A descrição anterior e a nova ficam salvas no histórico.</p>
+          <div class="form-group" style="margin-bottom:.75rem">
+            <label style="font-size:.8rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:.35rem">Nova descrição do problema <span style="color:#dc2626">*</span></label>
+            <textarea id="reabrir-descricao" class="form-control" rows="5" maxlength="2000" placeholder="Descreva o problema com detalhes (mínimo 10 caracteres)..." style="resize:vertical"></textarea>
+            <div style="text-align:right;font-size:.7rem;color:var(--text-muted);margin-top:.2rem"><span id="reabrir-cnt">0</span>/2000</div>
+          </div>
+          <div id="msg-reabrir"></div>
+          <div class="assinatura-btns">
+            <button class="btn btn-secondary btn-sm" id="btn-cancelar-reabrir">Cancelar</button>
+            <button class="btn btn-primary" id="btn-confirmar-reabrir">Reabrir chamado</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const textarea = document.getElementById('reabrir-descricao');
+    const cnt = document.getElementById('reabrir-cnt');
+    textarea.addEventListener('input', () => { cnt.textContent = textarea.value.length; });
+
+    document.getElementById('btn-fechar-reabrir').addEventListener('click', () => overlay.remove());
+    document.getElementById('btn-cancelar-reabrir').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+    document.getElementById('btn-confirmar-reabrir').addEventListener('click', async () => {
+      const msgEl = document.getElementById('msg-reabrir');
+      const btn = document.getElementById('btn-confirmar-reabrir');
+      const texto = textarea.value.trim();
+      if (texto.length < 10) {
+        msgEl.innerHTML = '<div class="alert alert-danger">A descrição deve ter pelo menos 10 caracteres.</div>';
+        textarea.focus();
+        return;
+      }
+      btn.disabled = true; btn.textContent = 'Reabrindo...';
+      try {
+        const r = await apiFetch(`/api/usuarios/chamados/${chamadoId}/reabrir`, {
+          method: 'POST',
+          body: JSON.stringify({ nova_descricao: texto }),
+        });
+        const d = await r.json();
+        if (!r.ok) { msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+        overlay.remove();
+        await carregarChamados();
+      } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
+      finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Reabrir chamado'; } }
+    });
+
+    textarea.focus();
   }
 
   async function abrirModalAssinatura(chamadoId) {
@@ -587,6 +656,14 @@ function renderCardChamado(c) {
     </button>`;
   };
 
+  const reabrirHtml = () => {
+    if (!encerrado) return '';
+    return `<button class="btn-reabrir-chamado" id="btn-reabrir-${c.id}">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+      Reabrir chamado
+    </button>`;
+  };
+
   const chatHtml = !encerrado ? `
     <div class="chat-wrap">
       <div class="chat-header">Conversa com o Suporte</div>
@@ -616,6 +693,7 @@ function renderCardChamado(c) {
       ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${c.solucao}</div>` : ''}
       ${avaliacaoHtml()}
       ${assinaturaHtml()}
+      ${reabrirHtml()}
       ${chatHtml}
     </div>
   `;
