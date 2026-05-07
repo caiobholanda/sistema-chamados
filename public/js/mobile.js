@@ -76,6 +76,8 @@ function renderLogin() {
 }
 
 // ── Lista de chamados ─────────────────────────────────────────
+let filtroAtivo = 'meus';
+
 async function renderLista() {
   app.innerHTML = `
     <div class="mob-header">
@@ -85,6 +87,10 @@ async function renderLista() {
       </div>
       <button class="mob-sair-btn" id="mob-sair">Sair</button>
     </div>
+    <div class="mob-filtro-bar">
+      <button class="mob-filtro-btn ${filtroAtivo === 'meus' ? 'ativo' : ''}" data-filtro="meus">Meus chamados</button>
+      <button class="mob-filtro-btn ${filtroAtivo === 'todos' ? 'ativo' : ''}" data-filtro="todos">Todos</button>
+    </div>
     <div id="mob-lista" class="mob-lista"><div class="mob-loading">Carregando…</div></div>
   `;
 
@@ -93,8 +99,24 @@ async function renderLista() {
     renderLogin();
   });
 
+  document.querySelectorAll('.mob-filtro-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filtroAtivo = btn.dataset.filtro;
+      document.querySelectorAll('.mob-filtro-btn').forEach(b => b.classList.toggle('ativo', b.dataset.filtro === filtroAtivo));
+      carregarChamados();
+    });
+  });
+
+  carregarChamados();
+}
+
+async function carregarChamados() {
+  const lista = document.getElementById('mob-lista');
+  lista.innerHTML = '<div class="mob-loading">Carregando…</div>';
   try {
-    const r = await api('/api/admin/chamados?status=aberto,em_andamento');
+    const params = new URLSearchParams({ status: 'aberto,em_andamento' });
+    if (filtroAtivo === 'meus' && adminInfo) params.set('admin_id', adminInfo.id);
+    const r = await api('/api/admin/chamados?' + params);
     if (!r.ok) return;
     const chamados = await r.json();
     const lista = document.getElementById('mob-lista');
@@ -128,6 +150,7 @@ async function renderLista() {
     });
   } catch {}
 }
+
 
 // ── Detalhe + Conclusão ───────────────────────────────────────
 function renderDetalhe(c) {
