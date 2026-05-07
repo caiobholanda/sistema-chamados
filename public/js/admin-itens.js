@@ -172,7 +172,6 @@ function renderCompra(chamados) {
       <table>
         <thead>
           <tr>
-            <th>#</th>
             <th>Status</th>
             <th>Prioridade</th>
             <th>Solicitante</th>
@@ -184,8 +183,7 @@ function renderCompra(chamados) {
         </thead>
         <tbody>
           ${chamados.map(c => `
-            <tr class="pc-row-clicavel" onclick="abrirChamado(${c.id})" title="Abrir chamado #${c.id}">
-              <td style="font-weight:700;color:var(--text-muted)">#${c.id}</td>
+            <tr class="pc-row-clicavel" onclick="abrirChamado(${c.id})">
               <td><span class="badge badge-${c.status}">${STATUS_LABELS[c.status] || c.status}</span></td>
               <td>${c.prioridade ? `<span class="badge badge-${c.prioridade}">${PRIO_LABELS[c.prioridade]}</span>` : '<span style="color:var(--text-muted);font-size:.8rem">—</span>'}</td>
               <td style="font-weight:500">${c.nome}</td>

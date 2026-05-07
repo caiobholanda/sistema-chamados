@@ -453,7 +453,7 @@ function renderModalBody(c) {
 
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
 
-  document.getElementById('modal-title').innerHTML = `<span style="font-size:.82rem;font-weight:500;color:var(--text-muted);font-family:Inter,sans-serif">#${c.id}</span> ${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
+  document.getElementById('modal-title').innerHTML = `${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
 
   document.getElementById('modal-body').innerHTML = `
     <div class="mv2">

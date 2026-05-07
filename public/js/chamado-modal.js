@@ -131,7 +131,7 @@ function _renderBody(c) {
     : '<p class="text-muted" style="font-size:.85rem">Sem histórico.</p>';
 
   document.getElementById('cm-modal-title').innerHTML =
-    `<span style="font-size:.82rem;font-weight:500;color:var(--text-muted);font-family:Inter,sans-serif">#${c.id}</span> ${_badgeStatus(c.status)} ${_badgeCategoria(c.categoria)}`;
+    `${_badgeStatus(c.status)} ${_badgeCategoria(c.categoria)}`;
 
   document.getElementById('cm-modal-body').innerHTML = `
     <div class="mv2">

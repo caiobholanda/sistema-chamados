@@ -157,7 +157,6 @@ function renderDetalhe(c) {
   app.innerHTML = `
     <div class="mob-header">
       <button class="mob-voltar-btn" id="mob-voltar">← Voltar</button>
-      <div class="mob-header-title">#${c.id}</div>
     </div>
 
     <div class="mob-detalhe">
@@ -268,7 +267,7 @@ function renderSucesso(c) {
              stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div class="mob-sucesso-titulo">Chamado concluído!</div>
-      <div class="mob-sucesso-sub">#${c.id} · ${c.nome}</div>
+      <div class="mob-sucesso-sub">${c.nome}</div>
       <button class="mob-btn mob-btn-primary" id="mob-btn-voltar-lista">Ver chamados em aberto</button>
     </div>
   `;
