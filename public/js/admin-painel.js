@@ -449,23 +449,13 @@ function renderModalBody(c) {
 
   document.getElementById('modal-body').innerHTML = `
     <div class="mv2">
-      ${bannerAtraso}${bannerPrazo}
 
-      <!-- Hero do solicitante -->
-      <div class="mv2-hero">
-        <div class="mv2-avatar">${initial}</div>
-        <div class="mv2-hero-info">
-          <div class="mv2-nome">${c.nome}</div>
-          <div class="mv2-meta">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-            ${c.usuario_setor || c.setor}
-            <span class="mv2-sep">·</span>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            Ramal ${c.usuario_ramal || c.ramal}
-          </div>
-        </div>
-        <div class="mv2-hero-badge">${badgePrio(c.prioridade)}</div>
+      <!-- Logo Gran Marquise -->
+      <div class="mv2-logo-bar">
+        <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise" class="mv2-logo-img">
       </div>
+
+      ${bannerAtraso}${bannerPrazo}
 
       <!-- Layout principal: coluna info + coluna lateral -->
       <div class="mv2-layout">
@@ -553,26 +543,44 @@ function renderModalBody(c) {
               </div>
             </div>` : ''}
 
-          <!-- Histórico -->
-          <details class="mv2-historico">
-            <summary>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              Histórico de ações
-            </summary>
-            <div class="mv2-historico-body">${historicoHtml}</div>
-          </details>
+          <!-- Histórico + Zona de perigo lado a lado -->
+          <div class="mv2-bottom-row">
+            <details class="mv2-historico">
+              <summary>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Histórico de ações
+              </summary>
+              <div class="mv2-historico-body">${historicoHtml}</div>
+            </details>
 
-          ${adminInfo && adminInfo.is_master ? `
-            <div class="modal-danger-zone" style="margin-top:.25rem">
+            ${adminInfo && adminInfo.is_master ? `
+            <div class="modal-danger-zone mv2-danger-compact">
               <div class="modal-danger-label">Zona de perigo</div>
               <button class="btn btn-danger btn-sm" id="btn-deletar">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                Excluir chamado permanentemente
+                Excluir chamado
               </button>
             </div>` : ''}
+          </div>
+
+          <!-- Chat em tempo real (abaixo do histórico + zona de perigo) -->
+          ${isAberto ? `
+          <div class="mv2-chat-card">
+            <div class="mv2-chat-head">
+              <span class="mv2-chat-dot"></span>
+              Conversa em tempo real
+            </div>
+            <div class="chat-messages mv2-chat-msgs" id="chat-modal-msgs" data-cnt="0">
+              <div class="chat-vazio">Carregando...</div>
+            </div>
+            <form class="chat-input-row" id="chat-modal-form">
+              <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
+              <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+            </form>
+          </div>` : ''}
         </div>
 
-        <!-- Coluna lateral: ações + chat -->
+        <!-- Coluna lateral: ações -->
         <div class="mv2-side">
           <div id="msg-modal" style="margin-bottom:.4rem"></div>
 
@@ -627,22 +635,6 @@ function renderModalBody(c) {
               </div>
             `}
           </div>
-
-          ${isAberto ? `
-          <!-- Chat em tempo real -->
-          <div class="mv2-chat-card">
-            <div class="mv2-chat-head">
-              <span class="mv2-chat-dot"></span>
-              Conversa em tempo real
-            </div>
-            <div class="chat-messages" id="chat-modal-msgs" data-cnt="0">
-              <div class="chat-vazio">Carregando...</div>
-            </div>
-            <form class="chat-input-row" id="chat-modal-form">
-              <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
-              <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-            </form>
-          </div>` : ''}
         </div>
 
       </div>
