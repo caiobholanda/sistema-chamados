@@ -1966,12 +1966,13 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   flex-wrap: wrap;
   gap: .3rem;
   margin-top: .28rem;
-  font-size: .76rem;
-  color: rgba(255,255,255,.42);
+  font-size: .8rem;
+  color: rgba(255,255,255,.68);
   font-weight: 400;
+  letter-spacing: .01em;
 }
 .mv2-logo-user-setor .mv2-sep {
-  color: rgba(255,255,255,.2);
+  color: rgba(255,255,255,.3);
 }
 
 /* Histórico + Zona de perigo: faixa full-width abaixo das colunas */
