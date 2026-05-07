@@ -442,6 +442,46 @@ function renderModalBody(c) {
     : '';
 
 
+  const _assinHist = (c.assinaturasHistorico || []);
+  const _assinAtualFallback = (c.assinado_em && !_assinHist.some(a => a.assinado_em === c.assinado_em))
+    ? [{ _tipo: 'assinatura', _ts: c.assinado_em, assinatura: c.assinatura, assinado_em: c.assinado_em }]
+    : [];
+  const _todosEventos = [
+    ...(c.historico || []).map(h => ({ _tipo: 'acao', _ts: h.timestamp, ...h })),
+    ..._assinHist.map(a => ({ _tipo: 'assinatura', _ts: a.criado_em, ...a })),
+    ..._assinAtualFallback,
+  ].sort((a, b) => new Date(a._ts.replace(' ', 'T')) - new Date(b._ts.replace(' ', 'T')));
+
+  const historicoHtml = _todosEventos.length > 0
+    ? _todosEventos.map(ev => {
+        if (ev._tipo === 'assinatura') return `
+          <div class="historico-item historico-item-assin">
+            <span class="historico-acao" style="color:#15803d">✔ Recebimento confirmado pelo solicitante</span>
+            <div class="historico-meta">${fmtData(ev.assinado_em)}</div>
+            ${ev.assinatura
+              ? `<img src="${ev.assinatura}" alt="Assinatura" class="hist-inline-assin">`
+              : `<span class="text-muted" style="font-size:.78rem">Confirmado sem desenho</span>`}
+          </div>`;
+        if (ev.acao === 'avaliacao_registrada') {
+          const estrelas = '★'.repeat(Number(ev.valor_anterior)) + '☆'.repeat(5 - Number(ev.valor_anterior));
+          return `
+            <div class="historico-item historico-item-avaliacao">
+              <span class="historico-acao">Avaliação do solicitante</span>
+              <span class="hist-estrelas">${estrelas}</span>
+              ${ev.valor_novo ? `<span class="text-muted" style="font-size:.8rem">"${ev.valor_novo}"</span>` : ''}
+              <div class="historico-meta">${fmtData(ev.timestamp)}</div>
+            </div>`;
+        }
+        return `
+          <div class="historico-item">
+            <span class="historico-acao">${traduzirAcao(ev.acao)}</span>
+            ${ev.valor_anterior !== null ? ` <span class="text-muted">de "${ev.valor_anterior || '—'}"</span>` : ''}
+            ${ev.valor_novo !== null ? ` <span class="text-muted">para "${ev.valor_novo || '—'}"</span>` : ''}
+            <div class="historico-meta">${ev.admin_nome || 'Sistema'} · ${fmtData(ev.timestamp)}</div>
+          </div>`;
+      }).join('')
+    : '<p class="text-muted" style="font-size:.85rem">Sem histórico.</p>';
+
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
 
   document.getElementById('modal-title').innerHTML = `${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
@@ -614,10 +654,17 @@ function renderModalBody(c) {
 
       <!-- Histórico + Zona de perigo: full-width, lado a lado -->
       <div class="mv2-fullrow">
-        <button class="btn btn-ghost btn-sm mv2-hist-completo-btn mv2-hist-standalone" id="btn-hist-completo">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Ver histórico do chamado
-        </button>
+        <details class="mv2-historico">
+          <summary>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Histórico de ações
+            <button class="btn btn-ghost btn-sm mv2-hist-completo-btn" id="btn-hist-completo" onclick="event.stopPropagation()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Ver histórico completo
+            </button>
+          </summary>
+          <div class="mv2-historico-body">${historicoHtml}</div>
+        </details>
         ${adminInfo && adminInfo.is_master ? `
         <div class="modal-danger-zone mv2-danger-compact">
           <div class="modal-danger-label">Zona de perigo</div>

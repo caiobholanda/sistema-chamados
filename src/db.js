@@ -499,6 +499,13 @@ function reabrirChamado(id, adminId) {
       VALUES (?, ?, 'avaliacao_registrada', ?, ?)
     `).run(id, null, String(chamado.nota), chamado.comentario_avaliacao || null);
   }
+  // Safety net: preserve signature if not yet saved (e.g. signed before this deploy)
+  if (chamado.assinado_em) {
+    const jaSalva = db.prepare('SELECT id FROM assinaturas_historico WHERE chamado_id = ? AND assinado_em = ?').get(id, chamado.assinado_em);
+    if (!jaSalva) {
+      db.prepare(`INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id) VALUES (?, ?, ?, ?)`).run(id, chamado.assinatura, chamado.assinado_em, adminId);
+    }
+  }
   db.prepare(`
     UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL,
     assinatura = NULL, assinado_em = NULL, nota = NULL, comentario_avaliacao = NULL,
