@@ -7,13 +7,14 @@
   }
 
   const ACAO_LABEL = {
-    prioridade_definida: 'Prioridade definida',
-    status_alterado:     'Status alterado',
-    prazo_alterado:      'Prazo alterado',
-    solucao_registrada:  'Solução registrada',
-    assumido:            'Chamado assumido',
-    transferido:         'Chamado transferido',
-    categoria_alterada:  'Categoria alterada',
+    prioridade_definida:  'Prioridade definida',
+    status_alterado:      'Status alterado',
+    prazo_alterado:       'Prazo alterado',
+    solucao_registrada:   'Solução registrada',
+    assumido:             'Chamado assumido',
+    transferido:          'Chamado transferido',
+    categoria_alterada:   'Categoria alterada',
+    avaliacao_registrada: 'Avaliação do solicitante',
   };
 
   const STATUS_LABEL = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
@@ -29,6 +30,7 @@
     if (acao === 'assumido' || acao === 'transferido') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
     if (acao === 'prazo_alterado') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
     if (acao === 'prioridade_definida') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    if (acao === 'avaliacao_registrada') return '★';
     return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>';
   }
 
@@ -39,8 +41,9 @@
       if (valorNovo === 'em_andamento') return '#d97706';
       if (valorNovo === 'encerrado')    return '#6b7280';
     }
-    if (acao === 'solucao_registrada') return '#7c3aed';
-    if (acao === 'prazo_alterado')     return '#dc2626';
+    if (acao === 'solucao_registrada')  return '#7c3aed';
+    if (acao === 'prazo_alterado')      return '#dc2626';
+    if (acao === 'avaliacao_registrada') return '#f59e0b';
     return '#64748b';
   }
 
@@ -72,6 +75,11 @@
     }
     if (h.acao === 'categoria_alterada') {
       return `${label}: <strong>${h.valor_novo || '—'}</strong>`;
+    }
+    if (h.acao === 'avaliacao_registrada') {
+      const n = Number(h.valor_anterior) || 0;
+      const estrelas = '★'.repeat(n) + '☆'.repeat(5 - n);
+      return `${label}: <span style="color:#f59e0b;font-size:1rem;letter-spacing:.05em">${estrelas}</span>${h.valor_novo ? ` — <em style="color:#555">"${h.valor_novo}"</em>` : ''}`;
     }
     const partes = [];
     if (h.valor_anterior !== null && h.valor_anterior !== undefined) partes.push(`de "${h.valor_anterior}"`);

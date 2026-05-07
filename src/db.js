@@ -495,9 +495,16 @@ function reabrirChamado(id, adminId) {
       VALUES (?, ?, ?, ?)
     `).run(id, chamado.assinatura, chamado.assinado_em, adminId);
   }
+  if (chamado.nota !== null && chamado.nota !== undefined) {
+    db.prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'avaliacao_registrada', ?, ?)
+    `).run(id, null, String(chamado.nota), chamado.comentario_avaliacao || null);
+  }
   db.prepare(`
     UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL,
-    assinatura = NULL, assinado_em = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+    assinatura = NULL, assinado_em = NULL, nota = NULL, comentario_avaliacao = NULL,
+    atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
   `).run(id);
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)

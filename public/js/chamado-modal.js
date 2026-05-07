@@ -71,6 +71,7 @@ function _traduzirAcao(acao) {
     assumido: 'Chamado assumido',
     transferido: 'Chamado transferido',
     categoria_alterada: 'Categoria alterada',
+    avaliacao_registrada: 'Avaliação do solicitante',
   };
   return t[acao] || acao;
 }
@@ -135,6 +136,16 @@ function _renderBody(c) {
               ? `<img src="${ev.assinatura}" alt="Assinatura" class="hist-inline-assin">`
               : `<span class="text-muted" style="font-size:.78rem">Confirmado sem desenho</span>`}
           </div>`;
+        if (ev.acao === 'avaliacao_registrada') {
+          const estrelas = '★'.repeat(Number(ev.valor_anterior)) + '☆'.repeat(5 - Number(ev.valor_anterior));
+          return `
+            <div class="historico-item historico-item-avaliacao">
+              <span class="historico-acao">Avaliação do solicitante</span>
+              <span class="hist-estrelas">${estrelas}</span>
+              ${ev.valor_novo ? `<span class="text-muted" style="font-size:.8rem">"${ev.valor_novo}"</span>` : ''}
+              <div class="historico-meta">${_fmtData(ev.timestamp)}</div>
+            </div>`;
+        }
         return `
           <div class="historico-item">
             <span class="historico-acao">${_traduzirAcao(ev.acao)}</span>

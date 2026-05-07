@@ -753,6 +753,8 @@ tbody tr:hover td { background: #FAF7F2; }
 .historico-meta { color: var(--text-muted); font-size: .74rem; }
 .historico-item-assin { background: #f0fdf4; border-radius: var(--radius-sm); padding: .6rem .75rem; border-bottom: none; margin-bottom: .35rem; }
 .hist-inline-assin { display: block; max-width: 220px; height: auto; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); background: #fff; margin-top: .4rem; }
+.historico-item-avaliacao { background: #fffbeb; border-radius: var(--radius-sm); padding: .6rem .75rem; border-bottom: none; margin-bottom: .35rem; }
+.hist-estrelas { font-size: 1rem; color: #f59e0b; letter-spacing: .05em; }
 
 /* ═══════════════════════════════════════════
    UTILITÁRIOS
