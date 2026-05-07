@@ -2,6 +2,9 @@ let adminInfo = null;
 let abaAtiva = 'estoque';
 let _itensCache = [];
 
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+const PRIO_LABELS   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+
 const STATUS_INVENTARIO = {
   disponivel:     { label: 'Disponível',    cls: 'inv-disponivel' },
   em_uso:         { label: 'Em uso',        cls: 'inv-em-uso' },
@@ -19,6 +22,13 @@ function fmtData(d) {
   const iso = d.includes('T') ? d : d.replace(' ', 'T');
   const date = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
   return date.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' });
+}
+
+function fmtDataHora(d) {
+  if (!d) return '—';
+  const iso = d.includes('T') ? d : d.replace(' ', 'T');
+  const date = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
 }
 
 async function api(url, opts = {}) {
@@ -142,45 +152,82 @@ function renderInventario(itens) {
   `;
 }
 
-// ── Carregar itens ────────────────────────────────────────
+function renderCompra(chamados) {
+  const el = document.getElementById('itens-lista');
+  const badge = document.getElementById('badge-compra');
+  const abertos = chamados.filter(c => ['aberto', 'em_andamento'].includes(c.status)).length;
+  badge.textContent = abertos || '';
+
+  if (!chamados.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum chamado identificado como processo de compra pela IA.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.75rem">
+      Chamados classificados automaticamente pela IA como <strong>Processo de Compra</strong>.
+      Clique em qualquer linha para abrir o chamado completo.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Status</th>
+            <th>Prioridade</th>
+            <th>Solicitante</th>
+            <th>Setor</th>
+            <th>Descrição</th>
+            <th>Data</th>
+            <th>Responsável</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${chamados.map(c => `
+            <tr class="pc-row-clicavel" onclick="abrirChamado(${c.id})" title="Abrir chamado #${c.id}">
+              <td style="font-weight:700;color:var(--text-muted)">#${c.id}</td>
+              <td><span class="badge badge-${c.status}">${STATUS_LABELS[c.status] || c.status}</span></td>
+              <td>${c.prioridade ? `<span class="badge badge-${c.prioridade}">${PRIO_LABELS[c.prioridade]}</span>` : '<span style="color:var(--text-muted);font-size:.8rem">—</span>'}</td>
+              <td style="font-weight:500">${c.nome}</td>
+              <td style="color:var(--text-secondary)">${c.setor}</td>
+              <td style="max-width:280px">
+                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.82rem;color:var(--text-secondary)">
+                  ${c.descricao.length > 90 ? c.descricao.slice(0, 90) + '…' : c.descricao}
+                </div>
+              </td>
+              <td style="white-space:nowrap;color:var(--text-muted);font-size:.8rem">${fmtDataHora(c.criado_em)}</td>
+              <td style="color:var(--text-secondary);font-size:.82rem">${c.admin_nome || '<span style="color:var(--text-muted)">—</span>'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function abrirChamado(id) {
+  location.href = `/admin-painel.html?chamado=${id}`;
+}
+
+// ── Carregar conteúdo da aba ──────────────────────────────
 
 async function carregarItens() {
   document.getElementById('itens-lista').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  document.getElementById('btn-novo-item').style.display = abaAtiva === 'compra' ? 'none' : '';
   try {
-    const r = await api(`/api/admin/itens?tipo=${abaAtiva}`);
-    _itensCache = await r.json();
-    if (abaAtiva === 'estoque') renderEstoque(_itensCache);
-    else renderInventario(_itensCache);
+    if (abaAtiva === 'compra') {
+      const r = await api('/api/admin/itens/chamados-compra');
+      const chamados = await r.json();
+      renderCompra(chamados);
+    } else {
+      const r = await api(`/api/admin/itens?tipo=${abaAtiva}`);
+      _itensCache = await r.json();
+      if (abaAtiva === 'estoque') renderEstoque(_itensCache);
+      else renderInventario(_itensCache);
+    }
   } catch (e) {
-    if (e.message !== '401') document.getElementById('itens-lista').innerHTML = '<div style="padding:2rem;color:var(--danger)">Erro ao carregar itens.</div>';
+    if (e.message !== '401') document.getElementById('itens-lista').innerHTML = '<div style="padding:2rem;color:var(--danger)">Erro ao carregar dados.</div>';
   }
-}
-
-// ── Processo de compra ────────────────────────────────────
-
-async function carregarProcessoCompra() {
-  try {
-    const r = await api('/api/admin/itens/chamados-compra');
-    const chamados = await r.json();
-    const widget = document.getElementById('processo-compra-widget');
-    const lista = document.getElementById('processo-compra-lista');
-
-    if (!chamados.length) { widget.style.display = 'none'; return; }
-
-    widget.style.display = 'block';
-    lista.innerHTML = chamados.map(c => `
-      <div class="pc-chamado-item">
-        <div class="pc-chamado-info">
-          <a href="/admin-painel.html" class="pc-chamado-id">#${c.id}</a>
-          <span class="pc-chamado-nome">${c.nome}</span>
-          <span class="pc-chamado-sep">·</span>
-          <span class="pc-chamado-setor">${c.setor}</span>
-        </div>
-        <div class="pc-chamado-desc">${c.descricao.length > 120 ? c.descricao.slice(0, 120) + '…' : c.descricao}</div>
-        <div class="pc-chamado-meta">${fmtData(c.criado_em)}${c.admin_nome ? ` · ${c.admin_nome}` : ''}</div>
-      </div>
-    `).join('');
-  } catch {}
 }
 
 // ── Modal ─────────────────────────────────────────────────
@@ -380,6 +427,6 @@ async function confirmarDeletar(id, nome) {
       if (e.target === e.currentTarget) fecharModal();
     });
 
-    await Promise.all([carregarItens(), carregarProcessoCompra()]);
+    await carregarItens();
   } catch {}
 })();

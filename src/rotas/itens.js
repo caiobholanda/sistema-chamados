@@ -14,7 +14,8 @@ const TIPOS_VALIDOS = ['estoque', 'inventario'];
 const STATUS_VALIDOS = ['disponivel', 'em_uso', 'em_manutencao', 'descartado'];
 
 router.get('/chamados-compra', requireAdmin, (req, res) => {
-  res.json(db.listarChamadosProcessoCompra());
+  const apenasAbertos = req.query.abertos === '1';
+  res.json(db.listarChamadosProcessoCompra({ apenasAbertos }));
 });
 
 router.get('/', requireAdmin, (req, res) => {

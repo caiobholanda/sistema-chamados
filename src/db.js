@@ -616,13 +616,16 @@ function deletarItem(id) {
   getDb().prepare('DELETE FROM itens WHERE id = ?').run(id);
 }
 
-function listarChamadosProcessoCompra() {
+function listarChamadosProcessoCompra({ apenasAbertos = false } = {}) {
+  const cond = apenasAbertos ? `AND c.status IN ('aberto', 'em_andamento')` : '';
   return getDb().prepare(`
     SELECT c.*, a.nome_completo as admin_nome
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
-    WHERE c.categoria = 'processo_compra' AND c.status IN ('aberto', 'em_andamento')
-    ORDER BY c.criado_em DESC
+    WHERE c.categoria = 'processo_compra' ${cond}
+    ORDER BY
+      CASE WHEN c.status IN ('aberto','em_andamento') THEN 0 ELSE 1 END ASC,
+      c.criado_em DESC
   `).all();
 }
 

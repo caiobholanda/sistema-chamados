@@ -111,6 +111,13 @@ async function api(url, opts = {}) {
     atualizarFiltrosDeAba();
     await Promise.all([carregarChamados(), carregarEstatisticas(), carregarEquipamentos()]);
 
+    // Abre modal diretamente se vier de outra página via ?chamado=ID
+    const urlParams = new URLSearchParams(location.search);
+    const chamadoParam = urlParams.get('chamado');
+    if (chamadoParam && +chamadoParam) {
+      setTimeout(() => abrirModal(+chamadoParam), 200);
+    }
+
     // Auto-refresh silencioso a cada 5s (não atualiza se o modal estiver aberto)
     setInterval(() => {
       if (chamadoAtual) return;
