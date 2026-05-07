@@ -443,6 +443,10 @@ function concluirChamado(id, solucao, adminId, assinatura = null) {
       UPDATE chamados SET status = 'concluido', solucao = ?, assinatura = ?, assinado_em = CURRENT_TIMESTAMP,
       atualizado_em = CURRENT_TIMESTAMP, concluido_em = CURRENT_TIMESTAMP WHERE id = ?
     `).run(solucao, assinatura, id);
+    db.prepare(`
+      INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id)
+      VALUES (?, ?, CURRENT_TIMESTAMP, ?)
+    `).run(id, assinatura, adminId);
   } else {
     db.prepare(`
       UPDATE chamados SET status = 'concluido', solucao = ?,
@@ -489,12 +493,6 @@ function transferirChamado(id, adminId, novoAdminId, nomeNovoAdmin) {
 function reabrirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
-  if (chamado.assinatura || chamado.assinado_em) {
-    db.prepare(`
-      INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id)
-      VALUES (?, ?, ?, ?)
-    `).run(id, chamado.assinatura, chamado.assinado_em, adminId);
-  }
   if (chamado.nota !== null && chamado.nota !== undefined) {
     db.prepare(`
       INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
@@ -529,9 +527,14 @@ function avaliarChamado(id, nota, comentario) {
 }
 
 function assinarChamado(id, assinatura) {
-  getDb().prepare(`
+  const db = getDb();
+  db.prepare(`
     UPDATE chamados SET assinatura = ?, assinado_em = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
   `).run(assinatura, id);
+  db.prepare(`
+    INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id)
+    VALUES (?, ?, CURRENT_TIMESTAMP, NULL)
+  `).run(id, assinatura);
 }
 
 

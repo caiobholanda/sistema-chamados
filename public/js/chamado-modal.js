@@ -121,9 +121,14 @@ function _renderBody(c) {
     ? `<div class="banner-prazo"><strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'}: de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? _fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? _fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
     : '';
 
+  const _assinHist = (c.assinaturasHistorico || []);
+  const _assinAtualFallback = (c.assinado_em && !_assinHist.length)
+    ? [{ _tipo: 'assinatura', _ts: c.assinado_em, assinatura: c.assinatura, assinado_em: c.assinado_em }]
+    : [];
   const _todosEventos = [
     ...(c.historico || []).map(h => ({ _tipo: 'acao', _ts: h.timestamp, ...h })),
-    ...(c.assinaturasHistorico || []).map(a => ({ _tipo: 'assinatura', _ts: a.criado_em, ...a })),
+    ..._assinHist.map(a => ({ _tipo: 'assinatura', _ts: a.criado_em, ...a })),
+    ..._assinAtualFallback,
   ].sort((a, b) => new Date(a._ts.replace(' ', 'T')) - new Date(b._ts.replace(' ', 'T')));
 
   const historicoHtml = _todosEventos.length > 0

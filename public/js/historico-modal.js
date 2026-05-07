@@ -105,18 +105,19 @@
       eventos.push({ _tipo: 'acao', _ts: h.timestamp, ...h });
     }
 
-    // Assinaturas históricas (de chamados reabertos)
+    // Todas as assinaturas do histórico (salvas no momento da criação)
     for (const ah of (c.assinaturasHistorico || [])) {
       eventos.push({ _tipo: 'assinatura_hist', _ts: ah.criado_em, ...ah });
     }
 
-    // Assinatura atual (se existir)
-    if (c.assinado_em) {
+    // Compatibilidade: assinatura atual sem entrada na tabela (chamados antigos)
+    if (c.assinado_em && !(c.assinaturasHistorico || []).length) {
       eventos.push({
-        _tipo: 'assinatura_atual',
+        _tipo: 'assinatura_hist',
         _ts: c.assinado_em,
         assinatura: c.assinatura,
         assinado_em: c.assinado_em,
+        admin_nome: null,
       });
     }
 
@@ -158,22 +159,6 @@
       if (ev._tipo === 'assinatura_hist') {
         return `
           <div class="ht-item ht-item-assin">
-            <div class="ht-dot ht-dot-assin">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/><path d="M8 12l3 3 5-5"/></svg>
-            </div>
-            <div class="ht-content">
-              <div class="ht-titulo ht-assin-titulo">Recebimento confirmado pelo solicitante <span class="ht-tag-hist">Histórico</span></div>
-              <div class="ht-meta">${fmtD(ev.assinado_em)} · Reaberto por ${ev.admin_nome || 'Admin'}</div>
-              ${ev.assinatura
-                ? `<img src="${ev.assinatura}" alt="Assinatura histórica" class="ht-assin-img">`
-                : `<div class="ht-sem-assin">Confirmado sem desenho</div>`}
-            </div>
-          </div>`;
-      }
-
-      if (ev._tipo === 'assinatura_atual') {
-        return `
-          <div class="ht-item ht-item-assin ht-item-assin-atual">
             <div class="ht-dot ht-dot-assin">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/><path d="M8 12l3 3 5-5"/></svg>
             </div>
