@@ -308,6 +308,7 @@ function _renderBody(c) {
         <div class="chat-messages mv2-chat-msgs" id="cm-chat-msgs" data-cnt="0">
           <div class="chat-vazio">Carregando...</div>
         </div>
+        <div class="chat-send-error" id="cm-chat-err"></div>
         <form class="chat-input-row" id="cm-chat-form">
           <input type="text" class="chat-input" id="cm-chat-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
           <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
@@ -454,14 +455,24 @@ function _setupEventos(c) {
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = q('cm-chat-input');
+      const errEl = q('cm-chat-err');
       const texto = input.value.trim();
       if (!texto) return;
       const btn = chatForm.querySelector('button');
       btn.disabled = true;
+      if (errEl) errEl.textContent = '';
       try {
         const r = await _api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
-        if (r.ok) { input.value = ''; await _atualizarChat(c.id); }
-      } catch {}
+        if (r.ok) {
+          input.value = '';
+          await _atualizarChat(c.id);
+        } else {
+          const d = await r.json().catch(() => ({}));
+          if (errEl) errEl.textContent = d.erro || 'Erro ao enviar mensagem.';
+        }
+      } catch {
+        if (errEl) errEl.textContent = 'Erro de conexão.';
+      }
       finally { btn.disabled = false; input.focus(); }
     });
   }

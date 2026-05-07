@@ -133,7 +133,7 @@ router.get('/:id/mensagens', (req, res) => {
     if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (chamado.usuario_id !== usuario_id) return res.status(403).json({ erro: 'Acesso negado' });
+    if (Number(chamado.usuario_id) !== Number(usuario_id)) return res.status(403).json({ erro: 'Acesso negado' });
     return res.json(db.listarMensagensChamado(chamado.id));
   } catch (err) {
     console.error(err);
@@ -147,7 +147,7 @@ router.post('/:id/mensagens', (req, res) => {
     if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (chamado.usuario_id !== usuario_id) return res.status(403).json({ erro: 'Acesso negado' });
+    if (Number(chamado.usuario_id) !== Number(usuario_id)) return res.status(403).json({ erro: 'Acesso negado' });
     if (!['aberto', 'em_andamento'].includes(chamado.status)) {
       return res.status(400).json({ erro: 'Chamado encerrado — não é possível enviar mensagens' });
     }

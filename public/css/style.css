@@ -1443,6 +1443,13 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border-color: var(--gold);
   box-shadow: 0 0 0 2px rgba(197,165,90,.12);
 }
+.chat-send-error {
+  font-size: .75rem;
+  color: var(--danger, #dc2626);
+  padding: 0 .85rem;
+  min-height: 0;
+}
+.chat-send-error:not(:empty) { padding: .3rem .85rem; }
 
 /* ═══════════════════════════════════════════
    MODAL REDESIGN

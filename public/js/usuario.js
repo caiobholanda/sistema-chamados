@@ -45,6 +45,7 @@ async function _atualizarChat(chamadoId) {
   const anterior = +(box.dataset.cnt || 0);
   try {
     const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens?_t=' + Date.now());
+    if (r.status === 401) { _pararRefresh(); _limparChats(); renderAuth(); return; }
     if (!r.ok) return;
     const msgs = await r.json();
     box.dataset.cnt = msgs.length;
@@ -67,17 +68,27 @@ function _iniciarChat(chamadoId) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = document.getElementById('chat-input-' + chamadoId);
+    const errEl = document.getElementById('chat-err-' + chamadoId);
     const texto = input.value.trim();
     if (!texto) return;
     const btn = form.querySelector('button');
     btn.disabled = true;
+    if (errEl) errEl.textContent = '';
     try {
       const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens', {
         method: 'POST',
         body: JSON.stringify({ mensagem: texto }),
       });
-      if (r.ok) { input.value = ''; await _atualizarChat(chamadoId); }
-    } catch {}
+      if (r.ok) {
+        input.value = '';
+        await _atualizarChat(chamadoId);
+      } else {
+        const d = await r.json().catch(() => ({}));
+        if (errEl) errEl.textContent = d.erro || 'Erro ao enviar mensagem.';
+      }
+    } catch {
+      if (errEl) errEl.textContent = 'Erro de conexão.';
+    }
     finally { btn.disabled = false; input.focus(); }
   });
 }
@@ -94,7 +105,7 @@ function badgeStatus(s) {
 }
 
 async function apiFetch(url, opts = {}) {
-  return fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  return fetch(url, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
 }
 
 (async () => {
@@ -582,6 +593,7 @@ function renderCardChamado(c) {
       <div class="chat-messages" id="chat-msgs-${c.id}" data-cnt="0">
         <div class="chat-vazio">Carregando...</div>
       </div>
+      <div class="chat-send-error" id="chat-err-${c.id}"></div>
       <form class="chat-input-row" id="chat-form-${c.id}">
         <input type="text" class="chat-input" id="chat-input-${c.id}" placeholder="Escreva uma mensagem para o suporte..." maxlength="1000" autocomplete="off">
         <button type="submit" class="btn btn-primary btn-sm">Enviar</button>

@@ -639,6 +639,7 @@ function renderModalBody(c) {
         <div class="chat-messages mv2-chat-msgs" id="chat-modal-msgs" data-cnt="0">
           <div class="chat-vazio">Carregando...</div>
         </div>
+        <div class="chat-send-error" id="chat-modal-err"></div>
         <form class="chat-input-row" id="chat-modal-form">
           <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
           <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
@@ -793,17 +794,27 @@ function setupModalEventos(c) {
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = document.getElementById('chat-modal-input');
+      const errEl = document.getElementById('chat-modal-err');
       const texto = input.value.trim();
       if (!texto) return;
       const btn = chatForm.querySelector('button');
       btn.disabled = true;
+      if (errEl) errEl.textContent = '';
       try {
         const r = await api(`/api/admin/chamados/${c.id}/mensagens`, {
           method: 'POST',
           body: JSON.stringify({ mensagem: texto }),
         });
-        if (r.ok) { input.value = ''; await _atualizarChatAdmin(c.id); }
-      } catch {}
+        if (r.ok) {
+          input.value = '';
+          await _atualizarChatAdmin(c.id);
+        } else {
+          const d = await r.json().catch(() => ({}));
+          if (errEl) errEl.textContent = d.erro || 'Erro ao enviar mensagem.';
+        }
+      } catch {
+        if (errEl) errEl.textContent = 'Erro de conexão.';
+      }
       finally { btn.disabled = false; input.focus(); }
     });
   }
