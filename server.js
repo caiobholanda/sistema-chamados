@@ -81,7 +81,8 @@ async function checarPrazos() {
     const agora = new Date();
     const chamados = getChamadosComPrazoPendente();
     for (const c of chamados) {
-      const prazo = new Date(c.prazo.replace(' ', 'T') + (c.prazo.includes('T') ? '' : 'Z'));
+      const prazoIso = c.prazo.includes('T') ? c.prazo : c.prazo.replace(' ', 'T');
+      const prazo = new Date(prazoIso.endsWith('Z') ? prazoIso : prazoIso + 'Z');
       const diffH = (prazo - agora) / 3600000;
       if (diffH > 0 && diffH <= 1) {
         if (registrarAlertaPrazo(c.id, '1h')) {

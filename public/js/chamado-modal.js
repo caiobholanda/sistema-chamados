@@ -59,22 +59,8 @@ function _badgePrio(p) {
 function _estaAtrasado(c) {
   if (!c.prazo) return false;
   if (['concluido', 'encerrado'].includes(c.status)) return false;
-  return new Date(c.prazo.replace(' ', 'T')) < new Date();
-}
-
-function _traduzirAcao(acao) {
-  const t = {
-    prioridade_definida: 'Prioridade definida',
-    status_alterado: 'Status alterado',
-    prazo_alterado: 'Prazo alterado',
-    solucao_registrada: 'Solução registrada',
-    assumido: 'Chamado assumido',
-    transferido: 'Chamado transferido',
-    categoria_alterada: 'Categoria alterada',
-    avaliacao_registrada: 'Avaliação do solicitante',
-    descricao_alterada:   'Reaberto pelo solicitante',
-  };
-  return t[acao] || acao;
+  const iso = c.prazo.includes('T') ? c.prazo : c.prazo.replace(' ', 'T');
+  return new Date(iso.endsWith('Z') ? iso : iso + 'Z') < new Date();
 }
 
 async function _atualizarChat(id) {
@@ -92,6 +78,7 @@ async function _atualizarChat(id) {
         box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem trocada ainda.</div>';
       return;
     }
+    if (msgs.length === anterior) return;
     const adminInfo = window.adminInfo;
     box.innerHTML = msgs.map(m => {
       const mine = m.autor_tipo === 'admin';
@@ -419,10 +406,21 @@ function _setupEventos(c) {
   if (q('cm-btn-confirmar-concluir')) {
     q('cm-btn-confirmar-concluir').addEventListener('click', async () => {
       const solucao = q('cm-txt-solucao').value.trim();
-      const r = await _api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
-      const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado concluído.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-      if (r.ok) setTimeout(() => window.abrirChamadoModal(c.id), 700);
+      if (!solucao || solucao.length < 5) {
+        setMsg('<div class="alert alert-danger">Informe a solução aplicada (mínimo 5 caracteres).</div>');
+        q('cm-txt-solucao').focus();
+        return;
+      }
+      const btn = q('cm-btn-confirmar-concluir');
+      btn.disabled = true; btn.textContent = 'Concluindo…';
+      try {
+        const r = await _api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
+        const d = await r.json();
+        setMsg(r.ok ? '<div class="alert alert-success">Chamado concluído.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        if (r.ok) setTimeout(() => window.abrirChamadoModal(c.id), 700);
+      } finally {
+        if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Confirmar conclusão'; }
+      }
     });
   }
 
