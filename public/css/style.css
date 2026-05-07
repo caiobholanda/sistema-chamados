@@ -2779,8 +2779,9 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   display: flex; align-items: flex-start; justify-content: flex-end;
   opacity: 0; transition: opacity .25s;
   overflow: hidden;
+  pointer-events: none;
 }
-.hist-overlay.open { opacity: 1; }
+.hist-overlay.open { opacity: 1; pointer-events: auto; }
 .hist-modal {
   width: min(520px, 100vw);
   height: 100vh;

@@ -210,7 +210,8 @@
 
     const fechar = () => {
       overlay.classList.remove('open');
-      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+      const tid = setTimeout(() => overlay.remove(), 400);
+      overlay.addEventListener('transitionend', () => { clearTimeout(tid); overlay.remove(); }, { once: true });
     };
     document.getElementById('hist-fechar').addEventListener('click', fechar);
     overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
