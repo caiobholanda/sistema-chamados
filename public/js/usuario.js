@@ -453,7 +453,7 @@ function renderPainel(usuario) {
           <button class="modal-close" id="btn-fechar-assinatura" aria-label="Fechar">&#x2715;</button>
         </div>
         <div class="assinatura-modal-body">
-          <p class="assinatura-instrucao">Assine no espaço abaixo para confirmar que o chamado foi resolvido:</p>
+          <p class="assinatura-instrucao">Confirme que o chamado foi resolvido. A assinatura é opcional — você pode confirmar sem desenhar.</p>
           <div class="assinatura-canvas-wrap">
             <canvas id="assinatura-canvas" class="assinatura-canvas"></canvas>
           </div>
@@ -519,16 +519,12 @@ function renderPainel(usuario) {
 
     document.getElementById('btn-confirmar-assinatura').addEventListener('click', async () => {
       const msgEl = document.getElementById('msg-assinatura');
-      if (!temTraco) {
-        msgEl.innerHTML = '<div class="alert alert-danger">Por favor, assine antes de confirmar.</div>';
-        return;
-      }
       const btn = document.getElementById('btn-confirmar-assinatura');
       btn.disabled = true; btn.textContent = 'Enviando...';
       try {
         const r = await apiFetch(`/api/usuarios/chamados/${chamadoId}/assinar`, {
           method: 'POST',
-          body: JSON.stringify({ assinatura: canvas.toDataURL('image/png') }),
+          body: JSON.stringify({ assinatura: temTraco ? canvas.toDataURL('image/png') : null }),
         });
         const d = await r.json();
         if (!r.ok) { msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }

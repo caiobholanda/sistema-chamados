@@ -234,7 +234,7 @@ function _renderBody(c) {
               <div>
                 <div class="mv2-field-label" style="color:#15803d">Recebimento confirmado pelo solicitante</div>
                 <div style="font-size:.79rem;color:var(--text-muted);margin:.15rem 0 .5rem">${_fmtData(c.assinado_em)}</div>
-                <img src="${c.assinatura}" alt="Assinatura do solicitante" class="assinatura-img-admin">
+                ${c.assinatura ? `<img src="${c.assinatura}" alt="Assinatura do solicitante" class="assinatura-img-admin">` : ''}
               </div>
             </div>` : ''}
         </div>

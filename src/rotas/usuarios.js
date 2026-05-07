@@ -70,8 +70,8 @@ router.get('/meus-chamados', requireUsuario, (req, res) => {
 router.post('/chamados/:id/assinar', requireUsuario, async (req, res) => {
   try {
     const chamadoId = parseInt(req.params.id);
-    const { assinatura } = req.body;
-    if (!assinatura || typeof assinatura !== 'string' || !assinatura.startsWith('data:image/png;base64,')) {
+    const { assinatura = null } = req.body;
+    if (assinatura !== null && (typeof assinatura !== 'string' || !assinatura.startsWith('data:image/png;base64,'))) {
       return res.status(400).json({ erro: 'Assinatura inválida' });
     }
     const chamado = db.buscarChamadoPorId(chamadoId);
