@@ -555,6 +555,16 @@ function renderModalBody(c) {
                 <div style="font-size:.86rem;font-weight:600;color:var(--text)">${c.nota}/10${c.comentario_avaliacao ? `<span style="font-weight:400;color:var(--text-muted)"> — ${c.comentario_avaliacao}</span>` : ''}</div>
               </div>
             </div>` : ''}
+
+          ${c.assinado_em ? `
+            <div class="mv2-assinatura-admin">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#15803d;margin-top:.1rem"><polyline points="20 6 9 17 4 12"/></svg>
+              <div>
+                <div class="mv2-field-label" style="color:#15803d">Recebimento confirmado pelo solicitante</div>
+                <div style="font-size:.79rem;color:var(--text-muted);margin:.15rem 0 .5rem">${fmtData(c.assinado_em)}</div>
+                <img src="${c.assinatura}" alt="Assinatura do solicitante" class="assinatura-img-admin">
+              </div>
+            </div>` : ''}
         </div>
 
         <!-- Coluna direita: ações -->

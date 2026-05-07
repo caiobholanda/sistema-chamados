@@ -66,4 +66,27 @@ router.get('/meus-chamados', requireUsuario, (req, res) => {
   }
 });
 
+// POST /api/usuarios/chamados/:id/assinar
+router.post('/chamados/:id/assinar', requireUsuario, async (req, res) => {
+  try {
+    const chamadoId = parseInt(req.params.id);
+    const { assinatura } = req.body;
+    if (!assinatura || typeof assinatura !== 'string' || !assinatura.startsWith('data:image/png;base64,')) {
+      return res.status(400).json({ erro: 'Assinatura inválida' });
+    }
+    const chamado = db.buscarChamadoPorId(chamadoId);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (chamado.usuario_id !== req.usuario.sub) return res.status(403).json({ erro: 'Sem permissão' });
+    if (!['concluido', 'encerrado'].includes(chamado.status)) {
+      return res.status(400).json({ erro: 'O chamado precisa estar concluído para ser assinado' });
+    }
+    if (chamado.assinado_em) return res.status(400).json({ erro: 'Este chamado já foi assinado' });
+    db.assinarChamado(chamadoId, assinatura);
+    return res.json({ mensagem: 'Assinatura registrada com sucesso' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 module.exports = router;

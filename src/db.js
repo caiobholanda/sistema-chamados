@@ -120,6 +120,8 @@ function initDb() {
   try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN ramal TEXT'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN setor TEXT'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN assinatura TEXT'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN assinado_em DATETIME'); } catch {}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS itens (
@@ -303,7 +305,12 @@ function buscarHistoricoCompleto(chamadoId) {
 function listarChamadosAdmin(filtros = {}) {
   const db = getDb();
   let sql = `
-    SELECT c.*, a.nome_completo as admin_nome,
+    SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
+           c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
+           c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
+           c.comentario_avaliacao, c.criado_em, c.atualizado_em,
+           c.concluido_em, c.categoria, c.assinado_em,
+           a.nome_completo as admin_nome,
            u.setor as usuario_setor, u.ramal as usuario_ramal
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
@@ -477,6 +484,12 @@ function avaliarChamado(id, nota, comentario) {
   `).run(nota, comentario || null, id);
 }
 
+function assinarChamado(id, assinatura) {
+  getDb().prepare(`
+    UPDATE chamados SET assinatura = ?, assinado_em = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+  `).run(assinatura, id);
+}
+
 
 
 function registrarUsuario(dados) {
@@ -522,7 +535,12 @@ function deletarUsuario(id) {
 
 function listarChamadosPorUsuario(usuario_id) {
   return getDb().prepare(`
-    SELECT c.*, a.nome_completo as admin_nome
+    SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
+           c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
+           c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
+           c.comentario_avaliacao, c.criado_em, c.atualizado_em,
+           c.concluido_em, c.categoria, c.assinado_em,
+           a.nome_completo as admin_nome
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
     WHERE c.usuario_id = ?
@@ -619,7 +637,11 @@ function deletarItem(id) {
 function listarChamadosProcessoCompra({ apenasAbertos = false } = {}) {
   const cond = apenasAbertos ? `AND c.status IN ('aberto', 'em_andamento')` : '';
   return getDb().prepare(`
-    SELECT c.*, a.nome_completo as admin_nome
+    SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
+           c.prioridade, c.status, c.prazo, c.admin_responsavel_id,
+           c.solucao, c.criado_em, c.atualizado_em, c.concluido_em,
+           c.categoria, c.assinado_em,
+           a.nome_completo as admin_nome
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
     WHERE c.categoria = 'processo_compra' ${cond}
@@ -758,6 +780,7 @@ module.exports = {
   encerrarChamado,
   reabrirChamado,
   avaliarChamado,
+  assinarChamado,
   registrarUsuario,
   buscarUsuarioPorEmail,
   buscarUsuarioPorId,

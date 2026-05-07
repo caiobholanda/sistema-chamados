@@ -2504,3 +2504,95 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 .pc-row-clicavel:hover td { background: rgba(212,175,55,.06) !important; }
 
+/* ─── Assinatura digital ──────────────────────────────────────── */
+.assinatura-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,27,42,.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+.assinatura-modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.3);
+}
+.assinatura-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem .75rem;
+  border-bottom: 1px solid var(--border);
+}
+.assinatura-modal-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.assinatura-modal-body { padding: 1rem 1.25rem 1.25rem; }
+.assinatura-instrucao {
+  font-size: .83rem;
+  color: var(--text-muted);
+  margin-bottom: .75rem;
+  line-height: 1.5;
+}
+.assinatura-canvas-wrap {
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: #f9f7f3;
+  overflow: hidden;
+  touch-action: none;
+  margin-bottom: .75rem;
+  min-height: 180px;
+}
+.assinatura-canvas {
+  display: block;
+  width: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+.assinatura-btns {
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+  margin-top: .5rem;
+}
+.assinatura-validada-badge {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-top: .65rem;
+  padding: .45rem .75rem;
+  background: var(--success-light);
+  border-radius: var(--radius);
+  color: var(--success);
+  font-size: .8rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.mv2-assinatura-admin {
+  display: flex;
+  gap: .65rem;
+  align-items: flex-start;
+  margin-top: .85rem;
+  padding: .7rem .85rem;
+  background: var(--success-light);
+  border-radius: var(--radius);
+  border: 1px solid #bbf7d0;
+}
+.assinatura-img-admin {
+  display: block;
+  max-width: 100%;
+  width: 260px;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
