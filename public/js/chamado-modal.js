@@ -299,6 +299,10 @@ function _renderBody(c) {
             Histórico de ações
           </summary>
           <div class="mv2-historico-body">${historicoHtml}</div>
+          <button class="btn btn-ghost btn-sm mv2-hist-completo-btn" id="cm-btn-hist-completo">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Ver histórico completo
+          </button>
         </details>
         ${adminInfo.is_master ? `
         <div class="modal-danger-zone mv2-danger-compact">
@@ -452,6 +456,10 @@ function _setupEventos(c) {
       const d = await r.json();
       if (r.ok) { window.fecharChamadoModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
     });
+  }
+
+  if (q('cm-btn-hist-completo')) {
+    q('cm-btn-hist-completo').addEventListener('click', () => window.abrirHistoricoModal(c));
   }
 
   const chatForm = q('cm-chat-form');

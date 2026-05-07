@@ -189,7 +189,8 @@ router.get('/chamados/:id', requireAdmin, (req, res) => {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
     const historico = db.buscarHistoricoCompleto(chamado.id);
-    return res.json({ ...chamado, historico });
+    const assinaturasHistorico = db.listarAssinaturasHistorico(chamado.id);
+    return res.json({ ...chamado, historico, assinaturasHistorico });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

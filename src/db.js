@@ -124,6 +124,18 @@ function initDb() {
   try { db.exec('ALTER TABLE chamados ADD COLUMN assinado_em DATETIME'); } catch {}
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS assinaturas_historico (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      assinatura TEXT,
+      assinado_em DATETIME,
+      admin_id INTEGER REFERENCES admins(id),
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_assin_hist_chamado ON assinaturas_historico(chamado_id);
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS itens (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
@@ -477,6 +489,12 @@ function transferirChamado(id, adminId, novoAdminId, nomeNovoAdmin) {
 function reabrirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
+  if (chamado.assinatura || chamado.assinado_em) {
+    db.prepare(`
+      INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id)
+      VALUES (?, ?, ?, ?)
+    `).run(id, chamado.assinatura, chamado.assinado_em, adminId);
+  }
   db.prepare(`
     UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL,
     assinatura = NULL, assinado_em = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
@@ -485,6 +503,16 @@ function reabrirChamado(id, adminId) {
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'status_alterado', ?, 'aberto')
   `).run(id, adminId, chamado.status);
+}
+
+function listarAssinaturasHistorico(chamadoId) {
+  return getDb().prepare(`
+    SELECT ah.*, a.nome_completo as admin_nome
+    FROM assinaturas_historico ah
+    LEFT JOIN admins a ON ah.admin_id = a.id
+    WHERE ah.chamado_id = ?
+    ORDER BY ah.criado_em ASC
+  `).all(chamadoId);
 }
 
 function avaliarChamado(id, nota, comentario) {
@@ -821,4 +849,5 @@ module.exports = {
   atualizarItem,
   deletarItem,
   listarChamadosProcessoCompra,
+  listarAssinaturasHistorico,
 };
