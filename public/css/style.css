@@ -2595,6 +2595,20 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 .mob-input:focus { border-color: var(--gold); }
 .mob-textarea { resize: vertical; min-height: 110px; }
+.mob-ok-btn {
+  display: block;
+  margin-top: .45rem;
+  margin-left: auto;
+  padding: .35rem 1.25rem;
+  background: var(--gold);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+}
 
 .mob-assin-section { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
 .mob-assin-titulo { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: .25rem; }

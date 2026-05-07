@@ -170,6 +170,7 @@ function renderDetalhe(c) {
         <label class="mob-label">Solução aplicada <span class="req">*</span></label>
         <textarea class="mob-input mob-textarea" id="mob-solucao"
                   placeholder="Descreva o que foi feito…" maxlength="2000" rows="5"></textarea>
+        <button type="button" class="mob-ok-btn" id="mob-ok-solucao">Ok</button>
       </div>
 
       <div class="mob-assin-section">
@@ -189,6 +190,10 @@ function renderDetalhe(c) {
   `;
 
   document.getElementById('mob-voltar').addEventListener('click', renderLista);
+
+  document.getElementById('mob-ok-solucao').addEventListener('click', () => {
+    document.getElementById('mob-solucao').blur();
+  });
 
   // Canvas
   const canvas = document.getElementById('mob-canvas');
