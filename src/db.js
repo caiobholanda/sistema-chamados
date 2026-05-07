@@ -478,7 +478,8 @@ function reabrirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
   db.prepare(`
-    UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+    UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL,
+    assinatura = NULL, assinado_em = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
   `).run(id);
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
