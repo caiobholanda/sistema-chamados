@@ -2260,35 +2260,22 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 
 /* Histórico */
 .mv2-historico {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-.mv2-historico > summary {
   display: flex;
   align-items: center;
   gap: .4rem;
+  width: 100%;
   padding: .55rem .85rem;
   cursor: pointer;
   font-size: .78rem;
   font-weight: 600;
   color: var(--text-secondary);
   background: var(--surface-2);
-  user-select: none;
-  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: left;
+  transition: background .15s, border-color .15s;
 }
-.mv2-historico > summary::-webkit-details-marker { display: none; }
-.mv2-historico > summary::after { content: '▸'; font-size: .7rem; transition: transform .15s; }
-.mv2-historico[open] > summary::after { transform: rotate(90deg); }
-.mv2-historico-body {
-  padding: .65rem .85rem;
-  display: flex;
-  flex-direction: column;
-  gap: .4rem;
-  border-top: 1px solid var(--border);
-  max-height: 200px;
-  overflow-y: auto;
-}
+.mv2-historico:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
 
 /* Coluna lateral */
 .mv2-side { display: flex; flex-direction: column; gap: .6rem; }
@@ -2735,22 +2722,6 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   background: #fff;
 }
 
-/* ─── Botão histórico do chamado ──────────────────────────────── */
-.mv2-hist-completo-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  font-size: .82rem;
-  color: var(--primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  padding: .25rem .6rem;
-  margin-left: auto;
-  margin-right: .35rem;
-  flex-shrink: 0;
-}
-.mv2-hist-completo-btn:hover { background: var(--primary-light); border-color: var(--primary); }
 
 /* ─── Overlay histórico completo ──────────────────────────────── */
 .hist-overlay {
