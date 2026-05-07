@@ -297,12 +297,12 @@ function _renderBody(c) {
           <summary>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Histórico de ações
+            <button class="btn btn-ghost btn-sm mv2-hist-completo-btn" id="cm-btn-hist-completo" onclick="event.stopPropagation()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Ver histórico completo
+            </button>
           </summary>
           <div class="mv2-historico-body">${historicoHtml}</div>
-          <button class="btn btn-ghost btn-sm mv2-hist-completo-btn" id="cm-btn-hist-completo">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-            Ver histórico completo
-          </button>
         </details>
         ${adminInfo.is_master ? `
         <div class="modal-danger-zone mv2-danger-compact">

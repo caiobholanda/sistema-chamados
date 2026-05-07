@@ -2274,8 +2274,9 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   list-style: none;
 }
 .mv2-historico > summary::-webkit-details-marker { display: none; }
-.mv2-historico > summary::after { content: '▸'; margin-left: auto; font-size: .7rem; transition: transform .15s; }
+.mv2-historico > summary::after { content: '▸'; font-size: .7rem; transition: transform .15s; }
 .mv2-historico[open] > summary::after { transform: rotate(90deg); }
+.mv2-hist-completo-btn { margin-left: auto; margin-right: .35rem; }
 .mv2-historico-body {
   padding: .65rem .85rem;
   display: flex;
@@ -2735,11 +2736,13 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .mv2-hist-completo-btn {
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
-  margin-top: .75rem;
-  font-size: .8rem;
+  gap: .3rem;
+  margin-left: auto;
+  font-size: .75rem;
   color: var(--primary);
   border-color: transparent;
+  padding: .15rem .5rem;
+  line-height: 1;
 }
 .mv2-hist-completo-btn:hover { background: var(--primary-light); }
 
