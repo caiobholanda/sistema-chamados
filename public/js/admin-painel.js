@@ -454,13 +454,11 @@ function renderModalBody(c) {
       <div class="mv2-logo-bar">
         <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise" class="mv2-logo-img">
         <div class="mv2-logo-user">
-          <div class="mv2-logo-label">Solicitante</div>
           <div class="mv2-logo-user-nome">${c.nome}</div>
           <div class="mv2-logo-user-setor">
             <span>${c.usuario_setor || c.setor}</span>
-            <span class="mv2-sep">·</span>
-            <span>Ramal ${c.usuario_ramal || c.ramal || '—'}</span>
-            ${c.prioridade ? `<span class="mv2-sep">·</span>${badgePrio(c.prioridade)}` : ''}
+            ${(c.usuario_ramal || c.ramal) ? `<span class="mv2-sep">·</span><span>Ramal ${c.usuario_ramal || c.ramal}</span>` : ''}
+            ${c.prioridade ? `<span class="mv2-sep">·</span><span>${PRIO_LABELS[c.prioridade]}</span>` : ''}
           </div>
         </div>
         <div></div>
