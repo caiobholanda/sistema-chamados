@@ -441,14 +441,29 @@ function renderModalBody(c) {
     ? `<div class="banner-prazo"><strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'}: de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
     : '';
 
-  const historicoHtml = c.historico && c.historico.length > 0
-    ? c.historico.map(h => `
-        <div class="historico-item">
-          <span class="historico-acao">${traduzirAcao(h.acao)}</span>
-          ${h.valor_anterior !== null ? ` <span class="text-muted">de "${h.valor_anterior || '—'}"</span>` : ''}
-          ${h.valor_novo !== null ? ` <span class="text-muted">para "${h.valor_novo || '—'}"</span>` : ''}
-          <div class="historico-meta">${h.admin_nome || 'Sistema'} · ${fmtData(h.timestamp)}</div>
-        </div>`).join('')
+  const _todosEventos = [
+    ...(c.historico || []).map(h => ({ _tipo: 'acao', _ts: h.timestamp, ...h })),
+    ...(c.assinaturasHistorico || []).map(a => ({ _tipo: 'assinatura', _ts: a.criado_em, ...a })),
+  ].sort((a, b) => new Date(a._ts.replace(' ', 'T')) - new Date(b._ts.replace(' ', 'T')));
+
+  const historicoHtml = _todosEventos.length > 0
+    ? _todosEventos.map(ev => {
+        if (ev._tipo === 'assinatura') return `
+          <div class="historico-item historico-item-assin">
+            <span class="historico-acao" style="color:#15803d">✔ Recebimento confirmado pelo solicitante</span>
+            <div class="historico-meta">${fmtData(ev.assinado_em)}</div>
+            ${ev.assinatura
+              ? `<img src="${ev.assinatura}" alt="Assinatura" class="hist-inline-assin">`
+              : `<span class="text-muted" style="font-size:.78rem">Confirmado sem desenho</span>`}
+          </div>`;
+        return `
+          <div class="historico-item">
+            <span class="historico-acao">${traduzirAcao(ev.acao)}</span>
+            ${ev.valor_anterior !== null ? ` <span class="text-muted">de "${ev.valor_anterior || '—'}"</span>` : ''}
+            ${ev.valor_novo !== null ? ` <span class="text-muted">para "${ev.valor_novo || '—'}"</span>` : ''}
+            <div class="historico-meta">${ev.admin_nome || 'Sistema'} · ${fmtData(ev.timestamp)}</div>
+          </div>`;
+      }).join('')
     : '<p class="text-muted" style="font-size:.85rem">Sem histórico.</p>';
 
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
