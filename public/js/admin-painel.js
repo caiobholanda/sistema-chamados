@@ -658,10 +658,7 @@ function setupModalEventos(c) {
       const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-      if (r.ok) {
-        c.categoria = cat;
-        document.getElementById('modal-title').innerHTML = `Chamado ${badgeStatus(c.status)} ${badgeCategoria(cat)}`;
-      }
+      if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
 
@@ -672,7 +669,7 @@ function setupModalEventos(c) {
       const r = await api(`/api/admin/chamados/${c.id}/prioridade`, { method: 'PATCH', body: JSON.stringify({ prioridade: prio || null }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Prioridade salva.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-      if (r.ok) { c.prioridade = prio || null; }
+      if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
 
