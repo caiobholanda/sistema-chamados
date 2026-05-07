@@ -882,10 +882,17 @@ async function _subscribePush() {
   try {
     const r = await api('/api/admin/push/vapid-public-key');
     const { publicKey } = await r.json();
-    const sub = await _swReg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    });
+    const appKey = urlBase64ToUint8Array(publicKey);
+    let sub;
+    try {
+      sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
+    } catch {
+      // Pode falhar se há subscription com chave diferente (ex: deploy gerou novas VAPID keys)
+      // Desinscrevemos a antiga e tentamos novamente com a chave atual
+      const antiga = await _swReg.pushManager.getSubscription();
+      if (antiga) await antiga.unsubscribe();
+      sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
+    }
     await api('/api/admin/push/subscribe', { method: 'POST', body: JSON.stringify(sub.toJSON()) });
   } catch (err) {
     console.warn('[Push] Subscribe falhou:', err);
