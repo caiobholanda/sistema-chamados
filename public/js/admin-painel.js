@@ -21,6 +21,7 @@ async function _atualizarChatAdmin(chamadoId) {
         box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem trocada ainda.</div>';
       return;
     }
+    if (msgs.length === anterior) return;
     box.innerHTML = msgs.map(m => {
       const mine = m.autor_tipo === 'admin';
       return `
@@ -37,7 +38,7 @@ async function _atualizarChatAdmin(chamadoId) {
 const STATUS_ABERTOS = ['aberto', 'em_andamento'];
 const STATUS_ENCERRADOS = ['concluido', 'encerrado'];
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Concluído' };
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
 const CATEGORIAS_MAP = {
@@ -359,7 +360,8 @@ async function carregarChamados(silencioso = false) {
 function estaAtrasado(c) {
   if (!c.prazo) return false;
   if (['concluido', 'encerrado'].includes(c.status)) return false;
-  return new Date(c.prazo.replace(' ', 'T')) < new Date();
+  const iso = c.prazo.includes('T') ? c.prazo : c.prazo.replace(' ', 'T');
+  return new Date(iso.endsWith('Z') ? iso : iso + 'Z') < new Date();
 }
 
 function scorePrioridade(c) {
@@ -753,10 +755,20 @@ function setupModalEventos(c) {
   if (btnConfConcluir) {
     btnConfConcluir.addEventListener('click', async () => {
       const solucao = document.getElementById('txt-solucao').value.trim();
-      const r = await api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
-      const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado concluído.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-      if (r.ok) setTimeout(() => abrirModal(c.id), 700);
+      if (!solucao || solucao.length < 5) {
+        setMsg('<div class="alert alert-danger">Informe a solução aplicada (mínimo 5 caracteres).</div>');
+        document.getElementById('txt-solucao').focus();
+        return;
+      }
+      btnConfConcluir.disabled = true; btnConfConcluir.textContent = 'Concluindo…';
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
+        const d = await r.json();
+        setMsg(r.ok ? '<div class="alert alert-success">Chamado concluído.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        if (r.ok) setTimeout(() => abrirModal(c.id), 700);
+      } finally {
+        if (btnConfConcluir.isConnected) { btnConfConcluir.disabled = false; btnConfConcluir.textContent = 'Confirmar conclusão'; }
+      }
     });
   }
 
@@ -851,20 +863,6 @@ async function carregarEquipamentos() {
 
     widget.style.display = 'block';
   } catch {}
-}
-
-function traduzirAcao(acao) {
-  const t = {
-    prioridade_definida: 'Prioridade definida',
-    status_alterado: 'Status alterado',
-    prazo_alterado: 'Prazo alterado',
-    solucao_registrada: 'Solução registrada',
-    assumido: 'Chamado assumido',
-    transferido: 'Chamado transferido',
-    categoria_alterada: 'Categoria alterada',
-    avaliacao_registrada: 'Avaliação do solicitante',
-  };
-  return t[acao] || acao;
 }
 
 let _swReg = null;

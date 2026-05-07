@@ -1,6 +1,6 @@
 const app = document.getElementById('app');
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Concluído' };
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 
 let _refreshInterval = null;
 function _pararRefresh() {
@@ -54,6 +54,7 @@ async function _atualizarChat(chamadoId) {
         box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem ainda. Escreva para o suporte!</div>';
       return;
     }
+    if (msgs.length === anterior) return;
     box.innerHTML = msgs.map(_renderMsgChat).join('');
     if (atFundo || anterior < msgs.length) box.scrollTop = box.scrollHeight;
   } catch {}
@@ -349,7 +350,8 @@ function renderPainel(usuario) {
   function _estaAtrasado(c) {
     if (!c.prazo) return false;
     if (['concluido', 'encerrado'].includes(c.status)) return false;
-    return new Date(c.prazo.replace(' ', 'T')) < new Date();
+    const iso = c.prazo.includes('T') ? c.prazo : c.prazo.replace(' ', 'T');
+    return new Date(iso.endsWith('Z') ? iso : iso + 'Z') < new Date();
   }
 
   function _scorePrio(c) {

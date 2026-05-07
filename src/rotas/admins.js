@@ -67,7 +67,7 @@ router.post('/logout', (req, res) => {
 router.get('/me', requireAdmin, (req, res) => {
   const admin = db.buscarAdminPorId(req.admin.sub);
   if (!admin) return res.status(404).json({ erro: 'Admin não encontrado' });
-  const { senha_hash, ...dados } = admin;
+  const { senha_hash, senha_plain, ...dados } = admin;
   return res.json(dados);
 });
 

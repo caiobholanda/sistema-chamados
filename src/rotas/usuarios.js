@@ -53,7 +53,8 @@ router.post('/logout', (req, res) => {
 router.get('/me', requireUsuario, (req, res) => {
   const u = db.buscarUsuarioPorId(req.usuario.sub);
   if (!u) return res.status(404).json({ erro: 'Usuário não encontrado' });
-  return res.json(u);
+  const { senha_hash, senha_plain, ...dados } = u;
+  return res.json(dados);
 });
 
 // GET /api/usuarios/meus-chamados
@@ -61,29 +62,6 @@ router.get('/meus-chamados', requireUsuario, (req, res) => {
   try {
     const chamados = db.listarChamadosPorUsuario(req.usuario.sub);
     return res.json(chamados);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ erro: 'Erro interno' });
-  }
-});
-
-// POST /api/usuarios/chamados/:id/assinar
-router.post('/chamados/:id/assinar', requireUsuario, async (req, res) => {
-  try {
-    const chamadoId = parseInt(req.params.id);
-    const { assinatura = null } = req.body;
-    if (assinatura !== null && (typeof assinatura !== 'string' || !assinatura.startsWith('data:image/png;base64,'))) {
-      return res.status(400).json({ erro: 'Assinatura inválida' });
-    }
-    const chamado = db.buscarChamadoPorId(chamadoId);
-    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (chamado.usuario_id !== req.usuario.sub) return res.status(403).json({ erro: 'Sem permissão' });
-    if (!['concluido', 'encerrado'].includes(chamado.status)) {
-      return res.status(400).json({ erro: 'O chamado precisa estar concluído para ser assinado' });
-    }
-    if (chamado.assinado_em) return res.status(400).json({ erro: 'Este chamado já foi assinado' });
-    db.assinarChamado(chamadoId, assinatura);
-    return res.json({ mensagem: 'Assinatura registrada com sucesso' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });
