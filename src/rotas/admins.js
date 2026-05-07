@@ -343,6 +343,21 @@ router.post('/push/unsubscribe', requireAdmin, (req, res) => {
   }
 });
 
+// Verifica se o endpoint está registrado no servidor para o admin atual
+router.get('/push/check', requireAdmin, (req, res) => {
+  try {
+    const { endpoint } = req.query;
+    if (!endpoint) return res.status(400).json({ erro: 'endpoint obrigatório' });
+    const sub = db.getDb()
+      .prepare('SELECT id FROM push_subscriptions WHERE admin_id = ? AND endpoint = ?')
+      .get(req.admin.sub, endpoint);
+    return res.json({ registrado: !!sub });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 
 router.get('/usuarios', requireMaster, (req, res) => {
   try {

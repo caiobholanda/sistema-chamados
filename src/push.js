@@ -10,10 +10,26 @@ function getVapidKeys() {
     return { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY };
   }
   const row = d.prepare("SELECT valor FROM config WHERE chave = 'vapid_keys'").get();
-  if (row) return JSON.parse(row.valor);
+  if (row) {
+    const keys = JSON.parse(row.valor);
+    console.log('='.repeat(72));
+    console.log('[Push] VAPID keys carregadas do banco. Para nunca perder notificações,');
+    console.log('[Push] defina estas variáveis de ambiente permanentes no Railway:');
+    console.log('[Push]   VAPID_PUBLIC_KEY=' + keys.publicKey);
+    console.log('[Push]   VAPID_PRIVATE_KEY=' + keys.privateKey);
+    console.log('[Push]   VAPID_EMAIL=ti@granmarquise.com.br');
+    console.log('='.repeat(72));
+    return keys;
+  }
   const keys = webpush.generateVAPIDKeys();
   d.prepare("INSERT OR REPLACE INTO config (chave, valor) VALUES ('vapid_keys', ?)").run(JSON.stringify(keys));
-  console.log('[Push] VAPID keys gerados. Para produção, defina VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY nas variáveis de ambiente.');
+  console.log('='.repeat(72));
+  console.log('[Push] NOVAS VAPID keys geradas! COPIE PARA O RAILWAY IMEDIATAMENTE:');
+  console.log('[Push]   VAPID_PUBLIC_KEY=' + keys.publicKey);
+  console.log('[Push]   VAPID_PRIVATE_KEY=' + keys.privateKey);
+  console.log('[Push]   VAPID_EMAIL=ti@granmarquise.com.br');
+  console.log('[Push] Sem isso, as notificações param a cada redeploy do banco.');
+  console.log('='.repeat(72));
   return keys;
 }
 
@@ -41,8 +57,13 @@ async function _enviar(sub, payload) {
       JSON.stringify(payload)
     );
   } catch (err) {
-    if (err.statusCode === 410 || err.statusCode === 404) {
+    // 404/410 = subscription expirou ou não existe mais
+    // 401/403 = VAPID key não bate com a key usada na subscription (keys mudaram)
+    if ([401, 403, 404, 410].includes(err.statusCode)) {
       db.getDb().prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(sub.endpoint);
+      console.log('[Push] Subscription removida (status ' + err.statusCode + '):', sub.endpoint?.slice(0, 60) + '...');
+    } else {
+      console.warn('[Push] Falha ao enviar (status ' + (err.statusCode || '?') + '):', err.message || err);
     }
   }
 }

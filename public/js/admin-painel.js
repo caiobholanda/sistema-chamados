@@ -879,34 +879,76 @@ function urlBase64ToUint8Array(base64String) {
 async function iniciarPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
-    _swReg = await navigator.serviceWorker.register('/sw.js');
+    // Registra o SW e aguarda até ele estar ativo (ready resolve só quando o SW controla a página)
+    await navigator.serviceWorker.register('/sw.js');
+    _swReg = await navigator.serviceWorker.ready;
+
     const perm = Notification.permission;
     if (perm === 'granted') await _subscribePush();
     atualizarBotaoNotificacao(perm);
+
+    // Re-verifica a subscription a cada 30 minutos (mantém viva mesmo sem recarregar a página)
+    setInterval(() => {
+      if (Notification.permission === 'granted') _subscribePush();
+    }, 30 * 60 * 1000);
   } catch (err) {
     console.warn('[Push] SW registro falhou:', err);
   }
 }
 
+let _lastSubscribeTs = 0;
+
 async function _subscribePush() {
   if (!_swReg) return;
+  // Throttle: no mínimo 30s entre tentativas para evitar loops
+  const now = Date.now();
+  if (now - _lastSubscribeTs < 30_000) return;
+  _lastSubscribeTs = now;
+
   try {
+    // 1. Busca a chave VAPID atual do servidor
     const r = await api('/api/admin/push/vapid-public-key');
+    if (!r.ok) { console.warn('[Push] Falha ao buscar VAPID key, status:', r.status); return; }
     const { publicKey } = await r.json();
     const appKey = urlBase64ToUint8Array(publicKey);
-    let sub;
-    try {
-      sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
-    } catch {
-      // Pode falhar se há subscription com chave diferente (ex: deploy gerou novas VAPID keys)
-      // Desinscrevemos a antiga e tentamos novamente com a chave atual
-      const antiga = await _swReg.pushManager.getSubscription();
-      if (antiga) await antiga.unsubscribe();
+
+    // 2. Verifica se já existe uma subscription no browser
+    let sub = await _swReg.pushManager.getSubscription();
+
+    if (sub) {
+      // 3. Compara a chave da subscription existente com a chave atual do servidor
+      try {
+        const existingKey = new Uint8Array(sub.options.applicationServerKey);
+        const keysMismatch = existingKey.length !== appKey.length ||
+          existingKey.some((byte, i) => byte !== appKey[i]);
+
+        if (keysMismatch) {
+          // A chave VAPID mudou — desinscrevemos e criamos nova subscription
+          console.warn('[Push] Chave VAPID mudou — atualizando subscription...');
+          await sub.unsubscribe();
+          sub = null;
+        }
+        // Se as chaves batem, reutilizamos a subscription existente (apenas re-salva no servidor)
+      } catch {
+        // Não conseguiu comparar as chaves — força nova subscription por segurança
+        await sub.unsubscribe();
+        sub = null;
+      }
+    }
+
+    // 4. Cria nova subscription se necessário
+    if (!sub) {
       sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
     }
-    await api('/api/admin/push/subscribe', { method: 'POST', body: JSON.stringify(sub.toJSON()) });
+
+    // 5. Sempre salva no servidor (garante que o DB tenha a subscription mesmo após wipe)
+    const saveResp = await api('/api/admin/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(sub.toJSON()),
+    });
+    if (!saveResp.ok) console.warn('[Push] Falha ao registrar subscription no servidor:', saveResp.status);
   } catch (err) {
-    console.warn('[Push] Subscribe falhou:', err);
+    console.warn('[Push] _subscribePush falhou:', err.message || err);
   }
 }
 
@@ -963,5 +1005,12 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// Quando o admin volta para a aba, re-verifica a subscription (throttle interno em _subscribePush)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && Notification.permission === 'granted') {
+    _subscribePush();
+  }
+});
 
 iniciarPush();
