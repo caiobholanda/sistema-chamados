@@ -57,7 +57,7 @@ router.post('/itens/:id/movimentacao', requireAdmin, (req, res) => {
   try {
     const item = db.buscarEstoqueItemPorId(req.params.id);
     if (!item) return res.status(404).json({ erro: 'Item não encontrado' });
-    const { tipo, cor, quantidade, observacao } = req.body;
+    const { tipo, cor, quantidade, observacao, chamado_id } = req.body;
     if (!['entrada','saida'].includes(tipo)) return res.status(400).json({ erro: 'Tipo inválido' });
     const qtd = parseInt(quantidade, 10);
     if (!qtd || qtd < 1) return res.status(400).json({ erro: 'Quantidade inválida' });
@@ -69,7 +69,8 @@ router.post('/itens/:id/movimentacao', requireAdmin, (req, res) => {
     }
 
     const adminNome = req.admin ? req.admin.nome || '' : '';
-    db.registrarMovimentacao(req.params.id, tipo, cor || '', qtd, adminNome, san(observacao || ''));
+    const cid = chamado_id ? parseInt(chamado_id, 10) : null;
+    db.registrarMovimentacao(req.params.id, tipo, cor || '', qtd, adminNome, san(observacao || ''), cid);
     return res.json({ mensagem: tipo === 'entrada' ? 'Entrada registrada' : 'Saída registrada' });
   } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
 });

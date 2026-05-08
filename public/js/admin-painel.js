@@ -1192,7 +1192,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       const sel = document.getElementById('wiz-sel-' + key);
       const qtd = document.getElementById('wiz-qtd-' + key);
       if (!sel || !sel.value) return;
-      movs.push({ itemId: +sel.value, tipo, qtd: Math.max(1, +(qtd?.value || 1)), obs: `Chamado #${chamado.id}` });
+      movs.push({ itemId: +sel.value, tipo, qtd: Math.max(1, +(qtd?.value || 1)), obs: `Chamado #${chamado.id}`, chamadoId: chamado.id });
     });
     return movs;
   }
@@ -1207,7 +1207,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       for (const m of movs) {
         const r = await api(`/api/admin/estoque/itens/${m.itemId}/movimentacao`, {
           method: 'POST',
-          body: JSON.stringify({ tipo: m.tipo, cor: 'geral', quantidade: m.qtd, observacao: m.obs }),
+          body: JSON.stringify({ tipo: m.tipo, cor: 'geral', quantidade: m.qtd, observacao: m.obs, chamado_id: m.chamadoId }),
         });
         if (!r.ok) {
           const d = await r.json();

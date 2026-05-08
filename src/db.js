@@ -125,6 +125,7 @@ function initDb() {
   try { db.exec("ALTER TABLE estoque_itens ADD COLUMN observacao TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE estoque_itens ADD COLUMN especificacao TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE impressoras ADD COLUMN numero_serie TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN chamado_id INTEGER"); } catch {}
   // Fix model name for SELB 3Y24 (WF5890 → WF-C5890)
   try { db.exec("UPDATE impressoras SET nome = 'Epson WF-C5890' WHERE selb = '3Y24' AND nome = 'EPSON WF5890'"); } catch {}
   // Add ADE4 impressora if not yet registered
@@ -636,12 +637,12 @@ function deletarEstoqueItem(id) {
   getDb().prepare('DELETE FROM estoque_itens WHERE id = ?').run(id);
 }
 
-function registrarMovimentacao(item_id, tipo, cor, quantidade, admin_nome, observacao) {
+function registrarMovimentacao(item_id, tipo, cor, quantidade, admin_nome, observacao, chamado_id) {
   const db = getDb();
   db.prepare(`
-    INSERT INTO estoque_movimentacoes (item_id, tipo, cor, quantidade, admin_nome, observacao)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(item_id, tipo, cor || '', quantidade, admin_nome || '', observacao || '');
+    INSERT INTO estoque_movimentacoes (item_id, tipo, cor, quantidade, admin_nome, observacao, chamado_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(item_id, tipo, cor || '', quantidade, admin_nome || '', observacao || '', chamado_id || null);
 
   // Update stock quantity
   const sinal = tipo === 'entrada' ? 1 : -1;

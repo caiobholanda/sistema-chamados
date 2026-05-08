@@ -152,8 +152,122 @@ async function carregarChamados() {
 }
 
 
+// ── Wizard de estoque (mobile) ────────────────────────────────
+const MOB_WIZ_CATS = ['mouse','teclado','monitor','nobreak','hardware'];
+
+function mobWizHtml(cat, itens) {
+  const state = {};
+
+  function filtrar(termos) {
+    if (!termos.length) return itens;
+    const ts = termos.map(t => t.toLowerCase());
+    return itens.filter(i => ts.some(t => (i.nome || '').toLowerCase().includes(t)));
+  }
+
+  function opts(termos) {
+    const lista = filtrar(termos);
+    if (!lista.length) return '<option value="">Sem itens no estoque</option>';
+    return '<option value="">— selecione —</option>' +
+      lista.map(i => {
+        const q = i.qtd_geral ?? 0;
+        return `<option value="${i.id}">${i.nome} (${q}${q === 0 ? ' ⚠' : ''})`;
+      }).join('');
+  }
+
+  function sel(key, label, termos = []) {
+    return `<div class="mob-wiz-sel-wrap">
+      <div class="mob-wiz-sel-label">${label}</div>
+      <select class="mob-input" id="mwiz-sel-${key}" style="margin-bottom:.4rem">${opts(termos)}</select>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span style="font-size:.8rem;color:var(--text-muted)">Quantidade:</span>
+        <input class="mob-input" id="mwiz-qtd-${key}" type="number" min="1" value="1" style="width:72px">
+      </div>
+    </div>`;
+  }
+
+  function bloco(id, texto, sub = '') {
+    return `<div class="mob-wiz-bloco" id="mwiz-bloco-${id}">
+      <div class="mob-wiz-pergunta">${texto}</div>
+      <div class="mob-wiz-btns">
+        <button type="button" class="mob-wiz-sim" data-q="${id}">Sim</button>
+        <button type="button" class="mob-wiz-nao" data-q="${id}">Não</button>
+      </div>
+      ${sub ? `<div id="mwiz-sub-${id}" style="display:none;margin-top:.6rem">${sub}</div>` : ''}
+    </div>`;
+  }
+
+  const configs = {
+    mouse: `
+      ${bloco('troca_mouse', 'O mouse foi substituído?', `
+        ${bloco('saida_mouse', 'Mouse novo saiu do estoque?', sel('saida_mouse', 'Mouse instalado:', ['mouse']))}
+        ${bloco('entrada_mouse', 'Mouse antigo retorna ao estoque?', sel('entrada_mouse', 'Mouse devolvido:', ['mouse']))}
+      `)}
+      ${bloco('limpeza_mouse', 'O problema era só falta de limpeza?')}
+    `,
+    teclado: `
+      ${bloco('troca_teclado', 'O teclado foi substituído?', `
+        ${bloco('saida_teclado', 'Teclado novo saiu do estoque?', sel('saida_teclado', 'Teclado instalado:', ['teclado']))}
+        ${bloco('entrada_teclado', 'Teclado antigo retorna ao estoque?', sel('entrada_teclado', 'Teclado devolvido:', ['teclado']))}
+      `)}
+    `,
+    monitor: `
+      ${bloco('troca_monitor', 'O monitor foi substituído?', `
+        ${bloco('saida_monitor', 'Monitor novo saiu do estoque?', sel('saida_monitor', 'Monitor instalado:', ['monitor']))}
+        ${bloco('entrada_monitor', 'Monitor antigo retorna ao estoque?', sel('entrada_monitor', 'Monitor devolvido:', ['monitor']))}
+      `)}
+      ${bloco('troca_cabo', 'Foi trocado cabo/adaptador de vídeo?', `
+        ${bloco('saida_cabo', 'Cabo/adaptador saiu do estoque?', sel('saida_cabo', 'Item utilizado:', ['cabo','adaptador','hdmi','displayport']))}
+      `)}
+    `,
+    nobreak: `
+      ${bloco('troca_nobreak', 'O nobreak foi substituído?', `
+        ${bloco('saida_nobreak', 'Nobreak novo saiu do estoque?', sel('saida_nobreak', 'Nobreak instalado:', ['nobreak']))}
+        ${bloco('entrada_nobreak', 'Nobreak antigo retorna ao estoque?', sel('entrada_nobreak', 'Nobreak devolvido:', ['nobreak']))}
+      `)}
+      ${bloco('troca_bateria', 'Foi trocada a bateria?', `
+        ${bloco('saida_bateria', 'Bateria saiu do estoque?', sel('saida_bateria', 'Bateria utilizada:', ['bateria']))}
+      `)}
+    `,
+    hardware: `
+      ${bloco('troca_comp', 'O computador foi substituído?', `
+        ${bloco('saida_componente', 'Computador novo saiu do estoque?', sel('saida_componente', 'Equipamento instalado:', ['dell','computador','desktop','notebook']))}
+        ${bloco('entrada_componente', 'Computador antigo retorna ao estoque?', sel('entrada_componente', 'Equipamento devolvido:', ['dell','computador','desktop','notebook']))}
+      `)}
+      ${bloco('troca_memoria', 'Foi adicionada ou trocada memória RAM?', sel('saida_memoria', 'Memória utilizada:', ['memória','memoria','ddr']))}
+      ${bloco('troca_processador', 'Foi trocado o processador?', sel('saida_processador', 'Processador utilizado:', ['processador','i3','i5','i7']))}
+      ${bloco('formatou', 'Foi necessário formatar ou reinstalar o SO?')}
+    `,
+  };
+
+  return configs[cat] || '';
+}
+
+function mobWizColetarMovs(chamadoId) {
+  const SAIDAS   = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak','saida_bateria','saida_componente','saida_memoria','saida_processador'];
+  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor','entrada_nobreak','entrada_componente'];
+  const movs = [];
+  [...SAIDAS.map(k => [k,'saida']), ...ENTRADAS.map(k => [k,'entrada'])].forEach(([key, tipo]) => {
+    const sim = document.querySelector(`.mob-wiz-sim[data-q="${key}"]`);
+    if (!sim || !sim.classList.contains('ativo')) return;
+    const sel = document.getElementById('mwiz-sel-' + key);
+    const qtd = document.getElementById('mwiz-qtd-' + key);
+    if (!sel || !sel.value) return;
+    movs.push({ itemId: +sel.value, tipo, qtd: Math.max(1, +(qtd?.value || 1)), chamadoId });
+  });
+  return movs;
+}
+
 // ── Detalhe + Conclusão ───────────────────────────────────────
-function renderDetalhe(c) {
+async function renderDetalhe(c) {
+  const temWiz = MOB_WIZ_CATS.includes(c.categoria);
+  let todosItens = [];
+  if (temWiz) {
+    try {
+      const r = await api('/api/admin/estoque/itens');
+      if (r.ok) todosItens = await r.json();
+    } catch {}
+  }
+
   app.innerHTML = `
     <div class="mob-header">
       <button class="mob-voltar-btn" id="mob-voltar">← Voltar</button>
@@ -173,6 +287,13 @@ function renderDetalhe(c) {
         <button type="button" class="mob-ok-btn" id="mob-ok-solucao">Ok</button>
       </div>
 
+      ${temWiz ? `
+      <div class="mob-wiz-section">
+        <div class="mob-wiz-titulo">Movimentação de Estoque</div>
+        <div class="mob-wiz-sub">Responda para registrar entradas e saídas de itens.</div>
+        ${mobWizHtml(c.categoria, todosItens)}
+      </div>` : ''}
+
       <div class="mob-assin-section">
         <div class="mob-assin-titulo">
           Assinatura do solicitante
@@ -190,10 +311,33 @@ function renderDetalhe(c) {
   `;
 
   document.getElementById('mob-voltar').addEventListener('click', renderLista);
-
   document.getElementById('mob-ok-solucao').addEventListener('click', () => {
     document.getElementById('mob-solucao').blur();
   });
+
+  // Wizard Sim/Não
+  if (temWiz) {
+    app.querySelectorAll('.mob-wiz-sim').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const q = btn.dataset.q;
+        btn.classList.add('ativo');
+        const nao = app.querySelector(`.mob-wiz-nao[data-q="${q}"]`);
+        if (nao) nao.classList.remove('ativo');
+        const sub = document.getElementById('mwiz-sub-' + q);
+        if (sub) sub.style.display = '';
+      });
+    });
+    app.querySelectorAll('.mob-wiz-nao').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const q = btn.dataset.q;
+        btn.classList.add('ativo');
+        const sim = app.querySelector(`.mob-wiz-sim[data-q="${q}"]`);
+        if (sim) sim.classList.remove('ativo');
+        const sub = document.getElementById('mwiz-sub-' + q);
+        if (sub) sub.style.display = 'none';
+      });
+    });
+  }
 
   // Canvas
   const canvas = document.getElementById('mob-canvas');
@@ -246,8 +390,24 @@ function renderDetalhe(c) {
       return;
     }
     const btn = document.getElementById('mob-btn-concluir');
-    btn.disabled = true; btn.textContent = 'Concluindo…';
+    btn.disabled = true; btn.textContent = 'Registrando…';
     try {
+      // Registrar movimentações de estoque
+      if (temWiz) {
+        const movs = mobWizColetarMovs(c.id);
+        for (const m of movs) {
+          const r = await api(`/api/admin/estoque/itens/${m.itemId}/movimentacao`, {
+            method: 'POST',
+            body: JSON.stringify({ tipo: m.tipo, cor: 'geral', quantidade: m.qtd, observacao: `Chamado #${c.id}`, chamado_id: m.chamadoId }),
+          });
+          if (!r.ok) {
+            const d = await r.json();
+            msg.innerHTML = `<div class="mob-alert mob-alert-danger">Erro no estoque: ${d.erro}</div>`;
+            btn.disabled = false; btn.textContent = 'Concluir chamado';
+            return;
+          }
+        }
+      }
       const r = await api(`/api/admin/chamados/${c.id}/concluir`, {
         method: 'PATCH',
         body: JSON.stringify({

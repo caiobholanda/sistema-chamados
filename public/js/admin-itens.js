@@ -1353,8 +1353,11 @@ async function abrirHistoricoMovimentacoes(itemId, nomeItem) {
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(COR_LABELS[m.cor] || m.cor) || '—'}</td>
                 <td style="text-align:center;font-weight:600">${m.quantidade}</td>
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(m.admin_nome) || '—'}</td>
-                <td style="font-size:.78rem;color:var(--text-muted);max-width:150px">
-                  <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(m.observacao)}">${esc(m.observacao) || '—'}</div>
+                <td style="font-size:.78rem;color:var(--text-muted);max-width:160px">
+                  ${m.chamado_id
+                    ? `<button class="btn btn-ghost btn-sm" style="font-size:.72rem;padding:2px 7px;border:1px solid var(--border)" onclick="abrirChamado(${m.chamado_id})">📋 Chamado #${m.chamado_id}</button>`
+                    : `<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(m.observacao)}">${esc(m.observacao) || '—'}</div>`
+                  }
                 </td>
               </tr>
             `).join('')}

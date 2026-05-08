@@ -2610,6 +2610,23 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   cursor: pointer;
 }
 
+.mob-wiz-section { margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border); }
+.mob-wiz-titulo { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: .15rem; }
+.mob-wiz-sub { font-size: .76rem; color: var(--text-muted); margin-bottom: .9rem; }
+.mob-wiz-bloco { padding: .65rem 0; border-bottom: 1px solid var(--border); }
+.mob-wiz-bloco:last-child { border-bottom: none; padding-bottom: 0; }
+.mob-wiz-pergunta { font-size: .84rem; font-weight: 600; color: var(--text-secondary); margin-bottom: .4rem; }
+.mob-wiz-btns { display: flex; gap: .4rem; }
+.mob-wiz-sim, .mob-wiz-nao {
+  padding: .3rem .85rem; border-radius: 6px; font-size: .82rem; font-weight: 600;
+  border: 1.5px solid var(--border); background: var(--bg); color: var(--text-secondary);
+  cursor: pointer; transition: all .15s;
+}
+.mob-wiz-sim.ativo { background: var(--gold); border-color: var(--gold); color: #fff; }
+.mob-wiz-nao.ativo { background: var(--bg-secondary); border-color: var(--border-strong,#ccc); color: var(--text-muted); }
+.mob-wiz-sel-wrap { padding: .5rem; background: var(--bg); border-radius: 6px; border: 1px solid var(--border); }
+.mob-wiz-sel-label { font-size: .76rem; color: var(--text-muted); margin-bottom: .3rem; }
+
 .mob-assin-section { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
 .mob-assin-titulo { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: .25rem; }
 .mob-assin-opcional { font-weight: 400; font-size: .78rem; color: var(--text-muted); }
