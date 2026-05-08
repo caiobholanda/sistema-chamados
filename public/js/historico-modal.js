@@ -80,7 +80,7 @@
       return `${label}: <strong>${h.valor_novo || '—'}</strong>`;
     }
     if (h.acao === 'avaliacao_registrada') {
-      const n = Number(h.valor_anterior) || 0;
+      const n = Math.min(Math.max(Number(h.valor_anterior) || 0, 0), 5);
       const estrelas = '★'.repeat(n) + '☆'.repeat(5 - n);
       return `${label}: <span style="color:#f59e0b;font-size:1rem;letter-spacing:.05em">${estrelas}</span>${h.valor_novo ? ` — <em style="color:#555">"${h.valor_novo}"</em>` : ''}`;
     }
