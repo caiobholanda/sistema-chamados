@@ -464,7 +464,7 @@ function renderTabelaToner(itens) {
           <tbody>
             ${itens.map(item => `
               <tr${autoUrgente(item) ? ' style="background:rgba(220,38,38,.04)"' : ''}>
-                <td style="font-weight:500">${esc(item.nome)}</td>
+                <td style="font-weight:500">${esc(item.nome)} <span style="font-size:.72rem;font-weight:600;color:var(--text-muted);background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;padding:1px 5px;vertical-align:middle">Toner</span></td>
                 <td><span class="itens-cat-tag">${esc(TIPO_LABELS[item.tipo] || item.tipo)}</span></td>
                 <td style="text-align:center">${item.tipo === 'resma' || item.tipo === 'outro' ? '<span style="color:var(--text-muted)">—</span>' : qtdCell(item.qtd_preto)}</td>
                 <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_ciano) : '<span style="color:var(--text-muted)">—</span>'}</td>
@@ -1108,21 +1108,14 @@ function abrirNovoItemToner() {
         </select>
         <input class="form-control" id="ft-nome-custom" type="text" placeholder="Digite o nome do modelo" style="display:none;margin-top:.4rem">
       </div>
-      <div class="form-row-2">
-        <div class="form-group">
-          <label class="form-label">Tipo</label>
-          <select class="form-control" id="ft-tipo">
-            <option value="toner_mono">Toner Mono</option>
-            <option value="toner_color">Toner Color</option>
-            <option value="resma">Resma/Papel</option>
-            <option value="outro">Outro</option>
-          </select>
-        </div>
-        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:.25rem">
-          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem">
-            <input type="checkbox" id="ft-urgente" style="width:16px;height:16px"> Urgente (alerta)
-          </label>
-        </div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-control" id="ft-tipo">
+          <option value="toner_mono">Toner Mono</option>
+          <option value="toner_color">Toner Color</option>
+          <option value="resma">Resma/Papel</option>
+          <option value="outro">Outro</option>
+        </select>
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
@@ -1146,7 +1139,7 @@ function abrirNovoItemToner() {
     if (!nome) { mostrarToast('Selecione ou digite o modelo', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
     try {
       const r = await api('/api/admin/estoque/itens', { method: 'POST', body: JSON.stringify({
-        nome, tipo: document.getElementById('ft-tipo').value, urgente: document.getElementById('ft-urgente').checked,
+        nome, tipo: document.getElementById('ft-tipo').value,
       }) });
       if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
       fecharModal(); mostrarToast('Item criado'); carregarItens();
@@ -1165,18 +1158,11 @@ function abrirEditarItemToner(id) {
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
         <input class="form-control" id="ft-nome" type="text" value="${esc(item.nome)}">
       </div>
-      <div class="form-row-2">
-        <div class="form-group">
-          <label class="form-label">Tipo</label>
-          <select class="form-control" id="ft-tipo">
-            ${['toner_mono','toner_color','resma','outro'].map(t => `<option value="${t}" ${item.tipo === t ? 'selected' : ''}>${TIPO_LABELS[t]}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:.25rem">
-          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem">
-            <input type="checkbox" id="ft-urgente" ${item.urgente ? 'checked' : ''} style="width:16px;height:16px"> Urgente (alerta)
-          </label>
-        </div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-control" id="ft-tipo">
+          ${['toner_mono','toner_color','resma','outro'].map(t => `<option value="${t}" ${item.tipo === t ? 'selected' : ''}>${TIPO_LABELS[t]}</option>`).join('')}
+        </select>
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
@@ -1192,7 +1178,6 @@ function abrirEditarItemToner(id) {
       const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'PATCH', body: JSON.stringify({
         nome: document.getElementById('ft-nome').value.trim(),
         tipo: document.getElementById('ft-tipo').value,
-        urgente: document.getElementById('ft-urgente').checked,
       }) });
       if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Salvar'; return; }
       fecharModal(); mostrarToast('Item atualizado'); carregarItens();
