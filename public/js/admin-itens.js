@@ -454,10 +454,8 @@ function renderTabelaToner(itens) {
                 <td style="text-align:center">${(item.tipo === 'resma' || item.tipo === 'outro') ? qtdCell(item.qtd_geral) : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="text-align:center">${item.urgente ? '<span style="color:var(--danger);font-weight:700">SIM</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="white-space:nowrap">
-                  <button class="btn btn-secondary btn-sm" onclick="abrirMovimentacao(${item.id},'entrada')" title="Registrar entrada">Entrada</button>
-                  <button class="btn btn-ghost btn-sm" onclick="abrirMovimentacao(${item.id},'saida')" title="Registrar saída">Saída</button>
+                  <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Editar</button>
                   <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
-                  <button class="btn btn-ghost btn-sm" onclick="abrirEditarItemToner(${item.id})">Editar</button>
                   ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarToner(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
                 </td>
               </tr>
@@ -1024,6 +1022,23 @@ function fecharMovModal() {
 function abrirMovimentacao(itemId, tipoMov) {
   const item = _tonerCache.find(i => i.id === itemId);
   if (!item) return;
+
+  document.getElementById('mov-modal-overlay').style.display = 'flex';
+
+  if (!tipoMov) {
+    document.getElementById('mov-modal-title').textContent = item.nome;
+    document.getElementById('mov-modal-body').innerHTML = `
+      <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1.25rem">Selecione o tipo de movimentação:</p>
+      <div style="display:flex;gap:1rem">
+        <button class="btn btn-primary" style="flex:1;padding:.75rem 0;font-size:.95rem" onclick="abrirMovimentacao(${itemId},'entrada')">+ Entrada</button>
+        <button class="btn btn-ghost" style="flex:1;padding:.75rem 0;font-size:.95rem;border:1.5px solid var(--danger);color:var(--danger)" onclick="abrirMovimentacao(${itemId},'saida')">− Saída</button>
+      </div>
+      <div style="margin-top:1rem;text-align:right">
+        <button class="btn btn-secondary btn-sm" onclick="fecharMovModal()">Cancelar</button>
+      </div>
+    `;
+    return;
+  }
 
   // Determine current stock for the color that will be selected (for saída validation hint)
   const cores = [];
