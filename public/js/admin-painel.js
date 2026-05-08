@@ -760,6 +760,13 @@ function setupModalEventos(c) {
         document.getElementById('txt-solucao').focus();
         return;
       }
+      const CATS_WIZARD = ['hardware','mouse','monitor','teclado','nobreak'];
+      if (CATS_WIZARD.includes(c.categoria)) {
+        abrirWizardEstoque(c, solucao, (ok) => {
+          if (ok) setTimeout(() => abrirModal(c.id), 700);
+        });
+        return;
+      }
       btnConfConcluir.disabled = true; btnConfConcluir.textContent = 'Concluindo…';
       try {
         const r = await api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
@@ -1010,5 +1017,215 @@ document.addEventListener('visibilitychange', () => {
     _subscribePush();
   }
 });
+
+// ── Wizard de Estoque na Conclusão ─────────────────────────────────────────
+
+async function abrirWizardEstoque(chamado, solucao, onDone) {
+  let estoqueItens = [];
+  try {
+    const r = await api('/api/admin/estoque/itens');
+    estoqueItens = (await r.json()).filter(i => i.tipo === 'outro');
+  } catch {}
+
+  const cat = chamado.categoria;
+  const catNome = { mouse:'Mouse', teclado:'Teclado', monitor:'Monitor', nobreak:'Nobreak', hardware:'Hardware Geral' }[cat] || cat;
+  const state = {};
+
+  function optsHtml() {
+    if (!estoqueItens.length) return '<option value="">Nenhum item cadastrado no estoque</option>';
+    return '<option value="">— selecione um item —</option>' +
+      estoqueItens.map(i => `<option value="${i.id}">${i.nome} (qtd: ${i.qtd_geral})</option>`).join('');
+  }
+
+  function itemSel(key, label) {
+    return `<div style="margin-top:.45rem">
+      <div style="font-size:.76rem;color:var(--text-muted);margin-bottom:.25rem">${label}</div>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <select class="form-control form-control-sm" id="wiz-sel-${key}" style="flex:1">${optsHtml()}</select>
+        <span style="font-size:.75rem;color:var(--text-muted);white-space:nowrap">Qtd:</span>
+        <input class="form-control form-control-sm" id="wiz-qtd-${key}" type="number" min="1" value="1" style="width:56px">
+      </div>
+    </div>`;
+  }
+
+  function bloco(id, texto, sub = '') {
+    return `<div class="wiz-bloco" style="padding:.7rem 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:.86rem;font-weight:600;color:var(--text-secondary);margin-bottom:.4rem">${texto}</div>
+      <div style="display:flex;gap:.4rem">
+        <button type="button" class="btn btn-sm wiz-sim-btn" data-q="${id}">Sim</button>
+        <button type="button" class="btn btn-ghost btn-sm wiz-nao-btn" data-q="${id}">Não</button>
+      </div>
+      <div id="wiz-sub-${id}" style="display:none;margin-top:.55rem;padding:.55rem .7rem;background:var(--bg, #f9f8f5);border-radius:6px;border:1px solid var(--border)">${sub}</div>
+    </div>`;
+  }
+
+  const configs = {
+    mouse: `
+      ${bloco('troca', 'O mouse foi substituído?', `
+        <div style="margin-bottom:.5rem;font-size:.8rem;color:var(--text-muted)">Tipo do mouse instalado:
+          <button type="button" class="btn btn-xs btn-ghost wiz-tipo" data-tipo="com_fio" style="margin-left:.35rem">Com fio</button>
+          <button type="button" class="btn btn-xs btn-ghost wiz-tipo" data-tipo="sem_fio">Sem fio</button>
+        </div>
+        ${bloco('saida_troca', 'O mouse novo saiu do estoque? (registrar saída)', itemSel('saida_troca','Item retirado do estoque:'))}
+        ${bloco('entrada_troca', 'O mouse antigo pode ser reaproveitado? (registrar entrada no estoque)', itemSel('entrada_troca','Item adicionado ao estoque:'))}
+      `)}
+    `,
+    teclado: `
+      ${bloco('troca', 'O teclado foi substituído?', `
+        ${bloco('saida_troca', 'O teclado novo saiu do estoque? (registrar saída)', itemSel('saida_troca','Item retirado do estoque:'))}
+        ${bloco('entrada_troca', 'O teclado antigo pode ser reaproveitado? (registrar entrada no estoque)', itemSel('entrada_troca','Item adicionado ao estoque:'))}
+      `)}
+      ${bloco('conf_tecla', 'O teclado precisava de alguma configuração específica?')}
+    `,
+    monitor: `
+      ${bloco('troca', 'O monitor foi substituído?', `
+        ${bloco('saida_troca', 'O monitor novo saiu do estoque? (registrar saída)', itemSel('saida_troca','Item retirado do estoque:'))}
+        ${bloco('entrada_troca', 'O monitor antigo vai retornar ao estoque? (registrar entrada)', itemSel('entrada_troca','Item adicionado ao estoque:'))}
+      `)}
+      ${bloco('cabo_troca', 'O cabo/adaptador de vídeo foi trocado?', `
+        ${bloco('saida_cabo', 'O cabo novo saiu do estoque? (registrar saída)', itemSel('saida_cabo','Item retirado do estoque:'))}
+      `)}
+      ${bloco('config_monitor', 'Foi necessário configurar resolução/drivers?')}
+    `,
+    nobreak: `
+      ${bloco('troca', 'O nobreak foi substituído?', `
+        ${bloco('saida_troca', 'O nobreak novo saiu do estoque? (registrar saída)', itemSel('saida_troca','Item retirado do estoque:'))}
+        ${bloco('entrada_troca', 'O nobreak antigo vai retornar ao estoque? (registrar entrada)', itemSel('entrada_troca','Item adicionado ao estoque:'))}
+      `)}
+      ${bloco('bateria', 'A bateria do nobreak foi substituída?', `
+        ${bloco('saida_bateria', 'A bateria nova saiu do estoque? (registrar saída)', itemSel('saida_bateria','Item retirado do estoque:'))}
+      `)}
+      ${bloco('tomada', 'Havia problema na tomada ou na instalação elétrica?')}
+    `,
+    hardware: `
+      ${bloco('troca', 'Algum componente/equipamento foi substituído?', `
+        <div class="form-group" style="margin-bottom:.55rem">
+          <label style="font-size:.78rem;color:var(--text-muted)">Componente substituído:</label>
+          <input class="form-control form-control-sm" id="wiz-comp-nome" placeholder="ex: fonte, HD, memória RAM, cooler…">
+        </div>
+        ${bloco('saida_troca', 'O componente novo saiu do estoque? (registrar saída)', itemSel('saida_troca','Item retirado do estoque:'))}
+        ${bloco('entrada_troca', 'O componente antigo vai retornar ao estoque? (registrar entrada)', itemSel('entrada_troca','Item adicionado ao estoque:'))}
+      `)}
+      ${bloco('formatou', 'Foi necessário formatar/reinstalar o sistema?')}
+      ${bloco('drivers', 'Foram instalados/atualizados drivers?')}
+    `,
+  };
+
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.style.display = 'flex';
+  ov.innerHTML = `
+    <div class="modal" style="max-width:520px;max-height:88vh;display:flex;flex-direction:column">
+      <div class="modal-header" style="flex-shrink:0">
+        <h2>Estoque — ${catNome}</h2>
+        <button class="modal-close" id="wiz-fechar">&#x2715;</button>
+      </div>
+      <div class="modal-body" style="overflow-y:auto;flex:1;padding-bottom:.5rem">
+        <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.6rem">
+          Registre as movimentações de estoque relacionadas a este chamado. Use <strong>Pular</strong> se não houve alterações no estoque.
+        </p>
+        ${configs[cat] || ''}
+        <div id="wiz-msg" style="margin-top:.75rem"></div>
+      </div>
+      <div style="padding:1rem;border-top:1px solid var(--border);display:flex;gap:.5rem;flex-shrink:0">
+        <button class="btn btn-secondary" id="wiz-pular">Pular</button>
+        <button class="btn btn-success" id="wiz-confirmar" style="flex:1">Registrar e concluir ✓</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+
+  // ── Sim/Não toggles ──────────────────────────────────────
+  ov.querySelectorAll('.wiz-sim-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = btn.dataset.q;
+      state[q] = 'sim';
+      btn.className = 'btn btn-sm btn-primary wiz-sim-btn';
+      const nao = ov.querySelector(`.wiz-nao-btn[data-q="${q}"]`);
+      if (nao) nao.className = 'btn btn-ghost btn-sm wiz-nao-btn';
+      const sub = document.getElementById('wiz-sub-' + q);
+      if (sub) sub.style.display = 'block';
+    });
+  });
+
+  ov.querySelectorAll('.wiz-nao-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = btn.dataset.q;
+      state[q] = 'nao';
+      btn.className = 'btn btn-sm btn-primary wiz-nao-btn';
+      const sim = ov.querySelector(`.wiz-sim-btn[data-q="${q}"]`);
+      if (sim) sim.className = 'btn btn-sm wiz-sim-btn';
+      const sub = document.getElementById('wiz-sub-' + q);
+      if (sub) sub.style.display = 'none';
+    });
+  });
+
+  ov.querySelectorAll('.wiz-tipo').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ov.querySelectorAll('.wiz-tipo').forEach(b => b.className = 'btn btn-xs btn-ghost wiz-tipo');
+      btn.className = 'btn btn-xs btn-primary wiz-tipo';
+    });
+  });
+
+  // ── Coletar movimentações ────────────────────────────────
+  const SAIDAS = ['saida_troca','saida_cabo','saida_bateria'];
+  const ENTRADAS = ['entrada_troca'];
+
+  function coletarMovs() {
+    const movs = [];
+    [...SAIDAS.map(k => [k,'saida']), ...ENTRADAS.map(k => [k,'entrada'])].forEach(([key, tipo]) => {
+      if (state[key] !== 'sim') return;
+      const sel = document.getElementById('wiz-sel-' + key);
+      const qtd = document.getElementById('wiz-qtd-' + key);
+      if (!sel || !sel.value) return;
+      movs.push({ itemId: +sel.value, tipo, qtd: Math.max(1, +(qtd?.value || 1)), obs: `Chamado #${chamado.id}` });
+    });
+    return movs;
+  }
+
+  // ── Executar: aplicar movs + concluir ───────────────────
+  async function executar(movs) {
+    const msg = document.getElementById('wiz-msg');
+    const btnConf = document.getElementById('wiz-confirmar');
+    const btnPular = document.getElementById('wiz-pular');
+    if (btnConf) { btnConf.disabled = true; btnConf.textContent = 'Registrando…'; }
+    if (btnPular) btnPular.disabled = true;
+    try {
+      for (const m of movs) {
+        const r = await api(`/api/admin/estoque/itens/${m.itemId}/movimentacao`, {
+          method: 'POST',
+          body: JSON.stringify({ tipo: m.tipo, cor: 'geral', quantidade: m.qtd, observacao: m.obs })
+        });
+        if (!r.ok) {
+          const d = await r.json();
+          if (msg) msg.innerHTML = `<div class="alert alert-danger">Erro no estoque: ${d.erro}</div>`;
+          if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
+          if (btnPular) btnPular.disabled = false;
+          return;
+        }
+      }
+      const r = await api(`/api/admin/chamados/${chamado.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
+      const d = await r.json();
+      if (!r.ok) {
+        if (msg) msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
+        if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
+        if (btnPular) btnPular.disabled = false;
+        return;
+      }
+      ov.remove();
+      onDone(true);
+    } catch {
+      if (msg) msg.innerHTML = '<div class="alert alert-danger">Erro ao processar. Tente novamente.</div>';
+      if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
+      if (btnPular) btnPular.disabled = false;
+    }
+  }
+
+  document.getElementById('wiz-confirmar').addEventListener('click', () => executar(coletarMovs()));
+
+  document.getElementById('wiz-pular').addEventListener('click', () => executar([]));
+
+  document.getElementById('wiz-fechar').addEventListener('click', () => ov.remove());
+}
 
 iniciarPush();
