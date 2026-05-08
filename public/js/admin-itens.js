@@ -95,10 +95,10 @@ function atualizarToolbar() {
     btnNovo.textContent = '+ Novo Item Toner';
   } else if (abaAtiva === 'perifericos') {
     btnNovo.style.display = '';
-    btnNovo.textContent = '+ Novo Periférico';
+    btnNovo.textContent = '+ Novo Suprimento';
   } else if (abaAtiva === 'reserva') {
     btnNovo.style.display = '';
-    btnNovo.textContent = '+ Novo Item Reserva';
+    btnNovo.textContent = '+ Novo Equipamento';
   } else {
     btnNovo.style.display = 'none';
   }
