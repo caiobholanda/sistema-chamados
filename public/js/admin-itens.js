@@ -261,24 +261,24 @@ function renderMicros(lista) {
   const el = document.getElementById('itens-lista');
   document.getElementById('badge-micros').textContent = lista.length || '';
 
-  const setores = [...new Set(lista.map(i => i.setor).filter(Boolean))].sort();
-  const sos     = [...new Set(lista.map(i => i.sistema_operacional).filter(Boolean))].sort();
+  const sos         = [...new Set(lista.map(i => i.sistema_operacional).filter(Boolean))].sort();
+  const memorias    = [...new Set(lista.map(i => i.memoria).filter(Boolean))].sort();
+  const processadores = [...new Set(lista.map(i => i.processador).filter(Boolean))].sort();
 
   el.innerHTML = `
     <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <input class="form-control" id="micros-search" type="text" placeholder="Buscar usuário, hostname…" style="max-width:220px">
-      <select class="form-control" id="micros-setor" style="max-width:200px">
-        <option value="">Todos os setores</option>
-        ${setores.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
+      <input class="form-control" id="micros-search" type="text" placeholder="Buscar setor, usuário, hostname…" style="max-width:260px">
+      <select class="form-control" id="micros-processador" style="max-width:180px">
+        <option value="">Todos os processadores</option>
+        ${processadores.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('')}
       </select>
-      <select class="form-control" id="micros-so" style="max-width:160px">
+      <select class="form-control" id="micros-memoria" style="max-width:150px">
+        <option value="">Toda memória</option>
+        ${memorias.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('')}
+      </select>
+      <select class="form-control" id="micros-so" style="max-width:150px">
         <option value="">Todos os S.O.</option>
         ${sos.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
-      </select>
-      <select class="form-control" id="micros-status" style="max-width:160px">
-        <option value="">Todos os status</option>
-        <option value="NOVO">NOVO</option>
-        <option value="CONCLUIDO">CONCLUIDO</option>
       </select>
       <span id="micros-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem">${lista.length} equipamento${lista.length !== 1 ? 's' : ''}</span>
     </div>
@@ -286,27 +286,28 @@ function renderMicros(lista) {
   `;
 
   document.getElementById('micros-search').addEventListener('input', filtrarMicros);
-  document.getElementById('micros-setor').addEventListener('change', filtrarMicros);
+  document.getElementById('micros-processador').addEventListener('change', filtrarMicros);
+  document.getElementById('micros-memoria').addEventListener('change', filtrarMicros);
   document.getElementById('micros-so').addEventListener('change', filtrarMicros);
-  document.getElementById('micros-status').addEventListener('change', filtrarMicros);
 
   _microsFiltered = lista;
   renderTabelaMicros(lista);
 }
 
 function filtrarMicros() {
-  const search = (document.getElementById('micros-search').value || '').toLowerCase();
-  const setor  = document.getElementById('micros-setor').value;
-  const so     = document.getElementById('micros-so').value;
-  const status = document.getElementById('micros-status').value;
+  const search      = (document.getElementById('micros-search').value || '').toLowerCase();
+  const processador = document.getElementById('micros-processador').value;
+  const memoria     = document.getElementById('micros-memoria').value;
+  const so          = document.getElementById('micros-so').value;
   const filtered = _microsCache.filter(item => {
     const matchSearch = !search ||
-      (item.usuario || '').toLowerCase().includes(search) ||
+      (item.setor    || '').toLowerCase().includes(search) ||
+      (item.usuario  || '').toLowerCase().includes(search) ||
       (item.hostname || '').toLowerCase().includes(search);
-    const matchSetor  = !setor  || (item.setor || '') === setor;
-    const matchSo     = !so     || (item.sistema_operacional || '') === so;
-    const matchStatus = !status || (item.status || '') === status;
-    return matchSearch && matchSetor && matchSo && matchStatus;
+    const matchProc   = !processador || (item.processador || '') === processador;
+    const matchMem    = !memoria     || (item.memoria     || '') === memoria;
+    const matchSo     = !so          || (item.sistema_operacional || '') === so;
+    return matchSearch && matchProc && matchMem && matchSo;
   });
   document.getElementById('micros-count').textContent = `${filtered.length} equipamento${filtered.length !== 1 ? 's' : ''}`;
   renderTabelaMicros(filtered);
