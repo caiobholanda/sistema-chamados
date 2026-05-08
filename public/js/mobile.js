@@ -153,7 +153,7 @@ async function carregarChamados() {
 
 
 // ── Wizard de estoque (mobile) ────────────────────────────────
-const MOB_WIZ_CATS = ['mouse','teclado','monitor','nobreak','hardware'];
+const MOB_WIZ_CATS = ['mouse','teclado','monitor','nobreak'];
 
 function mobWizHtml(cat, itens) {
   const state = {};
@@ -227,22 +227,14 @@ function mobWizHtml(cat, itens) {
         ${bloco('saida_bateria', 'Essa bateria saiu do estoque?', sel('saida_bateria', 'Bateria utilizada:', ['bateria']))}
       `)}
     `,
-    hardware: `
-      ${bloco('troca_comp', 'Um computador/equipamento foi instalado ou trocado?', `
-        ${bloco('saida_componente', 'Esse item saiu do estoque?', sel('saida_componente', 'Item instalado:', ['dell','computador','desktop','notebook']))}
-        ${bloco('entrada_componente', 'O item retirado vai entrar no estoque?', sel('entrada_componente', 'Item devolvido:', ['dell','computador','desktop','notebook']))}
-      `)}
-      ${bloco('troca_memoria', 'Uma memória RAM foi instalada?', sel('saida_memoria', 'Memória utilizada:', ['memória','memoria','ddr']))}
-      ${bloco('troca_processador', 'Um processador foi instalado?', sel('saida_processador', 'Processador utilizado:', ['processador','i3','i5','i7']))}
-    `,
   };
 
   return configs[cat] || '';
 }
 
 function mobWizColetarMovs(chamadoId) {
-  const SAIDAS   = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak','saida_bateria','saida_componente','saida_memoria','saida_processador'];
-  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor','entrada_nobreak','entrada_componente'];
+  const SAIDAS   = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak','saida_bateria'];
+  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor','entrada_nobreak'];
   const movs = [];
   [...SAIDAS.map(k => [k,'saida']), ...ENTRADAS.map(k => [k,'entrada'])].forEach(([key, tipo]) => {
     const sim = document.querySelector(`.mob-wiz-sim[data-q="${key}"]`);

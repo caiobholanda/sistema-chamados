@@ -760,7 +760,7 @@ function setupModalEventos(c) {
         document.getElementById('txt-solucao').focus();
         return;
       }
-      const CATS_WIZARD = ['hardware','mouse','monitor','teclado','nobreak'];
+      const CATS_WIZARD = ['mouse','monitor','teclado','nobreak'];
       if (CATS_WIZARD.includes(c.categoria)) {
         abrirWizardEstoque(c, solucao, (ok) => {
           if (ok) setTimeout(() => abrirModal(c.id), 700);
@@ -1028,7 +1028,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
   } catch {}
 
   const cat = chamado.categoria;
-  const catNome = { mouse:'Mouse', teclado:'Teclado', monitor:'Monitor', nobreak:'Nobreak', hardware:'Hardware' }[cat] || cat;
+  const catNome = { mouse:'Mouse', teclado:'Teclado', monitor:'Monitor', nobreak:'Nobreak' }[cat] || cat;
   const state = {};
 
   function filtrar(termos) {
@@ -1108,22 +1108,6 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       ${bloco('troca_bateria', 'Uma bateria foi utilizada?', `
         ${bloco('saida_bateria', 'Essa bateria saiu do estoque de Suprimentos?',
           itemSel('saida_bateria', 'Selecione a bateria utilizada:', ['bateria']))}
-      `)}
-    `,
-    hardware: `
-      ${bloco('troca_comp', 'Um computador/equipamento foi instalado ou trocado?', `
-        ${bloco('saida_componente', 'Esse item saiu do estoque de Equipamentos?',
-          itemSel('saida_componente', 'Selecione o item instalado:', []))}
-        ${bloco('entrada_componente', 'O item retirado vai entrar no estoque?',
-          itemSel('entrada_componente', 'Selecione o item devolvido:', []))}
-      `)}
-      ${bloco('troca_memoria', 'Uma memória RAM foi instalada?', `
-        ${bloco('saida_memoria', 'Essa memória saiu do estoque?',
-          itemSel('saida_memoria', 'Selecione a memória utilizada:', ['memória', 'memoria', 'ddr']))}
-      `)}
-      ${bloco('troca_processador', 'Um processador foi instalado?', `
-        ${bloco('saida_processador', 'Esse processador saiu do estoque?',
-          itemSel('saida_processador', 'Selecione o processador utilizado:', ['processador', 'i3', 'i5', 'i7']))}
       `)}
     `,
   };
