@@ -1372,6 +1372,10 @@ function exportarCsvMes(mes) {
 
 function prazo2DiasUteis() {
   const fortaleza = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  const hora = fortaleza.getUTCHours();
+  const min  = fortaleza.getUTCMinutes();
+  // ≤20 min → arredonda para baixo, >20 min → para cima (máx 23)
+  const horaFinal = Math.min(23, min <= 20 ? hora : hora + 1);
   let current = new Date(Date.UTC(fortaleza.getUTCFullYear(), fortaleza.getUTCMonth(), fortaleza.getUTCDate(), 12));
   let diasUteis = 0;
   while (diasUteis < 2) {
@@ -1379,7 +1383,8 @@ function prazo2DiasUteis() {
     const dow = current.getUTCDay();
     if (dow !== 0 && dow !== 6) diasUteis++;
   }
-  return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate(), 21)).toISOString().replace('T', ' ').substring(0, 19);
+  // horaFinal é Fortaleza (UTC-3); UTC = horaFinal + 3
+  return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate(), horaFinal + 3)).toISOString().replace('T', ' ').substring(0, 19);
 }
 
 module.exports = {

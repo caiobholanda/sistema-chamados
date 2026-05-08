@@ -72,6 +72,23 @@ function fmtData(d) {
   return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
 }
 
+// Converte prazo UTC armazenado → valor para input datetime-local em Fortaleza
+function utcParaInputFortaleza(prazo) {
+  if (!prazo) return '';
+  const iso = prazo.includes('T') ? prazo : prazo.replace(' ', 'T');
+  const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  return new Date(d.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 16);
+}
+
+// Converte valor do input datetime-local (Fortaleza) → UTC para salvar
+function inputFortalezaParaUtc(val) {
+  if (!val) return null;
+  const [dp, tp] = val.split('T');
+  const [y, mo, d] = dp.split('-').map(Number);
+  const [h, m] = (tp || '00:00').split(':').map(Number);
+  return new Date(Date.UTC(y, mo - 1, d, h + 3, m)).toISOString().replace('T', ' ').substring(0, 19);
+}
+
 function badgeStatus(s) {
   return `<span class="badge badge-${s}" data-status="${s}" title="Filtrar por: ${STATUS_LABELS[s] || s}" style="cursor:pointer">${STATUS_LABELS[s] || s}</span>`;
 }
@@ -580,7 +597,7 @@ function renderModalBody(c) {
               </div>
               <div class="mv2-ctrl-row">
                 <span class="mv2-ctrl-lbl">Prazo</span>
-                <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${c.prazo ? c.prazo.replace(' ','T').slice(0,16) : ''}" style="flex:1">
+                <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${utcParaInputFortaleza(c.prazo)}" style="flex:1">
                 <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
                 ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
               </div>
@@ -682,8 +699,8 @@ function setupModalEventos(c) {
   const btnSalvarPrazo = document.getElementById('btn-salvar-prazo');
   if (btnSalvarPrazo) {
     btnSalvarPrazo.addEventListener('click', async () => {
-      const prazo = document.getElementById('input-prazo').value;
-      const r = await api(`/api/admin/chamados/${c.id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: prazo || null }) });
+      const prazoUtc = inputFortalezaParaUtc(document.getElementById('input-prazo').value);
+      const r = await api(`/api/admin/chamados/${c.id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: prazoUtc }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Prazo atualizado.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
