@@ -296,6 +296,20 @@ const CATEGORIAS_VALIDAS = [
   'mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor',
   'processo_compra','outros',
 ];
+function prazo2DiasUteis() {
+  // Deslocar UTC -3h para obter data local de Fortaleza
+  const fortaleza = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  let current = new Date(Date.UTC(fortaleza.getUTCFullYear(), fortaleza.getUTCMonth(), fortaleza.getUTCDate(), 12));
+  let diasUteis = 0;
+  while (diasUteis < 2) {
+    current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
+    const dow = current.getUTCDay();
+    if (dow !== 0 && dow !== 6) diasUteis++;
+  }
+  // 18:00 Fortaleza = 21:00 UTC
+  return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate(), 21)).toISOString().replace('T', ' ').substring(0, 19);
+}
+
 router.patch('/chamados/:id/categoria', requireAdmin, (req, res) => {
   try {
     const { categoria } = req.body;
@@ -305,6 +319,9 @@ router.patch('/chamados/:id/categoria', requireAdmin, (req, res) => {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
     db.atualizarCategoria(chamado.id, categoria, req.admin.sub);
+    if (categoria === 'impressora') {
+      db.atualizarPrazo(chamado.id, prazo2DiasUteis(), req.admin.sub);
+    }
     return res.json({ mensagem: 'Categoria atualizada' });
   } catch (err) {
     console.error(err);
