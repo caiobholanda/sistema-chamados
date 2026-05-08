@@ -155,6 +155,64 @@ function initDb() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS inventario_micros (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      setor TEXT NOT NULL DEFAULT '',
+      usuario TEXT NOT NULL DEFAULT '',
+      processador TEXT DEFAULT '',
+      memoria TEXT DEFAULT '',
+      sistema_operacional TEXT DEFAULT '',
+      hd_ssd TEXT DEFAULT '',
+      office TEXT DEFAULT '',
+      tag TEXT DEFAULT '',
+      entradas_monitor TEXT DEFAULT '',
+      modelo_monitor TEXT DEFAULT '',
+      status TEXT DEFAULT '',
+      hostname TEXT DEFAULT '',
+      data_troca TEXT DEFAULT '',
+      observacao TEXT DEFAULT '',
+      atualizacao_win11 TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS estoque_itens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      tipo TEXT NOT NULL DEFAULT 'outro',
+      qtd_preto INTEGER DEFAULT 0,
+      qtd_ciano INTEGER DEFAULT 0,
+      qtd_magenta INTEGER DEFAULT 0,
+      qtd_amarelo INTEGER DEFAULT 0,
+      qtd_geral INTEGER DEFAULT 0,
+      urgente INTEGER DEFAULT 0,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS estoque_movimentacoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_id INTEGER NOT NULL REFERENCES estoque_itens(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL,
+      cor TEXT DEFAULT '',
+      quantidade INTEGER NOT NULL DEFAULT 1,
+      admin_nome TEXT DEFAULT '',
+      observacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS impressoras (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      ip TEXT DEFAULT '',
+      selb TEXT DEFAULT '',
+      localizacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_chamados_status ON chamados(status);
     CREATE INDEX IF NOT EXISTS idx_chamados_admin ON chamados(admin_responsavel_id);
     CREATE INDEX IF NOT EXISTS idx_chamados_usuario ON chamados(usuario_id);
@@ -164,7 +222,336 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_itens_tipo ON itens(tipo);
   `);
 
+  seedInventario();
+  seedEstoque();
+
   return db;
+}
+
+// ── Seed data ─────────────────────────────────────────────
+
+const SEED_INVENTARIO = [
+  ["ADM AEB","NATALIA","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","NOTEBOOK","DELL","","","","",""],
+  ["ALMOXARIFADO","ADALBERTO","I5 12500","8GB","WIN 11","SSD 256","H & B 2021","2WJDYR2","VGA-D.P.","AOC","NOVO","ALMOXARIFADO-01","2024","",""],
+  ["BANQUETES","VANDERLAN","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA-D.P.","DELL","NOVO","BANQUETES-10","ABRIL 2026","",""],
+  ["BANQUETES","LENE","I5 8400","8GB","WIN 11","HD 1TB","H & B 2016","","VGA-HDMI","AOC","","BANQUETES-02","","TROCAR PARA SSD","CONCLUIDO"],
+  ["BANQUETES","ANA PAULA","I5 8400","8GB","WIN 11","HD 1TB","H & B 2016","","VGA-DVI","","","BANQUETES-01","","TROCAR PARA SSD","CONCLUIDO"],
+  ["ALMOXARIFADO","ISAAC","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA-D.P. / VGA-HDMI","DELL/LG","NOVO","SUPRIMENTOS-01","MARÇO 2026","",""],
+  ["CONTROLADORIA","ERICA","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","HDMI / VGA -D.P.","DELL / 3 TECH","NOVO","FATURAMENTO-01","MARÇO 2026","",""],
+  ["BANQUETES","NATECIA","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","","VGA","DELL","NOVO","MANUT-01","2025","",""],
+  ["COZINHA","ERIKA","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA-D.P.","DELL","NOVO","ADMCOZ-01","ABRIL 2026","",""],
+  ["GOVERNANCA","GOV 2","I5 8500","8GB","WIN 11","SSD 256","H & B 2019","","VGA-DVI (ADAPTADOR HDMI-VGA)","DELL","","GOVERNACA-02","","",""],
+  ["GUEST","KAMILE","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","HDMI / VGA","SOYO","NOVO","GUEST-01","MARÇO 2026","",""],
+  ["RH","MIKA","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA / D.P","DELL","NOVO","QUALIDADE-01","ABRIL 2026","",""],
+  ["BUSINESS","BUSINESS","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","AIO","DELL","","BUSINESS 1","","",""],
+  ["BUSINESS","BUSINESS","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","AIO","DELL","","BUSINESS 2","","",""],
+  ["SEGURANÇA","SEGURANCA","I5 8500","8GB","WIN 11","SSD 256","H & B 2019","","VGA-DVI-HDMI / VGA-D.P. (CABO DVI-HDMI)","LENOVO/ DELL","","PORT-SEG-01","ABRIL 2026","",""],
+  ["COMERCIAL","ROGERIO","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","HDZGX14","VGA-D.P. / VGA-DVI","DELL/SAMSUNG","NOVO","VENDAS-05","2023","",""],
+  ["COMERCIAL","PATRICIA","I5 12800","8GB","WIN 11","SSD 120","H & B 2021","GHXG7W3","VGA-HDMI / VGA-D.P.","DELL/DELL","NOVO","VENDAS-010","2023","",""],
+  ["SEGURANÇA","JUSSIEUDO","I5 10500","8GB","WIN 11","SSD 120","H & B 2021","","VGA / D.P","DELL","NOVO","SEGURANCA-01","ABRIL 2026","ANTIGO DO FELIPE",""],
+  ["COMERCIAL","BRIELE","I5 12800","8GB","WIN 11","SSD 240","H & B 2021","HHXG7W3","VGA-D.P. / VGA-HDMI-DVI","DELL/SAMSUNG","NOVO","VENDAS-03","2023","","CONCLUIDO"],
+  ["COZINHA","CHEF","I3 3240","8GB","WIN 8.1","500","H & B 2016","5F710Y1","VGA-D.P.","DELL","","COZINHA-01","","","NAO TROCAR"],
+  ["COMPRAS","DANIELLE","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","DDZGX14","VGA-HDMI / VGA-HDMI","DELL/GOLDENTEC","NOVO","COMPRAS-03","2024","",""],
+  ["COMPRAS","JEFFERSON","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","GDZGY14","VGA-HDMI / VGA-D.P.","DELL/GOLDENTEC","NOVO","C-COMPRAS-01","2023","",""],
+  ["COMPRAS","CLAUDIANE","I5 12500","8GB","WIN 11","SSD 256","H & B 2021","FHXG7W3","VGA-D.P. / HDMI-VGA","DELL/AOC","NOVO","COMPRAS-02","2024","",""],
+  ["CONCIERGE","RECEPCAO","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","OKSSV44","AIO","DELL","NOVO","CONCIERGE-01","2024","",""],
+  ["CONTROLADORIA","DRIELE","I5 10500","8GB","WIN 10","SSD 120","H & B 2021","HKJVZQ3","VGA-D.P.","DELL","NOVO","CONTROL-02","2023","","FORMATAR"],
+  ["CONTROLADORIA","LETICIA","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","9HV4874","VGA-D.P. / VGA-HDMI","DELL","NOVO","CONTROL-011","2025","",""],
+  ["CONTROLADORIA","SILVIA","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","CDZGX14","VGA-D.P. / VGA-HDMI","DELL/GOLDENTEC","NOVO","CONTROL-04","ABRIL 2026","",""],
+  ["CONTROLADORIA","GREGORE","I5 10500","8GB","WIN 11","SSD 256","H & B 2021","GKJVZQ3","VGA-D.P. / VGA-HDMI","DELL/DELL","NOVO","CONTROL-05","2024","","CONCLUIDO"],
+  ["BANQUETES","MAIA","I3 3240","6GB","WIN 8","500","H & B 2013","","VGA","DELL","","BANQUETES-04","","",""],
+  ["CONTROLADORIA","MANUEL","I5 12500","8GB","WIN 11","SSD 256","H & B 2021","5S4P4V4","VGA-HDMI","AOC","NOVO","CONTROL-03","2023","",""],
+  ["BUSINESS","BUSINESS","I3 4150","4GB","WIN 8.1","500","","JS5FCP2","AIO","DELL","","BUSINESS 3","","",""],
+  ["CONTROLADORIA","APRENDIZ","I3 3240","8GB","WIN 8.1","500","H & B 2013","B94SZ02","VGA-DVI","DELL","","CONTROL-10","","",""],
+  ["CONTROLADORIA","FELIPE","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA-D.P. / VGA-HDMI","DELL/3M","NOVO","CONTROLE-01","MARÇO 2026","",""],
+  ["CONTROLADORIA","APRENDIZ","I3 3240","6GB","WIN 8.1","500","H & B 2013","HD720Y1","VGA-DVI","DELL","","CONTROL-08","","",""],
+  ["GOVERNANCA","ROUPARIA","I3 3240","6GB","WIN 8.1","1 TB","H & B 2013","B4XGJ82","VGA","DELL","","ROUPARIA-01","","",""],
+  ["DIRETORIA","DIONISIO","I5 8400","8GB","WIN 11","HD 1TB","H & B 2021","","VGA-D.P.","DELL","","DIRETORIA","","TROCAR PARA SSD","CONCLUIDO"],
+  ["EVENTOS SOCIAIS","PRISCILA","I5 12500","8GB","WIN 11","SSD0256","H & B 2021","2S4P4V3","VGA-D.P.","DELL","NOVO","GER-SOCIAIS-01","2023","",""],
+  ["EVENTOS SOCIAIS","EDUARDA","I5 8400","8GB","WIN 11","HD 1TB","H & B 2016","2WTJYR2","VGA","SAMSUNG","","EVENTOS-02","2025","TROCAR PARA SSD","CONCLUIDO"],
+  ["GER EVENTOS","CATARINA","I5 10500","8GB","WIN 11","SSD 256","H & B 2019","","NOTEBOOK","HP","","GER-EVENTOS-01","","",""],
+  ["GERENCIA GERAL","PHILLIPE","I5 12500","8GB","WIN 11","SSD0256","H & B 2021","1S4P4V3","VGA-D.P.","DELL","NOVO","GER-GERAL-02","2023","",""],
+  ["GER-RECEPÇÃO","MARIANA","I5 8500","8GB","WIN 11","SSD 256","H & B 2019","3FT87Z2","VGA-D.P. / VGA-DVI (ADAPTADOR HDMI-VGA)","DELL/LG","","GER-RECEPCAO-01","","","CONCLUIDO"],
+  ["MANUTENÇÃO","OTRS","I3 4160","8GB","WIN 8.1","500","H & B 2013","","VGA","SAMSUNG","","PCM-ATEND-01","","",""],
+  ["NUTRIÇÃO","ESTAGIARIOS","I3 4160","8GB","WIN 10","500","H & B 2016","","VGA","SAMSUNG","","NUTRICAO-03","","TROCAR PARA SSD",""],
+  ["PISCINA","PISCINA","I3 7100","8GB","WIN 8.1","500","H & B 2016","","VGA -DVI","DELL","","PDV-PISCINA","","TROCAR PARA SSD",""],
+  ["GOVERNANCA","PAULA","I5 10500","8GB","WIN 11","SSD 256","H & B 2021","4S4P4V3","VGA-D.P.","DELL","NOVO","GOVERNACA-01","2023","",""],
+  ["GUEST","RODRIGO","I5 8400","8GB","WIN 11","1TB","H & B 2019","","VGA","DELL","","CENTRAL-02","","TROCAR PARA SSD",""],
+  ["RESERVAS","APRENDIZ","I3 3240","6GB","WIN 8","500","H & B 2013","B57ZZX1","VGA","DELL","","RESERVAS-05","","",""],
+  ["RH","RAQUEL","I5 14500T","16GB","WIN 11","SSD 240","H & B 2024","","NOTEBOOK","DELL","NOVO","PROCESSOS-01","MARÇO 2026","",""],
+  ["MAITRE","CHAVES","I5 8400","8GB","WIN 11","SSD 256","H & B 2013","","VGA","DELL","","AEB-01","ABRIL 2026","ESTA COM SSD","CONCLUIDO"],
+  ["MANGOSTIN","MANGOSTIN","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","","AIO","DELL","NOVO","MANGOSTIN-001","2025","",""],
+  ["MANUTENÇÃO","JESSICA","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","","VGA-HDMI / VGA-HDMI","DELL","NOVO","GER-MANUT-01","2025","",""],
+  ["MANUTENÇÃO","RENAN","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","","VGA / HDMI","DELL/ LG","NOVO","MANUT-01","2025","",""],
+  ["STEWARD","STEWARD","I3 3240","8GB","WIN 8.1","500","H & B 2013","","VGA","DELL","","STEWARD-01","","",""],
+  ["MANUTENÇÃO","ANA","I5 12500","8GB","WIN 11","SSD0256","H & B 2021","","VGA-D.P. / VGA-HDMI","DELL","NOVO","","2023","MUDAR HOSTNAME",""],
+  ["ALMOXARIFADO","ESTAGIARIOS","I3 7100","8GB","WIN 11","500","H & B 2016","","VGA-DVI","DELL","","ALMOX-02","","TROCAR PARA SSD","CONCLUIDO"],
+  ["MESA VIP","RECEPCAO","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","1Z143Z3","AIO","DELL","NOVO","MESAVIP-01","2023","",""],
+  ["MUCURIPE","MUCURIPE","I5 8400","8GB","WIN 11","SSD256","H & B 2019","","AIO","DELL","","PDV-MUCURIPE","","","CONCLUIDO"],
+  ["COMERCIAL","FARNEY","I3 7100","8GB","WIN 11","500","H & B 2016","5STMCK2","VGA-HDMI","AOC","","VENDAS-04","","TROCAR PARA SSD","CONCLUIDO"],
+  ["NUTRIÇÃO","GLAUBER","I5 8400","8GB","WIN 11","HD 1TB","H & B 2021","","VGA-DVI","LG","","NUTRICAO-01","2025","TROCAR PARA SSD","CONCLUIDO"],
+  ["OBRA","DIEGO","I5 8400","8GB","WIN 11","HD 1TB","H & B 2016","2XNGYR2","VGA-DVI","DELL","","MANUTENCAO-01","","TROCAR PARA SSD","CONCLUIDO"],
+  ["OBRA","EDEN","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","9DZGX14","VGA-D.P.","DELL","NOVO","ENGENHARIA-01","2024","",""],
+  ["GOVERNANCA","GOV 1","I3 7100","8GB","WIN 11","500","H & B 2019","3FV27Z2","VGA-D.P.","DELL","","GOV-004","","TROCAR PARA SSD","CONCLUIDO"],
+  ["PISCINA 2","PISCINA","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","","AIO","DELL","NOVO","PDV-PISCINA-2","2024","",""],
+  ["RECEPÇÃO 1","RECEPCAO","I5 10500","8GB","WIN 11","SSD 256","H & B 2021","","AIO","DELL","","RECEPCAO-01","","","CONCLUIDO"],
+  ["RECEPÇÃO 2","RECEPCAO","I5 8400","8GB","WIN 11","SSD 256","H & B 2021","","AIO","DELL","","RECEPCAO-052","","","CONCLUIDO"],
+  ["RECEPÇÃO 3","RECEPCAO","I5 10500","8GB","WIN 11","SSD 256","H & B 2016","","AIO","DELL","","RECEPCAO-02","","","CONCLUIDO"],
+  ["RECEPÇÃO 4","RECEPCAO","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","AIO","DELL","","RECEPCAO-050","","","CONCLUIDO"],
+  ["RECEPÇÃO 5","RECEPCAO","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","AIO","DELL","","RECEPCAO-030","","","CONCLUIDO"],
+  ["RESERVAS","GABRIEL","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","FDZGX14","VGA-D.P. / VGA-DVI","DELL/DELL","NOVO","RESERVAS-02","2023","",""],
+  ["RESERVAS","ROSANA","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","BDZGX14","VGA-D.P. / VGA","DELL/DELL","NOVO","RESERVAS-01","2024","",""],
+  ["LOBBY BAR","LOBBY BAR","I3 7100","8GB","WIN 11","500","H & B 2016","JS5DMN2","AIO","DELL","","TIBKP-03","2025","TROCAR PARA SSD","CONCLUIDO"],
+  ["RESERVAS","APRENDIZ","I3 3240","6GB","WIN 8.1 - 10","500","H & B 2013","FD45Z02","VGA-DVI / VGA","DELL","","RESERVAS-04","","","8.1 PARA WIN 10"],
+  ["REVENUE","JULIA","I5 12800","8GB","WIN 11","SSD 120","H & B 2021","JHXG7W3","VGA-HDMI / VGA-D.P.","DELL/AOC","NOVO","REVENUE-01","2023","",""],
+  ["SALA DE LEITURA 3","CLUBINHO","I3 3240","8GB","WIN 8.1","500","H & B 2013","","VGA-DVI","DELL","","","","MUDAR HOSTNAME",""],
+  ["RH","SAYMON","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA /D.P.","DELL","NOVO","GESTAO-01","ABRIL 2026","",""],
+  ["RH","THAIS","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","354P4V3","VGA-DVI","DELL","NOVO","GP-02","2025","",""],
+  ["TI","CAIO","I3 4160","8GB","WIN 8.1","500","H & B 2016","","VGA","DELL","","","","",""],
+  ["RH","ALINE","I5 12500","8GB","WIN 11","SSD 256","H & B 2021","CB730Y1","VGA-HDMI","DELL","NOVO","GER-RH-01","2023","",""],
+  ["BKP TI","","I3 4160","8GB","WIN 8.1","500","H & B 2016","","AIO","DELL","","","","MUDAR HOSTNAME","RECOLHIDO"],
+  ["BKP AIO","BUSINESS","I3 7100","8GB","WIN 11","500","nao tem","","AIO","DELL","","BKP-05","","TROCAR PARA SSD","CONCLUIDO"],
+  ["BKP AIO","BUSINESS","I3 7100","8GB","WIN 11","500","H & B 2016","","AIO","DELL","","TIBKP-04","2025","TROCAR PARA SSD","CONCLUIDO"],
+  ["GERENCIA GERAL","THAIS","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","59ZRB74","VGA-D.P. / VGA-HDMI-DVI","DELL/SAMSUNG","NOVO","GER-GERAL-02","2025","",""],
+  ["SALA DE LEITURA 1","CLUBINHO","I3 3240","4GB","WIN 8.1","500","H & B 2013","","AIO","LG","","","","",""],
+  ["SALA DE LEITURA 2","CLUBINHO","I3 3240","4GB","WIN 8.1","320","H & B 2013","","AIO","LG","","","","",""],
+  ["SPA","SPA","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","","AIO","DELL","NOVO","SPA-01","2025","",""],
+  ["TI","MARCIO","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA- HDMI / VGA - DVI","LENOVO / AOC","NOVO","TI-02","MARÇO 2026","",""],
+  ["TI","RICHARD","I7-1355U","16GB","WIN 11","SSD 256","H & B 2024","","NOTEBOOK","DELL","NOVO","TI-01","2025","",""],
+  ["TOTEM BKP","ADMINISTRADOR","I3 3240","8GB","WIN 7","500","nao tem","","","","","T-BACKUP","","",""],
+  ["TOTEM COBERTURA","ADMINISTRADOR","I5 14500T","8GB","WIN 11","SSD 240","nao tem","","TV 32","SAMSUNG","NOVO","T-COBERTURA","","",""],
+  ["TOTEM MOVEL","ADMINISTRADOR","I3 3240","8GB","WIN 7","500","nao tem","","AIO","DELL","","T-MOVEL","","",""],
+  ["TOTEM RECEPCAO","ADMINISTRADOR","I5 14500T","8GB","WIN 11","SSD 240","nao tem","","TV 43","LG","NOVO","T-RECEPCAO","MARÇO 2026","",""],
+  ["TOTEM SPAZIO","ADMINISTRADOR","I5 14500T","8GB","WIN 11","SSD 240","nao tem","","TV 50","LG","NOVO","T-SPAZIO","MARÇO 2026","",""],
+  ["MARKETING","MARKETING","Apple M4","16GB","macOS Air M4","SSD 256","nao tem","","MACBOOK","APPLE","NOVO","","MARÇO 2026","","USUARIO ADMIN"],
+];
+
+const SEED_ESTOQUE = [
+  { nome: 'RICOH Aficio SP 3510/3500', tipo: 'toner_mono', qtd_preto: 4, urgente: 0 },
+  { nome: 'RICOH SP 3710SF / 320F', tipo: 'toner_mono', qtd_preto: 5, urgente: 0 },
+  { nome: 'Canon iR C3226', tipo: 'toner_color', qtd_preto: 2, qtd_ciano: 2, qtd_magenta: 1, qtd_amarelo: 1, urgente: 0 },
+  { nome: 'Epson C5790', tipo: 'toner_color', qtd_preto: 0, qtd_ciano: 1, qtd_magenta: 2, qtd_amarelo: 2, urgente: 0 },
+  { nome: 'Epson L6490', tipo: 'toner_color', qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, urgente: 1 },
+  { nome: 'HP M479fdw', tipo: 'toner_color', qtd_preto: 1, qtd_ciano: 1, qtd_magenta: 1, qtd_amarelo: 1, urgente: 0 },
+  { nome: 'Epson C5890', tipo: 'toner_color', qtd_preto: 3, qtd_ciano: 3, qtd_magenta: 3, qtd_amarelo: 3, urgente: 0 },
+  { nome: 'Resmas A4', tipo: 'resma', qtd_geral: 13, urgente: 0 },
+];
+
+const SEED_IMPRESSORAS = [
+  { nome: 'RICOH Aficio SP 3710DN', ip: '10.1.7.17', selb: '2IY9', localizacao: 'GER-RECEPCAO' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.87', selb: 'JPD3', localizacao: 'MANUTENCAO' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.219', selb: '2EP2', localizacao: 'RECEPCAO' },
+  { nome: 'Canon iR C3226', ip: '10.1.7.61', selb: '2EP1', localizacao: 'MARKETING' },
+  { nome: 'RICOH M 320F', ip: '10.1.7.82', selb: '2EP7', localizacao: 'CONTROLADORIA' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.16', selb: '2QC9', localizacao: 'ENGENHARIA' },
+  { nome: 'EPSON COLOR A4 WF-C5790', ip: '10.1.7.158', selb: 'RFA2', localizacao: 'BANQUETES' },
+  { nome: 'RICOH Aficio SP 3510DN', ip: '10.1.7.155', selb: '2EQ4', localizacao: 'SPA' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.131', selb: 'JST4', localizacao: 'GUEST' },
+  { nome: 'EPSON WF5890', ip: '10.1.7.67', selb: '3Y24', localizacao: 'RH' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.95', selb: '2KA7', localizacao: 'STEWARD' },
+  { nome: 'HP M479FDW', ip: '10.1.7.19', selb: '2BL6', localizacao: 'EVENTOS-SOCIAIS' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.40', selb: '2EP5', localizacao: 'GOVERNANCA' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.213', selb: '2EP4', localizacao: 'COMPRAS' },
+  { nome: 'RICOH Aficio SP 3510SF', ip: '10.1.7.21', selb: '2EQ8', localizacao: 'NUTRICAO' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.219', selb: '2EP6', localizacao: 'RECEPCAOBKP' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.107', selb: 'JNI9', localizacao: 'RESERVAS' },
+  { nome: 'EPSON L6490', ip: '10.100.15.15', selb: '08MW', localizacao: 'BUSSINES' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.53', selb: '2EP3', localizacao: 'COZINHA' },
+];
+
+function seedInventario() {
+  const db = getDb();
+  const count = db.prepare('SELECT COUNT(*) as cnt FROM inventario_micros').get();
+  if (count.cnt > 0) return;
+
+  const stmt = db.prepare(`
+    INSERT INTO inventario_micros
+      (setor, usuario, processador, memoria, sistema_operacional, hd_ssd, office, tag,
+       entradas_monitor, modelo_monitor, status, hostname, data_troca, observacao, atualizacao_win11)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const inserir = db.transaction((rows) => {
+    for (const r of rows) stmt.run(...r);
+  });
+  inserir(SEED_INVENTARIO);
+  console.log(`[DB] Inventário: ${SEED_INVENTARIO.length} registros de seed inseridos.`);
+}
+
+function seedEstoque() {
+  const db = getDb();
+  const countItens = db.prepare('SELECT COUNT(*) as cnt FROM estoque_itens').get();
+  if (countItens.cnt === 0) {
+    const stmtItem = db.prepare(`
+      INSERT INTO estoque_itens (nome, tipo, qtd_preto, qtd_ciano, qtd_magenta, qtd_amarelo, qtd_geral, urgente)
+      VALUES (@nome, @tipo, @qtd_preto, @qtd_ciano, @qtd_magenta, @qtd_amarelo, @qtd_geral, @urgente)
+    `);
+    const inserirItens = db.transaction((rows) => {
+      for (const r of rows) {
+        stmtItem.run({
+          qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, qtd_geral: 0,
+          ...r,
+        });
+      }
+    });
+    inserirItens(SEED_ESTOQUE);
+    console.log(`[DB] Estoque: ${SEED_ESTOQUE.length} itens de seed inseridos.`);
+  }
+
+  const countImpressoras = db.prepare('SELECT COUNT(*) as cnt FROM impressoras').get();
+  if (countImpressoras.cnt === 0) {
+    const stmtImp = db.prepare(`
+      INSERT INTO impressoras (nome, ip, selb, localizacao)
+      VALUES (@nome, @ip, @selb, @localizacao)
+    `);
+    const inserirImpressoras = db.transaction((rows) => {
+      for (const r of rows) stmtImp.run(r);
+    });
+    inserirImpressoras(SEED_IMPRESSORAS);
+    console.log(`[DB] Impressoras: ${SEED_IMPRESSORAS.length} registros de seed inseridos.`);
+  }
+}
+
+// ── Inventário de Micros ──────────────────────────────────
+
+function listarInventario(filtros = {}) {
+  const db = getDb();
+  let sql = 'SELECT * FROM inventario_micros WHERE 1=1';
+  const params = [];
+  if (filtros.setor) { sql += ' AND setor LIKE ?'; params.push(`%${filtros.setor}%`); }
+  if (filtros.status) { sql += ' AND status LIKE ?'; params.push(`%${filtros.status}%`); }
+  if (filtros.search) {
+    sql += ' AND (setor LIKE ? OR usuario LIKE ? OR hostname LIKE ?)';
+    const s = `%${filtros.search}%`;
+    params.push(s, s, s);
+  }
+  sql += ' ORDER BY setor ASC, usuario ASC';
+  return db.prepare(sql).all(...params);
+}
+
+function buscarInventarioPorId(id) {
+  return getDb().prepare('SELECT * FROM inventario_micros WHERE id = ?').get(id);
+}
+
+function criarInventario(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO inventario_micros
+      (setor, usuario, processador, memoria, sistema_operacional, hd_ssd, office, tag,
+       entradas_monitor, modelo_monitor, status, hostname, data_troca, observacao, atualizacao_win11)
+    VALUES
+      (@setor, @usuario, @processador, @memoria, @sistema_operacional, @hd_ssd, @office, @tag,
+       @entradas_monitor, @modelo_monitor, @status, @hostname, @data_troca, @observacao, @atualizacao_win11)
+  `).run({
+    setor: '', usuario: '', processador: '', memoria: '', sistema_operacional: '',
+    hd_ssd: '', office: '', tag: '', entradas_monitor: '', modelo_monitor: '',
+    status: '', hostname: '', data_troca: '', observacao: '', atualizacao_win11: '',
+    ...dados,
+  });
+  return result.lastInsertRowid;
+}
+
+function atualizarInventario(id, dados) {
+  const campos = [];
+  const values = [];
+  const CAMPOS = ['setor','usuario','processador','memoria','sistema_operacional','hd_ssd','office','tag',
+                  'entradas_monitor','modelo_monitor','status','hostname','data_troca','observacao','atualizacao_win11'];
+  for (const campo of CAMPOS) {
+    if (dados[campo] !== undefined) { campos.push(`${campo} = ?`); values.push(dados[campo]); }
+  }
+  if (campos.length === 0) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  values.push(id);
+  getDb().prepare(`UPDATE inventario_micros SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarInventario(id) {
+  getDb().prepare('DELETE FROM inventario_micros WHERE id = ?').run(id);
+}
+
+// ── Estoque de Itens ──────────────────────────────────────
+
+function listarEstoqueItens() {
+  return getDb().prepare('SELECT * FROM estoque_itens ORDER BY nome ASC').all();
+}
+
+function buscarEstoqueItemPorId(id) {
+  return getDb().prepare('SELECT * FROM estoque_itens WHERE id = ?').get(id);
+}
+
+function criarEstoqueItem(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO estoque_itens (nome, tipo, qtd_preto, qtd_ciano, qtd_magenta, qtd_amarelo, qtd_geral, urgente)
+    VALUES (@nome, @tipo, @qtd_preto, @qtd_ciano, @qtd_magenta, @qtd_amarelo, @qtd_geral, @urgente)
+  `).run({
+    tipo: 'outro', qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, qtd_geral: 0, urgente: 0,
+    ...dados,
+  });
+  return result.lastInsertRowid;
+}
+
+function atualizarEstoqueItem(id, dados) {
+  const campos = [];
+  const values = [];
+  if (dados.nome !== undefined) { campos.push('nome = ?'); values.push(dados.nome); }
+  if (dados.tipo !== undefined) { campos.push('tipo = ?'); values.push(dados.tipo); }
+  if (dados.urgente !== undefined) { campos.push('urgente = ?'); values.push(dados.urgente); }
+  if (campos.length === 0) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  values.push(id);
+  getDb().prepare(`UPDATE estoque_itens SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarEstoqueItem(id) {
+  getDb().prepare('DELETE FROM estoque_itens WHERE id = ?').run(id);
+}
+
+function registrarMovimentacao(item_id, tipo, cor, quantidade, admin_nome, observacao) {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO estoque_movimentacoes (item_id, tipo, cor, quantidade, admin_nome, observacao)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(item_id, tipo, cor || '', quantidade, admin_nome || '', observacao || '');
+
+  // Update stock quantity
+  const sinal = tipo === 'entrada' ? 1 : -1;
+  const campo = cor && cor !== 'geral' ? `qtd_${cor}` : 'qtd_geral';
+  db.prepare(`UPDATE estoque_itens SET ${campo} = ${campo} + ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`)
+    .run(sinal * quantidade, item_id);
+}
+
+function listarMovimentacoes(item_id) {
+  return getDb().prepare(`
+    SELECT * FROM estoque_movimentacoes WHERE item_id = ? ORDER BY criado_em DESC
+  `).all(item_id);
+}
+
+// ── Impressoras ───────────────────────────────────────────
+
+function listarImpressoras() {
+  return getDb().prepare('SELECT * FROM impressoras ORDER BY localizacao ASC, nome ASC').all();
+}
+
+function criarImpressora(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO impressoras (nome, ip, selb, localizacao)
+    VALUES (@nome, @ip, @selb, @localizacao)
+  `).run({ ip: '', selb: '', localizacao: '', ...dados });
+  return result.lastInsertRowid;
+}
+
+function atualizarImpressora(id, dados) {
+  const campos = [];
+  const values = [];
+  ['nome','ip','selb','localizacao'].forEach(f => {
+    if (dados[f] !== undefined) { campos.push(`${f} = ?`); values.push(dados[f]); }
+  });
+  if (campos.length === 0) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  values.push(id);
+  getDb().prepare(`UPDATE impressoras SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarImpressora(id) {
+  getDb().prepare('DELETE FROM impressoras WHERE id = ?').run(id);
 }
 
 function salvarPushSubscription(adminId, { endpoint, p256dh, auth }) {
@@ -903,4 +1290,20 @@ module.exports = {
   deletarItem,
   listarChamadosProcessoCompra,
   listarAssinaturasHistorico,
+  listarInventario,
+  buscarInventarioPorId,
+  criarInventario,
+  atualizarInventario,
+  deletarInventario,
+  listarEstoqueItens,
+  buscarEstoqueItemPorId,
+  criarEstoqueItem,
+  atualizarEstoqueItem,
+  deletarEstoqueItem,
+  registrarMovimentacao,
+  listarMovimentacoes,
+  listarImpressoras,
+  criarImpressora,
+  atualizarImpressora,
+  deletarImpressora,
 };

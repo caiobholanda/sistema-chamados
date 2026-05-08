@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estoque — Gran Marquise TI</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+  <div class="header-brand">
+    <img class="header-logo-img" src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise">
+    <div class="header-brand-text">
+      <div class="header-brand-name">Gran Marquise</div>
+      <div class="header-brand-sub">Suporte de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <nav>
+    <a href="/admin-painel.html">Chamados</a>
+    <span id="nav-usuarios-wrap"></span>
+    <a href="/admin-relatorios.html">Relatórios</a>
+    <a href="/admin-itens.html">Itens</a>
+    <a href="/admin-inventario.html">Inventário</a>
+    <a href="/admin-estoque.html" class="ativo">Estoque</a>
+    <button id="btn-logout" class="btn btn-ghost btn-sm" style="margin-left:.5rem">Sair</button>
+  </nav>
+</header>
+
+<div id="toast-container"></div>
+
+<main class="wide">
+  <div class="page-header flex-between flex-wrap gap-2">
+    <div>
+      <div class="page-title">Estoque de Suprimentos</div>
+      <div class="page-subtitle">Controle de toner, cartuchos, resmas e impressoras em rede</div>
+    </div>
+    <button class="btn btn-primary" id="btn-novo">+ Novo Item</button>
+  </div>
+
+  <div class="tabs-bar">
+    <button class="tab-btn ativo" data-tab="toner">
+      Toner / Cartucho <span class="tab-badge" id="badge-toner"></span>
+    </button>
+    <button class="tab-btn" data-tab="impressoras">
+      Impressoras em Rede <span class="tab-badge" id="badge-impressoras"></span>
+    </button>
+  </div>
+
+  <div id="estoque-lista"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+
+<!-- Modal genérico (criar/editar item, criar/editar impressora) -->
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h2 id="modal-title">Item</h2>
+      <button class="modal-close" id="btn-fechar-modal" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Modal movimentação (entrada/saída) -->
+<div class="modal-overlay" id="mov-modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 id="mov-modal-title">Movimentação</h2>
+      <button class="modal-close" id="mov-btn-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="mov-modal-body"></div>
+  </div>
+</div>
+
+<!-- Modal histórico -->
+<div class="modal-overlay" id="hist-modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <h2 id="hist-modal-title">Histórico</h2>
+      <button class="modal-close" id="hist-btn-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="hist-modal-body"></div>
+  </div>
+</div>
+
+<script src="/js/admin-estoque.js"></script>
+</body>
+</html>

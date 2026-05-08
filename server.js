@@ -33,6 +33,8 @@ app.get('/admin-painel.html', (req, res) => servirHtmlComVersao(res, 'admin-pain
 app.get('/admin-usuarios.html', (req, res) => servirHtmlComVersao(res, 'admin-usuarios.html'));
 app.get('/admin-relatorios.html', (req, res) => servirHtmlComVersao(res, 'admin-relatorios.html'));
 app.get('/admin-itens.html', (req, res) => servirHtmlComVersao(res, 'admin-itens.html'));
+app.get('/admin-inventario.html', (req, res) => servirHtmlComVersao(res, 'admin-inventario.html'));
+app.get('/admin-estoque.html', (req, res) => servirHtmlComVersao(res, 'admin-estoque.html'));
 app.get('/admin-login.html', (req, res) => servirHtmlComVersao(res, 'admin-login.html'));
 app.get('/mobile', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
 app.get('/mobile.html', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
@@ -55,6 +57,8 @@ app.use('/api/chamados', require('./src/rotas/chamados'));
 app.use('/api/usuarios', require('./src/rotas/usuarios'));
 app.use('/api/admin/relatorios', require('./src/rotas/relatorios'));
 app.use('/api/admin/itens', require('./src/rotas/itens'));
+app.use('/api/admin/inventario', require('./src/rotas/inventario'));
+app.use('/api/admin/estoque', require('./src/rotas/estoque'));
 app.use('/api/admin', require('./src/rotas/admins'));
 
 app.get('*', (req, res) => {

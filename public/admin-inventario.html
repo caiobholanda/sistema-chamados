@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventário — Gran Marquise TI</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+  <div class="header-brand">
+    <img class="header-logo-img" src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise">
+    <div class="header-brand-text">
+      <div class="header-brand-name">Gran Marquise</div>
+      <div class="header-brand-sub">Suporte de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <nav>
+    <a href="/admin-painel.html">Chamados</a>
+    <span id="nav-usuarios-wrap"></span>
+    <a href="/admin-relatorios.html">Relatórios</a>
+    <a href="/admin-itens.html">Itens</a>
+    <a href="/admin-inventario.html" class="ativo">Inventário</a>
+    <a href="/admin-estoque.html">Estoque</a>
+    <button id="btn-logout" class="btn btn-ghost btn-sm" style="margin-left:.5rem">Sair</button>
+  </nav>
+</header>
+
+<div id="toast-container"></div>
+
+<main class="wide">
+  <div class="page-header flex-between flex-wrap gap-2">
+    <div>
+      <div class="page-title">Inventário de Micros</div>
+      <div class="page-subtitle">Relação de computadores, monitores e equipamentos por setor</div>
+    </div>
+    <button class="btn btn-primary" id="btn-novo-equip">+ Adicionar Equipamento</button>
+  </div>
+
+  <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+    <input class="form-control" id="f-setor" type="text" placeholder="Filtrar por setor…" style="max-width:200px">
+    <select class="form-control" id="f-status" style="max-width:160px">
+      <option value="">Todos os status</option>
+      <option value="NOVO">NOVO</option>
+    </select>
+    <input class="form-control" id="f-search" type="text" placeholder="Buscar usuário, hostname…" style="max-width:220px">
+    <span id="inv-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem"></span>
+  </div>
+
+  <div id="inv-lista"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+
+<!-- Modal Adicionar/Editar -->
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h2 id="modal-title">Adicionar Equipamento</h2>
+      <button class="modal-close" id="btn-fechar-modal" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="/js/admin-inventario.js"></script>
+</body>
+</html>
