@@ -21,8 +21,6 @@
     <span id="nav-usuarios-wrap"></span>
     <a href="/admin-relatorios.html">Relatórios</a>
     <a href="/admin-itens.html" class="ativo">Itens</a>
-    <a href="/admin-inventario.html">Inventário</a>
-    <a href="/admin-estoque.html">Estoque</a>
     <button id="btn-logout" class="btn btn-ghost btn-sm" style="margin-left:.5rem">Sair</button>
   </nav>
 </header>
@@ -48,6 +46,12 @@
     <button class="tab-btn" data-tab="compra">
       Chamados de Compra <span class="tab-badge" id="badge-compra"></span>
     </button>
+    <button class="tab-btn" data-tab="micros">
+      Inventário de Micros <span class="tab-badge" id="badge-micros"></span>
+    </button>
+    <button class="tab-btn" data-tab="estoque-ti">
+      Estoque TI <span class="tab-badge" id="badge-estoque-ti"></span>
+    </button>
   </div>
 
   <div id="itens-lista"><div class="loading"><div class="spinner"></div></div></div>
@@ -72,6 +76,50 @@
       <button class="modal-close" id="cm-btn-fechar-modal" aria-label="Fechar">&#x2715;</button>
     </div>
     <div class="modal-body" id="cm-modal-body"></div>
+  </div>
+</div>
+
+<!-- Modal Inventário de Micros (adicionar/editar equipamento) -->
+<div class="modal-overlay" id="micros-modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h2 id="micros-modal-title">Adicionar Equipamento</h2>
+      <button class="modal-close" id="micros-btn-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="micros-modal-body"></div>
+  </div>
+</div>
+
+<!-- Modal Movimentação de estoque TI (entrada/saída) -->
+<div class="modal-overlay" id="mov-modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 id="mov-modal-title">Movimentação</h2>
+      <button class="modal-close" id="mov-btn-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="mov-modal-body"></div>
+  </div>
+</div>
+
+<!-- Modal Histórico de movimentações -->
+<div class="modal-overlay" id="hist-mov-modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <h2 id="hist-mov-modal-title">Histórico</h2>
+      <button class="modal-close" id="hist-mov-btn-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="hist-mov-modal-body"></div>
+  </div>
+</div>
+
+<!-- Modal Impressoras (adicionar/editar) -->
+<div class="modal-overlay" id="imp-modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h2 id="imp-modal-title">Impressora</h2>
+      <button class="modal-close" id="imp-btn-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="imp-modal-body"></div>
   </div>
 </div>
 

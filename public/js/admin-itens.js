@@ -2,6 +2,12 @@ let adminInfo = null;
 let abaAtiva = 'estoque';
 let _itensCache = [];
 
+// ── Caches para as novas abas ─────────────────────────────
+let _microsCache = [];
+let _microsFiltered = [];
+let _tonerCache = [];
+let _impressorasCache = [];
+
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
@@ -16,6 +22,26 @@ const CATS_ESTOQUE = [
   'Toner / Cartucho', 'Papel / Mídia', 'Cabos e Conectores',
   'Periféricos', 'Pilhas / Baterias', 'Material de Escritório', 'Outros',
 ];
+
+const TIPO_LABELS = {
+  toner_mono: 'Toner Mono',
+  toner_color: 'Toner Color',
+  resma: 'Resma/Papel',
+  outro: 'Outro',
+};
+
+const COR_LABELS = {
+  preto: 'Preto',
+  ciano: 'Ciano',
+  magenta: 'Magenta',
+  amarelo: 'Amarelo',
+  geral: 'Geral',
+};
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 function fmtData(d) {
   if (!d) return '—';
@@ -48,7 +74,24 @@ function mostrarToast(msg, tipo = 'ok') {
   setTimeout(() => el.remove(), 3500);
 }
 
-// ── Renderização ──────────────────────────────────────────
+// ── Toolbar: btn-novo-item label e visibilidade ───────────
+
+function atualizarToolbar() {
+  const btnNovo = document.getElementById('btn-novo-item');
+  if (abaAtiva === 'estoque-ti') {
+    btnNovo.style.display = 'none';
+  } else if (abaAtiva === 'micros') {
+    btnNovo.style.display = '';
+    btnNovo.textContent = '+ Novo Equipamento';
+  } else if (abaAtiva === 'compra') {
+    btnNovo.style.display = 'none';
+  } else {
+    btnNovo.style.display = '';
+    btnNovo.textContent = '+ Novo Item';
+  }
+}
+
+// ── Renderização — abas existentes ────────────────────────
 
 function renderEstoque(itens) {
   const el = document.getElementById('itens-lista');
@@ -209,16 +252,226 @@ function abrirChamado(id) {
   window.abrirChamadoModal(id);
 }
 
+// ── Renderização — Inventário de Micros ───────────────────
+
+function renderMicros(lista) {
+  const el = document.getElementById('itens-lista');
+  document.getElementById('badge-micros').textContent = lista.length || '';
+
+  el.innerHTML = `
+    <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+      <input class="form-control" id="micros-search" type="text" placeholder="Buscar setor, usuário, hostname…" style="max-width:260px">
+      <select class="form-control" id="micros-status" style="max-width:180px">
+        <option value="">Todos os status</option>
+        <option value="NOVO">NOVO</option>
+        <option value="CONCLUIDO">CONCLUIDO</option>
+      </select>
+      <span id="micros-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem">${lista.length} equipamento${lista.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div id="micros-tabela"></div>
+  `;
+
+  document.getElementById('micros-search').addEventListener('input', filtrarMicros);
+  document.getElementById('micros-status').addEventListener('change', filtrarMicros);
+
+  _microsFiltered = lista;
+  renderTabelaMicros(lista);
+}
+
+function filtrarMicros() {
+  const search = (document.getElementById('micros-search').value || '').toLowerCase();
+  const status = document.getElementById('micros-status').value;
+  const filtered = _microsCache.filter(item => {
+    const matchSearch = !search ||
+      (item.setor || '').toLowerCase().includes(search) ||
+      (item.usuario || '').toLowerCase().includes(search) ||
+      (item.hostname || '').toLowerCase().includes(search);
+    const matchStatus = !status || (item.status || '') === status;
+    return matchSearch && matchStatus;
+  });
+  document.getElementById('micros-count').textContent = `${filtered.length} equipamento${filtered.length !== 1 ? 's' : ''}`;
+  renderTabelaMicros(filtered);
+}
+
+function renderTabelaMicros(lista) {
+  const el = document.getElementById('micros-tabela');
+  if (!el) return;
+  const isMaster = adminInfo && adminInfo.is_master;
+
+  if (!lista.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum equipamento encontrado.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Setor</th>
+            <th>Usuário</th>
+            <th>Hostname</th>
+            <th>Processador</th>
+            <th>Memória</th>
+            <th>S.O.</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lista.map(item => `
+            <tr>
+              <td style="font-weight:500;white-space:nowrap">${esc(item.setor)}</td>
+              <td style="color:var(--text-secondary)">${esc(item.usuario) || '—'}</td>
+              <td style="font-family:monospace;font-size:.78rem;color:var(--text-secondary)">${esc(item.hostname) || '—'}</td>
+              <td style="font-size:.82rem">${esc(item.processador) || '—'}</td>
+              <td style="font-size:.82rem">${esc(item.memoria) || '—'}</td>
+              <td style="font-size:.78rem;white-space:nowrap">${esc(item.sistema_operacional) || '—'}</td>
+              <td style="white-space:nowrap">
+                ${item.status ? `<span class="inv-status-tag inv-em-uso" style="font-size:.72rem">${esc(item.status)}</span>` : '<span style="color:var(--text-muted)">—</span>'}
+              </td>
+              <td style="white-space:nowrap">
+                <button class="btn btn-secondary btn-sm" onclick="abrirModalMicros(${item.id})">Editar</button>
+                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarMicro(${item.id}, '${esc(item.setor).replace(/'/g, "\\'")} - ${esc(item.usuario).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── Renderização — Estoque TI ─────────────────────────────
+
+function qtdCell(v) {
+  if (v === 0) return `<span style="color:var(--danger);font-weight:600">0</span>`;
+  if (v > 0) return `<span style="color:var(--success);font-weight:500">${v}</span>`;
+  return '<span style="color:var(--text-muted)">—</span>';
+}
+
+function renderEstoqueTI(itens, impressoras) {
+  const el = document.getElementById('itens-lista');
+  const totalBadge = itens.length + impressoras.length;
+  document.getElementById('badge-estoque-ti').textContent = totalBadge || '';
+
+  const isMaster = adminInfo && adminInfo.is_master;
+  const urgentes = itens.filter(i => i.urgente).length;
+
+  el.innerHTML = `
+    <!-- Sub-seção: Toner / Cartucho -->
+    <div style="margin-bottom:2rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <div style="font-size:1rem;font-weight:600;color:var(--text-primary)">Toner / Cartucho</div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNovoItemToner()">+ Novo Item Toner</button>
+      </div>
+      ${urgentes ? `<div class="itens-alerta-bar" style="margin-bottom:.75rem">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        ${urgentes} ${urgentes === 1 ? 'item marcado' : 'itens marcados'} como urgente
+      </div>` : ''}
+      ${itens.length ? `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Tipo</th>
+                <th style="text-align:center">Preto</th>
+                <th style="text-align:center">Ciano</th>
+                <th style="text-align:center">Magenta</th>
+                <th style="text-align:center">Amarelo</th>
+                <th style="text-align:center">Geral</th>
+                <th style="text-align:center">Urgente</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itens.map(item => `
+                <tr${item.urgente ? ' style="background:rgba(220,38,38,.04)"' : ''}>
+                  <td style="font-weight:500">${esc(item.nome)}</td>
+                  <td><span class="itens-cat-tag">${esc(TIPO_LABELS[item.tipo] || item.tipo)}</span></td>
+                  <td style="text-align:center">${item.tipo === 'resma' || item.tipo === 'outro' ? '<span style="color:var(--text-muted)">—</span>' : qtdCell(item.qtd_preto)}</td>
+                  <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_ciano) : '<span style="color:var(--text-muted)">—</span>'}</td>
+                  <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_magenta) : '<span style="color:var(--text-muted)">—</span>'}</td>
+                  <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_amarelo) : '<span style="color:var(--text-muted)">—</span>'}</td>
+                  <td style="text-align:center">${(item.tipo === 'resma' || item.tipo === 'outro') ? qtdCell(item.qtd_geral) : '<span style="color:var(--text-muted)">—</span>'}</td>
+                  <td style="text-align:center">${item.urgente ? '<span style="color:var(--danger);font-weight:700">SIM</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
+                  <td style="white-space:nowrap">
+                    <button class="btn btn-secondary btn-sm" onclick="abrirMovimentacao(${item.id},'entrada')" title="Registrar entrada">Entrada</button>
+                    <button class="btn btn-ghost btn-sm" onclick="abrirMovimentacao(${item.id},'saida')" title="Registrar saída">Saída</button>
+                    <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
+                    <button class="btn btn-ghost btn-sm" onclick="abrirEditarItemToner(${item.id})">Editar</button>
+                    ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarToner(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : `<div class="empty-state" style="padding:1.5rem;text-align:center;color:var(--text-muted)">Nenhum item cadastrado.</div>`}
+    </div>
+
+    <!-- Sub-seção: Impressoras em Rede -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <div style="font-size:1rem;font-weight:600;color:var(--text-primary)">Impressoras em Rede</div>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalImpressora(null)">+ Nova Impressora</button>
+      </div>
+      ${impressoras.length ? `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>IP</th>
+                <th>SELB</th>
+                <th>Localização</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${impressoras.map(item => `
+                <tr>
+                  <td style="font-weight:500">${esc(item.nome)}</td>
+                  <td style="font-family:monospace;font-size:.82rem">${esc(item.ip) || '—'}</td>
+                  <td style="font-family:monospace;font-size:.82rem;color:var(--text-secondary)">${esc(item.selb) || '—'}</td>
+                  <td style="color:var(--text-secondary)">${esc(item.localizacao) || '—'}</td>
+                  <td style="white-space:nowrap">
+                    <button class="btn btn-secondary btn-sm" onclick="abrirModalImpressora(${item.id})">Editar</button>
+                    ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarImpressora(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : `<div class="empty-state" style="padding:1.5rem;text-align:center;color:var(--text-muted)">Nenhuma impressora cadastrada.</div>`}
+    </div>
+  `;
+}
+
 // ── Carregar conteúdo da aba ──────────────────────────────
 
 async function carregarItens() {
   document.getElementById('itens-lista').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  document.getElementById('btn-novo-item').style.display = abaAtiva === 'compra' ? 'none' : '';
+  atualizarToolbar();
   try {
     if (abaAtiva === 'compra') {
       const r = await api('/api/admin/itens/chamados-compra');
       const chamados = await r.json();
       renderCompra(chamados);
+    } else if (abaAtiva === 'micros') {
+      const r = await api('/api/admin/inventario');
+      _microsCache = await r.json();
+      renderMicros(_microsCache);
+    } else if (abaAtiva === 'estoque-ti') {
+      const [rItens, rImp] = await Promise.all([
+        api('/api/admin/estoque/itens'),
+        api('/api/admin/estoque/impressoras'),
+      ]);
+      _tonerCache = await rItens.json();
+      _impressorasCache = await rImp.json();
+      renderEstoqueTI(_tonerCache, _impressorasCache);
     } else {
       const r = await api(`/api/admin/itens?tipo=${abaAtiva}`);
       _itensCache = await r.json();
@@ -230,7 +483,7 @@ async function carregarItens() {
   }
 }
 
-// ── Modal ─────────────────────────────────────────────────
+// ── Modal genérico (estoque/inventario legado) ────────────
 
 function abrirModal() {
   document.getElementById('modal-overlay').style.display = 'flex';
@@ -371,6 +624,10 @@ function renderFormModal(item = {}, isEdit = false) {
 }
 
 function abrirModalNovo() {
+  if (abaAtiva === 'micros') {
+    abrirModalMicros(null);
+    return;
+  }
   abrirModal();
   renderFormModal({}, false);
 }
@@ -392,6 +649,500 @@ async function confirmarDeletar(id, nome) {
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
     mostrarToast('Item excluído');
     carregarItens();
+  } catch {}
+}
+
+// ── Modal Inventário de Micros ────────────────────────────
+
+function fecharModalMicros() {
+  document.getElementById('micros-modal-overlay').style.display = 'none';
+  document.getElementById('micros-modal-body').innerHTML = '';
+}
+
+function abrirModalMicros(id) {
+  document.getElementById('micros-modal-overlay').style.display = 'flex';
+  const item = id ? _microsCache.find(i => i.id === id) : null;
+  renderFormMicros(item || {}, !!id);
+}
+
+function renderFormMicros(item, isEdit) {
+  document.getElementById('micros-modal-title').textContent = isEdit ? 'Editar Equipamento' : 'Adicionar Equipamento';
+
+  document.getElementById('micros-modal-body').innerHTML = `
+    <form id="form-micros" style="display:flex;flex-direction:column;gap:.8rem">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Setor <span style="color:var(--danger)">*</span></label>
+          <input class="form-control" id="fm-setor" type="text" value="${esc(item.setor || '')}" placeholder="Ex: CONTROLADORIA">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Usuário <span style="color:var(--danger)">*</span></label>
+          <input class="form-control" id="fm-usuario" type="text" value="${esc(item.usuario || '')}" placeholder="Nome do usuário">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Processador</label>
+          <input class="form-control" id="fm-processador" type="text" value="${esc(item.processador || '')}" placeholder="Ex: I5 12500">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Memória</label>
+          <input class="form-control" id="fm-memoria" type="text" value="${esc(item.memoria || '')}" placeholder="Ex: 8GB">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">S.O.</label>
+          <input class="form-control" id="fm-so" type="text" value="${esc(item.sistema_operacional || '')}" placeholder="Ex: WIN 11">
+        </div>
+        <div class="form-group">
+          <label class="form-label">HD/SSD</label>
+          <input class="form-control" id="fm-hd" type="text" value="${esc(item.hd_ssd || '')}" placeholder="Ex: SSD 256">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Office</label>
+          <input class="form-control" id="fm-office" type="text" value="${esc(item.office || '')}" placeholder="Ex: H & B 2021">
+        </div>
+        <div class="form-group">
+          <label class="form-label">TAG</label>
+          <input class="form-control" id="fm-tag" type="text" value="${esc(item.tag || '')}" placeholder="Código da tag">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Entradas Monitor</label>
+          <input class="form-control" id="fm-entradas" type="text" value="${esc(item.entradas_monitor || '')}" placeholder="Ex: VGA-D.P.">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Modelo Monitor</label>
+          <input class="form-control" id="fm-monitor" type="text" value="${esc(item.modelo_monitor || '')}" placeholder="Ex: DELL">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <input class="form-control" id="fm-status" type="text" value="${esc(item.status || '')}" placeholder="Ex: NOVO, CONCLUIDO">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hostname</label>
+          <input class="form-control" id="fm-hostname" type="text" value="${esc(item.hostname || '')}" placeholder="Ex: CONTROL-01">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Data Troca</label>
+          <input class="form-control" id="fm-troca" type="text" value="${esc(item.data_troca || '')}" placeholder="Ex: 2024">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Atualização Win11</label>
+          <input class="form-control" id="fm-win11" type="text" value="${esc(item.atualizacao_win11 || '')}" placeholder="Ex: CONCLUIDO">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observação</label>
+        <input class="form-control" id="fm-obs" type="text" value="${esc(item.observacao || '')}" placeholder="Observações">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharModalMicros()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-micro">${isEdit ? 'Salvar alterações' : 'Adicionar'}</button>
+      </div>
+    </form>
+  `;
+
+  document.getElementById('form-micros').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar-micro');
+    btn.disabled = true;
+    btn.textContent = 'Salvando…';
+
+    const setor = document.getElementById('fm-setor').value.trim();
+    const usuario = document.getElementById('fm-usuario').value.trim();
+    if (!setor) { mostrarToast('Setor é obrigatório', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar alterações' : 'Adicionar'; return; }
+    if (!usuario) { mostrarToast('Usuário é obrigatório', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar alterações' : 'Adicionar'; return; }
+
+    const body = {
+      setor,
+      usuario,
+      processador: document.getElementById('fm-processador').value.trim(),
+      memoria: document.getElementById('fm-memoria').value.trim(),
+      sistema_operacional: document.getElementById('fm-so').value.trim(),
+      hd_ssd: document.getElementById('fm-hd').value.trim(),
+      office: document.getElementById('fm-office').value.trim(),
+      tag: document.getElementById('fm-tag').value.trim(),
+      entradas_monitor: document.getElementById('fm-entradas').value.trim(),
+      modelo_monitor: document.getElementById('fm-monitor').value.trim(),
+      status: document.getElementById('fm-status').value.trim(),
+      hostname: document.getElementById('fm-hostname').value.trim(),
+      data_troca: document.getElementById('fm-troca').value.trim(),
+      atualizacao_win11: document.getElementById('fm-win11').value.trim(),
+      observacao: document.getElementById('fm-obs').value.trim(),
+    };
+
+    try {
+      const url = isEdit ? `/api/admin/inventario/${item.id}` : '/api/admin/inventario';
+      const method = isEdit ? 'PATCH' : 'POST';
+      const r = await api(url, { method, body: JSON.stringify(body) });
+      if (!r.ok) {
+        const d = await r.json();
+        mostrarToast(d.erro || 'Erro ao salvar', 'erro');
+        btn.disabled = false;
+        btn.textContent = isEdit ? 'Salvar alterações' : 'Adicionar';
+        return;
+      }
+      fecharModalMicros();
+      mostrarToast(isEdit ? 'Equipamento atualizado' : 'Equipamento adicionado');
+      carregarItens();
+    } catch {
+      btn.disabled = false;
+      btn.textContent = isEdit ? 'Salvar alterações' : 'Adicionar';
+    }
+  });
+}
+
+async function confirmarDeletarMicro(id, label) {
+  if (!adminInfo || !adminInfo.is_master) return;
+  if (!confirm(`Excluir "${label}"? Esta ação não pode ser desfeita.`)) return;
+  try {
+    const r = await api(`/api/admin/inventario/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
+    mostrarToast('Equipamento excluído');
+    carregarItens();
+  } catch {}
+}
+
+// ── Modal Toner (novo/editar) — Estoque TI ───────────────
+
+function abrirNovoItemToner() {
+  document.getElementById('modal-title').textContent = 'Novo Item';
+  abrirModal();
+  document.getElementById('modal-body').innerHTML = `
+    <form id="form-toner" style="display:flex;flex-direction:column;gap:.8rem">
+      <div class="form-group">
+        <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
+        <input class="form-control" id="ft-nome" type="text" placeholder="Ex: RICOH SP 3710SF">
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-control" id="ft-tipo">
+            <option value="toner_mono">Toner Mono</option>
+            <option value="toner_color">Toner Color</option>
+            <option value="resma">Resma/Papel</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:.25rem">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem">
+            <input type="checkbox" id="ft-urgente" style="width:16px;height:16px"> Urgente (alerta)
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-toner">Adicionar</button>
+      </div>
+    </form>
+  `;
+  document.getElementById('form-toner').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar-toner');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    const nome = document.getElementById('ft-nome').value.trim();
+    if (!nome) { mostrarToast('Nome obrigatório', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
+    try {
+      const r = await api('/api/admin/estoque/itens', { method: 'POST', body: JSON.stringify({
+        nome, tipo: document.getElementById('ft-tipo').value, urgente: document.getElementById('ft-urgente').checked,
+      }) });
+      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
+      fecharModal(); mostrarToast('Item criado'); carregarItens();
+    } catch { btn.disabled = false; btn.textContent = 'Adicionar'; }
+  });
+}
+
+function abrirEditarItemToner(id) {
+  const item = _tonerCache.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('modal-title').textContent = 'Editar Item';
+  abrirModal();
+  document.getElementById('modal-body').innerHTML = `
+    <form id="form-toner" style="display:flex;flex-direction:column;gap:.8rem">
+      <div class="form-group">
+        <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
+        <input class="form-control" id="ft-nome" type="text" value="${esc(item.nome)}">
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-control" id="ft-tipo">
+            ${['toner_mono','toner_color','resma','outro'].map(t => `<option value="${t}" ${item.tipo === t ? 'selected' : ''}>${TIPO_LABELS[t]}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:.25rem">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem">
+            <input type="checkbox" id="ft-urgente" ${item.urgente ? 'checked' : ''} style="width:16px;height:16px"> Urgente (alerta)
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-toner">Salvar</button>
+      </div>
+    </form>
+  `;
+  document.getElementById('form-toner').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar-toner');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    try {
+      const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'PATCH', body: JSON.stringify({
+        nome: document.getElementById('ft-nome').value.trim(),
+        tipo: document.getElementById('ft-tipo').value,
+        urgente: document.getElementById('ft-urgente').checked,
+      }) });
+      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Salvar'; return; }
+      fecharModal(); mostrarToast('Item atualizado'); carregarItens();
+    } catch { btn.disabled = false; btn.textContent = 'Salvar'; }
+  });
+}
+
+async function confirmarDeletarToner(id, nome) {
+  if (!adminInfo || !adminInfo.is_master) return;
+  if (!confirm(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
+  try {
+    const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
+    mostrarToast('Item excluído'); carregarItens();
+  } catch {}
+}
+
+// ── Modal Movimentação — Estoque TI ──────────────────────
+
+function fecharMovModal() {
+  document.getElementById('mov-modal-overlay').style.display = 'none';
+  document.getElementById('mov-modal-body').innerHTML = '';
+}
+
+function abrirMovimentacao(itemId, tipoMov) {
+  const item = _tonerCache.find(i => i.id === itemId);
+  if (!item) return;
+
+  // Determine current stock for the color that will be selected (for saída validation hint)
+  const cores = [];
+  if (item.tipo === 'toner_mono' || item.tipo === 'toner_color') cores.push({ val: 'preto', label: 'Preto', atual: item.qtd_preto || 0 });
+  if (item.tipo === 'toner_color') {
+    cores.push({ val: 'ciano', label: 'Ciano', atual: item.qtd_ciano || 0 });
+    cores.push({ val: 'magenta', label: 'Magenta', atual: item.qtd_magenta || 0 });
+    cores.push({ val: 'amarelo', label: 'Amarelo', atual: item.qtd_amarelo || 0 });
+  }
+  if (item.tipo === 'resma' || item.tipo === 'outro') cores.push({ val: 'geral', label: 'Geral', atual: item.qtd_geral || 0 });
+
+  const showCor = cores.length > 1;
+
+  document.getElementById('mov-modal-title').textContent = tipoMov === 'entrada' ? `Entrada — ${item.nome}` : `Saída — ${item.nome}`;
+  document.getElementById('mov-modal-overlay').style.display = 'flex';
+
+  document.getElementById('mov-modal-body').innerHTML = `
+    <form id="form-mov" style="display:flex;flex-direction:column;gap:.8rem">
+      ${showCor ? `
+        <div class="form-group">
+          <label class="form-label">Cor / Tipo</label>
+          <select class="form-control" id="mov-cor" onchange="atualizarEstoqueAtual(${JSON.stringify(cores).replace(/"/g,'&quot;')}, this.value, '${tipoMov}')">
+            ${cores.map(c => `<option value="${c.val}">${c.label}</option>`).join('')}
+          </select>
+        </div>
+      ` : `<input type="hidden" id="mov-cor" value="${cores[0] ? cores[0].val : 'geral'}">`}
+      ${tipoMov === 'saida' ? `<div id="mov-estoque-atual" style="font-size:.82rem;color:var(--text-muted);margin-top:-.4rem">Estoque atual: <strong>${cores[0] ? cores[0].atual : 0}</strong></div>` : ''}
+      <div class="form-group">
+        <label class="form-label">Quantidade</label>
+        <input class="form-control" id="mov-qtd" type="number" min="1" value="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <input class="form-control" id="mov-obs" type="text" placeholder="Ex: Enviado para Recepção…">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharMovModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-mov">${tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'}</button>
+      </div>
+    </form>
+  `;
+
+  // Store cores on window for the onchange handler
+  window._movCores = cores;
+
+  document.getElementById('form-mov').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar-mov');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    const cor = document.getElementById('mov-cor').value;
+    const qtd = parseInt(document.getElementById('mov-qtd').value, 10);
+    const obs = document.getElementById('mov-obs').value.trim();
+
+    if (!qtd || qtd < 1) { mostrarToast('Quantidade inválida', 'erro'); btn.disabled = false; btn.textContent = tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'; return; }
+
+    // Client-side saída stock check
+    if (tipoMov === 'saida') {
+      const corObj = cores.find(c => c.val === cor);
+      if (corObj && qtd > corObj.atual) {
+        mostrarToast(`Quantidade excede o estoque atual (${corObj.atual})`, 'erro');
+        btn.disabled = false; btn.textContent = 'Registrar Saída'; return;
+      }
+    }
+
+    try {
+      const r = await api(`/api/admin/estoque/itens/${itemId}/movimentacao`, {
+        method: 'POST',
+        body: JSON.stringify({ tipo: tipoMov, cor, quantidade: qtd, observacao: obs }),
+      });
+      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'; return; }
+      fecharMovModal();
+      mostrarToast(tipoMov === 'entrada' ? 'Entrada registrada' : 'Saída registrada');
+      carregarItens();
+    } catch { btn.disabled = false; btn.textContent = tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'; }
+  });
+}
+
+function atualizarEstoqueAtual(cores, corVal, tipoMov) {
+  if (tipoMov !== 'saida') return;
+  const el = document.getElementById('mov-estoque-atual');
+  if (!el) return;
+  const corObj = cores.find(c => c.val === corVal);
+  if (corObj) el.innerHTML = `Estoque atual: <strong>${corObj.atual}</strong>`;
+}
+
+// ── Modal Histórico de Movimentações — Estoque TI ─────────
+
+function fecharHistMovModal() {
+  document.getElementById('hist-mov-modal-overlay').style.display = 'none';
+  document.getElementById('hist-mov-modal-body').innerHTML = '';
+}
+
+async function abrirHistoricoMovimentacoes(itemId, nomeItem) {
+  document.getElementById('hist-mov-modal-title').textContent = `Histórico — ${nomeItem}`;
+  document.getElementById('hist-mov-modal-overlay').style.display = 'flex';
+  document.getElementById('hist-mov-modal-body').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  try {
+    const r = await api(`/api/admin/estoque/itens/${itemId}/movimentacoes`);
+    const movs = await r.json();
+
+    if (!movs.length) {
+      document.getElementById('hist-mov-modal-body').innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted)">Nenhuma movimentação registrada.</div>';
+      return;
+    }
+
+    document.getElementById('hist-mov-modal-body').innerHTML = `
+      <div class="table-wrap" style="max-height:400px;overflow-y:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Cor</th>
+              <th style="text-align:center">Qtd</th>
+              <th>Admin</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${movs.map(m => `
+              <tr>
+                <td style="white-space:nowrap;font-size:.78rem;color:var(--text-muted)">${fmtDataHora(m.criado_em)}</td>
+                <td>
+                  <span style="font-size:.78rem;font-weight:600;color:${m.tipo === 'entrada' ? 'var(--success)' : 'var(--danger)'}">
+                    ${m.tipo === 'entrada' ? '+ Entrada' : '- Saída'}
+                  </span>
+                </td>
+                <td style="font-size:.82rem;color:var(--text-secondary)">${esc(COR_LABELS[m.cor] || m.cor) || '—'}</td>
+                <td style="text-align:center;font-weight:600">${m.quantidade}</td>
+                <td style="font-size:.82rem;color:var(--text-secondary)">${esc(m.admin_nome) || '—'}</td>
+                <td style="font-size:.78rem;color:var(--text-muted);max-width:150px">
+                  <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(m.observacao)}">${esc(m.observacao) || '—'}</div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch {
+    document.getElementById('hist-mov-modal-body').innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro ao carregar histórico.</div>';
+  }
+}
+
+// ── Modal Impressoras — Estoque TI ────────────────────────
+
+function fecharModalImpressora() {
+  document.getElementById('imp-modal-overlay').style.display = 'none';
+  document.getElementById('imp-modal-body').innerHTML = '';
+}
+
+function abrirModalImpressora(id) {
+  const item = id ? _impressorasCache.find(i => i.id === id) : null;
+  const isEdit = !!id;
+  document.getElementById('imp-modal-title').textContent = isEdit ? 'Editar Impressora' : 'Nova Impressora';
+  document.getElementById('imp-modal-overlay').style.display = 'flex';
+
+  document.getElementById('imp-modal-body').innerHTML = `
+    <form id="form-imp" style="display:flex;flex-direction:column;gap:.8rem">
+      <div class="form-group">
+        <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
+        <input class="form-control" id="imp-nome" type="text" value="${esc(item ? item.nome : '')}" placeholder="Ex: RICOH SP 3710SF">
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">IP</label>
+          <input class="form-control" id="imp-ip" type="text" value="${esc(item ? item.ip : '')}" placeholder="Ex: 10.1.7.17">
+        </div>
+        <div class="form-group">
+          <label class="form-label">SELB</label>
+          <input class="form-control" id="imp-selb" type="text" value="${esc(item ? item.selb : '')}" placeholder="Ex: 2IY9">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Localização</label>
+        <input class="form-control" id="imp-loc" type="text" value="${esc(item ? item.localizacao : '')}" placeholder="Ex: RECEPCAO">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharModalImpressora()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-imp">${isEdit ? 'Salvar' : 'Adicionar'}</button>
+      </div>
+    </form>
+  `;
+
+  document.getElementById('form-imp').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar-imp');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    const nome = document.getElementById('imp-nome').value.trim();
+    if (!nome) { mostrarToast('Nome obrigatório', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
+    const body = {
+      nome,
+      ip: document.getElementById('imp-ip').value.trim(),
+      selb: document.getElementById('imp-selb').value.trim(),
+      localizacao: document.getElementById('imp-loc').value.trim(),
+    };
+    try {
+      const url = isEdit ? `/api/admin/estoque/impressoras/${id}` : '/api/admin/estoque/impressoras';
+      const method = isEdit ? 'PATCH' : 'POST';
+      const r = await api(url, { method, body: JSON.stringify(body) });
+      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
+      fecharModalImpressora();
+      mostrarToast(isEdit ? 'Impressora atualizada' : 'Impressora adicionada');
+      carregarItens();
+    } catch { btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; }
+  });
+}
+
+async function confirmarDeletarImpressora(id, nome) {
+  if (!adminInfo || !adminInfo.is_master) return;
+  if (!confirm(`Excluir "${nome}"?`)) return;
+  try {
+    const r = await api(`/api/admin/estoque/impressoras/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); return; }
+    mostrarToast('Impressora excluída'); carregarItens();
   } catch {}
 }
 
@@ -425,14 +1176,41 @@ async function confirmarDeletar(id, nome) {
     window.adminInfo = adminInfo;
 
     document.getElementById('btn-novo-item').addEventListener('click', abrirModalNovo);
+
+    // Modal genérico (estoque/inventario legado)
     document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
     document.getElementById('modal-overlay').addEventListener('click', e => {
       if (e.target === e.currentTarget) fecharModal();
     });
 
+    // Modal chamado
     document.getElementById('cm-btn-fechar-modal').addEventListener('click', () => window.fecharChamadoModal());
     document.getElementById('cm-modal-overlay').addEventListener('click', e => {
       if (e.target === e.currentTarget) window.fecharChamadoModal();
+    });
+
+    // Modal micros
+    document.getElementById('micros-btn-fechar').addEventListener('click', fecharModalMicros);
+    document.getElementById('micros-modal-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) fecharModalMicros();
+    });
+
+    // Modal movimentação
+    document.getElementById('mov-btn-fechar').addEventListener('click', fecharMovModal);
+    document.getElementById('mov-modal-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) fecharMovModal();
+    });
+
+    // Modal histórico movimentações
+    document.getElementById('hist-mov-btn-fechar').addEventListener('click', fecharHistMovModal);
+    document.getElementById('hist-mov-modal-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) fecharHistMovModal();
+    });
+
+    // Modal impressoras
+    document.getElementById('imp-btn-fechar').addEventListener('click', fecharModalImpressora);
+    document.getElementById('imp-modal-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) fecharModalImpressora();
     });
 
     await carregarItens();
