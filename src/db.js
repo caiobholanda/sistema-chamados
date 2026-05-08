@@ -380,8 +380,10 @@ function seedInventario() {
 }
 
 const SEED_PERIFERICOS = [
-  { nome: 'Teclado',                    qtd_geral: 11, observacao: '' },
-  { nome: 'Mouse',                      qtd_geral: 13, observacao: '' },
+  { nome: 'Teclado com Fio',            qtd_geral: 11, observacao: '' },
+  { nome: 'Teclado sem Fio',            qtd_geral:  0, observacao: '' },
+  { nome: 'Mouse com Fio',              qtd_geral: 13, observacao: '' },
+  { nome: 'Mouse sem Fio',              qtd_geral:  0, observacao: '' },
   { nome: 'Adaptador WiFi',             qtd_geral:  1, observacao: 'em uso Richard' },
   { nome: 'Adaptador de Rede',          qtd_geral:  1, observacao: 'em uso Marcio' },
   { nome: 'Monitor VGA',                qtd_geral:  1, observacao: 'VGA' },
@@ -405,7 +407,8 @@ const SEED_PERIFERICOS = [
   { nome: 'Conector RJ45 Macho',        qtd_geral:  0, observacao: '' },
   { nome: 'Conector RJ45 Fêmea',        qtd_geral: 20, observacao: '' },
   { nome: 'Leitor NFC',                 qtd_geral:  2, observacao: '' },
-  { nome: 'Headset Logitech',           qtd_geral:  0, observacao: 'Backup' },
+  { nome: 'Headset com Fio',            qtd_geral:  0, observacao: 'Backup' },
+  { nome: 'Headset sem Fio',            qtd_geral:  0, observacao: '' },
   { nome: 'Cabo HDMI 10 m',             qtd_geral:  1, observacao: 'Backup' },
   { nome: 'Cabo USB x USB',             qtd_geral:  1, observacao: '' },
   { nome: 'Caixinha de Som',            qtd_geral:  1, observacao: '' },
@@ -460,6 +463,21 @@ function seedEstoque() {
     const inserirPerif = db.transaction((rows) => { for (const r of rows) stmtPerif.run(r); });
     inserirPerif(SEED_PERIFERICOS);
     console.log(`[DB] Periféricos: ${SEED_PERIFERICOS.length} itens de seed inseridos.`);
+  }
+
+  // Migration: split Mouse/Teclado/Headset into com fio / sem fio
+  const splits = [
+    { antigo: 'Mouse',           novo: 'Mouse com Fio',    semFio: 'Mouse sem Fio' },
+    { antigo: 'Teclado',         novo: 'Teclado com Fio',  semFio: 'Teclado sem Fio' },
+    { antigo: 'Headset Logitech',novo: 'Headset com Fio',  semFio: 'Headset sem Fio' },
+  ];
+  for (const s of splits) {
+    const semFioExiste = db.prepare("SELECT id FROM estoque_itens WHERE nome = ? AND tipo = 'periferico'").get(s.semFio);
+    if (!semFioExiste) {
+      const antigo = db.prepare("SELECT id FROM estoque_itens WHERE nome = ? AND tipo = 'periferico'").get(s.antigo);
+      if (antigo) db.prepare("UPDATE estoque_itens SET nome = ? WHERE id = ?").run(s.novo, antigo.id);
+      db.prepare("INSERT INTO estoque_itens (nome, tipo, qtd_geral, observacao) VALUES (?, 'periferico', 0, '')").run(s.semFio);
+    }
   }
 
   // Seed reserva (tipo='reserva')
