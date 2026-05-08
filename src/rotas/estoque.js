@@ -89,9 +89,9 @@ router.get('/impressoras', requireAdmin, (req, res) => {
 // POST /api/admin/estoque/impressoras
 router.post('/impressoras', requireAdmin, (req, res) => {
   try {
-    const { nome, ip, selb, localizacao } = req.body;
+    const { nome, ip, selb, localizacao, numero_serie } = req.body;
     if (!nome) return res.status(400).json({ erro: 'Nome obrigatório' });
-    const id = db.criarImpressora({ nome: san(nome), ip: san(ip||''), selb: san(selb||''), localizacao: san(localizacao||'') });
+    const id = db.criarImpressora({ nome: san(nome), ip: san(ip||''), selb: san(selb||''), localizacao: san(localizacao||''), numero_serie: san(numero_serie||'') });
     return res.status(201).json({ id, mensagem: 'Impressora adicionada' });
   } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
 });
@@ -101,7 +101,7 @@ router.patch('/impressoras/:id', requireAdmin, (req, res) => {
   try {
     if (!db.listarImpressoras().find(i => i.id == req.params.id)) return res.status(404).json({ erro: 'Não encontrada' });
     const dados = {};
-    ['nome','ip','selb','localizacao'].forEach(f => { if (req.body[f] !== undefined) dados[f] = san(req.body[f]); });
+    ['nome','ip','selb','localizacao','numero_serie'].forEach(f => { if (req.body[f] !== undefined) dados[f] = san(req.body[f]); });
     db.atualizarImpressora(req.params.id, dados);
     return res.json({ mensagem: 'Atualizada' });
   } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }

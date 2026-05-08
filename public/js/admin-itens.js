@@ -546,6 +546,7 @@ function renderTabelaImpressoras(lista) {
             <th>Nome</th>
             <th>IP</th>
             <th>SELB</th>
+            <th>Nº de Série</th>
             <th>Localização</th>
             <th></th>
           </tr>
@@ -556,6 +557,7 @@ function renderTabelaImpressoras(lista) {
               <td style="font-weight:500">${esc(item.nome)}</td>
               <td style="font-family:monospace;font-size:.82rem">${esc(item.ip) || '—'}</td>
               <td style="font-family:monospace;font-size:.82rem;color:var(--text-secondary)">${esc(item.selb) || '—'}</td>
+              <td style="font-family:monospace;font-size:.78rem;color:var(--text-muted)">${esc(item.numero_serie) || '—'}</td>
               <td style="color:var(--text-secondary)">${esc(item.localizacao) || '—'}</td>
               <td style="white-space:nowrap">
                 <button class="btn btn-secondary btn-sm" onclick="abrirModalImpressora(${item.id})">Editar</button>
@@ -1413,6 +1415,10 @@ function abrirModalImpressora(id) {
         <label class="form-label">Localização</label>
         <input class="form-control" id="imp-loc" type="text" value="${esc(item ? item.localizacao : '')}" placeholder="Ex: RECEPCAO">
       </div>
+      <div class="form-group">
+        <label class="form-label">Nº de Série</label>
+        <input class="form-control" id="imp-serie" type="text" value="${esc(item ? item.numero_serie : '')}" placeholder="Ex: X4JK123456">
+      </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModalImpressora()">Cancelar</button>
         <button type="submit" class="btn btn-primary" id="btn-salvar-imp">${isEdit ? 'Salvar' : 'Adicionar'}</button>
@@ -1431,6 +1437,7 @@ function abrirModalImpressora(id) {
       ip: document.getElementById('imp-ip').value.trim(),
       selb: document.getElementById('imp-selb').value.trim(),
       localizacao: document.getElementById('imp-loc').value.trim(),
+      numero_serie: document.getElementById('imp-serie').value.trim(),
     };
     try {
       const url = isEdit ? `/api/admin/estoque/impressoras/${id}` : '/api/admin/estoque/impressoras';

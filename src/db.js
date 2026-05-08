@@ -124,6 +124,15 @@ function initDb() {
   try { db.exec('ALTER TABLE chamados ADD COLUMN assinado_em DATETIME'); } catch {}
   try { db.exec("ALTER TABLE estoque_itens ADD COLUMN observacao TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE estoque_itens ADD COLUMN especificacao TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE impressoras ADD COLUMN numero_serie TEXT DEFAULT ''"); } catch {}
+  // Fix model name for SELB 3Y24 (WF5890 → WF-C5890)
+  try { db.exec("UPDATE impressoras SET nome = 'Epson WF-C5890' WHERE selb = '3Y24' AND nome = 'EPSON WF5890'"); } catch {}
+  // Add ADE4 impressora if not yet registered
+  try {
+    if (!getDb().prepare("SELECT id FROM impressoras WHERE selb = 'ADE4'").get()) {
+      getDb().prepare("INSERT INTO impressoras (nome, ip, selb, localizacao) VALUES ('RICOH SP 3710SF', '', 'ADE4', 'RECEPCAO')").run();
+    }
+  } catch {}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS assinaturas_historico (
@@ -349,7 +358,7 @@ const SEED_IMPRESSORAS = [
   { nome: 'EPSON COLOR A4 WF-C5790', ip: '10.1.7.158', selb: 'RFA2', localizacao: 'BANQUETES' },
   { nome: 'RICOH Aficio SP 3510DN', ip: '10.1.7.155', selb: '2EQ4', localizacao: 'SPA' },
   { nome: 'RICOH SP 3710SF', ip: '10.1.7.131', selb: 'JST4', localizacao: 'GUEST' },
-  { nome: 'EPSON WF5890', ip: '10.1.7.67', selb: '3Y24', localizacao: 'RH' },
+  { nome: 'Epson WF-C5890', ip: '10.1.7.67', selb: '3Y24', localizacao: 'RH' },
   { nome: 'RICOH SP 3710SF', ip: '10.1.7.95', selb: '2KA7', localizacao: 'STEWARD' },
   { nome: 'HP M479FDW', ip: '10.1.7.19', selb: '2BL6', localizacao: 'EVENTOS-SOCIAIS' },
   { nome: 'RICOH SP 3710SF', ip: '10.1.7.40', selb: '2EP5', localizacao: 'GOVERNANCA' },
@@ -359,6 +368,7 @@ const SEED_IMPRESSORAS = [
   { nome: 'RICOH SP 3710SF', ip: '10.1.7.107', selb: 'JNI9', localizacao: 'RESERVAS' },
   { nome: 'EPSON L6490', ip: '10.100.15.15', selb: '08MW', localizacao: 'BUSSINES' },
   { nome: 'RICOH SP 3710SF', ip: '10.1.7.53', selb: '2EP3', localizacao: 'COZINHA' },
+  { nome: 'RICOH SP 3710SF', ip: '', selb: 'ADE4', localizacao: 'RECEPCAO' },
 ];
 
 function seedInventario() {
@@ -628,16 +638,16 @@ function listarImpressoras() {
 
 function criarImpressora(dados) {
   const result = getDb().prepare(`
-    INSERT INTO impressoras (nome, ip, selb, localizacao)
-    VALUES (@nome, @ip, @selb, @localizacao)
-  `).run({ ip: '', selb: '', localizacao: '', ...dados });
+    INSERT INTO impressoras (nome, ip, selb, localizacao, numero_serie)
+    VALUES (@nome, @ip, @selb, @localizacao, @numero_serie)
+  `).run({ ip: '', selb: '', localizacao: '', numero_serie: '', ...dados });
   return result.lastInsertRowid;
 }
 
 function atualizarImpressora(id, dados) {
   const campos = [];
   const values = [];
-  ['nome','ip','selb','localizacao'].forEach(f => {
+  ['nome','ip','selb','localizacao','numero_serie'].forEach(f => {
     if (dados[f] !== undefined) { campos.push(`${f} = ?`); values.push(dados[f]); }
   });
   if (campos.length === 0) return;
