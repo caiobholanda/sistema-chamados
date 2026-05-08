@@ -133,6 +133,32 @@ function initDb() {
       getDb().prepare("INSERT INTO impressoras (nome, ip, selb, localizacao) VALUES ('RICOH SP 3710SF', '', 'ADE4', 'RECEPCAO')").run();
     }
   } catch {}
+  // Preencher números de série a partir da planilha (só preenche se estiver vazio)
+  try {
+    const setNs = getDb().prepare("UPDATE impressoras SET numero_serie = ? WHERE selb = ? AND (numero_serie IS NULL OR numero_serie = '')");
+    const nsMap = [
+      ['X952018033',  '08MW'],
+      ['CNCRQDM82V',  '2BL6'],
+      ['32M00866',    '2EP1'],
+      ['5171Z211150', '2EP2'],
+      ['5171Z413875', '2EP3'],
+      ['5171Z811579', '2EP4'],
+      ['5171Z811752', '2EP5'],
+      ['5851ZC10635', '2EP7'],
+      ['T314QB00927', '2EQ4'],
+      ['T333QB10405', '2EQ8'],
+      ['5161Z412223', '2IY9'],
+      ['5179Z410077', '2KA7'],
+      ['5170Z710320', '2QC9'],
+      ['XBJZ032892',  '3Y24'],
+      ['5179ZB12118', 'ADE4'],
+      ['5171ZA10686', 'JNI9'],
+      ['5170Z411605', 'JPD3'],
+      ['5170ZA10221', 'JST4'],
+      ['X3B7006907',  'RFA2'],
+    ];
+    for (const [ns, selb] of nsMap) setNs.run(ns, selb);
+  } catch {}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS assinaturas_historico (
