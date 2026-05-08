@@ -457,7 +457,7 @@ function renderTabelaToner(itens) {
                   <button class="btn btn-secondary btn-sm" onclick="abrirMovimentacao(${item.id},'entrada')" title="Registrar entrada">Entrada</button>
                   <button class="btn btn-ghost btn-sm" onclick="abrirMovimentacao(${item.id},'saida')" title="Registrar saída">Saída</button>
                   <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
-                  <button class="btn btn-ghost btn-sm" onclick="abrirEditarItemToner(${item.id})">Editar</button>
+                  ${isMaster ? `<button class="btn btn-ghost btn-sm" onclick="abrirEditarItemToner(${item.id})">Editar</button>` : ''}
                   ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarToner(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
                 </td>
               </tr>
