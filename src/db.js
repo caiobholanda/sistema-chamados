@@ -1370,6 +1370,23 @@ function exportarCsvMes(mes) {
   `).all(inicio, fim + ' 23:59:59');
 }
 
+const FERIADOS_FIXOS = new Set([
+  '01-01','03-19','03-25','04-21','05-01',
+  '08-15','09-07','10-12','11-02','11-15','11-20','12-25',
+]);
+const FERIADOS_MOVEIS = new Set([
+  // 2026 (Páscoa 05/04)
+  '2026-02-16','2026-02-17','2026-04-03','2026-04-13','2026-06-04',
+  // 2027 (Páscoa 28/03)
+  '2027-02-08','2027-02-09','2027-03-26','2027-05-27',
+]);
+function isFeriado(d) {
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const yyyy = d.getUTCFullYear();
+  return FERIADOS_FIXOS.has(`${mm}-${dd}`) || FERIADOS_MOVEIS.has(`${yyyy}-${mm}-${dd}`);
+}
+
 function prazo2DiasUteis() {
   const fortaleza = new Date(Date.now() - 3 * 60 * 60 * 1000);
   const hora = fortaleza.getUTCHours();
@@ -1381,7 +1398,7 @@ function prazo2DiasUteis() {
   while (diasUteis < 2) {
     current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
     const dow = current.getUTCDay();
-    if (dow !== 0 && dow !== 6) diasUteis++;
+    if (dow !== 0 && dow !== 6 && !isFeriado(current)) diasUteis++;
   }
   // horaFinal é Fortaleza (UTC-3); UTC = horaFinal + 3
   return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate(), horaFinal + 3)).toISOString().replace('T', ' ').substring(0, 19);
