@@ -23,6 +23,7 @@ router.post('/itens', requireAdmin, (req, res) => {
       nome: san(nome), tipo: san(tipo || 'outro'),
       urgente: req.body.urgente ? 1 : 0,
       observacao: req.body.observacao !== undefined ? san(req.body.observacao) : '',
+      especificacao: req.body.especificacao !== undefined ? san(req.body.especificacao) : '',
     });
     return res.status(201).json({ id, mensagem: 'Item criado' });
   } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
@@ -33,10 +34,11 @@ router.patch('/itens/:id', requireAdmin, (req, res) => {
   try {
     if (!db.buscarEstoqueItemPorId(req.params.id)) return res.status(404).json({ erro: 'Não encontrado' });
     const dados = {};
-    if (req.body.nome !== undefined)       dados.nome       = san(req.body.nome);
-    if (req.body.tipo !== undefined)       dados.tipo       = san(req.body.tipo);
-    if (req.body.urgente !== undefined)    dados.urgente    = req.body.urgente ? 1 : 0;
-    if (req.body.observacao !== undefined) dados.observacao = san(req.body.observacao);
+    if (req.body.nome !== undefined)          dados.nome          = san(req.body.nome);
+    if (req.body.tipo !== undefined)          dados.tipo          = san(req.body.tipo);
+    if (req.body.urgente !== undefined)       dados.urgente       = req.body.urgente ? 1 : 0;
+    if (req.body.observacao !== undefined)    dados.observacao    = san(req.body.observacao);
+    if (req.body.especificacao !== undefined) dados.especificacao = san(req.body.especificacao);
     db.atualizarEstoqueItem(req.params.id, dados);
     return res.json({ mensagem: 'Atualizado' });
   } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }

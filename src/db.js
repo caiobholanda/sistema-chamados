@@ -123,6 +123,7 @@ function initDb() {
   try { db.exec('ALTER TABLE chamados ADD COLUMN assinatura TEXT'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN assinado_em DATETIME'); } catch {}
   try { db.exec("ALTER TABLE estoque_itens ADD COLUMN observacao TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE estoque_itens ADD COLUMN especificacao TEXT DEFAULT ''"); } catch {}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS assinaturas_historico (
@@ -413,6 +414,23 @@ const SEED_PERIFERICOS = [
   { nome: 'Cabo DisplayPort',           qtd_geral:  0, observacao: '' },
 ];
 
+const SEED_RESERVA = [
+  { nome: 'Dell Novo',          qtd_geral:  1, especificacao: 'I5, 13ºG, 8GB, SSD240',       observacao: 'Mini PC de teste' },
+  { nome: 'Dell Usado',         qtd_geral:  2, especificacao: 'I3, 8GB, 3ºG, HD500GB',        observacao: 'no bc AIO' },
+  { nome: 'Dell Usado',         qtd_geral:  8, especificacao: 'I3, 6GB, 3ºG, HD500GB',        observacao: 'bkps' },
+  { nome: 'Câmeras Usadas',     qtd_geral:  3, especificacao: '',                              observacao: '' },
+  { nome: 'Câmeras Novas',      qtd_geral:  3, especificacao: '',                              observacao: '' },
+  { nome: 'Switch Fortinet',    qtd_geral:  1, especificacao: '24P POE',                       observacao: '' },
+  { nome: 'Switch HP',          qtd_geral:  5, especificacao: '',                              observacao: '' },
+  { nome: 'Monitor 40"',        qtd_geral:  1, especificacao: '',                              observacao: 'Totem antigo Recepção, disponibilizado na Casa Amarela' },
+  { nome: 'Nobreak Novo',       qtd_geral:  0, especificacao: '',                              observacao: '' },
+  { nome: 'Nobreak Usado',      qtd_geral:  4, especificacao: '',                              observacao: '' },
+  { nome: 'Impressora Térmica', qtd_geral:  2, especificacao: '',                              observacao: '' },
+  { nome: 'AP Fortinet',        qtd_geral:  1, especificacao: '421E',                          observacao: '' },
+  { nome: 'AP Fortinet',        qtd_geral:  2, especificacao: '221E',                          observacao: 'Backup' },
+  { nome: 'Celulares',          qtd_geral:  2, especificacao: 'Samsung A32, Moto G35',         observacao: '' },
+];
+
 function seedEstoque() {
   const db = getDb();
   const countItens = db.prepare('SELECT COUNT(*) as cnt FROM estoque_itens').get();
@@ -442,6 +460,17 @@ function seedEstoque() {
     const inserirPerif = db.transaction((rows) => { for (const r of rows) stmtPerif.run(r); });
     inserirPerif(SEED_PERIFERICOS);
     console.log(`[DB] Periféricos: ${SEED_PERIFERICOS.length} itens de seed inseridos.`);
+  }
+
+  // Seed reserva (tipo='reserva')
+  const countReserva = db.prepare("SELECT COUNT(*) as cnt FROM estoque_itens WHERE tipo = 'reserva'").get();
+  if (countReserva.cnt === 0) {
+    const stmtRes = db.prepare(`
+      INSERT INTO estoque_itens (nome, tipo, qtd_geral, especificacao, observacao) VALUES (@nome, 'reserva', @qtd_geral, @especificacao, @observacao)
+    `);
+    const inserirRes = db.transaction((rows) => { for (const r of rows) stmtRes.run(r); });
+    inserirRes(SEED_RESERVA);
+    console.log(`[DB] Reserva: ${SEED_RESERVA.length} itens de seed inseridos.`);
   }
 
   const countImpressoras = db.prepare('SELECT COUNT(*) as cnt FROM impressoras').get();
@@ -526,10 +555,10 @@ function buscarEstoqueItemPorId(id) {
 
 function criarEstoqueItem(dados) {
   const result = getDb().prepare(`
-    INSERT INTO estoque_itens (nome, tipo, qtd_preto, qtd_ciano, qtd_magenta, qtd_amarelo, qtd_geral, urgente, observacao)
-    VALUES (@nome, @tipo, @qtd_preto, @qtd_ciano, @qtd_magenta, @qtd_amarelo, @qtd_geral, @urgente, @observacao)
+    INSERT INTO estoque_itens (nome, tipo, qtd_preto, qtd_ciano, qtd_magenta, qtd_amarelo, qtd_geral, urgente, observacao, especificacao)
+    VALUES (@nome, @tipo, @qtd_preto, @qtd_ciano, @qtd_magenta, @qtd_amarelo, @qtd_geral, @urgente, @observacao, @especificacao)
   `).run({
-    tipo: 'outro', qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, qtd_geral: 0, urgente: 0, observacao: '',
+    tipo: 'outro', qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, qtd_geral: 0, urgente: 0, observacao: '', especificacao: '',
     ...dados,
   });
   return result.lastInsertRowid;
@@ -538,10 +567,11 @@ function criarEstoqueItem(dados) {
 function atualizarEstoqueItem(id, dados) {
   const campos = [];
   const values = [];
-  if (dados.nome !== undefined)       { campos.push('nome = ?');       values.push(dados.nome); }
-  if (dados.tipo !== undefined)       { campos.push('tipo = ?');       values.push(dados.tipo); }
-  if (dados.urgente !== undefined)    { campos.push('urgente = ?');    values.push(dados.urgente); }
-  if (dados.observacao !== undefined) { campos.push('observacao = ?'); values.push(dados.observacao); }
+  if (dados.nome !== undefined)          { campos.push('nome = ?');          values.push(dados.nome); }
+  if (dados.tipo !== undefined)          { campos.push('tipo = ?');          values.push(dados.tipo); }
+  if (dados.urgente !== undefined)       { campos.push('urgente = ?');       values.push(dados.urgente); }
+  if (dados.observacao !== undefined)    { campos.push('observacao = ?');    values.push(dados.observacao); }
+  if (dados.especificacao !== undefined) { campos.push('especificacao = ?'); values.push(dados.especificacao); }
   if (campos.length === 0) return;
   campos.push('atualizado_em = CURRENT_TIMESTAMP');
   values.push(id);
