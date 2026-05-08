@@ -638,7 +638,7 @@ function renderTabelaPerifericos(lista) {
               <td style="text-align:center">${qtdCell(item.qtd_geral)}</td>
               <td style="color:var(--text-muted);font-size:.82rem">${esc(item.observacao) || '—'}</td>
               <td style="white-space:nowrap">
-                <button class="btn btn-secondary btn-sm" onclick="abrirModalPeriferico(${item.id})">Editar</button>
+                <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
                 <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
                 ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarPeriferico(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
               </td>
