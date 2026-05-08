@@ -478,7 +478,7 @@ function renderImpressoras(impressoras) {
 
   el.innerHTML = `
     <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <input class="form-control" id="imp-search" type="text" placeholder="Buscar nome, IP…" style="max-width:220px">
+      <input class="form-control" id="imp-search" type="text" placeholder="Buscar nome, IP, SELB…" style="max-width:240px">
       <select class="form-control" id="imp-loc-filter" style="max-width:200px">
         <option value="">Todas as localizações</option>
         ${locs.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('')}
@@ -500,7 +500,8 @@ function filtrarImpressoras() {
   const filtered = _impressorasCache.filter(item => {
     const matchSearch = !search ||
       (item.nome || '').toLowerCase().includes(search) ||
-      (item.ip   || '').toLowerCase().includes(search);
+      (item.ip   || '').toLowerCase().includes(search) ||
+      (item.selb || '').toLowerCase().includes(search);
     const matchLoc = !loc || (item.localizacao || '') === loc;
     return matchSearch && matchLoc;
   });
