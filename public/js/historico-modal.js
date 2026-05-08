@@ -208,9 +208,8 @@
     `;
 
     document.body.appendChild(overlay);
-    // Force reflow so initial CSS state renders before transition starts
-    overlay.offsetHeight; // eslint-disable-line no-unused-expressions
-    overlay.classList.add('open');
+    // Wait one frame so the browser paints the initial state before the transition starts
+    setTimeout(() => overlay.classList.add('open'), 20);
 
     const fechar = () => {
       overlay.classList.remove('open');
