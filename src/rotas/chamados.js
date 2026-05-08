@@ -58,6 +58,9 @@ router.post('/', upload.single('anexo'), async (req, res) => {
     const cat = await classificarInteligente(descricao);
     const categoria = cat ? cat.id : null;
     const id = db.inserirChamado({ usuario_id, nome, setor, ramal, descricao, anexo_path: null, anexo_nome_original: null, categoria });
+    if (categoria === 'impressora') {
+      db.atualizarPrazo(id, db.prazo2DiasUteis(), null);
+    }
 
     if (req.file) {
       const novoNome = renomearAnexoComId(id, req.file.path, req.file.originalname);

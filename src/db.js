@@ -1369,6 +1369,18 @@ function exportarCsvMes(mes) {
   `).all(inicio, fim + ' 23:59:59');
 }
 
+function prazo2DiasUteis() {
+  const fortaleza = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  let current = new Date(Date.UTC(fortaleza.getUTCFullYear(), fortaleza.getUTCMonth(), fortaleza.getUTCDate(), 12));
+  let diasUteis = 0;
+  while (diasUteis < 2) {
+    current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
+    const dow = current.getUTCDay();
+    if (dow !== 0 && dow !== 6) diasUteis++;
+  }
+  return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate(), 21)).toISOString().replace('T', ' ').substring(0, 19);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -1439,4 +1451,5 @@ module.exports = {
   criarImpressora,
   atualizarImpressora,
   deletarImpressora,
+  prazo2DiasUteis,
 };
