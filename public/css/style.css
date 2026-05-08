@@ -2774,26 +2774,21 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 
 /* ─── Overlay histórico completo ──────────────────────────────── */
 .hist-overlay {
+  display: none;
   position: fixed; inset: 0; z-index: 3000;
   background: rgba(0,0,0,.45);
-  display: flex; align-items: flex-start; justify-content: flex-end;
-  opacity: 0; transition: opacity .25s;
+  align-items: flex-start; justify-content: flex-end;
   overflow: hidden;
-  pointer-events: none;
 }
-.hist-overlay.open { opacity: 1; pointer-events: auto; }
+.hist-overlay.open { display: flex; }
 .hist-modal {
   width: min(520px, 100vw);
   height: 100vh;
   background: var(--surface);
   display: flex; flex-direction: column;
   box-shadow: -4px 0 24px rgba(0,0,0,.15);
-  transform: translateX(100%);
-  transition: transform .28s cubic-bezier(.4,0,.2,1);
   overflow: hidden;
-  will-change: transform;
 }
-.hist-overlay.open .hist-modal { transform: translateX(0); }
 .hist-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 1rem; padding: 1.25rem 1.5rem;

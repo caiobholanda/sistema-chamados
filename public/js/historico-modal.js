@@ -208,14 +208,9 @@
     `;
 
     document.body.appendChild(overlay);
-    // Wait one frame so the browser paints the initial state before the transition starts
-    setTimeout(() => overlay.classList.add('open'), 20);
+    overlay.classList.add('open');
 
-    const fechar = () => {
-      overlay.classList.remove('open');
-      const tid = setTimeout(() => overlay.remove(), 400);
-      overlay.addEventListener('transitionend', () => { clearTimeout(tid); overlay.remove(); }, { once: true });
-    };
+    const fechar = () => overlay.remove();
     document.getElementById('hist-fechar').addEventListener('click', fechar);
     overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
     document.addEventListener('keydown', function esc(e) {
