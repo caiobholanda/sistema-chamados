@@ -6,7 +6,9 @@ let _itensCache = [];
 let _microsCache = [];
 let _microsFiltered = [];
 let _tonerCache = [];
+let _tonerFiltered = [];
 let _impressorasCache = [];
+let _impressorasFiltered = [];
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
@@ -259,10 +261,21 @@ function renderMicros(lista) {
   const el = document.getElementById('itens-lista');
   document.getElementById('badge-micros').textContent = lista.length || '';
 
+  const setores = [...new Set(lista.map(i => i.setor).filter(Boolean))].sort();
+  const sos     = [...new Set(lista.map(i => i.sistema_operacional).filter(Boolean))].sort();
+
   el.innerHTML = `
     <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <input class="form-control" id="micros-search" type="text" placeholder="Buscar setor, usuário, hostname…" style="max-width:260px">
-      <select class="form-control" id="micros-status" style="max-width:180px">
+      <input class="form-control" id="micros-search" type="text" placeholder="Buscar usuário, hostname…" style="max-width:220px">
+      <select class="form-control" id="micros-setor" style="max-width:200px">
+        <option value="">Todos os setores</option>
+        ${setores.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
+      </select>
+      <select class="form-control" id="micros-so" style="max-width:160px">
+        <option value="">Todos os S.O.</option>
+        ${sos.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
+      </select>
+      <select class="form-control" id="micros-status" style="max-width:160px">
         <option value="">Todos os status</option>
         <option value="NOVO">NOVO</option>
         <option value="CONCLUIDO">CONCLUIDO</option>
@@ -273,6 +286,8 @@ function renderMicros(lista) {
   `;
 
   document.getElementById('micros-search').addEventListener('input', filtrarMicros);
+  document.getElementById('micros-setor').addEventListener('change', filtrarMicros);
+  document.getElementById('micros-so').addEventListener('change', filtrarMicros);
   document.getElementById('micros-status').addEventListener('change', filtrarMicros);
 
   _microsFiltered = lista;
@@ -281,14 +296,17 @@ function renderMicros(lista) {
 
 function filtrarMicros() {
   const search = (document.getElementById('micros-search').value || '').toLowerCase();
+  const setor  = document.getElementById('micros-setor').value;
+  const so     = document.getElementById('micros-so').value;
   const status = document.getElementById('micros-status').value;
   const filtered = _microsCache.filter(item => {
     const matchSearch = !search ||
-      (item.setor || '').toLowerCase().includes(search) ||
       (item.usuario || '').toLowerCase().includes(search) ||
       (item.hostname || '').toLowerCase().includes(search);
+    const matchSetor  = !setor  || (item.setor || '') === setor;
+    const matchSo     = !so     || (item.sistema_operacional || '') === so;
     const matchStatus = !status || (item.status || '') === status;
-    return matchSearch && matchStatus;
+    return matchSearch && matchSetor && matchSo && matchStatus;
   });
   document.getElementById('micros-count').textContent = `${filtered.length} equipamento${filtered.length !== 1 ? 's' : ''}`;
   renderTabelaMicros(filtered);
@@ -315,7 +333,6 @@ function renderTabelaMicros(lista) {
             <th>Processador</th>
             <th>Memória</th>
             <th>S.O.</th>
-            <th>Status</th>
             <th></th>
           </tr>
         </thead>
@@ -328,9 +345,6 @@ function renderTabelaMicros(lista) {
               <td style="font-size:.82rem">${esc(item.processador) || '—'}</td>
               <td style="font-size:.82rem">${esc(item.memoria) || '—'}</td>
               <td style="font-size:.78rem;white-space:nowrap">${esc(item.sistema_operacional) || '—'}</td>
-              <td style="white-space:nowrap">
-                ${item.status ? `<span class="inv-status-tag inv-em-uso" style="font-size:.72rem">${esc(item.status)}</span>` : '<span style="color:var(--text-muted)">—</span>'}
-              </td>
               <td style="white-space:nowrap">
                 <button class="btn btn-secondary btn-sm" onclick="abrirModalMicros(${item.id})">Editar</button>
                 ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarMicro(${item.id}, '${esc(item.setor).replace(/'/g, "\\'")} - ${esc(item.usuario).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
@@ -354,7 +368,55 @@ function qtdCell(v) {
 function renderToner(itens) {
   const el = document.getElementById('itens-lista');
   document.getElementById('badge-toner').textContent = itens.length || '';
+  _tonerFiltered = itens;
 
+  const isMaster = adminInfo && adminInfo.is_master;
+  const urgentes = itens.filter(i => i.urgente).length;
+
+  el.innerHTML = `
+    <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+      <input class="form-control" id="toner-search" type="text" placeholder="Buscar nome…" style="max-width:220px">
+      <select class="form-control" id="toner-tipo" style="max-width:180px">
+        <option value="">Todos os tipos</option>
+        <option value="toner_mono">Toner Mono</option>
+        <option value="toner_color">Toner Color</option>
+        <option value="resma">Resma/Papel</option>
+        <option value="outro">Outro</option>
+      </select>
+      <select class="form-control" id="toner-urgente" style="max-width:150px">
+        <option value="">Todos</option>
+        <option value="1">Urgente</option>
+        <option value="0">Normal</option>
+      </select>
+      <span id="toner-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem">${itens.length} item${itens.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div id="toner-tabela"></div>
+  `;
+
+  document.getElementById('toner-search').addEventListener('input', filtrarToner);
+  document.getElementById('toner-tipo').addEventListener('change', filtrarToner);
+  document.getElementById('toner-urgente').addEventListener('change', filtrarToner);
+
+  renderTabelaToner(itens);
+}
+
+function filtrarToner() {
+  const search   = (document.getElementById('toner-search').value || '').toLowerCase();
+  const tipo     = document.getElementById('toner-tipo').value;
+  const urgente  = document.getElementById('toner-urgente').value;
+  const filtered = _tonerCache.filter(item => {
+    const matchSearch  = !search  || (item.nome || '').toLowerCase().includes(search);
+    const matchTipo    = !tipo    || item.tipo === tipo;
+    const matchUrgente = urgente === '' ? true : urgente === '1' ? !!item.urgente : !item.urgente;
+    return matchSearch && matchTipo && matchUrgente;
+  });
+  document.getElementById('toner-count').textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`;
+  renderTabelaToner(filtered);
+}
+
+function renderTabelaToner(itens) {
+  const el = document.getElementById('toner-tabela');
+  if (!el) return;
   const isMaster = adminInfo && adminInfo.is_master;
   const urgentes = itens.filter(i => i.urgente).length;
 
@@ -411,10 +473,53 @@ function renderToner(itens) {
 function renderImpressoras(impressoras) {
   const el = document.getElementById('itens-lista');
   document.getElementById('badge-impressoras').textContent = impressoras.length || '';
+  _impressorasFiltered = impressoras;
 
+  const locs = [...new Set(impressoras.map(i => i.localizacao).filter(Boolean))].sort();
+
+  el.innerHTML = `
+    <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+      <input class="form-control" id="imp-search" type="text" placeholder="Buscar nome, IP…" style="max-width:220px">
+      <select class="form-control" id="imp-loc-filter" style="max-width:200px">
+        <option value="">Todas as localizações</option>
+        ${locs.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('')}
+      </select>
+      <span id="imp-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem">${impressoras.length} impressora${impressoras.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div id="imp-tabela"></div>
+  `;
+
+  document.getElementById('imp-search').addEventListener('input', filtrarImpressoras);
+  document.getElementById('imp-loc-filter').addEventListener('change', filtrarImpressoras);
+
+  renderTabelaImpressoras(impressoras);
+}
+
+function filtrarImpressoras() {
+  const search = (document.getElementById('imp-search').value || '').toLowerCase();
+  const loc    = document.getElementById('imp-loc-filter').value;
+  const filtered = _impressorasCache.filter(item => {
+    const matchSearch = !search ||
+      (item.nome || '').toLowerCase().includes(search) ||
+      (item.ip   || '').toLowerCase().includes(search);
+    const matchLoc = !loc || (item.localizacao || '') === loc;
+    return matchSearch && matchLoc;
+  });
+  document.getElementById('imp-count').textContent = `${filtered.length} impressora${filtered.length !== 1 ? 's' : ''}`;
+  renderTabelaImpressoras(filtered);
+}
+
+function renderTabelaImpressoras(lista) {
+  const el = document.getElementById('imp-tabela');
+  if (!el) return;
   const isMaster = adminInfo && adminInfo.is_master;
 
-  el.innerHTML = impressoras.length ? `
+  if (!lista.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhuma impressora encontrada.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
     <div class="table-wrap">
       <table>
         <thead>
@@ -427,7 +532,7 @@ function renderImpressoras(impressoras) {
           </tr>
         </thead>
         <tbody>
-          ${impressoras.map(item => `
+          ${lista.map(item => `
             <tr>
               <td style="font-weight:500">${esc(item.nome)}</td>
               <td style="font-family:monospace;font-size:.82rem">${esc(item.ip) || '—'}</td>
@@ -442,7 +547,7 @@ function renderImpressoras(impressoras) {
         </tbody>
       </table>
     </div>
-  ` : `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhuma impressora cadastrada. Clique em "+ Nova Impressora" para adicionar.</div>`;
+  `;
 }
 
 // ── Carregar conteúdo da aba ──────────────────────────────
