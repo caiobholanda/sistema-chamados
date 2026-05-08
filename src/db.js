@@ -126,6 +126,7 @@ function initDb() {
   try { db.exec("ALTER TABLE estoque_itens ADD COLUMN especificacao TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE impressoras ADD COLUMN numero_serie TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN chamado_id INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE estoque_itens ADD COLUMN qtd_usado INTEGER DEFAULT 0"); } catch {}
   // Fix model name for SELB 3Y24 (WF5890 → WF-C5890)
   try { db.exec("UPDATE impressoras SET nome = 'Epson WF-C5890' WHERE selb = '3Y24' AND nome = 'EPSON WF5890'"); } catch {}
   // Add ADE4 impressora if not yet registered

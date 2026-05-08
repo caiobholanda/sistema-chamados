@@ -1102,12 +1102,8 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       ${bloco('troca_nobreak', 'Um nobreak novo foi instalado?', `
         ${bloco('saida_nobreak', 'Esse nobreak saiu do estoque de Equipamentos?',
           itemSel('saida_nobreak', 'Selecione o nobreak instalado:', ['nobreak']))}
-        ${bloco('entrada_nobreak', 'O nobreak retirado vai entrar no estoque?',
-          itemSel('entrada_nobreak', 'Selecione o nobreak devolvido:', ['nobreak']))}
-      `)}
-      ${bloco('troca_bateria', 'Uma bateria foi utilizada?', `
-        ${bloco('saida_bateria', 'Essa bateria saiu do estoque de Suprimentos?',
-          itemSel('saida_bateria', 'Selecione a bateria utilizada:', ['bateria']))}
+        ${bloco('entrada_nobreak', 'O nobreak retirado vai entrar no estoque como usado?',
+          `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">O nobreak antigo será registrado automaticamente como <strong>usado</strong> no estoque.</div>`)}
       `)}
     `,
   };
@@ -1162,7 +1158,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
   });
 
   const SAIDAS = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak','saida_bateria','saida_componente','saida_memoria','saida_processador'];
-  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor','entrada_nobreak','entrada_componente'];
+  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor','entrada_componente'];
 
   function coletarMovs() {
     const movs = [];
@@ -1171,8 +1167,15 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       const sel = document.getElementById('wiz-sel-' + key);
       const qtd = document.getElementById('wiz-qtd-' + key);
       if (!sel || !sel.value) return;
-      movs.push({ itemId: +sel.value, tipo, qtd: Math.max(1, +(qtd?.value || 1)), obs: `${chamado.nome} — Chamado #${chamado.id}`, chamadoId: chamado.id });
+      movs.push({ itemId: +sel.value, tipo, cor: 'geral', qtd: Math.max(1, +(qtd?.value || 1)), obs: `${chamado.nome} — Chamado #${chamado.id}`, chamadoId: chamado.id });
     });
+    // nobreak antigo retornando ao estoque: usa o mesmo item da saída, registra como usado
+    if (state['entrada_nobreak'] === 'sim') {
+      const saidaSel = document.getElementById('wiz-sel-saida_nobreak');
+      if (saidaSel && saidaSel.value) {
+        movs.push({ itemId: +saidaSel.value, tipo: 'entrada', cor: 'usado', qtd: 1, obs: `${chamado.nome} — Chamado #${chamado.id}`, chamadoId: chamado.id });
+      }
+    }
     return movs;
   }
 
@@ -1184,7 +1187,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       for (const m of movs) {
         const r = await api(`/api/admin/estoque/itens/${m.itemId}/movimentacao`, {
           method: 'POST',
-          body: JSON.stringify({ tipo: m.tipo, cor: 'geral', quantidade: m.qtd, observacao: m.obs, chamado_id: m.chamadoId }),
+          body: JSON.stringify({ tipo: m.tipo, cor: m.cor || 'geral', quantidade: m.qtd, observacao: m.obs, chamado_id: m.chamadoId }),
         });
         if (!r.ok) {
           const d = await r.json();

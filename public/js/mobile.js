@@ -221,10 +221,8 @@ function mobWizHtml(cat, itens) {
     nobreak: `
       ${bloco('troca_nobreak', 'Um nobreak novo foi instalado?', `
         ${bloco('saida_nobreak', 'Esse nobreak saiu do estoque?', sel('saida_nobreak', 'Nobreak instalado:', ['nobreak']))}
-        ${bloco('entrada_nobreak', 'O nobreak retirado vai entrar no estoque?', sel('entrada_nobreak', 'Nobreak devolvido:', ['nobreak']))}
-      `)}
-      ${bloco('troca_bateria', 'Uma bateria foi utilizada?', `
-        ${bloco('saida_bateria', 'Essa bateria saiu do estoque?', sel('saida_bateria', 'Bateria utilizada:', ['bateria']))}
+        ${bloco('entrada_nobreak', 'O nobreak retirado vai entrar no estoque como usado?',
+          `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">O nobreak antigo será registrado automaticamente como <strong>usado</strong> no estoque.</div>`)}
       `)}
     `,
   };
@@ -234,7 +232,7 @@ function mobWizHtml(cat, itens) {
 
 function mobWizColetarMovs(chamadoId) {
   const SAIDAS   = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak','saida_bateria'];
-  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor','entrada_nobreak'];
+  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor'];
   const movs = [];
   [...SAIDAS.map(k => [k,'saida']), ...ENTRADAS.map(k => [k,'entrada'])].forEach(([key, tipo]) => {
     const sim = document.querySelector(`.mob-wiz-sim[data-q="${key}"]`);
@@ -242,8 +240,16 @@ function mobWizColetarMovs(chamadoId) {
     const sel = document.getElementById('mwiz-sel-' + key);
     const qtd = document.getElementById('mwiz-qtd-' + key);
     if (!sel || !sel.value) return;
-    movs.push({ itemId: +sel.value, tipo, qtd: Math.max(1, +(qtd?.value || 1)), chamadoId });
+    movs.push({ itemId: +sel.value, tipo, cor: 'geral', qtd: Math.max(1, +(qtd?.value || 1)), chamadoId });
   });
+  // nobreak antigo retornando: mesmo item da saída, registra como usado
+  const entNb = document.querySelector('.mob-wiz-sim[data-q="entrada_nobreak"]');
+  if (entNb && entNb.classList.contains('ativo')) {
+    const saidaSel = document.getElementById('mwiz-sel-saida_nobreak');
+    if (saidaSel && saidaSel.value) {
+      movs.push({ itemId: +saidaSel.value, tipo: 'entrada', cor: 'usado', qtd: 1, chamadoId });
+    }
+  }
   return movs;
 }
 
@@ -388,7 +394,7 @@ async function renderDetalhe(c) {
         for (const m of movs) {
           const r = await api(`/api/admin/estoque/itens/${m.itemId}/movimentacao`, {
             method: 'POST',
-            body: JSON.stringify({ tipo: m.tipo, cor: 'geral', quantidade: m.qtd, observacao: `${c.nome} — Chamado #${c.id}`, chamado_id: m.chamadoId }),
+            body: JSON.stringify({ tipo: m.tipo, cor: m.cor || 'geral', quantidade: m.qtd, observacao: `${c.nome} — Chamado #${c.id}`, chamado_id: m.chamadoId }),
           });
           if (!r.ok) {
             const d = await r.json();
