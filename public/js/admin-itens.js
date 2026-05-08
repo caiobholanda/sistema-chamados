@@ -1090,11 +1090,21 @@ async function confirmarDeletarMicro(id, label) {
 function abrirNovoItemToner() {
   document.getElementById('modal-title').textContent = 'Novo Item';
   abrirModal();
+
+  const EXTRA_NOMES = ['Epson WorkForce Pro WF-M5799'];
+  const nomesCache = [...new Set(_tonerCache.map(i => i.nome))];
+  const todosNomes = [...new Set([...nomesCache, ...EXTRA_NOMES])].sort((a, b) => a.localeCompare(b));
+
   document.getElementById('modal-body').innerHTML = `
     <form id="form-toner" style="display:flex;flex-direction:column;gap:.8rem">
       <div class="form-group">
-        <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="ft-nome" type="text" placeholder="Ex: RICOH SP 3710SF">
+        <label class="form-label">Modelo <span style="color:var(--danger)">*</span></label>
+        <select class="form-control" id="ft-nome">
+          <option value="">— selecione um modelo —</option>
+          ${todosNomes.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')}
+          <option value="__outro__">Outro (digitar)…</option>
+        </select>
+        <input class="form-control" id="ft-nome-custom" type="text" placeholder="Digite o nome do modelo" style="display:none;margin-top:.4rem">
       </div>
       <div class="form-row-2">
         <div class="form-group">
@@ -1118,12 +1128,20 @@ function abrirNovoItemToner() {
       </div>
     </form>
   `;
+
+  document.getElementById('ft-nome').addEventListener('change', function () {
+    document.getElementById('ft-nome-custom').style.display = this.value === '__outro__' ? '' : 'none';
+  });
+
   document.getElementById('form-toner').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btn-salvar-toner');
     btn.disabled = true; btn.textContent = 'Salvando…';
-    const nome = document.getElementById('ft-nome').value.trim();
-    if (!nome) { mostrarToast('Nome obrigatório', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
+    const sel = document.getElementById('ft-nome');
+    const nome = sel.value === '__outro__'
+      ? document.getElementById('ft-nome-custom').value.trim()
+      : sel.value;
+    if (!nome) { mostrarToast('Selecione ou digite o modelo', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
     try {
       const r = await api('/api/admin/estoque/itens', { method: 'POST', body: JSON.stringify({
         nome, tipo: document.getElementById('ft-tipo').value, urgente: document.getElementById('ft-urgente').checked,
