@@ -9,6 +9,8 @@ let _tonerCache = [];
 let _tonerFiltered = [];
 let _impressorasCache = [];
 let _impressorasFiltered = [];
+let _perifericosCache = [];
+let _perifericosFiltered = [];
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
@@ -89,6 +91,9 @@ function atualizarToolbar() {
   } else if (abaAtiva === 'toner') {
     btnNovo.style.display = '';
     btnNovo.textContent = '+ Novo Item Toner';
+  } else if (abaAtiva === 'perifericos') {
+    btnNovo.style.display = '';
+    btnNovo.textContent = '+ Novo Periférico';
   } else {
     btnNovo.style.display = 'none';
   }
@@ -559,6 +564,75 @@ function renderTabelaImpressoras(lista) {
   `;
 }
 
+// ── Renderização — Periféricos ────────────────────────────
+
+function renderPerifericos(lista) {
+  const el = document.getElementById('itens-lista');
+  document.getElementById('badge-perifericos').textContent = lista.length || '';
+  _perifericosFiltered = lista;
+
+  el.innerHTML = `
+    <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
+      <input class="form-control" id="per-search" type="text" placeholder="Buscar nome…" style="max-width:240px">
+      <span id="per-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem">${lista.length} item${lista.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div id="per-tabela"></div>
+  `;
+
+  document.getElementById('per-search').addEventListener('input', filtrarPerifericos);
+  renderTabelaPerifericos(lista);
+}
+
+function filtrarPerifericos() {
+  const search = (document.getElementById('per-search').value || '').toLowerCase();
+  const filtered = _perifericosCache.filter(item =>
+    !search || (item.nome || '').toLowerCase().includes(search) || (item.observacao || '').toLowerCase().includes(search)
+  );
+  document.getElementById('per-count').textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`;
+  renderTabelaPerifericos(filtered);
+}
+
+function renderTabelaPerifericos(lista) {
+  const el = document.getElementById('per-tabela');
+  if (!el) return;
+  const isMaster = adminInfo && adminInfo.is_master;
+
+  if (!lista.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum periférico encontrado.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th style="text-align:center">Quantidade</th>
+            <th>Observação</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lista.map(item => `
+            <tr>
+              <td style="font-weight:500">${esc(item.nome)}</td>
+              <td style="text-align:center">${qtdCell(item.qtd_geral)}</td>
+              <td style="color:var(--text-muted);font-size:.82rem">${esc(item.observacao) || '—'}</td>
+              <td style="white-space:nowrap">
+                <button class="btn btn-secondary btn-sm" onclick="abrirModalPeriferico(${item.id})">Editar</button>
+                <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
+                <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
+                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarPeriferico(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 // ── Carregar conteúdo da aba ──────────────────────────────
 
 async function carregarItens() {
@@ -575,8 +649,14 @@ async function carregarItens() {
       renderMicros(_microsCache);
     } else if (abaAtiva === 'toner') {
       const r = await api('/api/admin/estoque/itens');
-      _tonerCache = await r.json();
+      const todos = await r.json();
+      _tonerCache = todos.filter(i => i.tipo !== 'periferico');
       renderToner(_tonerCache);
+    } else if (abaAtiva === 'perifericos') {
+      const r = await api('/api/admin/estoque/itens');
+      const todos = await r.json();
+      _perifericosCache = todos.filter(i => i.tipo === 'periferico');
+      renderPerifericos(_perifericosCache);
     } else if (abaAtiva === 'impressoras') {
       const r = await api('/api/admin/estoque/impressoras');
       _impressorasCache = await r.json();
@@ -734,6 +814,8 @@ function abrirModalNovo() {
     abrirModalImpressora(null);
   } else if (abaAtiva === 'toner') {
     abrirNovoItemToner();
+  } else if (abaAtiva === 'perifericos') {
+    abrirModalPeriferico(null);
   }
 }
 
@@ -1030,7 +1112,7 @@ function fecharMovModal() {
 }
 
 function abrirMovimentacao(itemId, tipoMov) {
-  const item = _tonerCache.find(i => i.id === itemId);
+  const item = _tonerCache.find(i => i.id === itemId) || _perifericosCache.find(i => i.id === itemId);
   if (!item) return;
 
   document.getElementById('mov-modal-overlay').style.display = 'flex';
@@ -1265,6 +1347,63 @@ async function confirmarDeletarImpressora(id, nome) {
     const r = await api(`/api/admin/estoque/impressoras/${id}`, { method: 'DELETE' });
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); return; }
     mostrarToast('Impressora excluída'); carregarItens();
+  } catch {}
+}
+
+// ── Modal Periféricos (novo/editar) ───────────────────────
+
+function abrirModalPeriferico(id) {
+  const item = id ? _perifericosCache.find(i => i.id === id) : null;
+  const isEdit = !!item;
+  document.getElementById('modal-title').textContent = isEdit ? 'Editar Periférico' : 'Novo Periférico';
+  abrirModal();
+  document.getElementById('modal-body').innerHTML = `
+    <form id="form-per" style="display:flex;flex-direction:column;gap:.8rem">
+      <div class="form-group">
+        <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
+        <input class="form-control" id="per-nome" type="text" value="${esc(item ? item.nome : '')}" placeholder="Ex: Mouse, Teclado, Patch Cord…">
+      </div>
+      ${isEdit ? `
+      <div class="form-group">
+        <label class="form-label" style="color:var(--text-muted)">Quantidade atual</label>
+        <input class="form-control" type="text" value="${item.qtd_geral ?? 0}" disabled style="background:var(--surface-2);color:var(--text-muted)">
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem">Para alterar a quantidade use o botão "Movimentação".</div>
+      </div>
+      ` : ''}
+      <div class="form-group">
+        <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <input class="form-control" id="per-obs" type="text" value="${esc(item ? item.observacao : '')}" placeholder="Ex: em uso Richard, Socket 1151…">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-per">${isEdit ? 'Salvar' : 'Adicionar'}</button>
+      </div>
+    </form>
+  `;
+  document.getElementById('form-per').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar-per');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    const nome = document.getElementById('per-nome').value.trim();
+    if (!nome) { mostrarToast('Nome obrigatório', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
+    const body = { nome, tipo: 'periferico', observacao: document.getElementById('per-obs').value.trim() };
+    try {
+      const url = isEdit ? `/api/admin/estoque/itens/${item.id}` : '/api/admin/estoque/itens';
+      const method = isEdit ? 'PATCH' : 'POST';
+      const r = await api(url, { method, body: JSON.stringify(body) });
+      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
+      fecharModal(); mostrarToast(isEdit ? 'Periférico atualizado' : 'Periférico adicionado'); carregarItens();
+    } catch { btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; }
+  });
+}
+
+async function confirmarDeletarPeriferico(id, nome) {
+  if (!adminInfo || !adminInfo.is_master) return;
+  if (!confirm(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
+  try {
+    const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
+    mostrarToast('Periférico excluído'); carregarItens();
   } catch {}
 }
 

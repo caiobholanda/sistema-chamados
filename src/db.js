@@ -122,6 +122,7 @@ function initDb() {
   try { db.exec('ALTER TABLE usuarios ADD COLUMN setor TEXT'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN assinatura TEXT'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN assinado_em DATETIME'); } catch {}
+  try { db.exec("ALTER TABLE estoque_itens ADD COLUMN observacao TEXT DEFAULT ''"); } catch {}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS assinaturas_historico (
@@ -377,6 +378,41 @@ function seedInventario() {
   console.log(`[DB] Inventário: ${SEED_INVENTARIO.length} registros de seed inseridos.`);
 }
 
+const SEED_PERIFERICOS = [
+  { nome: 'Teclado',                    qtd_geral: 11, observacao: '' },
+  { nome: 'Mouse',                      qtd_geral: 13, observacao: '' },
+  { nome: 'Adaptador WiFi',             qtd_geral:  1, observacao: 'em uso Richard' },
+  { nome: 'Adaptador de Rede',          qtd_geral:  1, observacao: 'em uso Marcio' },
+  { nome: 'Monitor VGA',                qtd_geral:  1, observacao: 'VGA' },
+  { nome: 'Monitor VGA-DVI',            qtd_geral:  0, observacao: 'VGA - DVI' },
+  { nome: 'Monitor VGA-HDMI',           qtd_geral:  0, observacao: 'VGA - HDMI' },
+  { nome: 'Monitor VGA-DisplayPort',    qtd_geral:  2, observacao: 'VGA - D.P.' },
+  { nome: 'Memória 8GB DDR4 Note',      qtd_geral:  1, observacao: 'Compatível com notebooks DDR4 e All-in-One DDR4' },
+  { nome: 'Memória 8GB DDR4',           qtd_geral:  0, observacao: '' },
+  { nome: 'Memória 8GB DDR3',           qtd_geral:  0, observacao: '' },
+  { nome: 'Memória 4GB DDR3',           qtd_geral:  0, observacao: '' },
+  { nome: 'Memória 2GB DDR3',           qtd_geral:  0, observacao: '' },
+  { nome: 'Processador Core i5 6ª Gen', qtd_geral:  1, observacao: 'Socket 1151' },
+  { nome: 'Patch Cord Vermelho 1,5 m',  qtd_geral:  5, observacao: '' },
+  { nome: 'Patch Cord Vermelho 2,5 m',  qtd_geral:  1, observacao: '' },
+  { nome: 'Patch Cord Amarelo 1,5 m',   qtd_geral:  5, observacao: '' },
+  { nome: 'Patch Cord Amarelo 2,5 m',   qtd_geral:  0, observacao: '' },
+  { nome: 'Patch Cord Verde 1,5 m',     qtd_geral:  3, observacao: '' },
+  { nome: 'Patch Cord Verde 2,5 m',     qtd_geral:  0, observacao: '' },
+  { nome: 'Patch Cord Azul 1,5 m',      qtd_geral:  5, observacao: '' },
+  { nome: 'Patch Cord Azul 2,5 m',      qtd_geral:  0, observacao: '' },
+  { nome: 'Conector RJ45 Macho',        qtd_geral:  0, observacao: '' },
+  { nome: 'Conector RJ45 Fêmea',        qtd_geral: 20, observacao: '' },
+  { nome: 'Leitor NFC',                 qtd_geral:  2, observacao: '' },
+  { nome: 'Headset Logitech',           qtd_geral:  0, observacao: 'Backup' },
+  { nome: 'Cabo HDMI 10 m',             qtd_geral:  1, observacao: 'Backup' },
+  { nome: 'Cabo USB x USB',             qtd_geral:  1, observacao: '' },
+  { nome: 'Caixinha de Som',            qtd_geral:  1, observacao: '' },
+  { nome: 'Bateria 2032',               qtd_geral: 20, observacao: '' },
+  { nome: 'Bateria 2025',               qtd_geral: 15, observacao: '' },
+  { nome: 'Cabo DisplayPort',           qtd_geral:  0, observacao: '' },
+];
+
 function seedEstoque() {
   const db = getDb();
   const countItens = db.prepare('SELECT COUNT(*) as cnt FROM estoque_itens').get();
@@ -395,6 +431,17 @@ function seedEstoque() {
     });
     inserirItens(SEED_ESTOQUE);
     console.log(`[DB] Estoque: ${SEED_ESTOQUE.length} itens de seed inseridos.`);
+  }
+
+  // Seed periféricos (tipo='periferico')
+  const countPerif = db.prepare("SELECT COUNT(*) as cnt FROM estoque_itens WHERE tipo = 'periferico'").get();
+  if (countPerif.cnt === 0) {
+    const stmtPerif = db.prepare(`
+      INSERT INTO estoque_itens (nome, tipo, qtd_geral, observacao) VALUES (@nome, 'periferico', @qtd_geral, @observacao)
+    `);
+    const inserirPerif = db.transaction((rows) => { for (const r of rows) stmtPerif.run(r); });
+    inserirPerif(SEED_PERIFERICOS);
+    console.log(`[DB] Periféricos: ${SEED_PERIFERICOS.length} itens de seed inseridos.`);
   }
 
   const countImpressoras = db.prepare('SELECT COUNT(*) as cnt FROM impressoras').get();
@@ -479,10 +526,10 @@ function buscarEstoqueItemPorId(id) {
 
 function criarEstoqueItem(dados) {
   const result = getDb().prepare(`
-    INSERT INTO estoque_itens (nome, tipo, qtd_preto, qtd_ciano, qtd_magenta, qtd_amarelo, qtd_geral, urgente)
-    VALUES (@nome, @tipo, @qtd_preto, @qtd_ciano, @qtd_magenta, @qtd_amarelo, @qtd_geral, @urgente)
+    INSERT INTO estoque_itens (nome, tipo, qtd_preto, qtd_ciano, qtd_magenta, qtd_amarelo, qtd_geral, urgente, observacao)
+    VALUES (@nome, @tipo, @qtd_preto, @qtd_ciano, @qtd_magenta, @qtd_amarelo, @qtd_geral, @urgente, @observacao)
   `).run({
-    tipo: 'outro', qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, qtd_geral: 0, urgente: 0,
+    tipo: 'outro', qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, qtd_geral: 0, urgente: 0, observacao: '',
     ...dados,
   });
   return result.lastInsertRowid;
@@ -491,9 +538,10 @@ function criarEstoqueItem(dados) {
 function atualizarEstoqueItem(id, dados) {
   const campos = [];
   const values = [];
-  if (dados.nome !== undefined) { campos.push('nome = ?'); values.push(dados.nome); }
-  if (dados.tipo !== undefined) { campos.push('tipo = ?'); values.push(dados.tipo); }
-  if (dados.urgente !== undefined) { campos.push('urgente = ?'); values.push(dados.urgente); }
+  if (dados.nome !== undefined)       { campos.push('nome = ?');       values.push(dados.nome); }
+  if (dados.tipo !== undefined)       { campos.push('tipo = ?');       values.push(dados.tipo); }
+  if (dados.urgente !== undefined)    { campos.push('urgente = ?');    values.push(dados.urgente); }
+  if (dados.observacao !== undefined) { campos.push('observacao = ?'); values.push(dados.observacao); }
   if (campos.length === 0) return;
   campos.push('atualizado_em = CURRENT_TIMESTAMP');
   values.push(id);
