@@ -1059,78 +1059,72 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
   }
 
   function bloco(id, texto, sub = '') {
-    return `<div class="wiz-bloco" style="padding:.65rem 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:.86rem;font-weight:600;color:var(--text-secondary);margin-bottom:.35rem">${texto}</div>
-      <div style="display:flex;gap:.4rem">
-        <button type="button" class="btn btn-sm wiz-sim-btn" data-q="${id}">Sim</button>
-        <button type="button" class="btn btn-ghost btn-sm wiz-nao-btn" data-q="${id}">Não</button>
+    return `<div class="wiz-bloco" style="padding:.8rem 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:.97rem;font-weight:600;color:var(--text);margin-bottom:.5rem">${texto}</div>
+      <div style="display:flex;gap:.5rem">
+        <button type="button" class="btn btn-secondary btn-sm wiz-sim-btn" data-q="${id}" style="min-width:60px">Sim</button>
+        <button type="button" class="btn btn-secondary btn-sm wiz-nao-btn" data-q="${id}" style="min-width:60px">Não</button>
       </div>
-      ${sub ? `<div id="wiz-sub-${id}" style="display:none;margin-top:.5rem;padding:.5rem .65rem;background:var(--bg,#f9f8f5);border-radius:6px;border:1px solid var(--border)">${sub}</div>` : ''}
+      ${sub ? `<div id="wiz-sub-${id}" style="display:none;margin-top:.6rem;padding:.6rem .75rem;background:var(--bg,#f9f8f5);border-radius:6px;border:1px solid var(--border)">${sub}</div>` : ''}
     </div>`;
   }
 
   const configs = {
     mouse: `
-      ${bloco('troca_mouse', 'O mouse foi substituído?', `
-        ${bloco('saida_mouse', 'O mouse novo saiu do estoque de Suprimentos?',
+      ${bloco('troca_mouse', 'Um mouse novo foi instalado?', `
+        ${bloco('saida_mouse', 'Esse mouse saiu do estoque de Suprimentos?',
           itemSel('saida_mouse', 'Selecione o mouse instalado:', ['mouse']))}
-        ${bloco('entrada_mouse', 'O mouse antigo vai retornar ao estoque?',
+        ${bloco('entrada_mouse', 'O mouse retirado vai entrar no estoque?',
           itemSel('entrada_mouse', 'Selecione o mouse devolvido:', ['mouse']))}
       `)}
-      ${bloco('limpeza_mouse', 'O problema era falta de limpeza/higienização? (sem movimentação de estoque)')}
     `,
     teclado: `
-      ${bloco('troca_teclado', 'O teclado foi substituído?', `
-        ${bloco('saida_teclado', 'O teclado novo saiu do estoque de Suprimentos?',
+      ${bloco('troca_teclado', 'Um teclado novo foi instalado?', `
+        ${bloco('saida_teclado', 'Esse teclado saiu do estoque de Suprimentos?',
           itemSel('saida_teclado', 'Selecione o teclado instalado:', ['teclado']))}
-        ${bloco('entrada_teclado', 'O teclado antigo vai retornar ao estoque?',
+        ${bloco('entrada_teclado', 'O teclado retirado vai entrar no estoque?',
           itemSel('entrada_teclado', 'Selecione o teclado devolvido:', ['teclado']))}
       `)}
-      ${bloco('conf_teclado', 'Precisou configurar layout ou idioma do teclado?')}
     `,
     monitor: `
-      ${bloco('troca_monitor', 'O monitor foi substituído?', `
-        ${bloco('saida_monitor', 'O monitor novo saiu do estoque de Suprimentos?',
+      ${bloco('troca_monitor', 'Um monitor novo foi instalado?', `
+        ${bloco('saida_monitor', 'Esse monitor saiu do estoque de Equipamentos?',
           itemSel('saida_monitor', 'Selecione o monitor instalado:', ['monitor']))}
-        ${bloco('entrada_monitor', 'O monitor antigo vai retornar ao estoque?',
+        ${bloco('entrada_monitor', 'O monitor retirado vai entrar no estoque?',
           itemSel('entrada_monitor', 'Selecione o monitor devolvido:', ['monitor']))}
       `)}
-      ${bloco('troca_cabo', 'O cabo ou adaptador de vídeo foi trocado?', `
-        ${bloco('saida_cabo', 'O cabo/adaptador saiu do estoque de Suprimentos?',
-          itemSel('saida_cabo', 'Selecione o cabo utilizado:', ['cabo', 'adaptador', 'hdmi', 'displayport']))}
+      ${bloco('troca_cabo', 'Um cabo ou adaptador de vídeo foi utilizado?', `
+        ${bloco('saida_cabo', 'Esse cabo/adaptador saiu do estoque de Suprimentos?',
+          itemSel('saida_cabo', 'Selecione o item utilizado:', ['cabo', 'adaptador', 'hdmi', 'displayport']))}
       `)}
-      ${bloco('conf_monitor', 'Foi necessário configurar resolução ou instalar drivers?')}
     `,
     nobreak: `
-      ${bloco('troca_nobreak', 'O nobreak foi substituído?', `
-        ${bloco('saida_nobreak', 'O nobreak novo saiu do estoque de Equipamentos?',
+      ${bloco('troca_nobreak', 'Um nobreak novo foi instalado?', `
+        ${bloco('saida_nobreak', 'Esse nobreak saiu do estoque de Equipamentos?',
           itemSel('saida_nobreak', 'Selecione o nobreak instalado:', ['nobreak']))}
-        ${bloco('entrada_nobreak', 'O nobreak antigo vai retornar ao estoque?',
+        ${bloco('entrada_nobreak', 'O nobreak retirado vai entrar no estoque?',
           itemSel('entrada_nobreak', 'Selecione o nobreak devolvido:', ['nobreak']))}
       `)}
-      ${bloco('troca_bateria', 'A bateria do nobreak foi substituída?', `
-        ${bloco('saida_bateria', 'A bateria saiu do estoque de Suprimentos?',
+      ${bloco('troca_bateria', 'Uma bateria foi utilizada?', `
+        ${bloco('saida_bateria', 'Essa bateria saiu do estoque de Suprimentos?',
           itemSel('saida_bateria', 'Selecione a bateria utilizada:', ['bateria']))}
       `)}
-      ${bloco('prob_eletrico', 'Havia problema na tomada ou na instalação elétrica?')}
     `,
     hardware: `
-      ${bloco('troca_comp', 'Algum componente ou equipamento foi substituído?', `
-        ${bloco('saida_componente', 'O item novo saiu do estoque?',
+      ${bloco('troca_comp', 'Um computador/equipamento foi instalado ou trocado?', `
+        ${bloco('saida_componente', 'Esse item saiu do estoque de Equipamentos?',
           itemSel('saida_componente', 'Selecione o item instalado:', []))}
-        ${bloco('entrada_componente', 'O componente antigo vai retornar ao estoque?',
+        ${bloco('entrada_componente', 'O item retirado vai entrar no estoque?',
           itemSel('entrada_componente', 'Selecione o item devolvido:', []))}
       `)}
-      ${bloco('troca_memoria', 'Foi instalada memória RAM?', `
-        ${bloco('saida_memoria', 'A memória saiu do estoque de Suprimentos?',
+      ${bloco('troca_memoria', 'Uma memória RAM foi instalada?', `
+        ${bloco('saida_memoria', 'Essa memória saiu do estoque?',
           itemSel('saida_memoria', 'Selecione a memória utilizada:', ['memória', 'memoria', 'ddr']))}
       `)}
-      ${bloco('troca_processador', 'O processador foi substituído?', `
-        ${bloco('saida_processador', 'O processador saiu do estoque de Suprimentos?',
+      ${bloco('troca_processador', 'Um processador foi instalado?', `
+        ${bloco('saida_processador', 'Esse processador saiu do estoque?',
           itemSel('saida_processador', 'Selecione o processador utilizado:', ['processador', 'i3', 'i5', 'i7']))}
       `)}
-      ${bloco('formatou', 'Foi necessário formatar ou reinstalar o sistema operacional?')}
-      ${bloco('drivers', 'Foram instalados ou atualizados drivers?')}
     `,
   };
 
@@ -1138,20 +1132,19 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
   ov.className = 'modal-overlay';
   ov.style.display = 'flex';
   ov.innerHTML = `
-    <div class="modal" style="max-width:520px;max-height:88vh;display:flex;flex-direction:column">
+    <div class="modal" style="max-width:660px;max-height:90vh;display:flex;flex-direction:column">
       <div class="modal-header" style="flex-shrink:0">
-        <h2>Estoque — ${catNome}</h2>
+        <h2>Movimentação de Estoque — ${catNome}</h2>
         <button class="modal-close" id="wiz-fechar">&#x2715;</button>
       </div>
       <div class="modal-body" style="overflow-y:auto;flex:1;padding-bottom:.5rem">
-        <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.6rem">
-          Responda as perguntas abaixo para registrar movimentações no estoque. Use <strong>Pular</strong> se não houve nenhuma alteração.
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem">
+          Responda as perguntas abaixo para registrar entradas e saídas no estoque.
         </p>
         ${configs[cat] || ''}
         <div id="wiz-msg" style="margin-top:.75rem"></div>
       </div>
       <div style="padding:1rem;border-top:1px solid var(--border);display:flex;gap:.5rem;flex-shrink:0">
-        <button class="btn btn-secondary" id="wiz-pular">Pular</button>
         <button class="btn btn-success" id="wiz-confirmar" style="flex:1">Registrar e concluir ✓</button>
       </div>
     </div>
@@ -1163,8 +1156,9 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       const q = btn.dataset.q;
       state[q] = 'sim';
       btn.className = 'btn btn-sm btn-primary wiz-sim-btn';
+      btn.style.minWidth = '60px';
       const nao = ov.querySelector(`.wiz-nao-btn[data-q="${q}"]`);
-      if (nao) nao.className = 'btn btn-ghost btn-sm wiz-nao-btn';
+      if (nao) { nao.className = 'btn btn-secondary btn-sm wiz-nao-btn'; nao.style.minWidth = '60px'; }
       const sub = document.getElementById('wiz-sub-' + q);
       if (sub) sub.style.display = 'block';
     });
@@ -1174,9 +1168,10 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
     btn.addEventListener('click', () => {
       const q = btn.dataset.q;
       state[q] = 'nao';
-      btn.className = 'btn btn-sm btn-primary wiz-nao-btn';
+      btn.className = 'btn btn-sm btn-danger wiz-nao-btn';
+      btn.style.minWidth = '60px';
       const sim = ov.querySelector(`.wiz-sim-btn[data-q="${q}"]`);
-      if (sim) sim.className = 'btn btn-sm wiz-sim-btn';
+      if (sim) { sim.className = 'btn btn-secondary btn-sm wiz-sim-btn'; sim.style.minWidth = '60px'; }
       const sub = document.getElementById('wiz-sub-' + q);
       if (sub) sub.style.display = 'none';
     });
@@ -1200,9 +1195,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
   async function executar(movs) {
     const msg = document.getElementById('wiz-msg');
     const btnConf = document.getElementById('wiz-confirmar');
-    const btnPular = document.getElementById('wiz-pular');
     if (btnConf) { btnConf.disabled = true; btnConf.textContent = 'Registrando…'; }
-    if (btnPular) btnPular.disabled = true;
     try {
       for (const m of movs) {
         const r = await api(`/api/admin/estoque/itens/${m.itemId}/movimentacao`, {
@@ -1213,7 +1206,6 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
           const d = await r.json();
           if (msg) msg.innerHTML = `<div class="alert alert-danger">Erro no estoque: ${d.erro}</div>`;
           if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
-          if (btnPular) btnPular.disabled = false;
           return;
         }
       }
@@ -1222,7 +1214,6 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       if (!r.ok) {
         if (msg) msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
         if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
-        if (btnPular) btnPular.disabled = false;
         return;
       }
       ov.remove();
@@ -1230,12 +1221,10 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
     } catch {
       if (msg) msg.innerHTML = '<div class="alert alert-danger">Erro ao processar. Tente novamente.</div>';
       if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
-      if (btnPular) btnPular.disabled = false;
     }
   }
 
   document.getElementById('wiz-confirmar').addEventListener('click', () => executar(coletarMovs()));
-  document.getElementById('wiz-pular').addEventListener('click', () => executar([]));
   document.getElementById('wiz-fechar').addEventListener('click', () => ov.remove());
 }
 

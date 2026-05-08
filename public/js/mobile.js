@@ -198,44 +198,42 @@ function mobWizHtml(cat, itens) {
 
   const configs = {
     mouse: `
-      ${bloco('troca_mouse', 'O mouse foi substituído?', `
-        ${bloco('saida_mouse', 'Mouse novo saiu do estoque?', sel('saida_mouse', 'Mouse instalado:', ['mouse']))}
-        ${bloco('entrada_mouse', 'Mouse antigo retorna ao estoque?', sel('entrada_mouse', 'Mouse devolvido:', ['mouse']))}
+      ${bloco('troca_mouse', 'Um mouse novo foi instalado?', `
+        ${bloco('saida_mouse', 'Esse mouse saiu do estoque?', sel('saida_mouse', 'Mouse instalado:', ['mouse']))}
+        ${bloco('entrada_mouse', 'O mouse retirado vai entrar no estoque?', sel('entrada_mouse', 'Mouse devolvido:', ['mouse']))}
       `)}
-      ${bloco('limpeza_mouse', 'O problema era só falta de limpeza?')}
     `,
     teclado: `
-      ${bloco('troca_teclado', 'O teclado foi substituído?', `
-        ${bloco('saida_teclado', 'Teclado novo saiu do estoque?', sel('saida_teclado', 'Teclado instalado:', ['teclado']))}
-        ${bloco('entrada_teclado', 'Teclado antigo retorna ao estoque?', sel('entrada_teclado', 'Teclado devolvido:', ['teclado']))}
+      ${bloco('troca_teclado', 'Um teclado novo foi instalado?', `
+        ${bloco('saida_teclado', 'Esse teclado saiu do estoque?', sel('saida_teclado', 'Teclado instalado:', ['teclado']))}
+        ${bloco('entrada_teclado', 'O teclado retirado vai entrar no estoque?', sel('entrada_teclado', 'Teclado devolvido:', ['teclado']))}
       `)}
     `,
     monitor: `
-      ${bloco('troca_monitor', 'O monitor foi substituído?', `
-        ${bloco('saida_monitor', 'Monitor novo saiu do estoque?', sel('saida_monitor', 'Monitor instalado:', ['monitor']))}
-        ${bloco('entrada_monitor', 'Monitor antigo retorna ao estoque?', sel('entrada_monitor', 'Monitor devolvido:', ['monitor']))}
+      ${bloco('troca_monitor', 'Um monitor novo foi instalado?', `
+        ${bloco('saida_monitor', 'Esse monitor saiu do estoque?', sel('saida_monitor', 'Monitor instalado:', ['monitor']))}
+        ${bloco('entrada_monitor', 'O monitor retirado vai entrar no estoque?', sel('entrada_monitor', 'Monitor devolvido:', ['monitor']))}
       `)}
-      ${bloco('troca_cabo', 'Foi trocado cabo/adaptador de vídeo?', `
-        ${bloco('saida_cabo', 'Cabo/adaptador saiu do estoque?', sel('saida_cabo', 'Item utilizado:', ['cabo','adaptador','hdmi','displayport']))}
+      ${bloco('troca_cabo', 'Um cabo ou adaptador de vídeo foi utilizado?', `
+        ${bloco('saida_cabo', 'Esse cabo/adaptador saiu do estoque?', sel('saida_cabo', 'Item utilizado:', ['cabo','adaptador','hdmi','displayport']))}
       `)}
     `,
     nobreak: `
-      ${bloco('troca_nobreak', 'O nobreak foi substituído?', `
-        ${bloco('saida_nobreak', 'Nobreak novo saiu do estoque?', sel('saida_nobreak', 'Nobreak instalado:', ['nobreak']))}
-        ${bloco('entrada_nobreak', 'Nobreak antigo retorna ao estoque?', sel('entrada_nobreak', 'Nobreak devolvido:', ['nobreak']))}
+      ${bloco('troca_nobreak', 'Um nobreak novo foi instalado?', `
+        ${bloco('saida_nobreak', 'Esse nobreak saiu do estoque?', sel('saida_nobreak', 'Nobreak instalado:', ['nobreak']))}
+        ${bloco('entrada_nobreak', 'O nobreak retirado vai entrar no estoque?', sel('entrada_nobreak', 'Nobreak devolvido:', ['nobreak']))}
       `)}
-      ${bloco('troca_bateria', 'Foi trocada a bateria?', `
-        ${bloco('saida_bateria', 'Bateria saiu do estoque?', sel('saida_bateria', 'Bateria utilizada:', ['bateria']))}
+      ${bloco('troca_bateria', 'Uma bateria foi utilizada?', `
+        ${bloco('saida_bateria', 'Essa bateria saiu do estoque?', sel('saida_bateria', 'Bateria utilizada:', ['bateria']))}
       `)}
     `,
     hardware: `
-      ${bloco('troca_comp', 'O computador foi substituído?', `
-        ${bloco('saida_componente', 'Computador novo saiu do estoque?', sel('saida_componente', 'Equipamento instalado:', ['dell','computador','desktop','notebook']))}
-        ${bloco('entrada_componente', 'Computador antigo retorna ao estoque?', sel('entrada_componente', 'Equipamento devolvido:', ['dell','computador','desktop','notebook']))}
+      ${bloco('troca_comp', 'Um computador/equipamento foi instalado ou trocado?', `
+        ${bloco('saida_componente', 'Esse item saiu do estoque?', sel('saida_componente', 'Item instalado:', ['dell','computador','desktop','notebook']))}
+        ${bloco('entrada_componente', 'O item retirado vai entrar no estoque?', sel('entrada_componente', 'Item devolvido:', ['dell','computador','desktop','notebook']))}
       `)}
-      ${bloco('troca_memoria', 'Foi adicionada ou trocada memória RAM?', sel('saida_memoria', 'Memória utilizada:', ['memória','memoria','ddr']))}
-      ${bloco('troca_processador', 'Foi trocado o processador?', sel('saida_processador', 'Processador utilizado:', ['processador','i3','i5','i7']))}
-      ${bloco('formatou', 'Foi necessário formatar ou reinstalar o SO?')}
+      ${bloco('troca_memoria', 'Uma memória RAM foi instalada?', sel('saida_memoria', 'Memória utilizada:', ['memória','memoria','ddr']))}
+      ${bloco('troca_processador', 'Um processador foi instalado?', sel('saida_processador', 'Processador utilizado:', ['processador','i3','i5','i7']))}
     `,
   };
 
