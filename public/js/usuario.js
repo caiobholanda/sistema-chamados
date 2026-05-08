@@ -282,7 +282,11 @@ function renderPainel(usuario) {
   document.getElementById('btn-novo-chamado').addEventListener('click', () => {
     const area = document.getElementById('area-form-chamado');
     if (area.style.display === 'none') {
-      renderFormChamado(usuario, area, () => { area.style.display = 'none'; carregarChamados(); });
+      renderFormChamado(
+        usuario, area,
+        () => { area.style.display = 'none'; carregarChamados(); },
+        () => { area.style.display = 'none'; }
+      );
       area.style.display = 'block';
     } else {
       area.style.display = 'none';
@@ -305,43 +309,51 @@ function renderPainel(usuario) {
 
   async function carregarChamados(silencioso = false) {
     const lista = document.getElementById('lista-usuario');
+    if (!lista) return;
     if (!silencioso) lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+    let novos;
     try {
       const r = await apiFetch('/api/usuarios/meus-chamados');
       if (r.status === 401) { _pararRefresh(); _limparChats(); renderAuth(); return; }
-      const novos = await r.json();
-
-      // Silencioso: só atualiza se os dados mudaram
-      if (silencioso) {
-        const novoHash = JSON.stringify(novos.map(c =>
-          [c.id, c.status, c.admin_nome, c.nota, c.prazo, c.solucao, c.prioridade, c.atualizado_em, c.assinado_em]
-        ));
-        if (novoHash === _chamadosHash) return;
-        _chamadosHash = novoHash;
-      } else {
-        _chamadosHash = null;
-      }
-
-      todosChamados = novos;
-
-      const qtd = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
-      todosChamados.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
-
-      const el = id => document.getElementById(id);
-      if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = qtd.aberto;
-      if (el('cnt-u-andamento')) el('cnt-u-andamento').textContent = qtd.em_andamento;
-      if (el('cnt-u-concluido')) el('cnt-u-concluido').textContent = qtd.concluido + qtd.encerrado;
-
-      const abertos = qtd.aberto + qtd.em_andamento;
-      const encerrados = qtd.concluido + qtd.encerrado;
-      el('badge-abertos-u').textContent = abertos || '';
-      el('badge-encerrados-u').textContent = encerrados || '';
-
-      renderListaChamados(todosChamados, abaAtiva);
+      if (!r.ok) throw new Error('network');
+      novos = await r.json();
+      if (!Array.isArray(novos)) throw new Error('invalid');
     } catch {
-      if (!silencioso)
-        lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar chamados.</div>';
+      if (!silencioso) {
+        if (todosChamados.length > 0) renderListaChamados(todosChamados, abaAtiva);
+        else lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar chamados.</div>';
+      }
+      return;
     }
+
+    // Silencioso: só atualiza se os dados mudaram
+    if (silencioso) {
+      const novoHash = JSON.stringify(novos.map(c =>
+        [c.id, c.status, c.admin_nome, c.nota, c.prazo, c.solucao, c.prioridade, c.atualizado_em, c.assinado_em]
+      ));
+      if (novoHash === _chamadosHash) return;
+      _chamadosHash = novoHash;
+    } else {
+      _chamadosHash = null;
+    }
+
+    todosChamados = novos;
+
+    const qtd = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
+    todosChamados.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
+
+    const el = id => document.getElementById(id);
+    if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = qtd.aberto;
+    if (el('cnt-u-andamento')) el('cnt-u-andamento').textContent = qtd.em_andamento;
+    if (el('cnt-u-concluido')) el('cnt-u-concluido').textContent = qtd.concluido + qtd.encerrado;
+
+    const abertos = qtd.aberto + qtd.em_andamento;
+    const encerrados = qtd.concluido + qtd.encerrado;
+    el('badge-abertos-u').textContent = abertos || '';
+    el('badge-encerrados-u').textContent = encerrados || '';
+
+    renderListaChamados(todosChamados, abaAtiva);
   }
 
   carregarChamados();
@@ -602,7 +614,7 @@ function renderCardChamado(c) {
   `;
 }
 
-function renderFormChamado(usuario, container, onSuccess) {
+function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) {
   container.innerHTML = `
     <div class="card" style="margin-top:1rem;border-top:2px solid var(--gold);border-left:none">
       <div class="card-header" style="border-bottom-color:rgba(197,165,90,.18)">
@@ -687,7 +699,7 @@ function renderFormChamado(usuario, container, onSuccess) {
     sel.value = usuario.setor;
   }
 
-  document.getElementById('btn-cancelar-chamado').addEventListener('click', onSuccess);
+  document.getElementById('btn-cancelar-chamado').addEventListener('click', onCancel);
 
   document.getElementById('form-chamado-usuario').addEventListener('submit', async (e) => {
     e.preventDefault();
