@@ -396,7 +396,7 @@ async function renderDetalhe(c) {
         for (const m of movs) {
           const r = await api(`/api/admin/estoque/itens/${m.itemId}/movimentacao`, {
             method: 'POST',
-            body: JSON.stringify({ tipo: m.tipo, cor: 'geral', quantidade: m.qtd, observacao: `Chamado #${c.id}`, chamado_id: m.chamadoId }),
+            body: JSON.stringify({ tipo: m.tipo, cor: 'geral', quantidade: m.qtd, observacao: `${c.nome} — Chamado #${c.id}`, chamado_id: m.chamadoId }),
           });
           if (!r.ok) {
             const d = await r.json();

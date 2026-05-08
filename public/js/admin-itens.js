@@ -265,6 +265,17 @@ function abrirChamado(id) {
   window.abrirChamadoModal(id);
 }
 
+function abrirChamadoDoHistorico(id) {
+  const histOverlay = document.getElementById('hist-mov-modal-overlay');
+  if (histOverlay) histOverlay.style.zIndex = '150';
+  window._cmApi = api;
+  window._cmOnClose = () => {
+    if (histOverlay) histOverlay.style.zIndex = '';
+    if (abaAtiva === 'compra') carregarItens();
+  };
+  window.abrirChamadoModal(id);
+}
+
 // ── Renderização — Inventário de Micros ───────────────────
 
 function renderMicros(lista) {
@@ -628,7 +639,6 @@ function renderTabelaPerifericos(lista) {
               <td style="color:var(--text-muted);font-size:.82rem">${esc(item.observacao) || '—'}</td>
               <td style="white-space:nowrap">
                 <button class="btn btn-secondary btn-sm" onclick="abrirModalPeriferico(${item.id})">Editar</button>
-                <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
                 <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
                 ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarPeriferico(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
               </td>
@@ -1353,9 +1363,10 @@ async function abrirHistoricoMovimentacoes(itemId, nomeItem) {
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(COR_LABELS[m.cor] || m.cor) || '—'}</td>
                 <td style="text-align:center;font-weight:600">${m.quantidade}</td>
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(m.admin_nome) || '—'}</td>
-                <td style="font-size:.78rem;color:var(--text-muted);max-width:160px">
+                <td style="font-size:.78rem;color:var(--text-muted);max-width:200px">
                   ${m.chamado_id
-                    ? `<button class="btn btn-ghost btn-sm" style="font-size:.72rem;padding:2px 7px;border:1px solid var(--border)" onclick="abrirChamado(${m.chamado_id})">📋 Chamado #${m.chamado_id}</button>`
+                    ? `<div style="margin-bottom:.3rem;font-size:.78rem;color:var(--text-secondary)">${esc(m.observacao) || ''}</div>
+                       <button class="btn btn-ghost btn-sm" style="font-size:.72rem;padding:2px 7px;border:1px solid var(--border)" onclick="abrirChamadoDoHistorico(${m.chamado_id})">📋 Ver chamado</button>`
                     : `<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(m.observacao)}">${esc(m.observacao) || '—'}</div>`
                   }
                 </td>

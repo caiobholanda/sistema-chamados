@@ -1187,7 +1187,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       const sel = document.getElementById('wiz-sel-' + key);
       const qtd = document.getElementById('wiz-qtd-' + key);
       if (!sel || !sel.value) return;
-      movs.push({ itemId: +sel.value, tipo, qtd: Math.max(1, +(qtd?.value || 1)), obs: `Chamado #${chamado.id}`, chamadoId: chamado.id });
+      movs.push({ itemId: +sel.value, tipo, qtd: Math.max(1, +(qtd?.value || 1)), obs: `${chamado.nome} — Chamado #${chamado.id}`, chamadoId: chamado.id });
     });
     return movs;
   }
