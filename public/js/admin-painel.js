@@ -352,7 +352,7 @@ async function carregarChamados(silencioso = false) {
       });
     });
   } catch (err) {
-    if (err.message !== '401')
+    if (err.message !== '401' && !silencioso)
       lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar chamados.</div>';
   }
 }

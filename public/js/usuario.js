@@ -339,7 +339,8 @@ function renderPainel(usuario) {
 
       renderListaChamados(todosChamados, abaAtiva);
     } catch {
-      lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar chamados.</div>';
+      if (!silencioso)
+        lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar chamados.</div>';
     }
   }
 
