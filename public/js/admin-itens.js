@@ -1,5 +1,5 @@
 let adminInfo = null;
-let abaAtiva = 'estoque';
+let abaAtiva = 'micros';
 let _itensCache = [];
 
 // ── Caches para as novas abas ─────────────────────────────
@@ -78,16 +78,17 @@ function mostrarToast(msg, tipo = 'ok') {
 
 function atualizarToolbar() {
   const btnNovo = document.getElementById('btn-novo-item');
-  if (abaAtiva === 'estoque-ti') {
-    btnNovo.style.display = 'none';
-  } else if (abaAtiva === 'micros') {
+  if (abaAtiva === 'micros') {
     btnNovo.style.display = '';
     btnNovo.textContent = '+ Novo Equipamento';
-  } else if (abaAtiva === 'compra') {
-    btnNovo.style.display = 'none';
-  } else {
+  } else if (abaAtiva === 'impressoras') {
     btnNovo.style.display = '';
-    btnNovo.textContent = '+ Novo Item';
+    btnNovo.textContent = '+ Nova Impressora';
+  } else if (abaAtiva === 'toner') {
+    btnNovo.style.display = '';
+    btnNovo.textContent = '+ Novo Item Toner';
+  } else {
+    btnNovo.style.display = 'none';
   }
 }
 
@@ -342,7 +343,7 @@ function renderTabelaMicros(lista) {
   `;
 }
 
-// ── Renderização — Estoque TI ─────────────────────────────
+// ── Renderização — Toner/Cartucho ────────────────────────
 
 function qtdCell(v) {
   if (v === 0) return `<span style="color:var(--danger);font-weight:600">0</span>`;
@@ -350,104 +351,98 @@ function qtdCell(v) {
   return '<span style="color:var(--text-muted)">—</span>';
 }
 
-function renderEstoqueTI(itens, impressoras) {
+function renderToner(itens) {
   const el = document.getElementById('itens-lista');
-  const totalBadge = itens.length + impressoras.length;
-  document.getElementById('badge-estoque-ti').textContent = totalBadge || '';
+  document.getElementById('badge-toner').textContent = itens.length || '';
 
   const isMaster = adminInfo && adminInfo.is_master;
   const urgentes = itens.filter(i => i.urgente).length;
 
   el.innerHTML = `
-    <!-- Sub-seção: Toner / Cartucho -->
-    <div style="margin-bottom:2rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
-        <div style="font-size:1rem;font-weight:600;color:var(--text-primary)">Toner / Cartucho</div>
-        <button class="btn btn-primary btn-sm" onclick="abrirNovoItemToner()">+ Novo Item Toner</button>
-      </div>
-      ${urgentes ? `<div class="itens-alerta-bar" style="margin-bottom:.75rem">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        ${urgentes} ${urgentes === 1 ? 'item marcado' : 'itens marcados'} como urgente
-      </div>` : ''}
-      ${itens.length ? `
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Tipo</th>
-                <th style="text-align:center">Preto</th>
-                <th style="text-align:center">Ciano</th>
-                <th style="text-align:center">Magenta</th>
-                <th style="text-align:center">Amarelo</th>
-                <th style="text-align:center">Geral</th>
-                <th style="text-align:center">Urgente</th>
-                <th></th>
+    ${urgentes ? `<div class="itens-alerta-bar" style="margin-bottom:.75rem">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      ${urgentes} ${urgentes === 1 ? 'item marcado' : 'itens marcados'} como urgente
+    </div>` : ''}
+    ${itens.length ? `
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Tipo</th>
+              <th style="text-align:center">Preto</th>
+              <th style="text-align:center">Ciano</th>
+              <th style="text-align:center">Magenta</th>
+              <th style="text-align:center">Amarelo</th>
+              <th style="text-align:center">Geral</th>
+              <th style="text-align:center">Urgente</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itens.map(item => `
+              <tr${item.urgente ? ' style="background:rgba(220,38,38,.04)"' : ''}>
+                <td style="font-weight:500">${esc(item.nome)}</td>
+                <td><span class="itens-cat-tag">${esc(TIPO_LABELS[item.tipo] || item.tipo)}</span></td>
+                <td style="text-align:center">${item.tipo === 'resma' || item.tipo === 'outro' ? '<span style="color:var(--text-muted)">—</span>' : qtdCell(item.qtd_preto)}</td>
+                <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_ciano) : '<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_magenta) : '<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_amarelo) : '<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="text-align:center">${(item.tipo === 'resma' || item.tipo === 'outro') ? qtdCell(item.qtd_geral) : '<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="text-align:center">${item.urgente ? '<span style="color:var(--danger);font-weight:700">SIM</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="white-space:nowrap">
+                  <button class="btn btn-secondary btn-sm" onclick="abrirMovimentacao(${item.id},'entrada')" title="Registrar entrada">Entrada</button>
+                  <button class="btn btn-ghost btn-sm" onclick="abrirMovimentacao(${item.id},'saida')" title="Registrar saída">Saída</button>
+                  <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
+                  <button class="btn btn-ghost btn-sm" onclick="abrirEditarItemToner(${item.id})">Editar</button>
+                  ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarToner(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              ${itens.map(item => `
-                <tr${item.urgente ? ' style="background:rgba(220,38,38,.04)"' : ''}>
-                  <td style="font-weight:500">${esc(item.nome)}</td>
-                  <td><span class="itens-cat-tag">${esc(TIPO_LABELS[item.tipo] || item.tipo)}</span></td>
-                  <td style="text-align:center">${item.tipo === 'resma' || item.tipo === 'outro' ? '<span style="color:var(--text-muted)">—</span>' : qtdCell(item.qtd_preto)}</td>
-                  <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_ciano) : '<span style="color:var(--text-muted)">—</span>'}</td>
-                  <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_magenta) : '<span style="color:var(--text-muted)">—</span>'}</td>
-                  <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_amarelo) : '<span style="color:var(--text-muted)">—</span>'}</td>
-                  <td style="text-align:center">${(item.tipo === 'resma' || item.tipo === 'outro') ? qtdCell(item.qtd_geral) : '<span style="color:var(--text-muted)">—</span>'}</td>
-                  <td style="text-align:center">${item.urgente ? '<span style="color:var(--danger);font-weight:700">SIM</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
-                  <td style="white-space:nowrap">
-                    <button class="btn btn-secondary btn-sm" onclick="abrirMovimentacao(${item.id},'entrada')" title="Registrar entrada">Entrada</button>
-                    <button class="btn btn-ghost btn-sm" onclick="abrirMovimentacao(${item.id},'saida')" title="Registrar saída">Saída</button>
-                    <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
-                    <button class="btn btn-ghost btn-sm" onclick="abrirEditarItemToner(${item.id})">Editar</button>
-                    ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarToner(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      ` : `<div class="empty-state" style="padding:1.5rem;text-align:center;color:var(--text-muted)">Nenhum item cadastrado.</div>`}
-    </div>
-
-    <!-- Sub-seção: Impressoras em Rede -->
-    <div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
-        <div style="font-size:1rem;font-weight:600;color:var(--text-primary)">Impressoras em Rede</div>
-        <button class="btn btn-primary btn-sm" onclick="abrirModalImpressora(null)">+ Nova Impressora</button>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
-      ${impressoras.length ? `
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>IP</th>
-                <th>SELB</th>
-                <th>Localização</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              ${impressoras.map(item => `
-                <tr>
-                  <td style="font-weight:500">${esc(item.nome)}</td>
-                  <td style="font-family:monospace;font-size:.82rem">${esc(item.ip) || '—'}</td>
-                  <td style="font-family:monospace;font-size:.82rem;color:var(--text-secondary)">${esc(item.selb) || '—'}</td>
-                  <td style="color:var(--text-secondary)">${esc(item.localizacao) || '—'}</td>
-                  <td style="white-space:nowrap">
-                    <button class="btn btn-secondary btn-sm" onclick="abrirModalImpressora(${item.id})">Editar</button>
-                    ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarImpressora(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      ` : `<div class="empty-state" style="padding:1.5rem;text-align:center;color:var(--text-muted)">Nenhuma impressora cadastrada.</div>`}
-    </div>
+    ` : `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum item cadastrado. Clique em "+ Novo Item Toner" para adicionar.</div>`}
   `;
+}
+
+// ── Renderização — Impressoras na Rede ────────────────────
+
+function renderImpressoras(impressoras) {
+  const el = document.getElementById('itens-lista');
+  document.getElementById('badge-impressoras').textContent = impressoras.length || '';
+
+  const isMaster = adminInfo && adminInfo.is_master;
+
+  el.innerHTML = impressoras.length ? `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>IP</th>
+            <th>SELB</th>
+            <th>Localização</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${impressoras.map(item => `
+            <tr>
+              <td style="font-weight:500">${esc(item.nome)}</td>
+              <td style="font-family:monospace;font-size:.82rem">${esc(item.ip) || '—'}</td>
+              <td style="font-family:monospace;font-size:.82rem;color:var(--text-secondary)">${esc(item.selb) || '—'}</td>
+              <td style="color:var(--text-secondary)">${esc(item.localizacao) || '—'}</td>
+              <td style="white-space:nowrap">
+                <button class="btn btn-secondary btn-sm" onclick="abrirModalImpressora(${item.id})">Editar</button>
+                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarImpressora(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  ` : `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhuma impressora cadastrada. Clique em "+ Nova Impressora" para adicionar.</div>`;
 }
 
 // ── Carregar conteúdo da aba ──────────────────────────────
@@ -464,19 +459,14 @@ async function carregarItens() {
       const r = await api('/api/admin/inventario');
       _microsCache = await r.json();
       renderMicros(_microsCache);
-    } else if (abaAtiva === 'estoque-ti') {
-      const [rItens, rImp] = await Promise.all([
-        api('/api/admin/estoque/itens'),
-        api('/api/admin/estoque/impressoras'),
-      ]);
-      _tonerCache = await rItens.json();
-      _impressorasCache = await rImp.json();
-      renderEstoqueTI(_tonerCache, _impressorasCache);
-    } else {
-      const r = await api(`/api/admin/itens?tipo=${abaAtiva}`);
-      _itensCache = await r.json();
-      if (abaAtiva === 'estoque') renderEstoque(_itensCache);
-      else renderInventario(_itensCache);
+    } else if (abaAtiva === 'toner') {
+      const r = await api('/api/admin/estoque/itens');
+      _tonerCache = await r.json();
+      renderToner(_tonerCache);
+    } else if (abaAtiva === 'impressoras') {
+      const r = await api('/api/admin/estoque/impressoras');
+      _impressorasCache = await r.json();
+      renderImpressoras(_impressorasCache);
     }
   } catch (e) {
     if (e.message !== '401') document.getElementById('itens-lista').innerHTML = '<div style="padding:2rem;color:var(--danger)">Erro ao carregar dados.</div>';
@@ -626,10 +616,11 @@ function renderFormModal(item = {}, isEdit = false) {
 function abrirModalNovo() {
   if (abaAtiva === 'micros') {
     abrirModalMicros(null);
-    return;
+  } else if (abaAtiva === 'impressoras') {
+    abrirModalImpressora(null);
+  } else if (abaAtiva === 'toner') {
+    abrirNovoItemToner();
   }
-  abrirModal();
-  renderFormModal({}, false);
 }
 
 async function abrirModalEditar(id) {
