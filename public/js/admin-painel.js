@@ -601,9 +601,6 @@ function renderModalBody(c) {
                 <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
                 ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
               </div>
-              <div style="font-size:.74rem;color:var(--text-muted);margin-top:.15rem;padding-left:.1rem">
-                Fins de semana, feriados nacionais, estaduais (CE) e municipais (Fortaleza) não são contados como dias úteis.
-              </div>
               <div class="mv2-action-btns">
                 ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">Assumir</button>` : ''}
                 ${isAberto     ? `<button class="btn btn-secondary btn-sm" id="btn-transferir" style="flex:1">Transferir</button>` : ''}
