@@ -366,13 +366,22 @@ function qtdCell(v) {
   return '<span style="color:var(--text-muted)">—</span>';
 }
 
+function autoUrgente(item) {
+  if (item.tipo === 'toner_mono')  return (item.qtd_preto   || 0) === 0;
+  if (item.tipo === 'toner_color') return (item.qtd_preto   || 0) === 0
+                                       && (item.qtd_ciano   || 0) === 0
+                                       && (item.qtd_magenta || 0) === 0
+                                       && (item.qtd_amarelo || 0) === 0;
+  return (item.qtd_geral || 0) === 0; // resma / outro
+}
+
 function renderToner(itens) {
   const el = document.getElementById('itens-lista');
   document.getElementById('badge-toner').textContent = itens.length || '';
   _tonerFiltered = itens;
 
   const isMaster = adminInfo && adminInfo.is_master;
-  const urgentes = itens.filter(i => i.urgente).length;
+  const urgentes = itens.filter(i => autoUrgente(i)).length;
 
   el.innerHTML = `
     <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
@@ -408,7 +417,7 @@ function filtrarToner() {
   const filtered = _tonerCache.filter(item => {
     const matchSearch  = !search  || (item.nome || '').toLowerCase().includes(search);
     const matchTipo    = !tipo    || item.tipo === tipo;
-    const matchUrgente = urgente === '' ? true : urgente === '1' ? !!item.urgente : !item.urgente;
+    const matchUrgente = urgente === '' ? true : urgente === '1' ? autoUrgente(item) : !autoUrgente(item);
     return matchSearch && matchTipo && matchUrgente;
   });
   document.getElementById('toner-count').textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`;
@@ -419,12 +428,12 @@ function renderTabelaToner(itens) {
   const el = document.getElementById('toner-tabela');
   if (!el) return;
   const isMaster = adminInfo && adminInfo.is_master;
-  const urgentes = itens.filter(i => i.urgente).length;
+  const urgentes = itens.filter(i => autoUrgente(i)).length;
 
   el.innerHTML = `
     ${urgentes ? `<div class="itens-alerta-bar" style="margin-bottom:.75rem">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      ${urgentes} ${urgentes === 1 ? 'item marcado' : 'itens marcados'} como urgente
+      ${urgentes} ${urgentes === 1 ? 'item sem estoque' : 'itens sem estoque'}
     </div>` : ''}
     ${itens.length ? `
       <div class="table-wrap">
@@ -444,7 +453,7 @@ function renderTabelaToner(itens) {
           </thead>
           <tbody>
             ${itens.map(item => `
-              <tr${item.urgente ? ' style="background:rgba(220,38,38,.04)"' : ''}>
+              <tr${autoUrgente(item) ? ' style="background:rgba(220,38,38,.04)"' : ''}>
                 <td style="font-weight:500">${esc(item.nome)}</td>
                 <td><span class="itens-cat-tag">${esc(TIPO_LABELS[item.tipo] || item.tipo)}</span></td>
                 <td style="text-align:center">${item.tipo === 'resma' || item.tipo === 'outro' ? '<span style="color:var(--text-muted)">—</span>' : qtdCell(item.qtd_preto)}</td>
@@ -452,7 +461,7 @@ function renderTabelaToner(itens) {
                 <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_magenta) : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_amarelo) : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="text-align:center">${(item.tipo === 'resma' || item.tipo === 'outro') ? qtdCell(item.qtd_geral) : '<span style="color:var(--text-muted)">—</span>'}</td>
-                <td style="text-align:center">${item.urgente ? '<span style="color:var(--danger);font-weight:700">SIM</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="text-align:center">${autoUrgente(item) ? '<span style="color:var(--danger);font-weight:700">SIM</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="white-space:nowrap">
                   <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Editar</button>
                   <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
