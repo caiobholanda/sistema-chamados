@@ -90,12 +90,20 @@ self.addEventListener('pushsubscriptionchange', event => {
         });
       }
 
+      // Detecta se este SW está rodando no contexto do app mobile (PWA instalado em /mobile)
+      // para preservar a flag is_mobile na re-inscrição automática
+      let isMobile = false;
+      try {
+        const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        isMobile = clientList.some(c => c.url.includes('/mobile'));
+      } catch {}
+
       // Salva nova subscription no servidor
       await fetch('/api/admin/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify(newSub.toJSON()),
+        body: JSON.stringify({ ...newSub.toJSON(), is_mobile: isMobile }),
       });
     } catch (err) {
       console.error('[SW] pushsubscriptionchange falhou:', err);

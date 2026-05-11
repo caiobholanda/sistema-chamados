@@ -54,16 +54,27 @@ async function _enviar(sub, payload) {
   try {
     await webpush.sendNotification(
       { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      JSON.stringify(payload)
+      JSON.stringify(payload),
+      {
+        TTL: 3600,         // 1 hora — Apple guarda a notificação se iPhone offline
+        urgency: 'high',   // bypassa throttling agressivo do iOS p/ PWAs
+      }
     );
+    if (sub.is_mobile) console.log('[Push] Enviado para mobile (admin', sub.admin_id + ')');
   } catch (err) {
-    // 404/410 = subscription expirou ou não existe mais
-    // 401/403 = VAPID key não bate com a key usada na subscription (keys mudaram)
-    if ([401, 403, 404, 410].includes(err.statusCode)) {
+    const status = err.statusCode || '?';
+    // 410 = Gone (subscription definitivamente removida pelo browser)
+    // 404 = Not Found
+    // 401/403 = VAPID key inválida
+    if ([404, 410].includes(err.statusCode)) {
+      // Só remove em 404/410 — erros definitivos do endpoint
       db.getDb().prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(sub.endpoint);
-      console.log('[Push] Subscription removida (status ' + err.statusCode + '):', sub.endpoint?.slice(0, 60) + '...');
+      console.log('[Push] Subscription removida (status ' + status + ', mobile=' + (sub.is_mobile||0) + '):', sub.endpoint?.slice(0, 60) + '...');
+    } else if ([401, 403].includes(err.statusCode)) {
+      // Auth error — VAPID inconsistente. Não deleta, apenas avisa.
+      console.error('[Push] Auth falhou (status ' + status + ') — possível VAPID mismatch:', err.message || err);
     } else {
-      console.warn('[Push] Falha ao enviar (status ' + (err.statusCode || '?') + '):', err.message || err);
+      console.warn('[Push] Falha ao enviar (status ' + status + ', mobile=' + (sub.is_mobile||0) + '):', err.message || err);
     }
   }
 }
