@@ -1048,11 +1048,16 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Quando o admin volta para a aba, re-verifica a subscription (throttle interno em _subscribePush)
+// Re-valida subscription a cada foco/visibilidade/reconexão
+// (Chrome Memory Saver pode suspender a aba e invalidar push em background)
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && Notification.permission === 'granted') {
-    _subscribePush();
-  }
+  if (!document.hidden && Notification.permission === 'granted') _subscribePush();
+});
+window.addEventListener('focus', () => {
+  if (Notification.permission === 'granted') _subscribePush();
+});
+window.addEventListener('online', () => {
+  if (Notification.permission === 'granted') _subscribePush();
 });
 
 // ── Wizard de Estoque na Conclusão ─────────────────────────────────────────

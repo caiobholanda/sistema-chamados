@@ -169,8 +169,16 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Re-valida subscription quando o admin foca/volta para o app
+// (cobre cenário de Chrome Memory Saver suspender a aba e voltar)
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && Notification.permission === 'granted') _subscribePush();
+});
+window.addEventListener('focus', () => {
+  if (Notification.permission === 'granted') _subscribePush();
+});
+window.addEventListener('online', () => {
+  if (Notification.permission === 'granted') _subscribePush();
 });
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };

@@ -61,50 +61,48 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
-// Quando o browser rotaciona a subscription automaticamente, atualiza o servidor
+// Quando o browser rotaciona/invalida a subscription, re-inscreve e avisa o backend
+// removendo o endpoint antigo (causa #1 de "notificações pararam do nada")
 self.addEventListener('pushsubscriptionchange', event => {
   event.waitUntil((async () => {
     try {
-      // Tenta reusar a mesma chave da subscription antiga
-      const oldKey = event.oldSubscription
-        ? event.oldSubscription.options.applicationServerKey
-        : null;
+      const oldEndpoint = event.oldSubscription ? event.oldSubscription.endpoint : null;
 
-      let newSub;
-      if (oldKey) {
-        newSub = await self.registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: oldKey,
-        });
-      } else {
-        // Busca a chave atual do servidor
-        const r = await fetch('/api/admin/push/vapid-public-key', { credentials: 'same-origin' });
-        if (!r.ok) return;
-        const { publicKey } = await r.json();
-        const padding = '='.repeat((4 - publicKey.length % 4) % 4);
-        const raw = atob((publicKey + padding).replace(/-/g, '+').replace(/_/g, '/'));
-        const appKey = Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
-        newSub = await self.registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: appKey,
-        });
+      // Sempre busca a chave VAPID atual do servidor (mais robusto que reutilizar a antiga)
+      const r = await fetch('/api/admin/push/vapid-public-key', { credentials: 'same-origin' });
+      if (!r.ok) {
+        console.error('[SW] pushsubscriptionchange: falha ao buscar VAPID', r.status);
+        return;
       }
+      const { publicKey } = await r.json();
+      const padding = '='.repeat((4 - publicKey.length % 4) % 4);
+      const raw = atob((publicKey + padding).replace(/-/g, '+').replace(/_/g, '/'));
+      const appKey = Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 
-      // Detecta se este SW está rodando no contexto do app mobile (PWA instalado em /mobile)
-      // para preservar a flag is_mobile na re-inscrição automática
+      const newSub = await self.registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appKey,
+      });
+
+      // Detecta contexto mobile (PWA instalado em /mobile)
       let isMobile = false;
       try {
         const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
         isMobile = clientList.some(c => c.url.includes('/mobile'));
       } catch {}
 
-      // Salva nova subscription no servidor
-      await fetch('/api/admin/push/subscribe', {
+      // Envia oldEndpoint + nova subscription para o backend limpar o registro velho
+      await fetch('/api/admin/push/resubscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ ...newSub.toJSON(), is_mobile: isMobile }),
+        body: JSON.stringify({
+          oldEndpoint,
+          newSubscription: newSub.toJSON(),
+          is_mobile: isMobile,
+        }),
       });
+      console.log('[SW] pushsubscriptionchange: re-inscrito com sucesso');
     } catch (err) {
       console.error('[SW] pushsubscriptionchange falhou:', err);
     }

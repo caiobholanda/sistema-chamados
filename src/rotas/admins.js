@@ -335,6 +335,55 @@ router.post('/push/subscribe', requireAdmin, (req, res) => {
   }
 });
 
+// Re-inscrição automática quando o browser rotaciona/invalida a subscription
+// (Service Worker chama isto no evento pushsubscriptionchange)
+router.post('/push/resubscribe', requireAdmin, (req, res) => {
+  try {
+    const { oldEndpoint, newSubscription, is_mobile } = req.body;
+    if (!newSubscription || !newSubscription.endpoint || !newSubscription.keys) {
+      return res.status(400).json({ erro: 'Nova subscription inválida' });
+    }
+    // Remove a subscription antiga (se diferente da nova)
+    if (oldEndpoint && oldEndpoint !== newSubscription.endpoint) {
+      db.getDb().prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(oldEndpoint);
+      console.log('[Push] Re-inscrição: endpoint antigo removido', oldEndpoint.slice(0, 60) + '...');
+    }
+    db.salvarPushSubscription(req.admin.sub, {
+      endpoint: newSubscription.endpoint,
+      p256dh: newSubscription.keys.p256dh,
+      auth: newSubscription.keys.auth,
+      is_mobile: !!is_mobile,
+    });
+    console.log('[Push] Re-inscrição registrada (admin', req.admin.sub, ', mobile=' + (is_mobile?1:0) + ')');
+    return res.json({ mensagem: 'Re-inscrito' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+// Endpoint de diagnóstico — retorna todas as subscriptions do admin logado
+router.get('/push/debug', requireAdmin, (req, res) => {
+  try {
+    const subs = db.getDb()
+      .prepare('SELECT id, endpoint, is_mobile, criado_em FROM push_subscriptions WHERE admin_id = ? ORDER BY criado_em DESC')
+      .all(req.admin.sub);
+    return res.json({
+      admin_id: req.admin.sub,
+      total_subscriptions: subs.length,
+      subscriptions: subs.map(s => ({
+        id: s.id,
+        endpoint_preview: s.endpoint ? s.endpoint.slice(0, 80) + '...' : null,
+        is_mobile: !!s.is_mobile,
+        criado_em: s.criado_em,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.post('/push/unsubscribe', requireAdmin, (req, res) => {
   try {
     const { endpoint } = req.body;
