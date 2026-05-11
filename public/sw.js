@@ -35,11 +35,27 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || '/admin-painel.html';
+  const isMobileUrl = url.includes('/mobile');
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (list) => {
+      // 1ª tentativa: focar uma janela que combine com o destino (mobile↔mobile, admin↔admin)
       for (const c of list) {
-        if (c.url.includes('/admin') && 'focus' in c) return c.focus();
+        const cIsMobile = c.url.includes('/mobile');
+        if (cIsMobile === isMobileUrl && 'focus' in c) {
+          if ('navigate' in c && !c.url.endsWith(url)) {
+            try { await c.navigate(url); } catch {}
+          }
+          return c.focus();
+        }
       }
+      // 2ª tentativa: qualquer janela do app (navega para o destino certo)
+      for (const c of list) {
+        if ('focus' in c) {
+          if ('navigate' in c) { try { await c.navigate(url); } catch {} }
+          return c.focus();
+        }
+      }
+      // 3ª tentativa: abrir nova janela
       return clients.openWindow(url);
     })
   );

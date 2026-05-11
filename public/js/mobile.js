@@ -26,14 +26,14 @@ async function iniciarPush() {
   }
 }
 
-async function _subscribePush() {
-  if (!_swReg) return;
+async function _subscribePush(force = false) {
+  if (!_swReg) return false;
   const now = Date.now();
-  if (now - _lastSubscribeTs < 30000) return;
+  if (!force && now - _lastSubscribeTs < 30000) return false;
   _lastSubscribeTs = now;
   try {
     const r = await fetch('/api/admin/push/vapid-public-key');
-    if (!r.ok) return;
+    if (!r.ok) return false;
     const { publicKey } = await r.json();
     const appKey = urlBase64ToUint8Array(publicKey);
     let sub = await _swReg.pushManager.getSubscription();
@@ -41,17 +41,19 @@ async function _subscribePush() {
       try {
         const subKey = new Uint8Array(sub.options.applicationServerKey);
         const keysMismatch = appKey.some((b, i) => b !== subKey[i]);
-        if (keysMismatch) { await sub.unsubscribe(); sub = null; }
+        if (keysMismatch || force) { await sub.unsubscribe(); sub = null; }
       } catch { await sub.unsubscribe(); sub = null; }
     }
     if (!sub) sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
-    await fetch('/api/admin/push/subscribe', {
+    const saveResp = await fetch('/api/admin/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...sub.toJSON(), is_mobile: true }),
     });
+    return saveResp.ok;
   } catch (err) {
     console.warn('[Push] _subscribePush falhou:', err.message || err);
+    return false;
   }
 }
 
@@ -80,8 +82,24 @@ function atualizarBotaoPush() {
   // Browser sem suporte a push: não mostra nada
   if (!('PushManager' in window)) { banner.innerHTML = ''; return; }
 
-  // Notificações já ativas: não mostra o banner
-  if (Notification.permission === 'granted') { banner.innerHTML = ''; return; }
+  // Notificações já ativas: mostra opção de revalidar (caso subscription tenha expirado)
+  if (Notification.permission === 'granted') {
+    banner.innerHTML = `
+      <div id="mob-btn-push" style="margin:.6rem .9rem 0;background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:.55rem .8rem;display:flex;align-items:center;gap:.6rem;cursor:pointer">
+        <span style="font-size:1.1rem;flex-shrink:0">🔔</span>
+        <div style="flex:1;min-width:0">
+          <div style="color:#16a34a;font-size:.78rem;font-weight:600">Notificações ativas</div>
+          <div style="color:var(--text-muted);font-size:.7rem">Toque para revalidar inscrição</div>
+        </div>
+        <span style="color:var(--text-muted);font-size:.85rem">↻</span>
+      </div>`;
+    document.getElementById('mob-btn-push').addEventListener('click', async () => {
+      const ok = await _subscribePush(true);
+      if (ok) mostrarToastMob('✅ Inscrição revalidada', 'Subscription atualizada no servidor.');
+      else mostrarToastMob('⚠ Falha ao revalidar', 'Tente novamente ou desinstale e reinstale o app.');
+    });
+    return;
+  }
 
   // Suporta push mas ainda não ativou
   banner.innerHTML = `
@@ -97,7 +115,7 @@ function atualizarBotaoPush() {
     const perm = await Notification.requestPermission();
     atualizarBotaoPush();
     if (perm === 'granted') {
-      await _subscribePush();
+      await _subscribePush(true);
       mostrarToastMob('✅ Notificações ativadas!', 'Você receberá alertas de novos chamados e prazos.');
     }
   });
