@@ -2884,3 +2884,38 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   margin-top: .35rem;
 }
 
+
+/* Botões de ação compactos (toolbar de ícones em tabelas) */
+.acao-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: .45rem .6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: background .15s, color .15s;
+  flex-shrink: 0;
+}
+.acao-btn:hover {
+  background: var(--gold-pale);
+  color: var(--gold-dark);
+}
+.acao-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+.acao-btn-danger:hover {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+.acao-btn-success:hover {
+  background: var(--success-light);
+  color: var(--success);
+}
+.acao-sep {
+  width: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+}

@@ -354,11 +354,18 @@ function renderAdmins() {
                 ${senhaCell(a.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
-                  <div style="display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center">
-                    <button class="btn btn-secondary btn-sm" onclick="abrirModalAdmin(${a.id})">Editar</button>
+                  <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
+                    <button class="acao-btn" title="Editar administrador" onclick="abrirModalAdmin(${a.id})">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
                     ${a.id !== meAdmin.id ? `
-                      <button class="btn btn-secondary btn-sm" onclick="toggleAdmin(${a.id}, ${a.ativo})">${a.ativo ? 'Desativar' : 'Reativar'}</button>
-                    ` : '<span class="text-muted" style="font-size:.75rem;padding:.3rem .5rem">você</span>'}
+                      <span class="acao-sep"></span>
+                      <button class="acao-btn ${a.ativo ? 'acao-btn-danger' : 'acao-btn-success'}" title="${a.ativo ? 'Desativar administrador' : 'Reativar administrador'}" onclick="toggleAdmin(${a.id}, ${a.ativo})">
+                        ${a.ativo
+                          ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>'
+                          : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>'}
+                      </button>
+                    ` : '<span class="text-muted" style="font-size:.72rem;padding:.4rem .65rem;display:flex;align-items:center;font-style:italic">você</span>'}
                   </div>
                 </td>
               </tr>
@@ -541,10 +548,20 @@ function renderUsuarios() {
                 ${senhaCell(u.senha_plain)}
                 <td style="font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td>
-                  <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-                    <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoChamadosUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Histórico</button>
-                    <button class="btn btn-secondary btn-sm" onclick="abrirModalEditarUsuario(${u.id})">Editar</button>
-                    <button class="btn btn-secondary btn-sm" onclick="toggleUsuario(${u.id}, ${u.ativo !== 0})">${u.ativo !== 0 ? 'Desativar' : 'Reativar'}</button>
+                  <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
+                    <button class="acao-btn" title="Ver histórico de chamados" onclick="abrirHistoricoChamadosUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </button>
+                    <span class="acao-sep"></span>
+                    <button class="acao-btn" title="Editar usuário" onclick="abrirModalEditarUsuario(${u.id})">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <span class="acao-sep"></span>
+                    <button class="acao-btn ${u.ativo !== 0 ? 'acao-btn-danger' : 'acao-btn-success'}" title="${u.ativo !== 0 ? 'Desativar usuário' : 'Reativar usuário'}" onclick="toggleUsuario(${u.id}, ${u.ativo !== 0})">
+                      ${u.ativo !== 0
+                        ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>'
+                        : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>'}
+                    </button>
                   </div>
                 </td>
               </tr>
