@@ -1,6 +1,97 @@
 const app = document.getElementById('mob-app');
 let adminInfo = null;
 
+// ── Push Notifications ────────────────────────────────────────
+let _swReg = null;
+let _lastSubscribeTs = 0;
+
+function urlBase64ToUint8Array(b64) {
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + padding).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function iniciarPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    await navigator.serviceWorker.register('/sw.js');
+    _swReg = await navigator.serviceWorker.ready;
+    if (Notification.permission === 'granted') await _subscribePush();
+    atualizarBotaoPush();
+    setInterval(() => {
+      if (Notification.permission === 'granted') _subscribePush();
+    }, 30 * 60 * 1000);
+  } catch (err) {
+    console.warn('[Push] SW registro falhou:', err);
+  }
+}
+
+async function _subscribePush() {
+  if (!_swReg) return;
+  const now = Date.now();
+  if (now - _lastSubscribeTs < 30000) return;
+  _lastSubscribeTs = now;
+  try {
+    const r = await fetch('/api/admin/push/vapid-public-key');
+    if (!r.ok) return;
+    const { publicKey } = await r.json();
+    const appKey = urlBase64ToUint8Array(publicKey);
+    let sub = await _swReg.pushManager.getSubscription();
+    if (sub) {
+      try {
+        const subKey = new Uint8Array(sub.options.applicationServerKey);
+        const keysMismatch = appKey.some((b, i) => b !== subKey[i]);
+        if (keysMismatch) { await sub.unsubscribe(); sub = null; }
+      } catch { await sub.unsubscribe(); sub = null; }
+    }
+    if (!sub) sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
+    await fetch('/api/admin/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON()),
+    });
+  } catch (err) {
+    console.warn('[Push] _subscribePush falhou:', err.message || err);
+  }
+}
+
+function atualizarBotaoPush() {
+  const btn = document.getElementById('mob-btn-push');
+  if (!btn) return;
+  if (!('PushManager' in window)) { btn.style.display = 'none'; return; }
+  const ativo = Notification.permission === 'granted';
+  btn.title = ativo ? 'Notificações ativas' : 'Ativar notificações push';
+  btn.style.opacity = ativo ? '1' : '0.45';
+  btn.style.filter = ativo ? 'none' : 'grayscale(1)';
+}
+
+function mostrarToastMob(titulo, corpo) {
+  let container = document.getElementById('mob-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'mob-toast-container';
+    container.style.cssText = 'position:fixed;top:1rem;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:.5rem;width:calc(100% - 2rem);max-width:400px;pointer-events:none';
+    document.body.appendChild(container);
+  }
+  const el = document.createElement('div');
+  el.style.cssText = 'background:var(--navy,#1a2340);color:#fff;padding:.8rem 1rem;border-radius:10px;font-size:.85rem;box-shadow:0 4px 16px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:.15rem;pointer-events:auto';
+  el.innerHTML = `<strong style="font-size:.9rem">${titulo}</strong><span style="opacity:.85;line-height:1.4">${corpo}</span>`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 5500);
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'notif') {
+      mostrarToastMob(event.data.title || 'Chamados TI', event.data.body || '');
+    }
+  });
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && Notification.permission === 'granted') _subscribePush();
+});
+
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
@@ -21,7 +112,7 @@ async function api(url, opts = {}) {
 (async () => {
   try {
     const r = await fetch('/api/admin/me');
-    if (r.ok) { adminInfo = await r.json(); renderLista(); }
+    if (r.ok) { adminInfo = await r.json(); renderLista(); iniciarPush(); }
     else renderLogin();
   } catch { renderLogin(); }
 })();
@@ -70,6 +161,7 @@ function renderLogin() {
       if (!r.ok) { msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`; return; }
       adminInfo = await (await fetch('/api/admin/me')).json();
       renderLista();
+      iniciarPush();
     } catch { msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Entrar'; }
   });
@@ -85,7 +177,10 @@ async function renderLista() {
         <div class="mob-header-title">Chamados em aberto</div>
         ${adminInfo ? `<div class="mob-header-sub">${adminInfo.nome_completo}</div>` : ''}
       </div>
-      <button class="mob-sair-btn" id="mob-sair">Sair</button>
+      <div style="display:flex;align-items:center;gap:.4rem">
+        <button id="mob-btn-push" title="Ativar notificações" style="background:none;border:none;font-size:1.4rem;cursor:pointer;padding:.2rem .3rem;line-height:1;opacity:.45;filter:grayscale(1)">🔔</button>
+        <button class="mob-sair-btn" id="mob-sair">Sair</button>
+      </div>
     </div>
     <div class="mob-filtro-bar">
       <button class="mob-filtro-btn ${filtroAtivo === 'meus' ? 'ativo' : ''}" data-filtro="meus">Meus chamados</button>
@@ -98,6 +193,24 @@ async function renderLista() {
     await fetch('/api/admin/logout', { method: 'POST' });
     renderLogin();
   });
+
+  document.getElementById('mob-btn-push').addEventListener('click', async () => {
+    if (!('PushManager' in window)) {
+      alert('Seu dispositivo não suporta notificações push.');
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      alert('Notificações já estão ativas para este dispositivo.');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    atualizarBotaoPush();
+    if (perm === 'granted') {
+      await _subscribePush();
+      mostrarToastMob('✅ Notificações ativadas', 'Você receberá alertas de novos chamados e prazos.');
+    }
+  });
+  atualizarBotaoPush();
 
   document.querySelectorAll('.mob-filtro-btn').forEach(btn => {
     btn.addEventListener('click', () => {
