@@ -536,18 +536,24 @@ function renderUsuarios() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Nome</th><th>E-mail</th><th>Setor</th><th style="text-align:center">Ramal</th>${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th>Cadastrado em</th><th>Ações</th>
+            <th style="text-align:center">Nome</th>
+            <th style="text-align:center">E-mail</th>
+            <th style="text-align:center">Setor</th>
+            <th style="text-align:center">Ramal</th>
+            ${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}
+            <th style="text-align:center">Cadastrado em</th>
+            <th style="text-align:center">Ações</th>
           </tr></thead>
           <tbody>
             ${filtrados.map(u => `
               <tr>
-                <td>${u.nome}</td>
-                <td style="font-size:.82rem">${u.email}</td>
-                <td style="font-size:.82rem">${u.setor || '<span class="text-muted">—</span>'}</td>
+                <td style="text-align:center">${u.nome}</td>
+                <td style="text-align:center;font-size:.82rem">${u.email}</td>
+                <td style="text-align:center;font-size:.82rem">${u.setor || '<span class="text-muted">—</span>'}</td>
                 <td style="text-align:center;font-size:.82rem;font-family:monospace">${u.ramal || '<span class="text-muted">—</span>'}</td>
                 ${senhaCell(u.senha_plain)}
-                <td style="font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
-                <td>
+                <td style="text-align:center;font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
+                <td style="text-align:center">
                   <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
                     <button class="acao-btn" title="Ver histórico de chamados" onclick="abrirHistoricoChamadosUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
