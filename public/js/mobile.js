@@ -59,24 +59,48 @@ const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const _isStandalone = window.navigator.standalone === true;
 
 function atualizarBotaoPush() {
-  const btn = document.getElementById('mob-btn-push');
-  if (!btn) return;
+  const banner = document.getElementById('mob-notif-banner');
+  if (!banner) return;
 
-  // iOS Safari (não instalado): mostra botão especial com instrução de instalação
+  // iOS Safari em modo navegador (não PWA instalado)
   if (_isIOS && !_isStandalone) {
-    btn.title = 'Como ativar notificações';
-    btn.style.opacity = '0.5';
-    btn.style.filter = 'grayscale(1)';
+    banner.innerHTML = `
+      <div id="mob-btn-push" style="margin:.6rem .9rem 0;background:#1a2340;border-radius:10px;padding:.7rem .9rem;display:flex;align-items:center;gap:.7rem;cursor:pointer">
+        <span style="font-size:1.3rem;flex-shrink:0">🔔</span>
+        <div style="flex:1;min-width:0">
+          <div style="color:#fff;font-size:.82rem;font-weight:600">Ativar notificações</div>
+          <div style="color:rgba(255,255,255,.55);font-size:.72rem">Toque para ver como instalar o app</div>
+        </div>
+        <span style="color:rgba(255,255,255,.4);font-size:.9rem">›</span>
+      </div>`;
+    document.getElementById('mob-btn-push').addEventListener('click', mostrarBannerIOS);
     return;
   }
 
-  // Browser sem suporte a push (não iOS): esconde
-  if (!('PushManager' in window)) { btn.style.display = 'none'; return; }
+  // Browser sem suporte a push: não mostra nada
+  if (!('PushManager' in window)) { banner.innerHTML = ''; return; }
 
-  const ativo = Notification.permission === 'granted';
-  btn.title = ativo ? 'Notificações ativas' : 'Ativar notificações push';
-  btn.style.opacity = ativo ? '1' : '0.45';
-  btn.style.filter = ativo ? 'none' : 'grayscale(1)';
+  // Notificações já ativas: não mostra o banner
+  if (Notification.permission === 'granted') { banner.innerHTML = ''; return; }
+
+  // Suporta push mas ainda não ativou
+  banner.innerHTML = `
+    <div id="mob-btn-push" style="margin:.6rem .9rem 0;background:#1a2340;border-radius:10px;padding:.7rem .9rem;display:flex;align-items:center;gap:.7rem;cursor:pointer">
+      <span style="font-size:1.3rem;flex-shrink:0">🔔</span>
+      <div style="flex:1;min-width:0">
+        <div style="color:#fff;font-size:.82rem;font-weight:600">Ativar notificações</div>
+        <div style="color:rgba(255,255,255,.55);font-size:.72rem">Receba alertas de chamados e prazos</div>
+      </div>
+      <span style="color:rgba(255,255,255,.4);font-size:.9rem">›</span>
+    </div>`;
+  document.getElementById('mob-btn-push').addEventListener('click', async () => {
+    const perm = await Notification.requestPermission();
+    atualizarBotaoPush();
+    if (perm === 'granted') {
+      await _subscribePush();
+      mostrarToastMob('✅ Notificações ativadas!', 'Você receberá alertas de novos chamados e prazos.');
+    }
+  });
 }
 
 function mostrarToastMob(titulo, corpo) {
@@ -230,15 +254,13 @@ async function renderLista() {
         <div class="mob-header-title">Chamados em aberto</div>
         ${adminInfo ? `<div class="mob-header-sub">${adminInfo.nome_completo}</div>` : ''}
       </div>
-      <div style="display:flex;align-items:center;gap:.4rem">
-        <button id="mob-btn-push" title="Ativar notificações" style="background:none;border:none;font-size:1.4rem;cursor:pointer;padding:.2rem .3rem;line-height:1;opacity:.45;filter:grayscale(1)">🔔</button>
-        <button class="mob-sair-btn" id="mob-sair">Sair</button>
-      </div>
+      <button class="mob-sair-btn" id="mob-sair">Sair</button>
     </div>
     <div class="mob-filtro-bar">
       <button class="mob-filtro-btn ${filtroAtivo === 'meus' ? 'ativo' : ''}" data-filtro="meus">Meus chamados</button>
       <button class="mob-filtro-btn ${filtroAtivo === 'todos' ? 'ativo' : ''}" data-filtro="todos">Todos</button>
     </div>
+    <div id="mob-notif-banner"></div>
     <div id="mob-lista" class="mob-lista"><div class="mob-loading">Carregando…</div></div>
   `;
 
@@ -247,27 +269,6 @@ async function renderLista() {
     renderLogin();
   });
 
-  document.getElementById('mob-btn-push').addEventListener('click', async () => {
-    // iOS Safari sem PWA instalado: mostra instrução de como instalar
-    if (_isIOS && !_isStandalone) {
-      mostrarBannerIOS();
-      return;
-    }
-    if (!('PushManager' in window)) {
-      alert('Seu navegador não suporta notificações push.');
-      return;
-    }
-    if (Notification.permission === 'granted') {
-      mostrarToastMob('🔔 Notificações ativas', 'Este dispositivo já está registrado para receber alertas.');
-      return;
-    }
-    const perm = await Notification.requestPermission();
-    atualizarBotaoPush();
-    if (perm === 'granted') {
-      await _subscribePush();
-      mostrarToastMob('✅ Notificações ativadas!', 'Você receberá alertas de novos chamados e prazos.');
-    }
-  });
   atualizarBotaoPush();
 
   document.querySelectorAll('.mob-filtro-btn').forEach(btn => {
