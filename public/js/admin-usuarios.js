@@ -235,7 +235,7 @@ document.getElementById('btn-novo-admin').addEventListener('click', () => {
 });
 document.getElementById('btn-fechar-admin').addEventListener('click', fecharModalAdmin);
 document.getElementById('btn-cancelar-admin').addEventListener('click', fecharModalAdmin);
-document.getElementById('modal-admin-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalAdmin(); });
+// Modal NÃO fecha ao clicar fora — só pelo X ou Cancelar (evita perda de dados ao arrastar mouse)
 
 document.getElementById('form-admin').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -453,7 +453,7 @@ async function toggleAdmin(id, ativo) {
 document.getElementById('btn-novo-usuario').addEventListener('click', () => abrirModalUsuario());
 document.getElementById('btn-fechar-usuario').addEventListener('click', fecharModalUsuario);
 document.getElementById('btn-cancelar-usuario').addEventListener('click', fecharModalUsuario);
-document.getElementById('modal-usuario-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalUsuario(); });
+// Modal NÃO fecha ao clicar fora — só pelo X ou Cancelar (evita perda de dados ao arrastar mouse)
 
 document.getElementById('form-usuario').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -560,7 +560,7 @@ let editandoUsuarioId = null;
 
 document.getElementById('btn-fechar-editar-usuario').addEventListener('click', fecharModalEditarUsuario);
 document.getElementById('btn-cancelar-editar-usuario').addEventListener('click', fecharModalEditarUsuario);
-document.getElementById('modal-editar-usuario-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalEditarUsuario(); });
+// Modal NÃO fecha ao clicar fora — só pelo X ou Cancelar (evita perda de dados ao arrastar mouse)
 document.getElementById('feu-email').addEventListener('input', () => atualizarEmailDica('feu-email', 'dica-email-editar-usuario'));
 document.getElementById('feu-senha').addEventListener('input', () => atualizarForca('feu-senha', 'forca-editar-usuario', 'barra-editar-usuario', 'reqs-editar-usuario'));
 
