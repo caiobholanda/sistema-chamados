@@ -14,6 +14,8 @@ async function _atualizarChatAdmin(chamadoId) {
   try {
     const r = await api('/api/admin/chamados/' + chamadoId + '/mensagens?_t=' + Date.now());
     if (!r.ok) return;
+    // Race-condition guard: se o modal já mudou para outro chamado enquanto o fetch estava em andamento, ignora a resposta
+    if (!chamadoAtual || Number(chamadoAtual.id) !== Number(chamadoId)) return;
     const msgs = await r.json();
     box.dataset.cnt = msgs.length;
     if (!msgs.length) {
@@ -422,9 +424,14 @@ function renderChamadoItem(c) {
 
 
 async function abrirModal(id) {
+  // Limpa interval de chat de qualquer modal anterior antes de abrir outro
+  if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
   chamadoAtual = null;
   document.getElementById('modal-title').textContent = 'Chamado';
   document.getElementById('modal-body').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  // Esvazia o chat-box antes de carregar o novo chamado, evitando flash de mensagens antigas
+  const oldChatBox = document.getElementById('chat-modal-msgs');
+  if (oldChatBox) oldChatBox.innerHTML = '';
   document.getElementById('modal-overlay').classList.add('open');
   document.getElementById('btn-fechar-modal').focus();
 
@@ -824,6 +831,8 @@ function setupModalEventos(c) {
 
   const chatForm = document.getElementById('chat-modal-form');
   if (chatForm) {
+    // Garante que nenhum interval órfão de chamado anterior continue rodando
+    if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
     _atualizarChatAdmin(c.id);
     _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 3000);
 
