@@ -733,36 +733,47 @@ function escHist(s) {
 
 async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
   // Remove modal anterior se existir
-  const existing = document.getElementById('hist-overlay');
+  const existing = document.getElementById('huc-overlay');
   if (existing) existing.remove();
 
-  // Cria overlay com loader
+  // Cria overlay (centrado, largo — não usa o .hist-modal porque aquele é side panel)
   const overlay = document.createElement('div');
-  overlay.id = 'hist-overlay';
-  overlay.className = 'hist-overlay open';
+  overlay.id = 'huc-overlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;
+    background:rgba(13,27,42,.55);backdrop-filter:blur(2px);padding:1.5rem
+  `;
   overlay.innerHTML = `
-    <div class="hist-modal">
-      <div class="hist-header">
-        <div class="hist-header-info">
-          <div class="hist-titulo">Histórico de chamados</div>
-          <div class="hist-sub">${escHist(nomeUsuario)}</div>
+    <div style="background:var(--surface);width:min(820px,100%);max-height:90vh;display:flex;flex-direction:column;border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;border:1px solid var(--border)">
+
+      <!-- Header navy com nome do usuário e botão fechar -->
+      <div style="background:var(--navy);color:#fff;padding:1.1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-shrink:0">
+        <div style="min-width:0">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.5rem;font-weight:600;line-height:1.1">Histórico de Chamados</div>
+          <div style="display:flex;align-items:center;gap:.4rem;margin-top:.25rem;color:var(--gold-light);font-size:.85rem">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <span>${escHist(nomeUsuario)}</span>
+          </div>
         </div>
-        <button class="hist-fechar" id="hist-fechar" aria-label="Fechar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <button id="huc-fechar" aria-label="Fechar" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;width:34px;height:34px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <div class="hist-body">
-        <div id="hist-usr-body" style="padding:1rem;text-align:center;color:var(--text-muted)">
+
+      <!-- Body com scroll -->
+      <div id="huc-body" style="flex:1;overflow-y:auto;background:var(--bg)">
+        <div style="padding:3rem 1rem;text-align:center;color:var(--text-muted)">
           <div class="spinner" style="margin:0 auto"></div>
-          <div style="margin-top:.5rem;font-size:.85rem">Carregando chamados…</div>
+          <div style="margin-top:.75rem;font-size:.88rem">Carregando chamados…</div>
         </div>
       </div>
+
     </div>
   `;
   document.body.appendChild(overlay);
 
   const fechar = () => overlay.remove();
-  document.getElementById('hist-fechar').addEventListener('click', fechar);
+  document.getElementById('huc-fechar').addEventListener('click', fechar);
   overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
   document.addEventListener('keydown', function esc(e) {
     if (e.key === 'Escape') { fechar(); document.removeEventListener('keydown', esc); }
@@ -771,153 +782,166 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
   try {
     const r = await fetch(`/api/admin/portal-usuarios/${usuarioId}/chamados`);
     if (!r.ok) {
-      document.getElementById('hist-usr-body').innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro ao carregar chamados.</div>';
+      document.getElementById('huc-body').innerHTML = '<div style="padding:2rem;color:var(--danger);text-align:center">Erro ao carregar chamados.</div>';
       return;
     }
     const chamados = await r.json();
 
     if (!chamados.length) {
-      document.getElementById('hist-usr-body').innerHTML = `
-        <div style="padding:2rem;text-align:center;color:var(--text-muted)">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4;margin-bottom:.5rem">
+      document.getElementById('huc-body').innerHTML = `
+        <div style="padding:3rem 1.5rem;text-align:center;color:var(--text-muted)">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.35;margin-bottom:.75rem">
             <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
           </svg>
-          <div>Este usuário ainda não abriu nenhum chamado.</div>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.1rem;color:var(--text);font-weight:500">Sem histórico</div>
+          <div style="margin-top:.25rem;font-size:.85rem">Este usuário ainda não abriu nenhum chamado.</div>
         </div>
       `;
       return;
     }
 
-    // Stats
+    // ── Stats ───────────────────────────────────────────────────
     const total = chamados.length;
     const abertos = chamados.filter(c => ['aberto','em_andamento'].includes(c.status)).length;
     const concluidos = chamados.filter(c => c.status === 'concluido').length;
-    const encerrados = chamados.filter(c => c.status === 'encerrado').length;
     const mediaAvaliacao = (() => {
       const avaliados = chamados.filter(c => c.nota != null);
       if (!avaliados.length) return null;
       return (avaliados.reduce((s, c) => s + c.nota, 0) / avaliados.length).toFixed(1);
     })();
 
-    const statCard = (label, value, color, icon) => `
-      <div style="flex:1;min-width:120px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:.85rem 1rem;display:flex;align-items:center;gap:.75rem">
-        <div style="width:36px;height:36px;border-radius:8px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon}</div>
-        <div style="min-width:0">
-          <div style="font-size:1.35rem;font-weight:700;color:var(--text);line-height:1.1;font-family:'Cormorant Garamond',Georgia,serif">${value}</div>
-          <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-top:.1rem">${label}</div>
-        </div>
+    const statCard = (label, value, accent) => `
+      <div style="flex:1;min-width:130px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;text-align:center">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.75rem;font-weight:600;color:${accent || 'var(--navy)'};line-height:1;letter-spacing:-.01em">${value}</div>
+        <div style="margin-top:.35rem;font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600">${label}</div>
       </div>`;
 
     const statsHtml = `
-      <div style="display:flex;gap:.6rem;padding:1rem 1.25rem;background:linear-gradient(to bottom,rgba(0,0,0,.02),transparent);border-bottom:1px solid var(--border);flex-wrap:wrap">
-        ${statCard('Total', total, '#1a2340', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>')}
-        ${statCard('Em aberto', abertos, '#2563eb', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>')}
-        ${statCard('Concluídos', concluidos, '#16a34a', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')}
-        ${statCard('Avaliação', mediaAvaliacao ? mediaAvaliacao + '<span style="font-size:.85rem;color:var(--text-muted);font-weight:500">/10</span>' : '—', '#f59e0b', '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>')}
+      <div style="padding:1.25rem 1.5rem;background:var(--surface-2);border-bottom:1px solid var(--border)">
+        <div style="display:flex;gap:.65rem;flex-wrap:wrap">
+          ${statCard('Total', total, 'var(--navy)')}
+          ${statCard('Em aberto', abertos, 'var(--cor-aberto)')}
+          ${statCard('Concluídos', concluidos, 'var(--cor-concluido)')}
+          ${statCard('Avaliação', mediaAvaliacao ? `${mediaAvaliacao}<span style="font-size:.95rem;color:var(--text-muted);font-weight:500">/10</span>` : '—', 'var(--gold-dark)')}
+        </div>
       </div>`;
 
-    // Cards de chamados
+    // ── Cards de chamado ────────────────────────────────────────
+    const STATUS_COR_VAR = {
+      aberto:       'var(--cor-aberto)',
+      em_andamento: 'var(--cor-andamento)',
+      concluido:    'var(--cor-concluido)',
+      encerrado:    'var(--cor-encerrado)',
+    };
+    const PRIO_COR_VAR = {
+      urgente: 'var(--cor-urgente)',
+      alta:    'var(--cor-alta)',
+      media:   'var(--cor-media)',
+      baixa:   'var(--cor-baixa)',
+    };
+
     const cardChamado = (c) => {
-      const cor = STATUS_COR_HIST[c.status] || '#6b7280';
+      const corStatus = STATUS_COR_VAR[c.status] || 'var(--cor-sem-prioridade)';
       const statusLabel = STATUS_LABEL_HIST[c.status] || c.status;
       const prioLabel = c.prioridade ? PRIO_LABEL_HIST[c.prioridade] : '';
-      const prioCores = { urgente: '#dc2626', alta: '#ea580c', media: '#d97706', baixa: '#16a34a' };
-      const prioCor = c.prioridade ? prioCores[c.prioridade] : null;
+      const prioCor = c.prioridade ? PRIO_COR_VAR[c.prioridade] : null;
 
-      // Estrelas para avaliação
+      // 10 estrelas
       const renderEstrelas = (n) => {
-        const max = 10;
-        const fill = Math.min(Math.max(Math.round(n), 0), max);
-        return Array.from({ length: max }, (_, i) =>
-          `<span style="color:${i < fill ? '#f59e0b' : '#e5e7eb'};font-size:.85rem">★</span>`
+        const fill = Math.min(Math.max(Math.round(n), 0), 10);
+        return Array.from({ length: 10 }, (_, i) =>
+          `<span style="color:${i < fill ? 'var(--gold)' : 'var(--border-strong)'};font-size:.9rem;line-height:1">★</span>`
         ).join('');
       };
 
       return `
-        <div style="background:#fff;border:1px solid var(--border);border-left:4px solid ${cor};border-radius:8px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:box-shadow .15s">
+        <article style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)">
 
-          <!-- Header: ID + badges + data -->
-          <div style="display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;background:rgba(0,0,0,.015);border-bottom:1px solid var(--border);flex-wrap:wrap">
-            <span style="font-family:monospace;font-size:.9rem;font-weight:700;color:var(--navy);background:#fff;border:1px solid var(--border);padding:.18rem .55rem;border-radius:5px;letter-spacing:.02em">#${c.id}</span>
-            <span style="background:${cor};color:#fff;font-size:.7rem;font-weight:600;padding:.22rem .55rem;border-radius:4px;text-transform:uppercase;letter-spacing:.04em">${statusLabel}</span>
-            ${prioLabel ? `<span style="background:${prioCor}1a;color:${prioCor};border:1px solid ${prioCor}33;font-size:.7rem;font-weight:600;padding:.18rem .5rem;border-radius:4px">${prioLabel}</span>` : ''}
-            ${c.categoria ? `<span style="background:rgba(0,0,0,.05);color:var(--text-secondary);font-size:.7rem;font-weight:500;padding:.18rem .5rem;border-radius:4px;text-transform:capitalize">${escHist(c.categoria)}</span>` : ''}
-            <span style="margin-left:auto;font-size:.74rem;color:var(--text-muted);font-variant-numeric:tabular-nums">${fmtDHist(c.criado_em)}</span>
-          </div>
+          <!-- Faixa lateral colorida + header -->
+          <div style="display:flex">
+            <div style="width:4px;background:${corStatus};flex-shrink:0"></div>
+            <div style="flex:1;min-width:0">
 
-          <!-- Setor / Ramal -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;padding:.65rem 1rem;border-bottom:1px solid var(--border);font-size:.78rem">
-            <div style="display:flex;align-items:center;gap:.4rem;color:var(--text-secondary)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              <span style="color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.04em">Setor:</span>
-              <strong style="color:var(--text)">${escHist(c.setor)}</strong>
-            </div>
-            <div style="display:flex;align-items:center;gap:.4rem;color:var(--text-secondary)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              <span style="color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.04em">Ramal:</span>
-              <strong style="color:var(--text);font-family:monospace">${escHist(c.ramal) || '—'}</strong>
-            </div>
-          </div>
-
-          <!-- Descrição -->
-          <div style="padding:.85rem 1rem">
-            <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:.35rem">Descrição</div>
-            <div style="font-size:.85rem;line-height:1.55;color:var(--text);white-space:pre-wrap;word-break:break-word">${escHist(c.descricao)}</div>
-          </div>
-
-          ${c.solucao ? `
-            <div style="padding:.75rem 1rem;background:linear-gradient(to right,rgba(124,58,237,.06),transparent);border-top:1px solid var(--border);border-left:3px solid #7c3aed;margin:0 0 0 0">
-              <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span style="font-size:.7rem;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Solução aplicada</span>
+              <!-- Header: ID + badges + data -->
+              <div style="display:flex;align-items:center;gap:.55rem;padding:.7rem 1rem;border-bottom:1px solid var(--border);flex-wrap:wrap">
+                <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.15rem;font-weight:700;color:var(--navy);line-height:1">#${c.id}</span>
+                <span style="height:14px;width:1px;background:var(--border-strong)"></span>
+                <span style="background:${corStatus};color:#fff;font-size:.66rem;font-weight:700;padding:.22rem .55rem;border-radius:3px;text-transform:uppercase;letter-spacing:.06em">${statusLabel}</span>
+                ${prioLabel ? `<span style="color:${prioCor};border:1px solid ${prioCor};font-size:.66rem;font-weight:600;padding:.18rem .5rem;border-radius:3px;text-transform:uppercase;letter-spacing:.05em">${prioLabel}</span>` : ''}
+                ${c.categoria ? `<span style="background:var(--gold-pale);color:var(--gold-dark);font-size:.66rem;font-weight:600;padding:.18rem .5rem;border-radius:3px;text-transform:uppercase;letter-spacing:.05em">${escHist(c.categoria)}</span>` : ''}
+                <span style="margin-left:auto;font-size:.74rem;color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap">${fmtDHist(c.criado_em)}</span>
               </div>
-              <div style="font-size:.82rem;line-height:1.5;color:var(--text);white-space:pre-wrap;word-break:break-word">${escHist(c.solucao)}</div>
-            </div>` : ''}
 
-          ${c.nota != null ? `
-            <div style="padding:.7rem 1rem;background:linear-gradient(to right,rgba(245,158,11,.06),transparent);border-top:1px solid var(--border)">
-              <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
-                <span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600">Avaliação</span>
-                <div style="display:flex;align-items:center;gap:.3rem">
-                  ${renderEstrelas(c.nota)}
-                  <strong style="margin-left:.3rem;font-size:.85rem;color:#d97706">${c.nota}/10</strong>
+              <!-- Setor / Ramal em colunas alinhadas -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;padding:.65rem 1rem;border-bottom:1px solid var(--border);font-size:.78rem;gap:.5rem">
+                <div>
+                  <div style="font-size:.66rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:.15rem">Setor</div>
+                  <div style="color:var(--text);font-weight:500">${escHist(c.setor)}</div>
+                </div>
+                <div>
+                  <div style="font-size:.66rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:.15rem">Ramal</div>
+                  <div style="color:var(--text);font-family:monospace;font-weight:500">${escHist(c.ramal) || '—'}</div>
                 </div>
               </div>
-              ${c.comentario_avaliacao ? `<div style="margin-top:.35rem;font-size:.8rem;font-style:italic;color:var(--text-secondary);padding-left:.2rem;border-left:2px solid #f59e0b;padding:.2rem 0 .2rem .55rem">"${escHist(c.comentario_avaliacao)}"</div>` : ''}
-            </div>` : ''}
 
-          <!-- Footer: responsável + datas -->
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5rem .9rem;padding:.7rem 1rem;background:rgba(0,0,0,.015);border-top:1px solid var(--border);font-size:.74rem">
-            <div>
-              <div style="color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-size:.66rem;font-weight:600;margin-bottom:.15rem">Responsável</div>
-              <div style="color:var(--text);font-weight:500">${c.admin_nome ? escHist(c.admin_nome) : '<span style="color:var(--text-muted);font-style:italic;font-weight:400">Não atribuído</span>'}</div>
+              <!-- Descrição -->
+              <div style="padding:.85rem 1rem">
+                <div style="font-size:.66rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:.4rem">Descrição</div>
+                <div style="font-size:.85rem;line-height:1.55;color:var(--text);white-space:pre-wrap;word-break:break-word">${escHist(c.descricao)}</div>
+              </div>
+
+              ${c.solucao ? `
+                <div style="padding:.75rem 1rem;background:var(--surface-2);border-top:1px solid var(--border)">
+                  <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span style="font-size:.66rem;color:var(--gold-dark);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Solução aplicada</span>
+                  </div>
+                  <div style="font-size:.82rem;line-height:1.5;color:var(--text);white-space:pre-wrap;word-break:break-word">${escHist(c.solucao)}</div>
+                </div>` : ''}
+
+              ${c.nota != null ? `
+                <div style="padding:.7rem 1rem;background:var(--gold-pale);border-top:1px solid var(--border)">
+                  <div style="display:flex;align-items:center;gap:.55rem;flex-wrap:wrap">
+                    <span style="font-size:.66rem;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Avaliação</span>
+                    <div style="display:flex;align-items:center;gap:.4rem">
+                      <span style="line-height:1">${renderEstrelas(c.nota)}</span>
+                      <strong style="font-size:.85rem;color:var(--gold-dark);font-family:'Cormorant Garamond',Georgia,serif;font-weight:700">${c.nota}/10</strong>
+                    </div>
+                  </div>
+                  ${c.comentario_avaliacao ? `<div style="margin-top:.4rem;font-size:.8rem;font-style:italic;color:var(--text-secondary);border-left:2px solid var(--gold);padding:.05rem 0 .05rem .55rem">"${escHist(c.comentario_avaliacao)}"</div>` : ''}
+                </div>` : ''}
+
+              <!-- Footer em colunas alinhadas -->
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);padding:.7rem 1rem;background:var(--surface-2);border-top:1px solid var(--border);font-size:.74rem;gap:.5rem">
+                <div>
+                  <div style="font-size:.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:.15rem">Responsável</div>
+                  <div style="color:var(--text);font-weight:500">${c.admin_nome ? escHist(c.admin_nome) : '<span style="color:var(--text-muted);font-style:italic;font-weight:400">Não atribuído</span>'}</div>
+                </div>
+                <div>
+                  <div style="font-size:.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:.15rem">Prazo</div>
+                  <div style="color:var(--text);font-variant-numeric:tabular-nums;font-weight:500">${c.prazo ? fmtDHist(c.prazo) : '<span style="color:var(--text-muted);font-style:italic;font-weight:400">—</span>'}</div>
+                </div>
+                <div>
+                  <div style="font-size:.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:.15rem">Concluído em</div>
+                  <div style="color:${c.concluido_em ? 'var(--cor-concluido)' : 'var(--text-muted)'};font-variant-numeric:tabular-nums;font-weight:500">${c.concluido_em ? fmtDHist(c.concluido_em) : '<span style="font-style:italic;font-weight:400">—</span>'}</div>
+                </div>
+              </div>
+
             </div>
-            ${c.prazo ? `
-            <div>
-              <div style="color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-size:.66rem;font-weight:600;margin-bottom:.15rem">Prazo</div>
-              <div style="color:var(--text);font-variant-numeric:tabular-nums">${fmtDHist(c.prazo)}</div>
-            </div>` : ''}
-            ${c.concluido_em ? `
-            <div>
-              <div style="color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-size:.66rem;font-weight:600;margin-bottom:.15rem">Concluído em</div>
-              <div style="color:#16a34a;font-weight:500;font-variant-numeric:tabular-nums">${fmtDHist(c.concluido_em)}</div>
-            </div>` : ''}
           </div>
-        </div>`;
+        </article>`;
     };
 
     const itensHtml = chamados.map(cardChamado).join('');
 
-    document.getElementById('hist-usr-body').outerHTML = `
-      <div style="background:rgba(0,0,0,.015)">
-        ${statsHtml}
-        <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:.85rem">
-          ${itensHtml}
-        </div>
+    document.getElementById('huc-body').innerHTML = `
+      ${statsHtml}
+      <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem">
+        ${itensHtml}
       </div>`;
   } catch (err) {
-    const body = document.getElementById('hist-usr-body');
-    if (body) body.innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro de conexão.</div>';
+    const body = document.getElementById('huc-body');
+    if (body) body.innerHTML = '<div style="padding:2rem;color:var(--danger);text-align:center">Erro de conexão.</div>';
   }
 }
 
