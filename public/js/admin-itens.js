@@ -1259,6 +1259,9 @@ function abrirMovimentacao(itemId, tipoMov) {
 
   const showCor = cores.length > 1;
 
+  // Setores que atualmente têm este item alocado (para entradas)
+  const setoresComItem = (item.alocacoes || []).map(a => a.setor).filter(Boolean);
+
   document.getElementById('mov-modal-title').textContent = tipoMov === 'entrada' ? `Entrada — ${item.nome}` : `Saída — ${item.nome}`;
   document.getElementById('mov-modal-overlay').style.display = 'flex';
 
@@ -1277,6 +1280,20 @@ function abrirMovimentacao(itemId, tipoMov) {
         <label class="form-label">Quantidade</label>
         <input class="form-control" id="mov-qtd" type="number" min="1" value="1">
       </div>
+      ${tipoMov === 'entrada' ? `
+      <div class="form-group">
+        <label class="form-label">Veio de algum setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        ${setoresComItem.length > 0 ? `
+          <datalist id="setores-lista">
+            ${[...new Set(setoresComItem)].map(s => `<option value="${s.replace(/"/g,'&quot;')}">`).join('')}
+          </datalist>
+        ` : ''}
+        <input class="form-control" id="mov-setor-origem" type="text"
+          list="setores-lista"
+          placeholder="${setoresComItem.length > 0 ? 'Selecione ou digite o setor…' : 'Ex: Recepção, RH, Governança…'}">
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">Se preenchido, a etiqueta desse setor será removida da coluna "Com setores"</div>
+      </div>
+      ` : ''}
       ${tipoMov === 'saida' ? `
       <div class="form-group">
         <label class="form-label">Setor de destino <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
@@ -1305,7 +1322,8 @@ function abrirMovimentacao(itemId, tipoMov) {
     const cor = document.getElementById('mov-cor').value;
     const qtd = parseInt(document.getElementById('mov-qtd').value, 10);
     const obs = document.getElementById('mov-obs').value.trim();
-    const setor = tipoMov === 'saida' ? (document.getElementById('mov-setor')?.value.trim() || '') : '';
+    const setor_destino = tipoMov === 'saida' ? (document.getElementById('mov-setor')?.value.trim() || '') : '';
+    const setor_origem  = tipoMov === 'entrada' ? (document.getElementById('mov-setor-origem')?.value.trim() || '') : '';
 
     if (!qtd || qtd < 1) { mostrarToast('Quantidade inválida', 'erro'); btn.disabled = false; btn.textContent = tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'; return; }
 
@@ -1321,7 +1339,7 @@ function abrirMovimentacao(itemId, tipoMov) {
     try {
       const r = await api(`/api/admin/estoque/itens/${itemId}/movimentacao`, {
         method: 'POST',
-        body: JSON.stringify({ tipo: tipoMov, cor, quantidade: qtd, observacao: obs, setor_destino: setor }),
+        body: JSON.stringify({ tipo: tipoMov, cor, quantidade: qtd, observacao: obs, setor_destino, setor_origem }),
       });
       if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'; return; }
       fecharMovModal();
