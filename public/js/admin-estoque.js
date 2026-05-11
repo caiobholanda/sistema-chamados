@@ -376,6 +376,8 @@ function abrirMovModal(itemId, tipoMov) {
   const item = _tonerCache.find(i => i.id === itemId);
   if (!item) return;
 
+  console.log('[DEBUG abrirMovModal] tipoMov:', tipoMov, '| item:', item.nome, '| tipo:', item.tipo, '| alocacoes:', item.alocacoes);
+
   document.getElementById('mov-modal-title').textContent = tipoMov === 'entrada' ? `Entrada — ${item.nome}` : `Saída — ${item.nome}`;
   document.getElementById('mov-modal-overlay').style.display = 'flex';
 
