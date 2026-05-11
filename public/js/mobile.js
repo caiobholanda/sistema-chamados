@@ -61,39 +61,32 @@ const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const _isStandalone = window.navigator.standalone === true;
 
 function atualizarBotaoPush() {
-  const banner = document.getElementById('mob-notif-banner');
-  if (!banner) return;
+  const btn = document.getElementById('mob-btn-push');
+  const icon = document.getElementById('mob-btn-push-icon');
+  if (!btn || !icon) return;
 
-  // iOS Safari em modo navegador (não PWA instalado)
+  // Remove listeners antigos (clonando o elemento)
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
+  const newIcon = newBtn.querySelector('#mob-btn-push-icon');
+
+  // iOS Safari em modo navegador (não PWA instalado): sino apagado, abre instruções
   if (_isIOS && !_isStandalone) {
-    banner.innerHTML = `
-      <div id="mob-btn-push" style="margin:.6rem .9rem 0;background:#1a2340;border-radius:10px;padding:.7rem .9rem;display:flex;align-items:center;gap:.7rem;cursor:pointer">
-        <span style="font-size:1.3rem;flex-shrink:0">🔔</span>
-        <div style="flex:1;min-width:0">
-          <div style="color:#fff;font-size:.82rem;font-weight:600">Ativar notificações</div>
-          <div style="color:rgba(255,255,255,.55);font-size:.72rem">Toque para ver como instalar o app</div>
-        </div>
-        <span style="color:rgba(255,255,255,.4);font-size:.9rem">›</span>
-      </div>`;
-    document.getElementById('mob-btn-push').addEventListener('click', mostrarBannerIOS);
+    newIcon.setAttribute('stroke', 'rgba(255,255,255,.4)');
+    newBtn.title = 'Como ativar notificações';
+    newBtn.addEventListener('click', mostrarBannerIOS);
     return;
   }
 
-  // Browser sem suporte a push: não mostra nada
-  if (!('PushManager' in window)) { banner.innerHTML = ''; return; }
+  // Sem suporte a push: esconde
+  if (!('PushManager' in window)) { newBtn.style.display = 'none'; return; }
 
-  // Notificações já ativas: mostra opção de revalidar (caso subscription tenha expirado)
+  // Notificações ativas: sino verde, toque revalida
   if (Notification.permission === 'granted') {
-    banner.innerHTML = `
-      <div id="mob-btn-push" style="margin:.6rem .9rem 0;background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:.55rem .8rem;display:flex;align-items:center;gap:.6rem;cursor:pointer">
-        <span style="font-size:1.1rem;flex-shrink:0">🔔</span>
-        <div style="flex:1;min-width:0">
-          <div style="color:#16a34a;font-size:.78rem;font-weight:600">Notificações ativas</div>
-          <div style="color:var(--text-muted);font-size:.7rem">Toque para revalidar inscrição</div>
-        </div>
-        <span style="color:var(--text-muted);font-size:.85rem">↻</span>
-      </div>`;
-    document.getElementById('mob-btn-push').addEventListener('click', async () => {
+    newIcon.setAttribute('stroke', '#22c55e');
+    newIcon.setAttribute('fill', 'rgba(34,197,94,.15)');
+    newBtn.title = 'Notificações ativas (toque para revalidar)';
+    newBtn.addEventListener('click', async () => {
       const ok = await _subscribePush(true);
       if (ok) mostrarToastMob('✅ Inscrição revalidada', 'Subscription atualizada no servidor.');
       else mostrarToastMob('⚠ Falha ao revalidar', 'Tente novamente ou desinstale e reinstale o app.');
@@ -101,23 +94,16 @@ function atualizarBotaoPush() {
     return;
   }
 
-  // Suporta push mas ainda não ativou
-  banner.innerHTML = `
-    <div id="mob-btn-push" style="margin:.6rem .9rem 0;background:#1a2340;border-radius:10px;padding:.7rem .9rem;display:flex;align-items:center;gap:.7rem;cursor:pointer">
-      <span style="font-size:1.3rem;flex-shrink:0">🔔</span>
-      <div style="flex:1;min-width:0">
-        <div style="color:#fff;font-size:.82rem;font-weight:600">Ativar notificações</div>
-        <div style="color:rgba(255,255,255,.55);font-size:.72rem">Receba alertas de chamados e prazos</div>
-      </div>
-      <span style="color:rgba(255,255,255,.4);font-size:.9rem">›</span>
-    </div>`;
-  document.getElementById('mob-btn-push').addEventListener('click', async () => {
+  // Suporta push mas não ativou: sino apagado, toque ativa
+  newIcon.setAttribute('stroke', 'rgba(255,255,255,.5)');
+  newBtn.title = 'Ativar notificações';
+  newBtn.addEventListener('click', async () => {
     const perm = await Notification.requestPermission();
-    atualizarBotaoPush();
     if (perm === 'granted') {
       await _subscribePush(true);
       mostrarToastMob('✅ Notificações ativadas!', 'Você receberá alertas de novos chamados e prazos.');
     }
+    atualizarBotaoPush();
   });
 }
 
@@ -300,13 +286,21 @@ async function renderLista() {
         <div class="mob-header-title">Chamados em aberto</div>
         ${adminInfo ? `<div class="mob-header-sub">${adminInfo.nome_completo}</div>` : ''}
       </div>
-      <button class="mob-sair-btn" id="mob-sair">Sair</button>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+        <button id="mob-btn-push" title="Notificações" aria-label="Notificações"
+          style="background:none;border:none;padding:.25rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">
+          <svg id="mob-btn-push-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </button>
+        <button class="mob-sair-btn" id="mob-sair">Sair</button>
+      </div>
     </div>
     <div class="mob-filtro-bar">
       <button class="mob-filtro-btn ${filtroAtivo === 'meus' ? 'ativo' : ''}" data-filtro="meus">Meus chamados</button>
       <button class="mob-filtro-btn ${filtroAtivo === 'todos' ? 'ativo' : ''}" data-filtro="todos">Todos</button>
     </div>
-    <div id="mob-notif-banner"></div>
     <div id="mob-lista" class="mob-lista"><div class="mob-loading">Carregando…</div></div>
   `;
 
