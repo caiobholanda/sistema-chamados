@@ -2919,3 +2919,14 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   background: var(--border);
   flex-shrink: 0;
 }
+
+/* Link de ID do chamado no histórico do usuário */
+.huc-id-link:hover {
+  background: var(--gold) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(212,175,55,.35);
+}
+.huc-id-link:active {
+  transform: translateY(0);
+}

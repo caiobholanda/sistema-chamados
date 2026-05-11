@@ -885,9 +885,12 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
             <div style="width:4px;background:${corStatus};flex-shrink:0"></div>
             <div style="flex:1;min-width:0">
 
-              <!-- Header: ID + badges + data -->
+              <!-- Header: ID clicável + badges + data -->
               <div style="display:flex;align-items:center;gap:.55rem;padding:.7rem 1rem;border-bottom:1px solid var(--border);flex-wrap:wrap">
-                <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.15rem;font-weight:700;color:var(--navy);line-height:1">#${c.id}</span>
+                <a href="/admin-painel.html?chamado=${c.id}" title="Abrir este chamado no painel" class="huc-id-link" style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:.95rem;font-weight:700;color:var(--navy);background:var(--gold-pale);border:1px solid var(--gold);padding:.22rem .55rem;border-radius:var(--radius-sm);letter-spacing:.02em;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;transition:background .15s,transform .1s">
+                  #${c.id}
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+                </a>
                 <span style="height:14px;width:1px;background:var(--border-strong)"></span>
                 <span style="background:${corStatus};color:#fff;font-size:.66rem;font-weight:700;padding:.22rem .55rem;border-radius:3px;text-transform:uppercase;letter-spacing:.06em">${statusLabel}</span>
                 ${prioLabel ? `<span style="color:${prioCor};border:1px solid ${prioCor};font-size:.66rem;font-weight:600;padding:.18rem .5rem;border-radius:3px;text-transform:uppercase;letter-spacing:.05em">${prioLabel}</span>` : ''}
