@@ -87,15 +87,24 @@ async function checarPrazos() {
     for (const c of chamados) {
       const prazoIso = c.prazo.includes('T') ? c.prazo : c.prazo.replace(' ', 'T');
       const prazo = new Date(prazoIso.endsWith('Z') ? prazoIso : prazoIso + 'Z');
-      const diffH = (prazo - agora) / 3600000;
-      if (diffH > 0 && diffH <= 1) {
+      const diffMin = (prazo - agora) / 60000;
+      if (diffMin > 0 && diffMin <= 10) {
+        if (registrarAlertaPrazo(c.id, '10min')) {
+          const msg = `Chamado #${c.id} de ${c.nome} (${c.setor}) vence em menos de 10 minutos!`;
+          c.admin_responsavel_id
+            ? push.enviarParaAdmin(c.admin_responsavel_id, '🚨 Prazo encerrando agora!', msg).catch(() => {})
+            : push.enviarParaTodos('🚨 Prazo encerrando agora!', msg).catch(() => {});
+        }
+      }
+      if (diffMin > 10 && diffMin <= 60) {
         if (registrarAlertaPrazo(c.id, '1h')) {
           const msg = `Chamado de ${c.nome} (${c.setor}) vence em menos de 1 hora.`;
           c.admin_responsavel_id
             ? push.enviarParaAdmin(c.admin_responsavel_id, '⏰ Prazo em menos de 1 hora!', msg).catch(() => {})
             : push.enviarParaTodos('⏰ Prazo em menos de 1 hora!', msg).catch(() => {});
         }
-      } else if (diffH > 0 && diffH <= 24) {
+      }
+      if (diffMin > 60 && diffMin <= 1440) {
         if (registrarAlertaPrazo(c.id, '24h')) {
           const msg = `Chamado de ${c.nome} (${c.setor}) vence em menos de 1 dia.`;
           c.admin_responsavel_id
@@ -114,7 +123,7 @@ async function main() {
   await criarAdminMasterSeNecessario();
   await recuperarSenhasPlain();
   push.init();
-  setInterval(checarPrazos, 10 * 60 * 1000); // a cada 10 minutos
+  setInterval(checarPrazos, 2 * 60 * 1000); // a cada 2 minutos (necessário para capturar a janela de 10min)
   checarPrazos();
   app.listen(PORT, () => {
     console.log(`Sistema de Chamados TI rodando em http://localhost:${PORT}`);
