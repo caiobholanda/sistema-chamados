@@ -788,7 +788,7 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
       return;
     }
 
-    // Resumo no topo
+    // Stats
     const total = chamados.length;
     const abertos = chamados.filter(c => ['aberto','em_andamento'].includes(c.status)).length;
     const concluidos = chamados.filter(c => c.status === 'concluido').length;
@@ -799,50 +799,122 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
       return (avaliados.reduce((s, c) => s + c.nota, 0) / avaliados.length).toFixed(1);
     })();
 
-    const resumoHtml = `
-      <div style="display:flex;gap:.6rem;padding:.75rem 1rem;background:rgba(0,0,0,.02);border-bottom:1px solid var(--border);flex-wrap:wrap;font-size:.78rem">
-        <div><strong>${total}</strong> ${total === 1 ? 'chamado' : 'chamados'}</div>
-        ${abertos ? `<div style="color:#2563eb">• ${abertos} em aberto</div>` : ''}
-        ${concluidos ? `<div style="color:#16a34a">• ${concluidos} concluído${concluidos > 1 ? 's' : ''}</div>` : ''}
-        ${encerrados ? `<div style="color:#6b7280">• ${encerrados} encerrado${encerrados > 1 ? 's' : ''}</div>` : ''}
-        ${mediaAvaliacao ? `<div style="color:#f59e0b;margin-left:auto">★ Média: ${mediaAvaliacao}/10</div>` : ''}
-      </div>
-    `;
+    const statCard = (label, value, color, icon) => `
+      <div style="flex:1;min-width:120px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:.85rem 1rem;display:flex;align-items:center;gap:.75rem">
+        <div style="width:36px;height:36px;border-radius:8px;background:${color}1a;color:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon}</div>
+        <div style="min-width:0">
+          <div style="font-size:1.35rem;font-weight:700;color:var(--text);line-height:1.1;font-family:'Cormorant Garamond',Georgia,serif">${value}</div>
+          <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-top:.1rem">${label}</div>
+        </div>
+      </div>`;
 
-    const itensHtml = chamados.map(c => {
+    const statsHtml = `
+      <div style="display:flex;gap:.6rem;padding:1rem 1.25rem;background:linear-gradient(to bottom,rgba(0,0,0,.02),transparent);border-bottom:1px solid var(--border);flex-wrap:wrap">
+        ${statCard('Total', total, '#1a2340', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>')}
+        ${statCard('Em aberto', abertos, '#2563eb', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>')}
+        ${statCard('Concluídos', concluidos, '#16a34a', '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>')}
+        ${statCard('Avaliação', mediaAvaliacao ? mediaAvaliacao + '<span style="font-size:.85rem;color:var(--text-muted);font-weight:500">/10</span>' : '—', '#f59e0b', '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>')}
+      </div>`;
+
+    // Cards de chamados
+    const cardChamado = (c) => {
       const cor = STATUS_COR_HIST[c.status] || '#6b7280';
       const statusLabel = STATUS_LABEL_HIST[c.status] || c.status;
       const prioLabel = c.prioridade ? PRIO_LABEL_HIST[c.prioridade] : '';
+      const prioCores = { urgente: '#dc2626', alta: '#ea580c', media: '#d97706', baixa: '#16a34a' };
+      const prioCor = c.prioridade ? prioCores[c.prioridade] : null;
+
+      // Estrelas para avaliação
+      const renderEstrelas = (n) => {
+        const max = 10;
+        const fill = Math.min(Math.max(Math.round(n), 0), max);
+        return Array.from({ length: max }, (_, i) =>
+          `<span style="color:${i < fill ? '#f59e0b' : '#e5e7eb'};font-size:.85rem">★</span>`
+        ).join('');
+      };
+
       return `
-        <div class="ht-item">
-          <div class="ht-dot" style="background:${cor};font-family:monospace;font-size:.65rem;font-weight:700;color:#fff">#${c.id}</div>
-          <div class="ht-content">
-            <div class="ht-titulo" style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">
-              <span style="background:${cor};color:#fff;font-size:.7rem;font-weight:600;padding:.12rem .4rem;border-radius:4px">${statusLabel}</span>
-              ${prioLabel ? `<span style="background:rgba(0,0,0,.06);font-size:.7rem;font-weight:500;padding:.12rem .4rem;border-radius:4px">${prioLabel}</span>` : ''}
-              ${c.categoria ? `<span style="background:rgba(0,0,0,.06);font-size:.7rem;font-weight:500;padding:.12rem .4rem;border-radius:4px">${escHist(c.categoria)}</span>` : ''}
+        <div style="background:#fff;border:1px solid var(--border);border-left:4px solid ${cor};border-radius:8px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:box-shadow .15s">
+
+          <!-- Header: ID + badges + data -->
+          <div style="display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;background:rgba(0,0,0,.015);border-bottom:1px solid var(--border);flex-wrap:wrap">
+            <span style="font-family:monospace;font-size:.9rem;font-weight:700;color:var(--navy);background:#fff;border:1px solid var(--border);padding:.18rem .55rem;border-radius:5px;letter-spacing:.02em">#${c.id}</span>
+            <span style="background:${cor};color:#fff;font-size:.7rem;font-weight:600;padding:.22rem .55rem;border-radius:4px;text-transform:uppercase;letter-spacing:.04em">${statusLabel}</span>
+            ${prioLabel ? `<span style="background:${prioCor}1a;color:${prioCor};border:1px solid ${prioCor}33;font-size:.7rem;font-weight:600;padding:.18rem .5rem;border-radius:4px">${prioLabel}</span>` : ''}
+            ${c.categoria ? `<span style="background:rgba(0,0,0,.05);color:var(--text-secondary);font-size:.7rem;font-weight:500;padding:.18rem .5rem;border-radius:4px;text-transform:capitalize">${escHist(c.categoria)}</span>` : ''}
+            <span style="margin-left:auto;font-size:.74rem;color:var(--text-muted);font-variant-numeric:tabular-nums">${fmtDHist(c.criado_em)}</span>
+          </div>
+
+          <!-- Setor / Ramal -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;padding:.65rem 1rem;border-bottom:1px solid var(--border);font-size:.78rem">
+            <div style="display:flex;align-items:center;gap:.4rem;color:var(--text-secondary)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span style="color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.04em">Setor:</span>
+              <strong style="color:var(--text)">${escHist(c.setor)}</strong>
             </div>
-            <div class="ht-sub" style="margin-top:.3rem">${escHist(c.setor)} · Ramal ${escHist(c.ramal) || '—'}</div>
-            <div class="ht-desc-box" style="margin-top:.4rem">${escHist(c.descricao)}</div>
-            ${c.solucao ? `<div style="margin-top:.4rem;padding:.5rem;background:rgba(124,58,237,.06);border-left:3px solid #7c3aed;border-radius:4px;font-size:.82rem"><strong>Solução:</strong> ${escHist(c.solucao)}</div>` : ''}
-            ${c.nota != null ? `<div style="margin-top:.4rem;font-size:.78rem;color:#f59e0b"><strong>Avaliação:</strong> ${c.nota}/10${c.comentario_avaliacao ? ` — <em style="color:var(--text-secondary)">"${escHist(c.comentario_avaliacao)}"</em>` : ''}</div>` : ''}
-            <div class="ht-meta" style="margin-top:.4rem">
-              ${c.admin_nome ? `Responsável: <strong>${escHist(c.admin_nome)}</strong> · ` : ''}
-              Aberto em ${fmtDHist(c.criado_em)}
-              ${c.concluido_em ? ` · Concluído em ${fmtDHist(c.concluido_em)}` : ''}
-              ${c.prazo ? ` · Prazo: ${fmtDHist(c.prazo)}` : ''}
+            <div style="display:flex;align-items:center;gap:.4rem;color:var(--text-secondary)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <span style="color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.04em">Ramal:</span>
+              <strong style="color:var(--text);font-family:monospace">${escHist(c.ramal) || '—'}</strong>
             </div>
           </div>
-        </div>
-      `;
-    }).join('');
+
+          <!-- Descrição -->
+          <div style="padding:.85rem 1rem">
+            <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin-bottom:.35rem">Descrição</div>
+            <div style="font-size:.85rem;line-height:1.55;color:var(--text);white-space:pre-wrap;word-break:break-word">${escHist(c.descricao)}</div>
+          </div>
+
+          ${c.solucao ? `
+            <div style="padding:.75rem 1rem;background:linear-gradient(to right,rgba(124,58,237,.06),transparent);border-top:1px solid var(--border);border-left:3px solid #7c3aed;margin:0 0 0 0">
+              <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span style="font-size:.7rem;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Solução aplicada</span>
+              </div>
+              <div style="font-size:.82rem;line-height:1.5;color:var(--text);white-space:pre-wrap;word-break:break-word">${escHist(c.solucao)}</div>
+            </div>` : ''}
+
+          ${c.nota != null ? `
+            <div style="padding:.7rem 1rem;background:linear-gradient(to right,rgba(245,158,11,.06),transparent);border-top:1px solid var(--border)">
+              <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+                <span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600">Avaliação</span>
+                <div style="display:flex;align-items:center;gap:.3rem">
+                  ${renderEstrelas(c.nota)}
+                  <strong style="margin-left:.3rem;font-size:.85rem;color:#d97706">${c.nota}/10</strong>
+                </div>
+              </div>
+              ${c.comentario_avaliacao ? `<div style="margin-top:.35rem;font-size:.8rem;font-style:italic;color:var(--text-secondary);padding-left:.2rem;border-left:2px solid #f59e0b;padding:.2rem 0 .2rem .55rem">"${escHist(c.comentario_avaliacao)}"</div>` : ''}
+            </div>` : ''}
+
+          <!-- Footer: responsável + datas -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5rem .9rem;padding:.7rem 1rem;background:rgba(0,0,0,.015);border-top:1px solid var(--border);font-size:.74rem">
+            <div>
+              <div style="color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-size:.66rem;font-weight:600;margin-bottom:.15rem">Responsável</div>
+              <div style="color:var(--text);font-weight:500">${c.admin_nome ? escHist(c.admin_nome) : '<span style="color:var(--text-muted);font-style:italic;font-weight:400">Não atribuído</span>'}</div>
+            </div>
+            ${c.prazo ? `
+            <div>
+              <div style="color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-size:.66rem;font-weight:600;margin-bottom:.15rem">Prazo</div>
+              <div style="color:var(--text);font-variant-numeric:tabular-nums">${fmtDHist(c.prazo)}</div>
+            </div>` : ''}
+            ${c.concluido_em ? `
+            <div>
+              <div style="color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-size:.66rem;font-weight:600;margin-bottom:.15rem">Concluído em</div>
+              <div style="color:#16a34a;font-weight:500;font-variant-numeric:tabular-nums">${fmtDHist(c.concluido_em)}</div>
+            </div>` : ''}
+          </div>
+        </div>`;
+    };
+
+    const itensHtml = chamados.map(cardChamado).join('');
 
     document.getElementById('hist-usr-body').outerHTML = `
-      <div>
-        ${resumoHtml}
-        <div class="ht-timeline" style="padding:1rem">${itensHtml}</div>
-      </div>
-    `;
+      <div style="background:rgba(0,0,0,.015)">
+        ${statsHtml}
+        <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:.85rem">
+          ${itensHtml}
+        </div>
+      </div>`;
   } catch (err) {
     const body = document.getElementById('hist-usr-body');
     if (body) body.innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro de conexão.</div>';
