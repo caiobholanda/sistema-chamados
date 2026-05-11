@@ -391,6 +391,11 @@ function abrirMovModal(itemId, tipoMov) {
 
   const showCor = cores.length > 1;
 
+  // Setores que atualmente têm este item alocado (para entradas)
+  const setoresComItem = tipoMov === 'entrada' && item.alocacoes && item.alocacoes.length
+    ? [...new Set(item.alocacoes.map(a => a.setor).filter(Boolean))]
+    : [];
+
   document.getElementById('mov-modal-body').innerHTML = `
     <form id="form-mov" style="display:flex;flex-direction:column;gap:.8rem">
       ${showCor ? `
@@ -405,6 +410,16 @@ function abrirMovModal(itemId, tipoMov) {
         <label class="form-label">Quantidade</label>
         <input class="form-control" id="mov-qtd" type="number" min="1" value="1">
       </div>
+      ${tipoMov === 'entrada' && setoresComItem.length > 0 ? `
+      <div class="form-group">
+        <label class="form-label">Veio de algum setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <select class="form-control" id="mov-setor-origem">
+          <option value="">— Não / Nova compra —</option>
+          ${setoresComItem.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
+        </select>
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">Se selecionado, a etiqueta desse setor será removida da coluna "Com setores"</div>
+      </div>
+      ` : ''}
       ${tipoMov === 'saida' ? `
       <div class="form-group">
         <label class="form-label">Setor de destino <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
@@ -430,12 +445,13 @@ function abrirMovModal(itemId, tipoMov) {
     const cor = document.getElementById('mov-cor').value;
     const qtd = parseInt(document.getElementById('mov-qtd').value, 10);
     const obs = document.getElementById('mov-obs').value.trim();
-    const setor = tipoMov === 'saida' ? (document.getElementById('mov-setor')?.value.trim() || '') : '';
+    const setor_destino = tipoMov === 'saida' ? (document.getElementById('mov-setor')?.value.trim() || '') : '';
+    const setor_origem = tipoMov === 'entrada' ? (document.getElementById('mov-setor-origem')?.value.trim() || '') : '';
     if (!qtd || qtd < 1) { mostrarToast('Quantidade inválida', 'erro'); btn.disabled = false; btn.textContent = tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'; return; }
     try {
       const r = await api(`/api/admin/estoque/itens/${itemId}/movimentacao`, {
         method: 'POST',
-        body: JSON.stringify({ tipo: tipoMov, cor, quantidade: qtd, observacao: obs, setor_destino: setor }),
+        body: JSON.stringify({ tipo: tipoMov, cor, quantidade: qtd, observacao: obs, setor_destino, setor_origem }),
       });
       if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'; return; }
       fecharMovModal();
@@ -491,7 +507,11 @@ async function verHistorico(itemId, nomeItem) {
                 </td>
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(COR_LABELS[m.cor] || m.cor) || '—'}</td>
                 <td style="text-align:center;font-weight:600">${m.quantidade}</td>
-                <td style="font-size:.82rem">${m.setor_destino ? `<span class="itens-cat-tag" style="font-size:.72rem">${esc(m.setor_destino)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="font-size:.82rem">${
+                  m.setor_destino ? `<span class="itens-cat-tag" style="font-size:.72rem">${esc(m.setor_destino)}</span>`
+                  : m.setor_origem ? `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--navy)">← ${esc(m.setor_origem)}</span>`
+                  : '<span style="color:var(--text-muted)">—</span>'
+                }</td>
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(m.admin_nome) || '—'}</td>
                 <td style="font-size:.78rem;color:var(--text-muted);max-width:150px">
                   <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(m.observacao)}">${esc(m.observacao) || '—'}</div>
