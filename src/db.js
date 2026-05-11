@@ -127,6 +127,7 @@ function initDb() {
   try { db.exec("ALTER TABLE impressoras ADD COLUMN numero_serie TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN chamado_id INTEGER"); } catch {}
   try { db.exec("ALTER TABLE estoque_itens ADD COLUMN qtd_usado INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_destino TEXT DEFAULT ''"); } catch {}
   // Fix model name for SELB 3Y24 (WF5890 → WF-C5890)
   try { db.exec("UPDATE impressoras SET nome = 'Epson WF-C5890' WHERE selb = '3Y24' AND nome = 'EPSON WF5890'"); } catch {}
   // Add ADE4 impressora if not yet registered
@@ -602,7 +603,20 @@ function deletarInventario(id) {
 // ── Estoque de Itens ──────────────────────────────────────
 
 function listarEstoqueItens() {
-  return getDb().prepare('SELECT * FROM estoque_itens ORDER BY nome ASC').all();
+  const db = getDb();
+  const itens = db.prepare('SELECT * FROM estoque_itens ORDER BY nome ASC').all();
+  const alocacoes = db.prepare(`
+    SELECT item_id, setor_destino, cor, SUM(quantidade) as total
+    FROM estoque_movimentacoes
+    WHERE tipo = 'saida' AND setor_destino IS NOT NULL AND setor_destino != ''
+    GROUP BY item_id, setor_destino, cor
+  `).all();
+  const alocMap = {};
+  for (const a of alocacoes) {
+    if (!alocMap[a.item_id]) alocMap[a.item_id] = [];
+    alocMap[a.item_id].push({ setor: a.setor_destino, cor: a.cor, total: a.total });
+  }
+  return itens.map(i => ({ ...i, alocacoes: alocMap[i.id] || [] }));
 }
 
 function buscarEstoqueItemPorId(id) {
@@ -638,12 +652,12 @@ function deletarEstoqueItem(id) {
   getDb().prepare('DELETE FROM estoque_itens WHERE id = ?').run(id);
 }
 
-function registrarMovimentacao(item_id, tipo, cor, quantidade, admin_nome, observacao, chamado_id) {
+function registrarMovimentacao(item_id, tipo, cor, quantidade, admin_nome, observacao, chamado_id, setor_destino) {
   const db = getDb();
   db.prepare(`
-    INSERT INTO estoque_movimentacoes (item_id, tipo, cor, quantidade, admin_nome, observacao, chamado_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(item_id, tipo, cor || '', quantidade, admin_nome || '', observacao || '', chamado_id || null);
+    INSERT INTO estoque_movimentacoes (item_id, tipo, cor, quantidade, admin_nome, observacao, chamado_id, setor_destino)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(item_id, tipo, cor || '', quantidade, admin_nome || '', observacao || '', chamado_id || null, setor_destino || '');
 
   // Update stock quantity
   const sinal = tipo === 'entrada' ? 1 : -1;

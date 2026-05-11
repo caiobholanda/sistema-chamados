@@ -74,6 +74,18 @@ function qtdCell(v, tipo) {
   return '<span style="color:var(--text-muted)">—</span>';
 }
 
+function formatAlocacoes(alocacoes) {
+  if (!alocacoes || !alocacoes.length) return '<span style="color:var(--text-muted)">—</span>';
+  const map = {};
+  for (const a of alocacoes) {
+    if (!map[a.setor]) map[a.setor] = 0;
+    map[a.setor] += a.total;
+  }
+  return Object.entries(map)
+    .map(([setor, total]) => `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--navy)">${esc(setor)} (${total})</span>`)
+    .join(' ');
+}
+
 function renderToner(lista) {
   const el = document.getElementById('estoque-lista');
   const urgentes = lista.filter(i => i.urgente).length;
@@ -103,6 +115,7 @@ function renderToner(lista) {
             <th style="text-align:center">Amarelo</th>
             <th style="text-align:center">Geral</th>
             <th style="text-align:center">Urgente</th>
+            <th>Com setores</th>
             <th></th>
           </tr>
         </thead>
@@ -117,6 +130,7 @@ function renderToner(lista) {
               <td style="text-align:center">${item.tipo === 'toner_color' ? qtdCell(item.qtd_amarelo) : '<span style="color:var(--text-muted)">—</span>'}</td>
               <td style="text-align:center">${(item.tipo === 'resma' || item.tipo === 'outro') ? qtdCell(item.qtd_geral) : '<span style="color:var(--text-muted)">—</span>'}</td>
               <td style="text-align:center">${item.urgente ? '<span style="color:var(--danger);font-weight:700">SIM</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="font-size:.8rem">${formatAlocacoes(item.alocacoes)}</td>
               <td style="white-space:nowrap">
                 <button class="btn btn-secondary btn-sm" onclick="abrirMovModal(${item.id},'entrada')" title="Registrar entrada">Entrada</button>
                 <button class="btn btn-ghost btn-sm" onclick="abrirMovModal(${item.id},'saida')" title="Registrar saída">Saída</button>
@@ -391,9 +405,16 @@ function abrirMovModal(itemId, tipoMov) {
         <label class="form-label">Quantidade</label>
         <input class="form-control" id="mov-qtd" type="number" min="1" value="1">
       </div>
+      ${tipoMov === 'saida' ? `
+      <div class="form-group">
+        <label class="form-label">Setor de destino <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <input class="form-control" id="mov-setor" type="text" placeholder="Ex: Recepção, RH, Governança…">
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">Preencha se o toner está indo para um setor (não para uso imediato)</div>
+      </div>
+      ` : ''}
       <div class="form-group">
         <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-        <input class="form-control" id="mov-obs" type="text" placeholder="Ex: Enviado para Recepção…">
+        <input class="form-control" id="mov-obs" type="text" placeholder="${tipoMov === 'saida' ? 'Ex: instalado na impressora da Recepção…' : 'Ex: compra de reposição…'}">
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharMovModal()">Cancelar</button>
@@ -409,11 +430,12 @@ function abrirMovModal(itemId, tipoMov) {
     const cor = document.getElementById('mov-cor').value;
     const qtd = parseInt(document.getElementById('mov-qtd').value, 10);
     const obs = document.getElementById('mov-obs').value.trim();
+    const setor = tipoMov === 'saida' ? (document.getElementById('mov-setor')?.value.trim() || '') : '';
     if (!qtd || qtd < 1) { mostrarToast('Quantidade inválida', 'erro'); btn.disabled = false; btn.textContent = tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'; return; }
     try {
       const r = await api(`/api/admin/estoque/itens/${itemId}/movimentacao`, {
         method: 'POST',
-        body: JSON.stringify({ tipo: tipoMov, cor, quantidade: qtd, observacao: obs }),
+        body: JSON.stringify({ tipo: tipoMov, cor, quantidade: qtd, observacao: obs, setor_destino: setor }),
       });
       if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = tipoMov === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'; return; }
       fecharMovModal();
@@ -453,6 +475,7 @@ async function verHistorico(itemId, nomeItem) {
               <th>Tipo</th>
               <th>Cor</th>
               <th style="text-align:center">Qtd</th>
+              <th>Setor</th>
               <th>Admin</th>
               <th>Observação</th>
             </tr>
@@ -468,6 +491,7 @@ async function verHistorico(itemId, nomeItem) {
                 </td>
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(COR_LABELS[m.cor] || m.cor) || '—'}</td>
                 <td style="text-align:center;font-weight:600">${m.quantidade}</td>
+                <td style="font-size:.82rem">${m.setor_destino ? `<span class="itens-cat-tag" style="font-size:.72rem">${esc(m.setor_destino)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(m.admin_nome) || '—'}</td>
                 <td style="font-size:.78rem;color:var(--text-muted);max-width:150px">
                   <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(m.observacao)}">${esc(m.observacao) || '—'}</div>
