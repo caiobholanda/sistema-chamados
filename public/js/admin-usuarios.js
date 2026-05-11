@@ -164,6 +164,10 @@ document.getElementById('modal-confirmar-overlay').addEventListener('click', e =
   if (!r.ok) { location.replace('/admin-login.html'); return; }
   meAdmin = await r.json();
 
+  // Expõe para chamado-modal.js (que abre quando admin clica em #ID no histórico)
+  window.adminInfo = meAdmin;
+  window._cmApi = api;
+
   if (!meAdmin.is_master) {
     document.getElementById('tab-admins').style.display = 'none';
     document.getElementById('section-admins').style.display = 'none';
@@ -174,6 +178,16 @@ document.getElementById('modal-confirmar-overlay').addEventListener('click', e =
     await Promise.all([carregarAdmins(), carregarUsuarios()]);
   }
 })();
+
+// Listener pro botão X do modal de chamado (chamado-modal.js usa este overlay)
+document.getElementById('cm-btn-fechar-modal').addEventListener('click', () => {
+  if (typeof window.fecharChamadoModal === 'function') window.fecharChamadoModal();
+});
+document.getElementById('cm-modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget && typeof window.fecharChamadoModal === 'function') {
+    window.fecharChamadoModal();
+  }
+});
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await api('/api/admin/logout', { method: 'POST' });
@@ -971,166 +985,16 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
   }
 }
 
-// ── Popup de detalhes do chamado (read-only, sobreposto ao modal de histórico) ──
-
-const ACAO_LABEL_PC = {
-  prioridade_definida:  'Prioridade definida',
-  status_alterado:      'Status alterado',
-  prazo_alterado:       'Prazo alterado',
-  solucao_registrada:   'Solução registrada',
-  assumido:             'Chamado assumido',
-  transferido:          'Chamado transferido',
-  categoria_alterada:   'Categoria alterada',
-  avaliacao_registrada: 'Avaliação registrada',
-  descricao_alterada:   'Chamado reaberto',
-};
+// ── Popup do chamado (usa o chamado-modal.js compartilhado) ──
 
 async function abrirPopupChamado(chamadoId) {
-  const existing = document.getElementById('pc-overlay');
-  if (existing) existing.remove();
-
-  const overlay = document.createElement('div');
-  overlay.id = 'pc-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:3100;display:flex;align-items:center;justify-content:center;background:rgba(13,27,42,.6);backdrop-filter:blur(3px);padding:1.5rem';
-  overlay.innerHTML = `
-    <div style="background:var(--surface);width:min(700px,100%);max-height:90vh;display:flex;flex-direction:column;border-radius:var(--radius-lg);box-shadow:0 24px 60px rgba(0,0,0,.4);overflow:hidden;border:1px solid var(--border)">
-      <div style="background:var(--navy);color:#fff;padding:1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-shrink:0">
-        <div style="display:flex;align-items:center;gap:.6rem;min-width:0">
-          <span style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:1rem;font-weight:700;color:#fff;background:var(--gold);padding:.25rem .6rem;border-radius:var(--radius-sm)">#${chamadoId}</span>
-          <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.3rem;font-weight:600">Detalhes do chamado</span>
-        </div>
-        <button id="pc-fechar" aria-label="Fechar" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;width:32px;height:32px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div id="pc-body" style="flex:1;overflow-y:auto;background:var(--bg)">
-        <div style="padding:3rem 1rem;text-align:center;color:var(--text-muted)">
-          <div class="spinner" style="margin:0 auto"></div>
-          <div style="margin-top:.75rem;font-size:.85rem">Carregando detalhes…</div>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  const fechar = () => overlay.remove();
-  document.getElementById('pc-fechar').addEventListener('click', fechar);
-  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
-  document.addEventListener('keydown', function esc(e) {
-    if (e.key === 'Escape') { fechar(); document.removeEventListener('keydown', esc); }
-  });
-
-  try {
-    const [rChamado, rMsgs] = await Promise.all([
-      fetch(`/api/admin/chamados/${chamadoId}`),
-      fetch(`/api/admin/chamados/${chamadoId}/mensagens`),
-    ]);
-    if (!rChamado.ok) {
-      document.getElementById('pc-body').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--danger)">Erro ao carregar chamado.</div>';
-      return;
-    }
-    const c = await rChamado.json();
-    const msgs = rMsgs.ok ? await rMsgs.json() : [];
-
-    const corStatus = STATUS_COR_HIST[c.status] || '#6b7280';
-    const statusLabel = STATUS_LABEL_HIST[c.status] || c.status;
-    const PRIO_COR_PC = { urgente: '#B91C1C', alta: '#C2410C', media: '#1D4ED8', baixa: '#15803D' };
-    const prioLabel = c.prioridade ? PRIO_LABEL_HIST[c.prioridade] : '';
-    const prioCor = c.prioridade ? PRIO_COR_PC[c.prioridade] : null;
-
-    const historicoHtml = (c.historico && c.historico.length) ? `
-      <div style="padding:.85rem 1.25rem;background:var(--surface);border-top:1px solid var(--border)">
-        <div style="font-size:.66rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:.6rem">Linha do tempo</div>
-        <div style="position:relative;padding-left:1.1rem">
-          <div style="position:absolute;left:.3rem;top:.3rem;bottom:.3rem;width:2px;background:var(--border)"></div>
-          ${c.historico.map(h => `
-            <div style="position:relative;margin-bottom:.7rem;font-size:.78rem">
-              <div style="position:absolute;left:-.95rem;top:.18rem;width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px var(--surface)"></div>
-              <div style="color:var(--text)"><strong>${ACAO_LABEL_PC[h.acao] || h.acao}</strong>${h.valor_novo ? `: <span style="color:var(--text-secondary)">${escHist(String(h.valor_novo).slice(0, 80))}</span>` : ''}</div>
-              <div style="color:var(--text-muted);font-size:.72rem;margin-top:.1rem">${h.admin_nome || 'Sistema'} · ${fmtDHist(h.timestamp)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>` : '';
-
-    const chatHtml = msgs.length ? `
-      <div style="padding:.85rem 1.25rem;background:var(--surface);border-top:1px solid var(--border)">
-        <div style="font-size:.66rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:.6rem">Conversa (${msgs.length} ${msgs.length === 1 ? 'mensagem' : 'mensagens'})</div>
-        <div style="display:flex;flex-direction:column;gap:.5rem;max-height:240px;overflow-y:auto;padding-right:.25rem">
-          ${msgs.map(m => `
-            <div style="display:flex;flex-direction:column;${m.autor_tipo === 'admin' ? 'align-items:flex-end' : 'align-items:flex-start'}">
-              <div style="font-size:.65rem;color:var(--text-muted);margin-bottom:.15rem">${escHist(m.autor_nome)} · ${fmtDHist(m.criado_em)}</div>
-              <div style="max-width:80%;padding:.5rem .75rem;border-radius:8px;font-size:.82rem;line-height:1.4;background:${m.autor_tipo === 'admin' ? 'var(--navy)' : 'var(--gold-pale)'};color:${m.autor_tipo === 'admin' ? '#fff' : 'var(--text)'};word-break:break-word">${escHist(m.mensagem)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>` : '';
-
-    document.getElementById('pc-body').innerHTML = `
-      <div style="padding:1.25rem 1.5rem;background:var(--surface);border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem">
-          <span style="background:${corStatus};color:#fff;font-size:.66rem;font-weight:700;padding:.22rem .55rem;border-radius:3px;text-transform:uppercase;letter-spacing:.06em">${statusLabel}</span>
-          ${prioLabel ? `<span style="color:${prioCor};border:1px solid ${prioCor};font-size:.66rem;font-weight:600;padding:.18rem .5rem;border-radius:3px;text-transform:uppercase;letter-spacing:.05em">${prioLabel}</span>` : ''}
-          ${c.categoria ? `<span style="background:var(--gold-pale);color:var(--gold-dark);font-size:.66rem;font-weight:600;padding:.18rem .5rem;border-radius:3px;text-transform:uppercase;letter-spacing:.05em">${escHist(c.categoria)}</span>` : ''}
-        </div>
-        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.25rem;font-weight:600;color:var(--text);line-height:1.2">${escHist(c.nome)}</div>
-        <div style="margin-top:.25rem;font-size:.82rem;color:var(--text-muted)">${escHist(c.setor)} · Ramal <span style="font-family:monospace">${escHist(c.ramal) || '—'}</span></div>
-      </div>
-
-      <div style="padding:.85rem 1.25rem;background:var(--surface);border-bottom:1px solid var(--border)">
-        <div style="font-size:.66rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:.4rem">Descrição</div>
-        <div style="font-size:.88rem;line-height:1.55;color:var(--text);white-space:pre-wrap;word-break:break-word">${escHist(c.descricao)}</div>
-        ${c.anexo_path ? `
-          <div style="margin-top:.6rem">
-            <a href="/api/chamados/${c.id}/anexo" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--gold-dark);text-decoration:none;padding:.35rem .65rem;border:1px solid var(--gold);background:var(--gold-pale);border-radius:var(--radius-sm);font-weight:600">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-              ${escHist(c.anexo_nome_original || c.anexo_path)}
-            </a>
-          </div>` : ''}
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);padding:.85rem 1.25rem;background:var(--surface-2);border-bottom:1px solid var(--border);gap:.5rem;font-size:.75rem">
-        <div>
-          <div style="font-size:.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:.15rem">Responsável</div>
-          <div style="color:var(--text);font-weight:500">${c.admin_nome ? escHist(c.admin_nome) : '<span style="color:var(--text-muted);font-style:italic;font-weight:400">Não atribuído</span>'}</div>
-        </div>
-        <div>
-          <div style="font-size:.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:.15rem">Aberto em</div>
-          <div style="color:var(--text);font-variant-numeric:tabular-nums">${fmtDHist(c.criado_em)}</div>
-        </div>
-        <div>
-          <div style="font-size:.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:.15rem">Prazo</div>
-          <div style="color:var(--text);font-variant-numeric:tabular-nums">${c.prazo ? fmtDHist(c.prazo) : '<span style="color:var(--text-muted);font-style:italic">—</span>'}</div>
-        </div>
-      </div>
-
-      ${c.solucao ? `
-        <div style="padding:.85rem 1.25rem;background:var(--surface);border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <span style="font-size:.66rem;color:var(--gold-dark);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Solução aplicada</span>
-          </div>
-          <div style="font-size:.85rem;line-height:1.5;color:var(--text);white-space:pre-wrap;word-break:break-word">${escHist(c.solucao)}</div>
-        </div>` : ''}
-
-      ${c.nota != null ? `
-        <div style="padding:.85rem 1.25rem;background:var(--gold-pale);border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:.55rem;flex-wrap:wrap">
-            <span style="font-size:.66rem;color:var(--gold-dark);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Avaliação do solicitante</span>
-            <div style="display:flex;align-items:center;gap:.4rem">
-              ${Array.from({length:10},(_,i)=>`<span style="color:${i<Math.round(c.nota)?'var(--gold)':'var(--border-strong)'};font-size:.9rem;line-height:1">★</span>`).join('')}
-              <strong style="font-size:.9rem;color:var(--gold-dark);font-family:'Cormorant Garamond',Georgia,serif;font-weight:700">${c.nota}/10</strong>
-            </div>
-          </div>
-          ${c.comentario_avaliacao ? `<div style="margin-top:.4rem;font-size:.82rem;font-style:italic;color:var(--text-secondary);border-left:2px solid var(--gold);padding:.05rem 0 .05rem .55rem">"${escHist(c.comentario_avaliacao)}"</div>` : ''}
-        </div>` : ''}
-
-      ${historicoHtml}
-      ${chatHtml}
-    `;
-  } catch (err) {
-    const body = document.getElementById('pc-body');
-    if (body) body.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--danger)">Erro de conexão.</div>';
+  // Usa o modal de chamado completo (mesmo do painel principal)
+  // O z-index do cm-modal-overlay foi setado para 3100 no HTML
+  // para ficar por cima do modal de histórico (3000).
+  if (typeof window.abrirChamadoModal === 'function') {
+    window.abrirChamadoModal(chamadoId);
+  } else {
+    console.warn('[admin-usuarios] chamado-modal.js não carregado');
   }
 }
 

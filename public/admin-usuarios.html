@@ -263,6 +263,20 @@
   </div>
 </div>
 
+<!-- Modal de chamado (reutilizado quando admin clica em #ID no histórico do usuário) -->
+<!-- Z-index alto (3100) para ficar por cima do modal de histórico (3000) -->
+<div class="modal-overlay" id="cm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cm-modal-title" style="z-index:3100">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="cm-modal-title">Chamado</h2>
+      <button class="modal-close" id="cm-btn-fechar-modal" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="cm-modal-body"></div>
+  </div>
+</div>
+
 <script src="/js/admin-usuarios.js?v=2"></script>
+<script src="/js/historico-modal.js"></script>
+<script src="/js/chamado-modal.js"></script>
 </body>
 </html>
