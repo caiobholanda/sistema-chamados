@@ -179,6 +179,34 @@ function fmtData(d) {
     .toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
 }
 
+function fmtPrazo(prazo) {
+  if (!prazo) return '';
+  const iso = prazo.includes('T') ? prazo : prazo.replace(' ', 'T');
+  const dt = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  const agora = new Date();
+  const diffMin = (dt - agora) / 60000;
+
+  const dataFmt = dt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
+
+  let cor, icone, label;
+  if (diffMin < 0) {
+    cor = '#dc2626'; icone = '⚠'; label = 'Vencido';
+  } else if (diffMin <= 10) {
+    cor = '#dc2626'; icone = '🚨'; label = 'Vence em ' + Math.ceil(diffMin) + 'min';
+  } else if (diffMin <= 60) {
+    cor = '#ea580c'; icone = '⏰'; label = 'Vence em ' + Math.ceil(diffMin) + 'min';
+  } else if (diffMin <= 1440) {
+    const h = Math.ceil(diffMin / 60);
+    cor = '#d97706'; icone = '⚠'; label = 'Vence em ' + h + 'h';
+  } else {
+    cor = '#16a34a'; icone = '📅'; label = dataFmt;
+  }
+
+  return `<div style="display:flex;align-items:center;gap:.3rem;margin-top:.35rem;font-size:.75rem;color:${cor};font-weight:600">
+    <span>${icone}</span><span>Prazo: ${label}</span>
+  </div>`;
+}
+
 async function api(url, opts = {}) {
   const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
   if (r.status === 401) { renderLogin(); throw new Error('401'); }
@@ -309,6 +337,7 @@ async function carregarChamados() {
         <div class="mob-card-setor">${c.usuario_setor || c.setor}</div>
         <div class="mob-card-desc">${c.descricao.length > 120 ? c.descricao.slice(0, 120) + '…' : c.descricao}</div>
         ${c.admin_nome ? `<div class="mob-card-resp">Responsável: ${c.admin_nome}</div>` : ''}
+        ${fmtPrazo(c.prazo)}
       </div>
     `).join('');
 
