@@ -323,11 +323,11 @@ router.get('/push/vapid-public-key', requireAdmin, (req, res) => {
 
 router.post('/push/subscribe', requireAdmin, (req, res) => {
   try {
-    const { endpoint, keys } = req.body;
+    const { endpoint, keys, is_mobile } = req.body;
     if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
       return res.status(400).json({ erro: 'Dados de subscription inválidos' });
     }
-    db.salvarPushSubscription(req.admin.sub, { endpoint, p256dh: keys.p256dh, auth: keys.auth });
+    db.salvarPushSubscription(req.admin.sub, { endpoint, p256dh: keys.p256dh, auth: keys.auth, is_mobile: !!is_mobile });
     return res.json({ mensagem: 'Inscrito' });
   } catch (err) {
     console.error(err);

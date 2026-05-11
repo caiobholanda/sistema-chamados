@@ -71,13 +71,19 @@ async function _enviar(sub, payload) {
 async function enviarParaAdmin(adminId, titulo, corpo, url) {
   if (!initialized) init();
   const subs = db.getDb().prepare('SELECT * FROM push_subscriptions WHERE admin_id = ?').all(adminId);
-  for (const sub of subs) await _enviar(sub, { title: titulo, body: corpo, url: url || '/admin-painel.html' });
+  for (const sub of subs) {
+    const targetUrl = sub.is_mobile ? '/mobile' : (url || '/admin-painel.html');
+    await _enviar(sub, { title: titulo, body: corpo, url: targetUrl });
+  }
 }
 
 async function enviarParaTodos(titulo, corpo, url) {
   if (!initialized) init();
   const subs = db.getDb().prepare('SELECT * FROM push_subscriptions').all();
-  for (const sub of subs) await _enviar(sub, { title: titulo, body: corpo, url: url || '/admin-painel.html' });
+  for (const sub of subs) {
+    const targetUrl = sub.is_mobile ? '/mobile' : (url || '/admin-painel.html');
+    await _enviar(sub, { title: titulo, body: corpo, url: targetUrl });
+  }
 }
 
 module.exports = { init, getPublicKey, enviarParaAdmin, enviarParaTodos };

@@ -129,6 +129,7 @@ function initDb() {
   try { db.exec("ALTER TABLE estoque_itens ADD COLUMN qtd_usado INTEGER DEFAULT 0"); } catch {}
   try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_destino TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_origem TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE push_subscriptions ADD COLUMN is_mobile INTEGER DEFAULT 0"); } catch {}
   // Fix model name for SELB 3Y24 (WF5890 → WF-C5890)
   try { db.exec("UPDATE impressoras SET nome = 'Epson WF-C5890' WHERE selb = '3Y24' AND nome = 'EPSON WF5890'"); } catch {}
   // Add ADE4 impressora if not yet registered
@@ -711,11 +712,11 @@ function deletarImpressora(id) {
   getDb().prepare('DELETE FROM impressoras WHERE id = ?').run(id);
 }
 
-function salvarPushSubscription(adminId, { endpoint, p256dh, auth }) {
+function salvarPushSubscription(adminId, { endpoint, p256dh, auth, is_mobile }) {
   getDb().prepare(`
-    INSERT OR REPLACE INTO push_subscriptions (admin_id, endpoint, p256dh, auth)
-    VALUES (?, ?, ?, ?)
-  `).run(adminId, endpoint, p256dh, auth);
+    INSERT OR REPLACE INTO push_subscriptions (admin_id, endpoint, p256dh, auth, is_mobile)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(adminId, endpoint, p256dh, auth, is_mobile ? 1 : 0);
 }
 
 function removerPushSubscription(adminId, endpoint) {

@@ -48,7 +48,7 @@ async function _subscribePush() {
     await fetch('/api/admin/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sub.toJSON()),
+      body: JSON.stringify({ ...sub.toJSON(), is_mobile: true }),
     });
   } catch (err) {
     console.warn('[Push] _subscribePush falhou:', err.message || err);
