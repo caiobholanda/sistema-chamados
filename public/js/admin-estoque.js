@@ -393,7 +393,6 @@ function abrirMovModal(itemId, tipoMov) {
 
   // Setores que atualmente têm este item alocado (para entradas)
   const setoresComItem = (item.alocacoes || []).map(a => a.setor).filter(Boolean);
-  const isToner = item.tipo === 'toner_mono' || item.tipo === 'toner_color';
 
   document.getElementById('mov-modal-body').innerHTML = `
     <form id="form-mov" style="display:flex;flex-direction:column;gap:.8rem">
@@ -409,7 +408,7 @@ function abrirMovModal(itemId, tipoMov) {
         <label class="form-label">Quantidade</label>
         <input class="form-control" id="mov-qtd" type="number" min="1" value="1">
       </div>
-      ${tipoMov === 'entrada' && isToner ? `
+      ${tipoMov === 'entrada' ? `
       <div class="form-group">
         <label class="form-label">Veio de algum setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
         ${setoresComItem.length > 0 ? `
