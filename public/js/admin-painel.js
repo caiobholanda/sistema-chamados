@@ -259,9 +259,6 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('filtro-status').value = '';
   document.getElementById('filtro-setor').value = '';
   document.getElementById('filtro-admin').value = '';
-  document.getElementById('filtro-inicio').value = '';
-  document.getElementById('filtro-fim').value = '';
-  document.getElementById('filtro-prioridade').value = '';
   const fid = document.getElementById('filtro-id');
   if (fid) fid.value = '';
   carregarChamados();
@@ -307,9 +304,6 @@ async function carregarChamados(silencioso = false) {
   const statusFiltro = document.getElementById('filtro-status').value;
   const setor = document.getElementById('filtro-setor').value;
   const adminId = document.getElementById('filtro-admin').value;
-  const inicio = document.getElementById('filtro-inicio').value;
-  const fim = document.getElementById('filtro-fim').value;
-  const prioridade = document.getElementById('filtro-prioridade').value;
 
   if (abaAtiva === 'meus') {
     params.set('admin_id', adminInfo.id);
@@ -330,9 +324,6 @@ async function carregarChamados(silencioso = false) {
   }
 
   if (setor) params.set('setor', setor);
-  if (inicio) params.set('periodo_inicio', inicio);
-  if (fim) params.set('periodo_fim', fim);
-  if (prioridade) params.set('prioridade', prioridade);
 
   try {
     const r = await api('/api/admin/chamados?' + params);
