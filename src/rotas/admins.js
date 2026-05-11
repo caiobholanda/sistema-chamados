@@ -372,6 +372,18 @@ router.get('/usuarios', requireMaster, (req, res) => {
   }
 });
 
+// Histórico de chamados de um usuário do portal específico
+router.get('/portal-usuarios/:id/chamados', requireAdmin, (req, res) => {
+  try {
+    const usuarioId = parseInt(req.params.id, 10);
+    if (!usuarioId) return res.status(400).json({ erro: 'ID inválido' });
+    return res.json(db.listarChamadosPorUsuario(usuarioId));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.post('/usuarios', requireMaster, async (req, res) => {
   try {
     let { nome_completo, email, senha, is_master } = req.body;

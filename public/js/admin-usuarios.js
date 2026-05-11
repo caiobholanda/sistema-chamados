@@ -542,6 +542,7 @@ function renderUsuarios() {
                 <td style="font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td>
                   <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+                    <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoChamadosUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">Histórico</button>
                     <button class="btn btn-secondary btn-sm" onclick="abrirModalEditarUsuario(${u.id})">Editar</button>
                     <button class="btn btn-secondary btn-sm" onclick="toggleUsuario(${u.id}, ${u.ativo !== 0})">${u.ativo !== 0 ? 'Desativar' : 'Reativar'}</button>
                   </div>
@@ -710,5 +711,141 @@ async function toggleUsuario(id, ativo) {
   document.getElementById('badge-usuarios-inativos').textContent = inativos.length || '';
   renderUsuarios();
   msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+}
+
+// ── Histórico de chamados de um usuário ───────────────────────────
+
+const STATUS_LABEL_HIST = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+const PRIO_LABEL_HIST   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+const STATUS_COR_HIST   = { aberto: '#2563eb', em_andamento: '#d97706', concluido: '#16a34a', encerrado: '#6b7280' };
+
+function fmtDHist(d) {
+  if (!d) return '—';
+  const iso = d.includes('T') ? d : d.replace(' ', 'T');
+  return new Date(iso.endsWith('Z') ? iso : iso + 'Z')
+    .toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
+}
+
+function escHist(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
+  // Remove modal anterior se existir
+  const existing = document.getElementById('hist-overlay');
+  if (existing) existing.remove();
+
+  // Cria overlay com loader
+  const overlay = document.createElement('div');
+  overlay.id = 'hist-overlay';
+  overlay.className = 'hist-overlay open';
+  overlay.innerHTML = `
+    <div class="hist-modal">
+      <div class="hist-header">
+        <div class="hist-header-info">
+          <div class="hist-titulo">Histórico de chamados</div>
+          <div class="hist-sub">${escHist(nomeUsuario)}</div>
+        </div>
+        <button class="hist-fechar" id="hist-fechar" aria-label="Fechar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="hist-body">
+        <div id="hist-usr-body" style="padding:1rem;text-align:center;color:var(--text-muted)">
+          <div class="spinner" style="margin:0 auto"></div>
+          <div style="margin-top:.5rem;font-size:.85rem">Carregando chamados…</div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const fechar = () => overlay.remove();
+  document.getElementById('hist-fechar').addEventListener('click', fechar);
+  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
+  document.addEventListener('keydown', function esc(e) {
+    if (e.key === 'Escape') { fechar(); document.removeEventListener('keydown', esc); }
+  });
+
+  try {
+    const r = await fetch(`/api/admin/portal-usuarios/${usuarioId}/chamados`);
+    if (!r.ok) {
+      document.getElementById('hist-usr-body').innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro ao carregar chamados.</div>';
+      return;
+    }
+    const chamados = await r.json();
+
+    if (!chamados.length) {
+      document.getElementById('hist-usr-body').innerHTML = `
+        <div style="padding:2rem;text-align:center;color:var(--text-muted)">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4;margin-bottom:.5rem">
+            <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+          </svg>
+          <div>Este usuário ainda não abriu nenhum chamado.</div>
+        </div>
+      `;
+      return;
+    }
+
+    // Resumo no topo
+    const total = chamados.length;
+    const abertos = chamados.filter(c => ['aberto','em_andamento'].includes(c.status)).length;
+    const concluidos = chamados.filter(c => c.status === 'concluido').length;
+    const encerrados = chamados.filter(c => c.status === 'encerrado').length;
+    const mediaAvaliacao = (() => {
+      const avaliados = chamados.filter(c => c.nota != null);
+      if (!avaliados.length) return null;
+      return (avaliados.reduce((s, c) => s + c.nota, 0) / avaliados.length).toFixed(1);
+    })();
+
+    const resumoHtml = `
+      <div style="display:flex;gap:.6rem;padding:.75rem 1rem;background:rgba(0,0,0,.02);border-bottom:1px solid var(--border);flex-wrap:wrap;font-size:.78rem">
+        <div><strong>${total}</strong> ${total === 1 ? 'chamado' : 'chamados'}</div>
+        ${abertos ? `<div style="color:#2563eb">• ${abertos} em aberto</div>` : ''}
+        ${concluidos ? `<div style="color:#16a34a">• ${concluidos} concluído${concluidos > 1 ? 's' : ''}</div>` : ''}
+        ${encerrados ? `<div style="color:#6b7280">• ${encerrados} encerrado${encerrados > 1 ? 's' : ''}</div>` : ''}
+        ${mediaAvaliacao ? `<div style="color:#f59e0b;margin-left:auto">★ Média: ${mediaAvaliacao}/10</div>` : ''}
+      </div>
+    `;
+
+    const itensHtml = chamados.map(c => {
+      const cor = STATUS_COR_HIST[c.status] || '#6b7280';
+      const statusLabel = STATUS_LABEL_HIST[c.status] || c.status;
+      const prioLabel = c.prioridade ? PRIO_LABEL_HIST[c.prioridade] : '';
+      return `
+        <div class="ht-item">
+          <div class="ht-dot" style="background:${cor};font-family:monospace;font-size:.65rem;font-weight:700;color:#fff">#${c.id}</div>
+          <div class="ht-content">
+            <div class="ht-titulo" style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">
+              <span style="background:${cor};color:#fff;font-size:.7rem;font-weight:600;padding:.12rem .4rem;border-radius:4px">${statusLabel}</span>
+              ${prioLabel ? `<span style="background:rgba(0,0,0,.06);font-size:.7rem;font-weight:500;padding:.12rem .4rem;border-radius:4px">${prioLabel}</span>` : ''}
+              ${c.categoria ? `<span style="background:rgba(0,0,0,.06);font-size:.7rem;font-weight:500;padding:.12rem .4rem;border-radius:4px">${escHist(c.categoria)}</span>` : ''}
+            </div>
+            <div class="ht-sub" style="margin-top:.3rem">${escHist(c.setor)} · Ramal ${escHist(c.ramal) || '—'}</div>
+            <div class="ht-desc-box" style="margin-top:.4rem">${escHist(c.descricao)}</div>
+            ${c.solucao ? `<div style="margin-top:.4rem;padding:.5rem;background:rgba(124,58,237,.06);border-left:3px solid #7c3aed;border-radius:4px;font-size:.82rem"><strong>Solução:</strong> ${escHist(c.solucao)}</div>` : ''}
+            ${c.nota != null ? `<div style="margin-top:.4rem;font-size:.78rem;color:#f59e0b"><strong>Avaliação:</strong> ${c.nota}/10${c.comentario_avaliacao ? ` — <em style="color:var(--text-secondary)">"${escHist(c.comentario_avaliacao)}"</em>` : ''}</div>` : ''}
+            <div class="ht-meta" style="margin-top:.4rem">
+              ${c.admin_nome ? `Responsável: <strong>${escHist(c.admin_nome)}</strong> · ` : ''}
+              Aberto em ${fmtDHist(c.criado_em)}
+              ${c.concluido_em ? ` · Concluído em ${fmtDHist(c.concluido_em)}` : ''}
+              ${c.prazo ? ` · Prazo: ${fmtDHist(c.prazo)}` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('hist-usr-body').outerHTML = `
+      <div>
+        ${resumoHtml}
+        <div class="ht-timeline" style="padding:1rem">${itensHtml}</div>
+      </div>
+    `;
+  } catch (err) {
+    const body = document.getElementById('hist-usr-body');
+    if (body) body.innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro de conexão.</div>';
+  }
 }
 
