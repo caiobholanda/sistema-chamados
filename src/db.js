@@ -945,6 +945,9 @@ function atualizarPrazo(id, prazo, adminId) {
   const chamado = buscarChamadoPorId(id);
   const anterior = chamado.prazo;
   db.prepare(`UPDATE chamados SET prazo = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(prazo, id);
+  // Limpa alertas anteriores — sem isso, se 10min/1h/24h já dispararam uma vez,
+  // não disparam de novo mesmo depois do prazo ser alterado.
+  db.prepare(`DELETE FROM prazo_alertas WHERE chamado_id = ?`).run(id);
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'prazo_alterado', ?, ?)
@@ -1056,6 +1059,9 @@ function reabrirChamado(id, adminId) {
     assinatura = NULL, assinado_em = NULL, nota = NULL, comentario_avaliacao = NULL,
     atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
   `).run(id);
+  // Limpa alertas de prazo — sem isso, ao reabrir um chamado os alertas 10min/1h/24h
+  // já marcados como disparados nunca mais fariam push
+  db.prepare(`DELETE FROM prazo_alertas WHERE chamado_id = ?`).run(id);
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'status_alterado', ?, 'aberto')
@@ -1090,6 +1096,8 @@ function reabrirChamadoUsuario(id, novaDescricao) {
     assinatura = NULL, assinado_em = NULL, nota = NULL, comentario_avaliacao = NULL,
     descricao = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
   `).run(novaDescricao, id);
+  // Limpa alertas de prazo (mesma razão do reabrirChamado)
+  db.prepare(`DELETE FROM prazo_alertas WHERE chamado_id = ?`).run(id);
 
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)

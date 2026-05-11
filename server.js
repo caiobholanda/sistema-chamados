@@ -84,37 +84,53 @@ async function checarPrazos() {
   try {
     const agora = new Date();
     const chamados = getChamadosComPrazoPendente();
+    if (chamados.length === 0) {
+      console.log('[Prazo checker] nenhum chamado com prazo pendente');
+      return;
+    }
+    console.log(`[Prazo checker] verificando ${chamados.length} chamado(s)`);
     for (const c of chamados) {
       const prazoIso = c.prazo.includes('T') ? c.prazo : c.prazo.replace(' ', 'T');
       const prazo = new Date(prazoIso.endsWith('Z') ? prazoIso : prazoIso + 'Z');
       const diffMin = (prazo - agora) / 60000;
+
+      let alertou = false;
       if (diffMin > 0 && diffMin <= 10) {
         if (registrarAlertaPrazo(c.id, '10min')) {
           const msg = `Chamado #${c.id} de ${c.nome} (${c.setor}) vence em menos de 10 minutos!`;
           c.admin_responsavel_id
             ? push.enviarParaAdmin(c.admin_responsavel_id, '🚨 Prazo encerrando agora!', msg).catch(() => {})
             : push.enviarParaTodos('🚨 Prazo encerrando agora!', msg).catch(() => {});
+          console.log(`[Prazo checker] #${c.id} ALERTA 10min disparado (${Math.round(diffMin)}min restantes)`);
+          alertou = true;
         }
       }
       if (diffMin > 10 && diffMin <= 60) {
         if (registrarAlertaPrazo(c.id, '1h')) {
-          const msg = `Chamado de ${c.nome} (${c.setor}) vence em menos de 1 hora.`;
+          const msg = `Chamado #${c.id} de ${c.nome} (${c.setor}) vence em menos de 1 hora.`;
           c.admin_responsavel_id
             ? push.enviarParaAdmin(c.admin_responsavel_id, '⏰ Prazo em menos de 1 hora!', msg).catch(() => {})
             : push.enviarParaTodos('⏰ Prazo em menos de 1 hora!', msg).catch(() => {});
+          console.log(`[Prazo checker] #${c.id} ALERTA 1h disparado (${Math.round(diffMin)}min restantes)`);
+          alertou = true;
         }
       }
       if (diffMin > 60 && diffMin <= 1440) {
         if (registrarAlertaPrazo(c.id, '24h')) {
-          const msg = `Chamado de ${c.nome} (${c.setor}) vence em menos de 1 dia.`;
+          const msg = `Chamado #${c.id} de ${c.nome} (${c.setor}) vence em menos de 1 dia.`;
           c.admin_responsavel_id
             ? push.enviarParaAdmin(c.admin_responsavel_id, '⚠ Prazo em menos de 1 dia', msg).catch(() => {})
             : push.enviarParaTodos('⚠ Prazo em menos de 1 dia', msg).catch(() => {});
+          console.log(`[Prazo checker] #${c.id} ALERTA 24h disparado (${Math.round(diffMin/60)}h restantes)`);
+          alertou = true;
         }
+      }
+      if (!alertou && diffMin > 0 && diffMin <= 1440) {
+        console.log(`[Prazo checker] #${c.id} dentro de janela (${Math.round(diffMin)}min) — alerta já disparado`);
       }
     }
   } catch (err) {
-    console.error('[Prazo checker]', err);
+    console.error('[Prazo checker] erro:', err);
   }
 }
 
