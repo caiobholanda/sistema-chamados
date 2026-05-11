@@ -262,8 +262,21 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('filtro-inicio').value = '';
   document.getElementById('filtro-fim').value = '';
   document.getElementById('filtro-prioridade').value = '';
+  const fid = document.getElementById('filtro-id');
+  if (fid) fid.value = '';
   carregarChamados();
 });
+
+// Filtro por ID — atualização instantânea (debounce de 150ms)
+(() => {
+  const inp = document.getElementById('filtro-id');
+  if (!inp) return;
+  let t = null;
+  inp.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(() => carregarChamados(), 150);
+  });
+})();
 
 document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
 document.getElementById('modal-overlay').addEventListener('click', e => {
@@ -323,13 +336,19 @@ async function carregarChamados(silencioso = false) {
 
   try {
     const r = await api('/api/admin/chamados?' + params);
-    const chamados = await r.json();
+    let chamados = await r.json();
+
+    // Filtro local por ID (busca substring no número)
+    const filtroIdRaw = (document.getElementById('filtro-id')?.value || '').trim().replace(/^#/, '');
+    if (filtroIdRaw) {
+      chamados = chamados.filter(c => String(c.id).includes(filtroIdRaw));
+    }
 
     // Silencioso: só re-renderiza se os dados mudaram
     if (silencioso) {
       const novoHash = JSON.stringify(chamados.map(c =>
         [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em]
-      ));
+      )) + '|' + filtroIdRaw;
       if (novoHash === _chamadosHash) return;
       _chamadosHash = novoHash;
     } else {
@@ -398,6 +417,7 @@ function renderChamadoItem(c) {
   return `
     <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}" data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
       <div class="chamado-item-header">
+        <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
         ${badgeStatus(c.status)}
         ${atrasado ? `<span class="badge badge-atraso">⚠ Em atraso</span>` : ''}
         ${badgePrio(c.prioridade)}
