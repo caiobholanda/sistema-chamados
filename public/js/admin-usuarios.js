@@ -409,12 +409,13 @@ async function abrirModalAdmin(id) {
   } else {
     document.getElementById('modal-admin-title').textContent = 'Novo administrador';
     document.getElementById('f-nome').value = '';
+    document.getElementById('f-email').value = DOMINIO_EMAIL;
     document.getElementById('lbl-senha-dica').textContent = '(mín. 6 caracteres)';
     document.getElementById('dica-senha-f').style.display = 'none';
   }
 
   resetarForca('forca-admin', 'barra-admin', 'reqs-admin');
-  resetarEmailDica('dica-email-admin');
+  atualizarEmailDica('f-email', 'dica-email-admin');
   document.getElementById('modal-admin-overlay').classList.add('open');
   document.getElementById('f-nome').focus();
 }
@@ -673,12 +674,12 @@ document.getElementById('form-editar-usuario').addEventListener('submit', async 
 function abrirModalUsuario() {
   document.getElementById('msg-modal-usuario').innerHTML = '';
   document.getElementById('fu-nome').value = '';
-  document.getElementById('fu-email').value = '';
+  document.getElementById('fu-email').value = DOMINIO_EMAIL;
   document.getElementById('fu-senha').value = '';
   document.getElementById('fu-setor').value = '';
   document.getElementById('fu-ramal').value = '';
   resetarForca('forca-usuario', 'barra-usuario', 'reqs-usuario');
-  resetarEmailDica('dica-email-usuario');
+  atualizarEmailDica('fu-email', 'dica-email-usuario');
   document.getElementById('modal-usuario-overlay').classList.add('open');
   document.getElementById('fu-nome').focus();
 }
