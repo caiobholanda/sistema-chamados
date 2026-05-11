@@ -341,6 +341,7 @@ async function carregarChamados() {
     lista.innerHTML = chamados.map(c => `
       <div class="mob-card" data-id="${c.id}">
         <div class="mob-card-head">
+          <span style="font-family:monospace;font-size:.72rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.06);padding:.12rem .35rem;border-radius:4px">#${c.id}</span>
           <span class="badge badge-${c.status}">${STATUS_LABELS[c.status]}</span>
           ${c.prioridade ? `<span class="badge badge-${c.prioridade}">${PRIO_LABELS[c.prioridade]}</span>` : ''}
           <span class="mob-card-data">${fmtData(c.criado_em)}</span>
@@ -483,6 +484,7 @@ async function renderDetalhe(c) {
     </div>
 
     <div class="mob-detalhe">
+      <div style="font-family:monospace;font-size:.78rem;font-weight:700;color:var(--text-muted);margin-bottom:.3rem">Chamado #${c.id}</div>
       <div class="mob-detalhe-nome">${c.nome}</div>
       <div class="mob-detalhe-setor">${c.usuario_setor || c.setor} · Ramal ${c.usuario_ramal || c.ramal}</div>
       <div class="mob-detalhe-desc">${c.descricao}</div>
