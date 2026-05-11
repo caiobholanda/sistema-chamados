@@ -598,6 +598,7 @@ function renderCardChamado(c) {
     <div class="chamado-card-usuario${encerrado ? ' encerrado' : ''}">
       <div class="chamado-card-header">
         <div class="flex gap-1 flex-wrap" style="align-items:center">
+          <span title="Informe este ID ao suporte para identificar seu chamado" style="font-family:monospace;font-size:.78rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.05);padding:.18rem .45rem;border-radius:4px;cursor:help">#${c.id}</span>
           ${badgeStatus(c.status)}
         </div>
         <span class="text-muted" style="font-size:.76rem">${fmtData(c.criado_em)}</span>
