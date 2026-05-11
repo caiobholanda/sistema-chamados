@@ -940,17 +940,17 @@ async function iniciarPush() {
 
 let _lastSubscribeTs = 0;
 
-async function _subscribePush() {
-  if (!_swReg) return;
-  // Throttle: no mínimo 30s entre tentativas para evitar loops
+async function _subscribePush(force = false) {
+  if (!_swReg) return false;
+  // Throttle: 30s entre tentativas automáticas — ignorado se force=true
   const now = Date.now();
-  if (now - _lastSubscribeTs < 30_000) return;
+  if (!force && now - _lastSubscribeTs < 30_000) return false;
   _lastSubscribeTs = now;
 
   try {
     // 1. Busca a chave VAPID atual do servidor
     const r = await api('/api/admin/push/vapid-public-key');
-    if (!r.ok) { console.warn('[Push] Falha ao buscar VAPID key, status:', r.status); return; }
+    if (!r.ok) { console.warn('[Push] Falha ao buscar VAPID key, status:', r.status); return false; }
     const { publicKey } = await r.json();
     const appKey = urlBase64ToUint8Array(publicKey);
 
@@ -964,13 +964,13 @@ async function _subscribePush() {
         const keysMismatch = existingKey.length !== appKey.length ||
           existingKey.some((byte, i) => byte !== appKey[i]);
 
-        if (keysMismatch) {
-          // A chave VAPID mudou — desinscrevemos e criamos nova subscription
-          console.warn('[Push] Chave VAPID mudou — atualizando subscription...');
+        if (keysMismatch || force) {
+          // VAPID mudou OU revalidação manual — recria a subscription
+          if (keysMismatch) console.warn('[Push] Chave VAPID mudou — atualizando subscription...');
           await sub.unsubscribe();
           sub = null;
         }
-        // Se as chaves batem, reutilizamos a subscription existente (apenas re-salva no servidor)
+        // Se as chaves batem e não é force, reutiliza a subscription existente (apenas re-salva no servidor)
       } catch {
         // Não conseguiu comparar as chaves — força nova subscription por segurança
         await sub.unsubscribe();
@@ -983,14 +983,17 @@ async function _subscribePush() {
       sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
     }
 
-    // 5. Sempre salva no servidor (garante que o DB tenha a subscription mesmo após wipe)
+    // 5. Sempre salva no servidor (idempotente — garante DB atualizado mesmo após wipe)
+    //    Explicitamente marca is_mobile: false para o painel desktop
     const saveResp = await api('/api/admin/push/subscribe', {
       method: 'POST',
-      body: JSON.stringify(sub.toJSON()),
+      body: JSON.stringify({ ...sub.toJSON(), is_mobile: false }),
     });
     if (!saveResp.ok) console.warn('[Push] Falha ao registrar subscription no servidor:', saveResp.status);
+    return saveResp.ok;
   } catch (err) {
     console.warn('[Push] _subscribePush falhou:', err.message || err);
+    return false;
   }
 }
 
@@ -1017,9 +1020,16 @@ document.getElementById('btn-notificacoes').addEventListener('click', async () =
   if (Notification.permission === 'denied') {
     alert('Notificações estão bloqueadas. Libere nas configurações do navegador.'); return;
   }
+  // Se já tem permissão: clicar revalida a subscription (força nova inscrição)
+  if (Notification.permission === 'granted') {
+    const ok = await _subscribePush(true);
+    mostrarToast(ok ? '🔔 Notificações revalidadas' : '⚠ Falha ao revalidar', ok ? 'Inscrição atualizada no servidor.' : 'Tente novamente em alguns segundos.');
+    return;
+  }
+  // Senão pede permissão
   const perm = await Notification.requestPermission();
   atualizarBotaoNotificacao(perm);
-  if (perm === 'granted') await _subscribePush();
+  if (perm === 'granted') await _subscribePush(true);
 });
 
 function mostrarToast(titulo, corpo) {
