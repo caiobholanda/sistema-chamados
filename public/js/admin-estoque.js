@@ -392,9 +392,8 @@ function abrirMovModal(itemId, tipoMov) {
   const showCor = cores.length > 1;
 
   // Setores que atualmente têm este item alocado (para entradas)
-  const setoresComItem = tipoMov === 'entrada' && item.alocacoes && item.alocacoes.length
-    ? [...new Set(item.alocacoes.map(a => a.setor).filter(Boolean))]
-    : [];
+  const setoresComItem = (item.alocacoes || []).map(a => a.setor).filter(Boolean);
+  const isToner = item.tipo === 'toner_mono' || item.tipo === 'toner_color';
 
   document.getElementById('mov-modal-body').innerHTML = `
     <form id="form-mov" style="display:flex;flex-direction:column;gap:.8rem">
@@ -410,14 +409,18 @@ function abrirMovModal(itemId, tipoMov) {
         <label class="form-label">Quantidade</label>
         <input class="form-control" id="mov-qtd" type="number" min="1" value="1">
       </div>
-      ${tipoMov === 'entrada' && setoresComItem.length > 0 ? `
+      ${tipoMov === 'entrada' && isToner ? `
       <div class="form-group">
         <label class="form-label">Veio de algum setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-        <select class="form-control" id="mov-setor-origem">
-          <option value="">— Não / Nova compra —</option>
-          ${setoresComItem.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}
-        </select>
-        <div style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">Se selecionado, a etiqueta desse setor será removida da coluna "Com setores"</div>
+        ${setoresComItem.length > 0 ? `
+          <datalist id="setores-lista">
+            ${[...new Set(setoresComItem)].map(s => `<option value="${esc(s)}">`).join('')}
+          </datalist>
+        ` : ''}
+        <input class="form-control" id="mov-setor-origem" type="text"
+          list="setores-lista"
+          placeholder="${setoresComItem.length > 0 ? 'Selecione ou digite o setor…' : 'Ex: Recepção, RH, Governança…'}">
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">Se preenchido, a etiqueta desse setor será removida da coluna "Com setores"</div>
       </div>
       ` : ''}
       ${tipoMov === 'saida' ? `
