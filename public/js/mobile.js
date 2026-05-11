@@ -55,10 +55,24 @@ async function _subscribePush() {
   }
 }
 
+const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const _isStandalone = window.navigator.standalone === true;
+
 function atualizarBotaoPush() {
   const btn = document.getElementById('mob-btn-push');
   if (!btn) return;
+
+  // iOS Safari (não instalado): mostra botão especial com instrução de instalação
+  if (_isIOS && !_isStandalone) {
+    btn.title = 'Como ativar notificações';
+    btn.style.opacity = '0.5';
+    btn.style.filter = 'grayscale(1)';
+    return;
+  }
+
+  // Browser sem suporte a push (não iOS): esconde
   if (!('PushManager' in window)) { btn.style.display = 'none'; return; }
+
   const ativo = Notification.permission === 'granted';
   btn.title = ativo ? 'Notificações ativas' : 'Ativar notificações push';
   btn.style.opacity = ativo ? '1' : '0.45';
@@ -78,6 +92,45 @@ function mostrarToastMob(titulo, corpo) {
   el.innerHTML = `<strong style="font-size:.9rem">${titulo}</strong><span style="opacity:.85;line-height:1.4">${corpo}</span>`;
   container.appendChild(el);
   setTimeout(() => el.remove(), 5500);
+}
+
+function mostrarBannerIOS() {
+  if (document.getElementById('ios-install-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'ios-install-banner';
+  banner.style.cssText = `
+    position:fixed;bottom:0;left:0;right:0;z-index:9999;
+    background:#1a2340;color:#fff;padding:1.2rem 1rem 1.4rem;
+    border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.4);
+    font-size:.88rem;line-height:1.5;
+  `;
+  banner.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+      <strong style="font-size:1rem">🔔 Ativar notificações no iPhone</strong>
+      <button onclick="this.closest('#ios-install-banner').remove()"
+        style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;padding:.1rem .3rem;opacity:.7">✕</button>
+    </div>
+    <p style="margin:0 0 .9rem;opacity:.9">No Safari, notificações só funcionam quando o app está instalado na tela inicial. Siga os passos:</p>
+    <div style="display:flex;flex-direction:column;gap:.55rem">
+      <div style="display:flex;align-items:center;gap:.7rem">
+        <span style="background:rgba(255,255,255,.15);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">1</span>
+        <span>Toque no botão <strong>Compartilhar</strong> <span style="font-size:1.1rem">⬆</span> na barra inferior do Safari</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.7rem">
+        <span style="background:rgba(255,255,255,.15);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">2</span>
+        <span>Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.7rem">
+        <span style="background:rgba(255,255,255,.15);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">3</span>
+        <span>Toque em <strong>"Adicionar"</strong> e abra o app pelo ícone na tela inicial</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.7rem">
+        <span style="background:rgba(255,255,255,.15);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">4</span>
+        <span>Dentro do app instalado, toque em 🔔 e permita as notificações</span>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(banner);
 }
 
 if ('serviceWorker' in navigator) {
@@ -195,19 +248,24 @@ async function renderLista() {
   });
 
   document.getElementById('mob-btn-push').addEventListener('click', async () => {
+    // iOS Safari sem PWA instalado: mostra instrução de como instalar
+    if (_isIOS && !_isStandalone) {
+      mostrarBannerIOS();
+      return;
+    }
     if (!('PushManager' in window)) {
-      alert('Seu dispositivo não suporta notificações push.');
+      alert('Seu navegador não suporta notificações push.');
       return;
     }
     if (Notification.permission === 'granted') {
-      alert('Notificações já estão ativas para este dispositivo.');
+      mostrarToastMob('🔔 Notificações ativas', 'Este dispositivo já está registrado para receber alertas.');
       return;
     }
     const perm = await Notification.requestPermission();
     atualizarBotaoPush();
     if (perm === 'granted') {
       await _subscribePush();
-      mostrarToastMob('✅ Notificações ativadas', 'Você receberá alertas de novos chamados e prazos.');
+      mostrarToastMob('✅ Notificações ativadas!', 'Você receberá alertas de novos chamados e prazos.');
     }
   });
   atualizarBotaoPush();
