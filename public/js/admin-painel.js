@@ -969,10 +969,10 @@ async function iniciarPush() {
     if (perm === 'granted') await _subscribePush();
     atualizarBotaoNotificacao(perm);
 
-    // Re-verifica a subscription a cada 30 minutos (mantém viva mesmo sem recarregar a página)
+    // Re-verifica a subscription a cada 5 minutos (reduz janela de subscription inválida)
     setInterval(() => {
       if (Notification.permission === 'granted') _subscribePush();
-    }, 30 * 60 * 1000);
+    }, 5 * 60 * 1000);
   } catch (err) {
     console.warn('[Push] SW registro falhou:', err);
   }
@@ -1073,8 +1073,12 @@ document.getElementById('btn-notificacoes').addEventListener('click', async () =
 });
 
 function mostrarToast(titulo, corpo) {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
   const el = document.createElement('div');
   el.className = 'toast-notif';
   el.innerHTML = `<button class="toast-close" aria-label="Fechar">✕</button><strong>${titulo}</strong><span>${corpo}</span>`;

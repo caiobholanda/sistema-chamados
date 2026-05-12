@@ -21,7 +21,7 @@ async function iniciarPush() {
     atualizarBotaoPush();
     setInterval(() => {
       if (Notification.permission === 'granted') _subscribePush();
-    }, 30 * 60 * 1000);
+    }, 5 * 60 * 1000);
   } catch (err) {
     console.warn('[Push] SW registro falhou:', err);
   }
