@@ -292,42 +292,11 @@ document.addEventListener('keydown', e => {
 
 // ── Modal "Abrir chamado" ──────────────────────────────────────────────────
 function abrirModalNovoChamado() {
-  // Popula o select de setor com as opções do filtro existente
-  const srcSetor = document.getElementById('filtro-setor');
-  const ncSetor  = document.getElementById('nc-setor');
-  ncSetor.innerHTML = '<option value="">Selecione o setor...</option>' +
-    Array.from(srcSetor.options).slice(1).map(o =>
-      o.tagName === 'OPTGROUP'
-        ? `<optgroup label="${o.label}"></optgroup>`
-        : `<option value="${o.value}">${o.text}</option>`
-    ).join('');
-  // Copia optgroups corretamente
-  ncSetor.innerHTML = '<option value="">Selecione o setor...</option>';
-  Array.from(srcSetor.children).forEach(child => {
-    if (child.tagName === 'OPTGROUP') {
-      const og = document.createElement('optgroup');
-      og.label = child.label;
-      Array.from(child.children).forEach(opt => {
-        const o = document.createElement('option');
-        o.value = opt.value || opt.text;
-        o.textContent = opt.text;
-        og.appendChild(o);
-      });
-      ncSetor.appendChild(og);
-    } else if (child.tagName === 'OPTION' && child.value) {
-      const o = document.createElement('option');
-      o.value = child.value;
-      o.textContent = child.text;
-      ncSetor.appendChild(o);
-    }
-  });
-
-  document.getElementById('nc-nome').value = '';
-  document.getElementById('nc-ramal').value = '';
   document.getElementById('nc-descricao').value = '';
+  document.getElementById('nc-anexo').value = '';
   document.getElementById('msg-novo-chamado').innerHTML = '';
   document.getElementById('modal-novo-chamado-overlay').classList.add('open');
-  document.getElementById('nc-nome').focus();
+  document.getElementById('nc-descricao').focus();
 }
 
 function fecharModalNovoChamado() {
@@ -343,20 +312,20 @@ document.getElementById('modal-novo-chamado-overlay').addEventListener('click', 
 document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msgEl = document.getElementById('msg-novo-chamado');
-  const nome     = document.getElementById('nc-nome').value.trim();
-  const setor    = document.getElementById('nc-setor').value;
-  const ramal    = document.getElementById('nc-ramal').value.trim();
   const descricao = document.getElementById('nc-descricao').value.trim();
 
-  if (!nome)     { msgEl.innerHTML = '<div class="alert alert-danger">Informe o nome do solicitante.</div>'; return; }
-  if (!setor)    { msgEl.innerHTML = '<div class="alert alert-danger">Selecione o setor.</div>'; return; }
   if (!descricao || descricao.length < 5) { msgEl.innerHTML = '<div class="alert alert-danger">Descreva o problema (mínimo 5 caracteres).</div>'; return; }
 
   const btn = document.getElementById('btn-confirmar-novo-chamado');
   btn.disabled = true; btn.textContent = 'Abrindo...';
   msgEl.innerHTML = '';
   try {
-    const r = await api('/api/admin/chamados', { method: 'POST', body: JSON.stringify({ nome, setor, ramal, descricao }) });
+    const fd = new FormData();
+    fd.append('descricao', descricao);
+    const anexo = document.getElementById('nc-anexo').files[0];
+    if (anexo) fd.append('anexo', anexo);
+
+    const r = await fetch('/api/admin/chamados', { method: 'POST', body: fd });
     const d = await r.json();
     if (r.ok) {
       fecharModalNovoChamado();

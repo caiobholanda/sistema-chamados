@@ -1,10 +1,12 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
 const router = express.Router();
 const db = require('../db');
 const { requireAdmin, requireMaster } = require('../auth');
 const push = require('../push');
+const { upload, renomearAnexoComId } = require('../upload');
 
 const STATUS_VALIDOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar', 'concluido', 'encerrado'];
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
@@ -92,20 +94,21 @@ router.get('/chamados', requireAdmin, (req, res) => {
   }
 });
 
-router.post('/chamados', requireAdmin, async (req, res) => {
+router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) => {
   try {
     const { classificarInteligente } = require('../categorizador');
-    let { nome, setor, ramal, descricao } = req.body;
-    nome     = sanitizarTexto(nome     || '');
-    setor    = sanitizarTexto(setor    || '');
-    descricao= sanitizarTexto(descricao|| '');
-    ramal    = (ramal || '').trim();
+    let descricao = sanitizarTexto(req.body.descricao || '');
 
-    if (!nome     || nome.length     < 2)  return res.status(400).json({ erro: 'Nome obrigatório' });
-    if (!setor    || setor.length    < 2)  return res.status(400).json({ erro: 'Setor obrigatório' });
-    if (!descricao|| descricao.length< 5)  return res.status(400).json({ erro: 'Descrição muito curta (mín. 5 caracteres)' });
+    if (!descricao || descricao.length < 5) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ erro: 'Descrição muito curta (mín. 5 caracteres)' });
+    }
 
     const adminCriador = db.buscarAdminPorId(req.admin.sub);
+    const nome  = adminCriador ? adminCriador.nome_completo : 'Admin';
+    const setor = 'Tecnologia da Informação';
+    const ramal = '';
+
     const cat = await classificarInteligente(descricao);
     const categoria = cat ? cat.id : null;
     const id = db.inserirChamado({
@@ -116,14 +119,20 @@ router.post('/chamados', requireAdmin, async (req, res) => {
       aberto_por_admin_id: req.admin.sub,
     });
 
+    if (req.file) {
+      const novoNome = renomearAnexoComId(id, req.file.path, req.file.originalname);
+      db.getDb().prepare('UPDATE chamados SET anexo_path = ?, anexo_nome_original = ? WHERE id = ?')
+        .run(novoNome, req.file.originalname, id);
+    }
+
     if (categoria === 'impressora') {
       db.atualizarPrazo(id, db.prazo2DiasUteis(), null);
     }
 
-    const nomeAdmin = adminCriador ? adminCriador.nome_completo : 'Admin';
     push.enviarParaTodos('🆕 Novo chamado aberto', `${nome} (${setor}): ${descricao.slice(0, 80)}${descricao.length > 80 ? '…' : ''}`).catch(() => {});
-    return res.status(201).json({ id, mensagem: `Chamado #${id} aberto por ${nomeAdmin}` });
+    return res.status(201).json({ id, mensagem: `Chamado #${id} aberto por ${nome}` });
   } catch (err) {
+    if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno ao abrir chamado' });
   }
