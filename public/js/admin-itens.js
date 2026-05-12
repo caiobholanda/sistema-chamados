@@ -725,9 +725,9 @@ function renderEquipamentos(lista) {
             return `
               <tr style="cursor:pointer" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}')">
                 <td>
-                  <button class="btn btn-ghost btn-sm" style="font-weight:600;font-size:.92rem;padding:.2rem .4rem;text-align:left" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}');event.stopPropagation()">
+                  <span style="font-weight:600;cursor:pointer;color:var(--navy);text-decoration:underline;text-underline-offset:2px" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}');event.stopPropagation()">
                     ${esc(nome)}
-                  </button>
+                  </span>
                 </td>
                 <td style="color:var(--text-secondary);font-size:.82rem">${esc(g.categoria) || '—'}</td>
                 <td style="text-align:center;font-weight:700;color:var(--navy)">${g.itens.length}</td>
