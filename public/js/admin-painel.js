@@ -505,7 +505,7 @@ function renderModalBody(c) {
       ${bannerAtraso}
 
       <!-- Layout duas colunas: info + ações -->
-      <div class="mv2-layout">
+      <div class="mv2-layout" style="align-items:start">
 
         <!-- Coluna esquerda: informações -->
         <div class="mv2-main">
@@ -573,6 +573,12 @@ function renderModalBody(c) {
                 ${c.assinatura ? `<img src="${c.assinatura}" alt="Assinatura do solicitante" class="assinatura-img-admin">` : ''}
               </div>
             </div>` : ''}
+
+          <button class="mv2-historico" id="btn-hist-completo">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Histórico de ações
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
 
         <!-- Coluna direita: configurações + ações -->
@@ -658,24 +664,15 @@ function renderModalBody(c) {
             </div>
             `}
           </div>
+          ${adminInfo && adminInfo.is_master ? `
+          <div class="modal-danger-zone mv2-danger-compact" style="margin-top:.5rem">
+            <div class="modal-danger-label">Zona de perigo</div>
+            <button class="btn btn-danger btn-sm" id="btn-deletar">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Excluir chamado
+            </button>
+          </div>` : ''}
         </div>
-      </div>
-
-      <!-- Histórico + Zona de perigo: full-width, lado a lado -->
-      <div class="mv2-fullrow">
-        <button class="mv2-historico" id="btn-hist-completo">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Histórico de ações
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        ${adminInfo && adminInfo.is_master ? `
-        <div class="modal-danger-zone mv2-danger-compact">
-          <div class="modal-danger-label">Zona de perigo</div>
-          <button class="btn btn-danger btn-sm" id="btn-deletar">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-            Excluir chamado
-          </button>
-        </div>` : ''}
       </div>
 
       <!-- Chat em tempo real: full-width -->
