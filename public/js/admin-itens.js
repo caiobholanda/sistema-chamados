@@ -747,40 +747,51 @@ function verUnidades(nome) {
   if (!unidades.length) return;
   const isMaster = adminInfo && adminInfo.is_master;
 
-  const el = document.getElementById('eq-hist-title');
-  if (el) el.textContent = `${nome} — ${unidades.length} unidade${unidades.length > 1 ? 's' : ''}`;
+  const titleEl = document.getElementById('eq-hist-title');
+  if (titleEl) titleEl.textContent = nome;
   const overlay = document.getElementById('eq-hist-overlay');
   if (overlay) overlay.style.display = 'flex';
   const body = document.getElementById('eq-hist-body');
-  if (body) body.innerHTML = `
-    <div class="table-wrap" style="max-height:480px;overflow-y:auto">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Status</th>
-            <th>Setor atual</th>
-            <th>Observação</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${unidades.map(eq => `
-            <tr>
-              <td style="font-family:monospace;font-weight:700;color:var(--navy);font-size:.85rem">${esc(eq.codigo)}</td>
-              <td>${badgeStatus(eq.status)}</td>
-              <td style="font-size:.82rem;color:var(--text-secondary)">${esc(eq.setor_atual) || '—'}</td>
-              <td style="font-size:.78rem;color:var(--text-muted);max-width:140px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(eq.observacao)}">${esc(eq.observacao) || '—'}</div></td>
-              <td style="white-space:nowrap">
-                <button class="btn btn-secondary btn-sm" onclick="fecharEqHist();eqMovimentar(${eq.id})">Movimentar</button>
-                <button class="btn btn-ghost btn-sm" onclick="fecharEqHist();eqHistorico(${eq.id},'${esc(eq.codigo).replace(/'/g, "\\'")}')">Histórico</button>
-                <button class="btn btn-ghost btn-sm" onclick="fecharEqHist();eqEditar(${eq.id})">Editar</button>
-                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="fecharEqHist();eqDeletar(${eq.id},'${esc(eq.codigo).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+  if (!body) return;
+
+  // Contagem por status para o resumo
+  const contagem = {};
+  for (const eq of unidades) contagem[eq.status] = (contagem[eq.status] || 0) + 1;
+  const resumoBadges = Object.entries(contagem).map(([st, n]) => {
+    const s = STATUS_EQ[st] || { label: st, cor: 'var(--border)' };
+    return `<span style="display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .7rem;border-radius:20px;font-size:.78rem;font-weight:700;background:${s.cor};color:#fff">${n} ${s.label}</span>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div style="padding:.25rem 0 1rem">
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem">
+        <span style="font-size:.82rem;color:var(--text-muted);font-weight:500">${unidades.length} unidade${unidades.length !== 1 ? 's' : ''} no total</span>
+        <span style="color:var(--border)">·</span>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap">${resumoBadges}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.6rem;max-height:500px;overflow-y:auto;padding-right:.25rem">
+        ${unidades.map(eq => {
+          const s = STATUS_EQ[eq.status] || { label: eq.status, cor: 'var(--border)' };
+          return `
+            <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:10px;background:var(--surface-1);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow=''">
+              <div style="min-width:90px">
+                <div style="font-family:monospace;font-size:.95rem;font-weight:800;color:var(--navy);letter-spacing:.03em">${esc(eq.codigo)}</div>
+                <div style="margin-top:.25rem"><span style="display:inline-block;padding:.15rem .5rem;border-radius:20px;font-size:.68rem;font-weight:700;background:${s.cor};color:#fff">${s.label}</span></div>
+              </div>
+              <div style="flex:1;min-width:0">
+                ${eq.setor_atual ? `<div style="font-size:.82rem;color:var(--text-secondary);margin-bottom:.2rem">📍 ${esc(eq.setor_atual)}</div>` : ''}
+                ${eq.observacao ? `<div style="font-size:.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(eq.observacao)}">${esc(eq.observacao)}</div>` : '<div style="font-size:.78rem;color:var(--border)">Sem observação</div>'}
+              </div>
+              <div style="display:flex;gap:.4rem;flex-shrink:0">
+                <button class="btn btn-primary btn-sm" onclick="fecharEqHist();eqMovimentar(${eq.id})" title="Movimentar">Movimentar</button>
+                <button class="btn btn-secondary btn-sm" onclick="fecharEqHist();eqHistorico(${eq.id},'${esc(eq.codigo).replace(/'/g, "\\'")}')">Histórico</button>
+                <button class="btn btn-secondary btn-sm" onclick="fecharEqHist();eqEditar(${eq.id})">Editar</button>
+                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="fecharEqHist();eqDeletar(${eq.id},'${esc(eq.codigo).replace(/'/g, "\\'")}')">✕</button>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
     </div>
   `;
 }
