@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TI Gran Marquise</title>
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f4f0; color: #1a1a2e; -webkit-font-smoothing: antialiased; }
+
+    /* ── Header ── */
+    .mob-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: #1a1a2e; color: #fff;
+      display: flex; align-items: center; gap: .6rem;
+      padding: .8rem 1rem;
+      padding-top: calc(.8rem + env(safe-area-inset-top));
+      min-height: calc(56px + env(safe-area-inset-top));
+      box-shadow: 0 2px 10px rgba(0,0,0,.35);
+    }
+    .mob-header-text { flex: 1; min-width: 0; }
+    .mob-header-title { font-size: 1rem; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mob-header-sub { font-size: .71rem; color: rgba(255,255,255,.5); margin-top: .05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mob-icon-btn { background: none; border: none; color: #fff; cursor: pointer; padding: .35rem; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+    .mob-icon-btn:active { background: rgba(255,255,255,.15); }
+
+    /* ── Layout principal ── */
+    .mob-main {
+      padding-top: calc(56px + env(safe-area-inset-top));
+      height: 100dvh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ── Tabs ── */
+    .mob-tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e4e0; flex-shrink: 0; }
+    .mob-tab {
+      flex: 1; padding: .65rem .5rem; text-align: center; font-size: .82rem;
+      font-weight: 600; color: #888; border: none; background: none; cursor: pointer;
+      position: relative; -webkit-tap-highlight-color: transparent;
+    }
+    .mob-tab.ativo { color: #1a1a2e; }
+    .mob-tab.ativo::after { content: ''; position: absolute; bottom: 0; left: 18%; right: 18%; height: 2.5px; background: #c5a55a; border-radius: 2px 2px 0 0; }
+    .mob-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background: #c5a55a; color: #fff; font-size: .67rem; font-weight: 700; border-radius: 9px; padding: 0 4px; margin-left: 4px; vertical-align: middle; }
+
+    /* ── Lista de chamados ── */
+    #view-lista { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: .5rem .75rem 2rem; }
+
+    .chamado-card {
+      background: #fff; border-radius: 12px; padding: .85rem;
+      margin-bottom: .55rem; box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      border-left: 3.5px solid #e5e4e0; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .chamado-card:active { opacity: .85; }
+    .chamado-card.urgente { border-left-color: #ef4444; }
+    .chamado-card.alta    { border-left-color: #f59e0b; }
+    .chamado-card.media   { border-left-color: #3b82f6; }
+    .chamado-card.baixa   { border-left-color: #10b981; }
+
+    .card-top { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; margin-bottom: .3rem; }
+    .card-id { font-size: .71rem; font-weight: 700; color: #999; font-family: monospace; }
+    .card-nome { font-size: .93rem; font-weight: 700; color: #1a1a2e; }
+    .card-desc { font-size: .8rem; color: #666; line-height: 1.35; margin-top: .2rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-footer { display: flex; align-items: center; gap: .35rem; margin-top: .5rem; flex-wrap: wrap; }
+    .card-meta { font-size: .72rem; color: #999; }
+    .card-meta-warn { font-size: .72rem; color: #f59e0b; font-weight: 600; }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; padding: .13rem .38rem; border-radius: 4px; font-size: .71rem; font-weight: 600; white-space: nowrap; }
+    .badge-aberto           { background: #dbeafe; color: #1d4ed8; }
+    .badge-em_andamento     { background: #dcfce7; color: #15803d; }
+    .badge-aguardando_compra{ background: #fef3c7; color: #92400e; }
+    .badge-aguardando_chegar{ background: #cffafe; color: #155e75; }
+    .badge-concluido,
+    .badge-encerrado        { background: #f3f4f6; color: #6b7280; }
+    .badge-urgente { background: #fee2e2; color: #991b1b; }
+    .badge-alta    { background: #fef3c7; color: #92400e; }
+    .badge-media   { background: #dbeafe; color: #1e40af; }
+    .badge-baixa   { background: #dcfce7; color: #166534; }
+
+    /* ── Estados ── */
+    .mob-empty { text-align: center; padding: 3rem 1rem; color: #aaa; font-size: .9rem; }
+    .mob-loading { display: flex; justify-content: center; align-items: center; padding: 3rem; }
+    .spinner { width: 26px; height: 26px; border: 3px solid #e5e4e0; border-top-color: #c5a55a; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── View chat ── */
+    #view-chat { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    #view-chat.ativo { display: flex; }
+
+    .chat-info-bar {
+      background: #fff; border-bottom: 1px solid #e5e4e0;
+      padding: .65rem .9rem; flex-shrink: 0;
+    }
+    .chat-info-nome { font-size: .92rem; font-weight: 700; color: #1a1a2e; }
+    .chat-info-meta { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; margin-top: .2rem; }
+    .chat-info-desc { font-size: .79rem; color: #666; margin-top: .35rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .chat-msgs {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding: .75rem; display: flex; flex-direction: column; gap: .45rem;
+      background: #f5f4f0;
+    }
+    .chat-msg { display: flex; flex-direction: column; max-width: 82%; }
+    .chat-msg.mine   { align-self: flex-end; align-items: flex-end; }
+    .chat-msg.theirs { align-self: flex-start; align-items: flex-start; }
+    .chat-msg-author { font-size: .68rem; color: #aaa; margin-bottom: .12rem; }
+    .chat-msg-bubble {
+      padding: .5rem .75rem; border-radius: 14px;
+      font-size: .88rem; line-height: 1.4; word-break: break-word; white-space: pre-wrap;
+    }
+    .mine   .chat-msg-bubble { background: #1a1a2e; color: #fff; border-bottom-right-radius: 3px; }
+    .theirs .chat-msg-bubble { background: #fff; color: #1a1a2e; border-bottom-left-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.09); }
+    .chat-msg-time { font-size: .66rem; color: #bbb; margin-top: .12rem; }
+    .chat-vazio { text-align: center; color: #bbb; font-size: .85rem; padding: 2rem 1rem; }
+
+    .chat-input-area {
+      background: #fff; border-top: 1px solid #e5e4e0;
+      padding: .55rem .75rem;
+      padding-bottom: calc(.55rem + env(safe-area-inset-bottom));
+      display: flex; gap: .5rem; align-items: flex-end; flex-shrink: 0;
+    }
+    .chat-textarea {
+      flex: 1; border: 1.5px solid #e5e4e0; border-radius: 22px;
+      padding: .5rem .9rem; font-size: .92rem; resize: none; outline: none;
+      font-family: inherit; line-height: 1.35; max-height: 110px;
+      background: #f9f8f5; transition: border-color .2s;
+    }
+    .chat-textarea:focus { border-color: #c5a55a; background: #fff; }
+    .chat-send-btn {
+      width: 42px; height: 42px; border-radius: 50%; background: #1a1a2e;
+      border: none; color: #fff; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+    }
+    .chat-send-btn:active { background: #c5a55a; }
+    .chat-send-btn:disabled { background: #ccc; cursor: default; }
+    .chat-encerrado { text-align: center; padding: .7rem 1rem; font-size: .79rem; color: #999; background: #f3f4f6; border-top: 1px solid #e5e4e0; flex-shrink: 0; padding-bottom: calc(.7rem + env(safe-area-inset-bottom)); }
+  </style>
+</head>
+<body>
+
+<header class="mob-header">
+  <button class="mob-icon-btn" id="btn-voltar" style="display:none" aria-label="Voltar">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <div class="mob-header-text">
+    <div class="mob-header-title" id="mob-title">Chamados TI</div>
+    <div class="mob-header-sub" id="mob-sub">Gran Marquise</div>
+  </div>
+  <button class="mob-icon-btn" id="btn-refresh" aria-label="Atualizar">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+  </button>
+  <button class="mob-icon-btn" id="btn-logout" aria-label="Sair">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+  </button>
+</header>
+
+<div class="mob-main">
+
+  <!-- Tabs + Lista -->
+  <div id="view-lista-wrap" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+    <div class="mob-tabs">
+      <button class="mob-tab ativo" data-tab="meus">
+        Meus <span class="mob-count" id="cnt-meus" style="display:none"></span>
+      </button>
+      <button class="mob-tab" data-tab="todos">
+        Todos <span class="mob-count" id="cnt-todos" style="display:none"></span>
+      </button>
+    </div>
+    <div id="view-lista"></div>
+  </div>
+
+  <!-- Chat -->
+  <div id="view-chat">
+    <div class="chat-info-bar" id="chat-info"></div>
+    <div class="chat-msgs" id="chat-msgs"></div>
+    <div id="chat-input-wrap"></div>
+  </div>
+
+</div>
+
+<script src="/js/admin-mobile.js"></script>
+</body>
+</html>
