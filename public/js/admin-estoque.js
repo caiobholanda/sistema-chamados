@@ -571,11 +571,17 @@ function badgeStatus(status) {
 function renderEquipamentos(lista) {
   const el = document.getElementById('estoque-lista');
   document.getElementById('badge-equipamentos').textContent = lista.length || '';
-  const isMaster = adminInfo && adminInfo.is_master;
 
   if (!lista.length) {
     el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum equipamento encontrado. Clique em "+ Novo Equipamento" para cadastrar.</div>`;
     return;
+  }
+
+  // Agrupar por nome
+  const grupos = {};
+  for (const eq of lista) {
+    if (!grupos[eq.nome]) grupos[eq.nome] = { categoria: eq.categoria, itens: [] };
+    grupos[eq.nome].itens.push(eq);
   }
 
   el.innerHTML = `
@@ -583,27 +589,71 @@ function renderEquipamentos(lista) {
       <table>
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Nome</th>
+            <th>Equipamento</th>
             <th>Categoria</th>
+            <th style="text-align:center">Total</th>
+            <th>Status geral</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Object.entries(grupos).map(([nome, g]) => {
+            const contagem = {};
+            for (const eq of g.itens) contagem[eq.status] = (contagem[eq.status] || 0) + 1;
+            const resumo = Object.entries(contagem).map(([st, n]) => {
+              const s = STATUS_EQ[st] || { label: st, cor: 'var(--border)' };
+              return `<span style="display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .45rem;border-radius:20px;font-size:.7rem;font-weight:700;background:${s.cor};color:#fff">${n} ${s.label}</span>`;
+            }).join(' ');
+            return `
+              <tr style="cursor:pointer" onclick="verUnidades('${esc(nome).replace(/'/g,"\\'")}')">
+                <td>
+                  <button class="btn btn-ghost btn-sm" style="font-weight:600;font-size:.92rem;padding:.2rem .4rem;text-align:left" onclick="verUnidades('${esc(nome).replace(/'/g,"\\'")}');event.stopPropagation()">
+                    ${esc(nome)}
+                  </button>
+                </td>
+                <td style="color:var(--text-secondary);font-size:.82rem">${esc(g.categoria) || '—'}</td>
+                <td style="text-align:center;font-weight:700;color:var(--navy)">${g.itens.length}</td>
+                <td style="display:flex;flex-wrap:wrap;gap:.3rem;padding:.6rem .75rem">${resumo}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:.78rem;color:var(--text-muted);margin-top:.5rem;padding:0 .25rem">Clique no nome do equipamento para ver as unidades individuais com seus IDs.</div>
+  `;
+}
+
+function verUnidades(nome) {
+  const unidades = _equipamentosCache.filter(e => e.nome === nome);
+  if (!unidades.length) return;
+  const isMaster = adminInfo && adminInfo.is_master;
+
+  document.getElementById('eq-hist-title').textContent = `${nome} — ${unidades.length} unidade${unidades.length > 1 ? 's' : ''}`;
+  document.getElementById('eq-hist-overlay').style.display = 'flex';
+  document.getElementById('eq-hist-body').innerHTML = `
+    <div class="table-wrap" style="max-height:480px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
             <th>Status</th>
             <th>Setor atual</th>
+            <th>Observação</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          ${lista.map(eq => `
+          ${unidades.map(eq => `
             <tr>
-              <td style="font-family:monospace;font-weight:700;color:var(--navy);font-size:.82rem">${esc(eq.codigo)}</td>
-              <td style="font-weight:500">${esc(eq.nome)}</td>
-              <td style="color:var(--text-secondary);font-size:.82rem">${esc(eq.categoria) || '—'}</td>
+              <td style="font-family:monospace;font-weight:700;color:var(--navy);font-size:.85rem">${esc(eq.codigo)}</td>
               <td>${badgeStatus(eq.status)}</td>
               <td style="font-size:.82rem;color:var(--text-secondary)">${esc(eq.setor_atual) || '—'}</td>
+              <td style="font-size:.78rem;color:var(--text-muted);max-width:140px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(eq.observacao)}">${esc(eq.observacao) || '—'}</div></td>
               <td style="white-space:nowrap">
-                <button class="btn btn-secondary btn-sm" onclick="eqMovimentar(${eq.id})">Movimentar</button>
-                <button class="btn btn-ghost btn-sm" onclick="eqHistorico(${eq.id},'${esc(eq.codigo).replace(/'/g,"\\'")}')">Histórico</button>
-                <button class="btn btn-ghost btn-sm" onclick="eqEditar(${eq.id})">Editar</button>
-                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="eqDeletar(${eq.id},'${esc(eq.codigo).replace(/'/g,"\\'")}')">Excluir</button>` : ''}
+                <button class="btn btn-secondary btn-sm" onclick="fecharEqHist();eqMovimentar(${eq.id})">Movimentar</button>
+                <button class="btn btn-ghost btn-sm" onclick="fecharEqHist();eqHistorico(${eq.id},'${esc(eq.codigo).replace(/'/g,"\\'")}')">Histórico</button>
+                <button class="btn btn-ghost btn-sm" onclick="fecharEqHist();eqEditar(${eq.id})">Editar</button>
+                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="fecharEqHist();eqDeletar(${eq.id},'${esc(eq.codigo).replace(/'/g,"\\'")}')">Excluir</button>` : ''}
               </td>
             </tr>
           `).join('')}
