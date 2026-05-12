@@ -118,4 +118,74 @@ router.delete('/impressoras/:id', requireMaster, (req, res) => {
   } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
 });
 
+// ── Equipamentos (itens individuais com ID único) ──────────
+
+router.get('/equipamentos', requireAdmin, (req, res) => {
+  try { return res.json(db.listarEquipamentos(req.query)); }
+  catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
+});
+
+router.get('/equipamentos/:id', requireAdmin, (req, res) => {
+  try {
+    const eq = db.buscarEquipamentoPorId(req.params.id);
+    if (!eq) return res.status(404).json({ erro: 'Não encontrado' });
+    return res.json(eq);
+  } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
+});
+
+router.post('/equipamentos', requireAdmin, (req, res) => {
+  try {
+    const { nome, categoria, status, setor_atual, observacao, codigo } = req.body;
+    if (!nome) return res.status(400).json({ erro: 'Nome obrigatório' });
+    const id = db.criarEquipamento({
+      codigo: codigo ? san(codigo) : '',
+      nome: san(nome),
+      categoria: san(categoria || ''),
+      status: san(status || 'disponivel'),
+      setor_atual: san(setor_atual || ''),
+      observacao: san(observacao || ''),
+    });
+    const eq = db.buscarEquipamentoPorId(id);
+    return res.status(201).json({ id, codigo: eq.codigo, mensagem: 'Equipamento criado' });
+  } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
+});
+
+router.patch('/equipamentos/:id', requireAdmin, (req, res) => {
+  try {
+    if (!db.buscarEquipamentoPorId(req.params.id)) return res.status(404).json({ erro: 'Não encontrado' });
+    const dados = {};
+    ['codigo','nome','categoria','status','setor_atual','observacao'].forEach(f => {
+      if (req.body[f] !== undefined) dados[f] = san(req.body[f]);
+    });
+    db.atualizarEquipamento(req.params.id, dados);
+    return res.json({ mensagem: 'Atualizado' });
+  } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
+});
+
+router.delete('/equipamentos/:id', requireMaster, (req, res) => {
+  try {
+    db.deletarEquipamento(req.params.id);
+    return res.json({ mensagem: 'Excluído' });
+  } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
+});
+
+router.post('/equipamentos/:id/movimentacao', requireAdmin, (req, res) => {
+  try {
+    const eq = db.buscarEquipamentoPorId(req.params.id);
+    if (!eq) return res.status(404).json({ erro: 'Não encontrado' });
+    const { tipo, setor_destino, setor_origem, observacao } = req.body;
+    const TIPOS = ['entrada','saida','retorno','manutencao','descarte'];
+    if (!TIPOS.includes(tipo)) return res.status(400).json({ erro: 'Tipo inválido' });
+    if (tipo === 'saida' && !setor_destino) return res.status(400).json({ erro: 'Informe o setor de destino' });
+    const adminNome = req.admin ? req.admin.nome || '' : '';
+    db.registrarMovEquipamento(eq.id, tipo, san(setor_origem||''), san(setor_destino||''), adminNome, san(observacao||''));
+    return res.json({ mensagem: 'Movimentação registrada' });
+  } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
+});
+
+router.get('/equipamentos/:id/historico', requireAdmin, (req, res) => {
+  try { return res.json(db.listarHistoricoEquipamento(req.params.id)); }
+  catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
+});
+
 module.exports = router;

@@ -313,6 +313,29 @@ function initDb() {
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
       atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS equipamentos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      codigo TEXT NOT NULL UNIQUE,
+      nome TEXT NOT NULL,
+      categoria TEXT DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'disponivel',
+      setor_atual TEXT DEFAULT '',
+      observacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS equipamentos_historico (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      equipamento_id INTEGER NOT NULL REFERENCES equipamentos(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL,
+      setor_origem TEXT DEFAULT '',
+      setor_destino TEXT DEFAULT '',
+      admin_nome TEXT DEFAULT '',
+      observacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   db.exec(`
@@ -1586,4 +1609,67 @@ module.exports = {
   atualizarImpressora,
   deletarImpressora,
   prazo2DiasUteis,
+  listarEquipamentos,
+  buscarEquipamentoPorId,
+  criarEquipamento,
+  atualizarEquipamento,
+  deletarEquipamento,
+  registrarMovEquipamento,
+  listarHistoricoEquipamento,
 };
+
+// ── Equipamentos (itens individuais com ID único) ──────────
+
+function listarEquipamentos({ busca, status, categoria } = {}) {
+  let sql = 'SELECT * FROM equipamentos WHERE 1=1';
+  const params = [];
+  if (busca) { sql += ' AND (nome LIKE ? OR categoria LIKE ? OR codigo LIKE ?)'; const b = `%${busca}%`; params.push(b, b, b); }
+  if (status) { sql += ' AND status = ?'; params.push(status); }
+  if (categoria) { sql += ' AND categoria LIKE ?'; params.push(`%${categoria}%`); }
+  sql += ' ORDER BY id ASC';
+  return getDb().prepare(sql).all(...params);
+}
+
+function buscarEquipamentoPorId(id) {
+  return getDb().prepare('SELECT * FROM equipamentos WHERE id = ?').get(id);
+}
+
+function criarEquipamento(dados) {
+  const db = getDb();
+  const insert = db.transaction(() => {
+    const stmt = db.prepare(`INSERT INTO equipamentos (codigo, nome, categoria, status, setor_atual, observacao) VALUES ('__TMP__', ?, ?, ?, ?, ?)`);
+    const r = stmt.run(dados.nome || '', dados.categoria || '', dados.status || 'disponivel', dados.setor_atual || '', dados.observacao || '');
+    const id = r.lastInsertRowid;
+    const codigo = dados.codigo && dados.codigo.trim() ? dados.codigo.trim() : `EQ-${String(id).padStart(4, '0')}`;
+    db.prepare('UPDATE equipamentos SET codigo = ? WHERE id = ?').run(codigo, id);
+    return id;
+  });
+  return insert();
+}
+
+function atualizarEquipamento(id, dados) {
+  const db = getDb();
+  const campos = Object.keys(dados).map(k => `${k} = ?`);
+  if (!campos.length) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  db.prepare(`UPDATE equipamentos SET ${campos.join(', ')} WHERE id = ?`).run(...Object.values(dados), id);
+}
+
+function deletarEquipamento(id) {
+  getDb().prepare('DELETE FROM equipamentos WHERE id = ?').run(id);
+}
+
+function registrarMovEquipamento(id, tipo, setor_origem, setor_destino, admin_nome, observacao) {
+  const db = getDb();
+  db.prepare(`INSERT INTO equipamentos_historico (equipamento_id, tipo, setor_origem, setor_destino, admin_nome, observacao) VALUES (?, ?, ?, ?, ?, ?)`).run(id, tipo, setor_origem || '', setor_destino || '', admin_nome || '', observacao || '');
+  const STATUS_MAP = { entrada: 'disponivel', saida: 'em_uso', retorno: 'disponivel', manutencao: 'manutencao', descarte: 'descartado' };
+  const novoStatus = STATUS_MAP[tipo];
+  const novoSetor = tipo === 'saida' ? setor_destino : tipo === 'retorno' ? '' : undefined;
+  const upd = { status: novoStatus };
+  if (novoSetor !== undefined) upd.setor_atual = novoSetor;
+  atualizarEquipamento(id, upd);
+}
+
+function listarHistoricoEquipamento(id) {
+  return getDb().prepare('SELECT * FROM equipamentos_historico WHERE equipamento_id = ? ORDER BY criado_em DESC').all(id);
+}

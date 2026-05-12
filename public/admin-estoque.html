@@ -33,7 +33,7 @@
   <div class="page-header flex-between flex-wrap gap-2">
     <div>
       <div class="page-title">Estoque de Suprimentos</div>
-      <div class="page-subtitle">Controle de toner, cartuchos, resmas e impressoras em rede</div>
+      <div class="page-subtitle">Controle de toner, cartuchos, resmas, impressoras e equipamentos</div>
     </div>
     <button class="btn btn-primary" id="btn-novo">+ Novo Item</button>
   </div>
@@ -45,12 +45,31 @@
     <button class="tab-btn" data-tab="impressoras">
       Impressoras em Rede <span class="tab-badge" id="badge-impressoras"></span>
     </button>
+    <button class="tab-btn" data-tab="equipamentos">
+      Equipamentos <span class="tab-badge" id="badge-equipamentos"></span>
+    </button>
+  </div>
+
+  <!-- Busca equipamentos -->
+  <div id="filtros-equipamentos" style="display:none;margin:.75rem 0 0">
+    <div class="filtros">
+      <input class="form-control" type="search" id="eq-busca" placeholder="Buscar por nome, categoria ou código… Ex: toner, nobreak" style="max-width:320px">
+      <select class="form-control" id="eq-status" style="max-width:160px">
+        <option value="">Todos os status</option>
+        <option value="disponivel">Disponível</option>
+        <option value="em_uso">Em uso</option>
+        <option value="manutencao">Manutenção</option>
+        <option value="descartado">Descartado</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="btn-buscar-eq">Buscar</button>
+      <button class="btn btn-secondary btn-sm" id="btn-limpar-eq">Limpar</button>
+    </div>
   </div>
 
   <div id="estoque-lista"><div class="loading"><div class="spinner"></div></div></div>
 </main>
 
-<!-- Modal genérico (criar/editar item, criar/editar impressora) -->
+<!-- Modal genérico (criar/editar item, criar/editar impressora, criar/editar equipamento) -->
 <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
@@ -61,7 +80,7 @@
   </div>
 </div>
 
-<!-- Modal movimentação (entrada/saída) -->
+<!-- Modal movimentação (entrada/saída toner) -->
 <div class="modal-overlay" id="mov-modal-overlay" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:420px">
     <div class="modal-header">
@@ -72,7 +91,7 @@
   </div>
 </div>
 
-<!-- Modal histórico -->
+<!-- Modal histórico toner -->
 <div class="modal-overlay" id="hist-modal-overlay" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:580px">
     <div class="modal-header">
@@ -80,6 +99,28 @@
       <button class="modal-close" id="hist-btn-fechar" aria-label="Fechar">&#x2715;</button>
     </div>
     <div class="modal-body" id="hist-modal-body"></div>
+  </div>
+</div>
+
+<!-- Modal movimentação equipamento -->
+<div class="modal-overlay" id="eq-mov-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 id="eq-mov-title">Movimentação</h2>
+      <button class="modal-close" id="eq-mov-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="eq-mov-body"></div>
+  </div>
+</div>
+
+<!-- Modal histórico equipamento -->
+<div class="modal-overlay" id="eq-hist-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <h2 id="eq-hist-title">Histórico</h2>
+      <button class="modal-close" id="eq-hist-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="eq-hist-body"></div>
   </div>
 </div>
 
