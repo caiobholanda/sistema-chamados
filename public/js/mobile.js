@@ -575,7 +575,7 @@ async function renderDetalhe(c) {
       try {
         await api(`/api/admin/chamados/${c.id}/mensagens`, {
           method: 'POST',
-          body: JSON.stringify({ texto }),
+          body: JSON.stringify({ mensagem: texto }),
         });
         await _atualizarChatMob(c.id);
       } catch {} finally {
@@ -708,13 +708,16 @@ async function _atualizarChatMob(chamadoId) {
     }
     const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
     box.innerHTML = msgs.map(m => {
-      const isAdmin = !!m.admin_id;
+      const isAdmin = m.autor_tipo === 'admin';
+      const iso = m.criado_em.includes('T') ? m.criado_em : m.criado_em.replace(' ', 'T');
+      const hora = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
+        .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' });
       return `
         <div class="mob-chat-msg ${isAdmin ? 'mob-chat-msg-admin' : 'mob-chat-msg-user'}">
-          <div class="mob-chat-bubble">${m.texto.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+          <div class="mob-chat-bubble">${(m.mensagem || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
           <div class="mob-chat-meta">
-            <span class="mob-chat-autor">${isAdmin ? (m.admin_nome || 'Admin') : (m.usuario_nome || 'Usuário')}</span>
-            <span class="mob-chat-time">${new Date((m.criado_em.includes('T') ? m.criado_em : m.criado_em.replace(' ','T')) + (m.criado_em.endsWith('Z')?'':'Z')).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Fortaleza'})}</span>
+            <span class="mob-chat-autor">${m.autor_nome || (isAdmin ? 'Admin' : 'Usuário')}</span>
+            <span class="mob-chat-time">${hora}</span>
           </div>
         </div>`;
     }).join('');
