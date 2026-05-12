@@ -678,7 +678,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
             </select>
           </div>
           <div class="form-group">
-            <label for="ch-categoria">Etiqueta <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+            <label for="ch-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
             <select class="form-control" id="ch-categoria">
               <option value="">Classificar automaticamente</option>
               <option value="software">Software</option>
