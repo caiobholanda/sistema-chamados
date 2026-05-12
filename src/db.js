@@ -130,6 +130,7 @@ function initDb() {
   try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_destino TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_origem TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE push_subscriptions ADD COLUMN is_mobile INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN aberto_por_admin_id INTEGER REFERENCES admins(id)"); } catch {}
 
   // Migration: trocar UNIQUE inline por partial unique index (ativo=1)
   // Permite: mesmo @ em usuarios E admins; reutilizar @ após desativação; bloquear reativação se já existe @ ativo
@@ -858,10 +859,10 @@ async function criarAdminMasterSeNecessario() {
 function inserirChamado(dados) {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original, categoria)
-    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria)
+    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original, categoria, aberto_por_admin_id)
+    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria, @aberto_por_admin_id)
   `);
-  const result = stmt.run({ usuario_id: null, categoria: null, ...dados });
+  const result = stmt.run({ usuario_id: null, categoria: null, aberto_por_admin_id: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -891,10 +892,13 @@ function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem 
 function buscarChamadoPorId(id) {
   return getDb().prepare(`
     SELECT c.*, a.nome_completo as admin_nome,
-           u.setor as usuario_setor, u.ramal as usuario_ramal
+           u.setor as usuario_setor, u.ramal as usuario_ramal,
+           ab.nome_completo as aberto_por_admin_nome,
+           ab.is_master as aberto_por_admin_is_master
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
     LEFT JOIN usuarios u ON c.usuario_id = u.id
+    LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
     WHERE c.id = ?
   `).get(id);
 }
@@ -927,11 +931,15 @@ function listarChamadosAdmin(filtros = {}) {
            c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
            c.comentario_avaliacao, c.criado_em, c.atualizado_em,
            c.concluido_em, c.categoria, c.assinado_em,
+           c.aberto_por_admin_id,
            a.nome_completo as admin_nome,
-           u.setor as usuario_setor, u.ramal as usuario_ramal
+           u.setor as usuario_setor, u.ramal as usuario_ramal,
+           ab.nome_completo as aberto_por_admin_nome,
+           ab.is_master as aberto_por_admin_is_master
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
     LEFT JOIN usuarios u ON c.usuario_id = u.id
+    LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
     WHERE 1=1
   `;
   const params = [];

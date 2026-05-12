@@ -283,7 +283,95 @@ document.getElementById('btn-fechar-modal').addEventListener('click', fecharModa
 document.getElementById('modal-overlay').addEventListener('click', e => {
   if (e.target === e.currentTarget) fecharModal();
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('modal-novo-chamado-overlay').classList.contains('open')) fecharModalNovoChamado();
+    else fecharModal();
+  }
+});
+
+// ── Modal "Abrir chamado" ──────────────────────────────────────────────────
+function abrirModalNovoChamado() {
+  // Popula o select de setor com as opções do filtro existente
+  const srcSetor = document.getElementById('filtro-setor');
+  const ncSetor  = document.getElementById('nc-setor');
+  ncSetor.innerHTML = '<option value="">Selecione o setor...</option>' +
+    Array.from(srcSetor.options).slice(1).map(o =>
+      o.tagName === 'OPTGROUP'
+        ? `<optgroup label="${o.label}"></optgroup>`
+        : `<option value="${o.value}">${o.text}</option>`
+    ).join('');
+  // Copia optgroups corretamente
+  ncSetor.innerHTML = '<option value="">Selecione o setor...</option>';
+  Array.from(srcSetor.children).forEach(child => {
+    if (child.tagName === 'OPTGROUP') {
+      const og = document.createElement('optgroup');
+      og.label = child.label;
+      Array.from(child.children).forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt.value || opt.text;
+        o.textContent = opt.text;
+        og.appendChild(o);
+      });
+      ncSetor.appendChild(og);
+    } else if (child.tagName === 'OPTION' && child.value) {
+      const o = document.createElement('option');
+      o.value = child.value;
+      o.textContent = child.text;
+      ncSetor.appendChild(o);
+    }
+  });
+
+  document.getElementById('nc-nome').value = '';
+  document.getElementById('nc-ramal').value = '';
+  document.getElementById('nc-descricao').value = '';
+  document.getElementById('msg-novo-chamado').innerHTML = '';
+  document.getElementById('modal-novo-chamado-overlay').classList.add('open');
+  document.getElementById('nc-nome').focus();
+}
+
+function fecharModalNovoChamado() {
+  document.getElementById('modal-novo-chamado-overlay').classList.remove('open');
+}
+
+document.getElementById('btn-novo-chamado').addEventListener('click', abrirModalNovoChamado);
+document.getElementById('btn-fechar-novo-chamado').addEventListener('click', fecharModalNovoChamado);
+document.getElementById('modal-novo-chamado-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) fecharModalNovoChamado();
+});
+
+document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msgEl = document.getElementById('msg-novo-chamado');
+  const nome     = document.getElementById('nc-nome').value.trim();
+  const setor    = document.getElementById('nc-setor').value;
+  const ramal    = document.getElementById('nc-ramal').value.trim();
+  const descricao = document.getElementById('nc-descricao').value.trim();
+
+  if (!nome)     { msgEl.innerHTML = '<div class="alert alert-danger">Informe o nome do solicitante.</div>'; return; }
+  if (!setor)    { msgEl.innerHTML = '<div class="alert alert-danger">Selecione o setor.</div>'; return; }
+  if (!descricao || descricao.length < 5) { msgEl.innerHTML = '<div class="alert alert-danger">Descreva o problema (mínimo 5 caracteres).</div>'; return; }
+
+  const btn = document.getElementById('btn-confirmar-novo-chamado');
+  btn.disabled = true; btn.textContent = 'Abrindo...';
+  msgEl.innerHTML = '';
+  try {
+    const r = await api('/api/admin/chamados', { method: 'POST', body: JSON.stringify({ nome, setor, ramal, descricao }) });
+    const d = await r.json();
+    if (r.ok) {
+      fecharModalNovoChamado();
+      carregarChamados();
+      carregarEstatisticas();
+      mostrarToast('Chamado aberto!', 'O chamado foi criado e já está na lista.');
+    } else {
+      msgEl.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao abrir chamado.'}</div>`;
+    }
+  } catch {
+    msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Abrir chamado';
+  }
+});
 
 async function carregarAdminsParaFiltro() {
   try {
@@ -432,6 +520,10 @@ function renderChamadoItem(c) {
         </span>
         ${c.prazo ? `<span class="chamado-footer-prazo${atrasado ? ' prazo-vencido' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Prazo: ${fmtData(c.prazo)}</span>` : ''}
         ${c.admin_nome ? `<span class="tag">${c.admin_nome}</span>` : ''}
+        ${c.aberto_por_admin_nome ? `<span class="chamado-footer-meta" style="color:var(--navy);font-weight:600;font-size:.76rem">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Aberto por ${c.aberto_por_admin_nome}${c.aberto_por_admin_is_master ? ' (Master)' : ' (Admin)'}
+        </span>` : ''}
       </div>
     </div>
   `;
@@ -498,6 +590,10 @@ function renderModalBody(c) {
             ${(c.usuario_ramal || c.ramal) ? `<span class="mv2-sep">·</span><span>Ramal ${c.usuario_ramal || c.ramal}</span>` : ''}
             ${c.prioridade ? `<span class="mv2-sep">·</span><span>${PRIO_LABELS[c.prioridade]}</span>` : ''}
           </div>
+          ${c.aberto_por_admin_nome ? `<div style="margin-top:.3rem;font-size:.78rem;color:var(--navy);font-weight:600;display:flex;align-items:center;gap:.3rem">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Aberto por ${c.aberto_por_admin_nome} (${c.aberto_por_admin_is_master ? 'Master' : 'Admin'})
+          </div>` : ''}
         </div>
         <div></div>
       </div>

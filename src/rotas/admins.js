@@ -92,6 +92,43 @@ router.get('/chamados', requireAdmin, (req, res) => {
   }
 });
 
+router.post('/chamados', requireAdmin, async (req, res) => {
+  try {
+    const { classificarInteligente } = require('../categorizador');
+    let { nome, setor, ramal, descricao } = req.body;
+    nome     = sanitizarTexto(nome     || '');
+    setor    = sanitizarTexto(setor    || '');
+    descricao= sanitizarTexto(descricao|| '');
+    ramal    = (ramal || '').trim();
+
+    if (!nome     || nome.length     < 2)  return res.status(400).json({ erro: 'Nome obrigatório' });
+    if (!setor    || setor.length    < 2)  return res.status(400).json({ erro: 'Setor obrigatório' });
+    if (!descricao|| descricao.length< 5)  return res.status(400).json({ erro: 'Descrição muito curta (mín. 5 caracteres)' });
+
+    const adminCriador = db.buscarAdminPorId(req.admin.sub);
+    const cat = await classificarInteligente(descricao);
+    const categoria = cat ? cat.id : null;
+    const id = db.inserirChamado({
+      usuario_id: null,
+      nome, setor, ramal, descricao,
+      anexo_path: null, anexo_nome_original: null,
+      categoria,
+      aberto_por_admin_id: req.admin.sub,
+    });
+
+    if (categoria === 'impressora') {
+      db.atualizarPrazo(id, db.prazo2DiasUteis(), null);
+    }
+
+    const nomeAdmin = adminCriador ? adminCriador.nome_completo : 'Admin';
+    push.enviarParaTodos('🆕 Novo chamado aberto', `${nome} (${setor}): ${descricao.slice(0, 80)}${descricao.length > 80 ? '…' : ''}`).catch(() => {});
+    return res.status(201).json({ id, mensagem: `Chamado #${id} aberto por ${nomeAdmin}` });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno ao abrir chamado' });
+  }
+});
+
 router.patch('/chamados/:id/transferir', requireAdmin, async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);

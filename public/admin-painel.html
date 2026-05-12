@@ -161,6 +161,7 @@
       <button class="btn btn-primary btn-sm" id="btn-filtrar">Filtrar</button>
       <button class="btn btn-secondary btn-sm" id="btn-limpar">Limpar</button>
       <button class="btn btn-secondary btn-sm" id="btn-atualizar" title="Atualizar" aria-label="Atualizar">&#8635;</button>
+      <button class="btn btn-primary btn-sm" id="btn-novo-chamado" style="margin-left:auto">+ Abrir chamado</button>
     </div>
   </div>
 
@@ -177,7 +178,38 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-novo-chamado-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-nc-title">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h2 id="modal-nc-title">Abrir chamado</h2>
+      <button class="modal-close" id="btn-fechar-novo-chamado" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div id="msg-novo-chamado"></div>
+      <form id="form-novo-chamado">
+        <div class="form-group">
+          <label for="nc-nome">Nome do solicitante <span class="req">*</span></label>
+          <input class="form-control" type="text" id="nc-nome" maxlength="100" autocomplete="off" autocorrect="off">
+        </div>
+        <div class="form-group">
+          <label for="nc-setor">Setor <span class="req">*</span></label>
+          <select class="form-control" id="nc-setor"></select>
+        </div>
+        <div class="form-group">
+          <label for="nc-ramal">Ramal</label>
+          <input class="form-control" type="text" id="nc-ramal" maxlength="20" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="nc-descricao">Descrição do problema <span class="req">*</span></label>
+          <textarea class="form-control" id="nc-descricao" rows="4" maxlength="2000" placeholder="Descreva o problema em detalhes..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.25rem" id="btn-confirmar-novo-chamado">Abrir chamado</button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="/js/historico-modal.js"></script>
-<script src="/js/admin-painel.js?v=7"></script>
+<script src="/js/admin-painel.js?v=8"></script>
 </body>
 </html>
