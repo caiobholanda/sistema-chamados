@@ -350,8 +350,48 @@ function initDb() {
 
   seedInventario();
   seedEstoque();
+  migrarEquipamentosLegados(db);
 
   return db;
+}
+
+function migrarEquipamentosLegados(db) {
+  // Roda apenas uma vez: se a tabela equipamentos estiver vazia, popula com os itens do estoque
+  const jaExiste = db.prepare('SELECT COUNT(*) as n FROM equipamentos').get().n;
+  if (jaExiste > 0) return;
+
+  // Agrupa itens do estoque por nome (soma qtd_geral + qtd_preto de duplicatas)
+  const itens = db.prepare(`
+    SELECT nome, tipo,
+      SUM(qtd_geral) as qtd_geral,
+      SUM(qtd_preto) as qtd_preto
+    FROM estoque_itens
+    WHERE tipo IN ('reserva','periferico')
+    GROUP BY nome
+    HAVING (SUM(qtd_geral) + SUM(qtd_preto)) > 0
+    ORDER BY nome
+  `).all();
+
+  const CATEGORIA_MAP = {
+    reserva: 'Equipamento',
+    periferico: 'Periférico',
+  };
+
+  const inserir = db.prepare(`INSERT INTO equipamentos (codigo, nome, categoria, status, setor_atual, observacao) VALUES ('__TMP__', ?, ?, 'disponivel', '', '')`);
+  const atualizarCodigo = db.prepare('UPDATE equipamentos SET codigo = ? WHERE id = ?');
+
+  const migrar = db.transaction(() => {
+    for (const item of itens) {
+      const qtd = (item.qtd_geral || 0) + (item.qtd_preto || 0);
+      const categoria = CATEGORIA_MAP[item.tipo] || item.tipo;
+      for (let i = 0; i < qtd; i++) {
+        const r = inserir.run(item.nome, categoria);
+        const id = r.lastInsertRowid;
+        atualizarCodigo.run(`EQ-${String(id).padStart(4, '0')}`, id);
+      }
+    }
+  });
+  migrar();
 }
 
 // ── Seed data ─────────────────────────────────────────────
