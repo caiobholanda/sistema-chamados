@@ -1,5 +1,6 @@
 const app = document.getElementById('mob-app');
 let adminInfo = null;
+let _chatMobIv = null;
 
 // ── Push Notifications ────────────────────────────────────────
 let _swReg = null;
@@ -181,7 +182,7 @@ window.addEventListener('online', () => {
   if (Notification.permission === 'granted') _subscribePush();
 });
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardando_compra: 'Ag. compra', aguardando_chegar: 'Ag. chegar', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
 function fmtData(d) {
@@ -334,7 +335,7 @@ async function carregarChamados() {
   const lista = document.getElementById('mob-lista');
   lista.innerHTML = '<div class="mob-loading">Carregando…</div>';
   try {
-    const params = new URLSearchParams({ status: 'aberto,em_andamento' });
+    const params = new URLSearchParams({ status: 'aberto,em_andamento,aguardando_compra,aguardando_chegar' });
     if (filtroAtivo === 'meus' && adminInfo) params.set('admin_id', adminInfo.id);
     const r = await api('/api/admin/chamados?' + params);
     if (!r.ok) return;
@@ -486,6 +487,8 @@ async function renderDetalhe(c) {
     } catch {}
   }
 
+  const podeChat = ['aberto','em_andamento','aguardando_compra','aguardando_chegar'].includes(c.status);
+
   app.innerHTML = `
     <div class="mob-header">
       <button class="mob-voltar-btn" id="mob-voltar">← Voltar</button>
@@ -496,6 +499,24 @@ async function renderDetalhe(c) {
       <div class="mob-detalhe-nome">${c.nome}</div>
       <div class="mob-detalhe-setor">${c.usuario_setor || c.setor} · Ramal ${c.usuario_ramal || c.ramal}</div>
       <div class="mob-detalhe-desc">${c.descricao}</div>
+
+      ${podeChat ? `
+      <div class="mob-chat-section" id="mob-chat-section">
+        <div class="mob-chat-head">
+          <span class="mob-chat-dot"></span>
+          Chat com o solicitante
+        </div>
+        <div class="mob-chat-msgs" id="mob-chat-msgs">
+          <div class="mob-chat-vazio">Carregando mensagens…</div>
+        </div>
+        <form class="mob-chat-form" id="mob-chat-form" autocomplete="off">
+          <input class="mob-chat-input" id="mob-chat-input" type="text" placeholder="Digite uma mensagem…" maxlength="1000" autocomplete="off">
+          <button class="mob-chat-send-btn" type="submit" aria-label="Enviar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </form>
+      </div>
+      ` : `<div class="mob-chat-encerrado">Chat indisponível — chamado encerrado.</div>`}
 
       <div id="mob-msg-concluir"></div>
 
@@ -529,10 +550,40 @@ async function renderDetalhe(c) {
     </div>
   `;
 
-  document.getElementById('mob-voltar').addEventListener('click', renderLista);
+  document.getElementById('mob-voltar').addEventListener('click', () => {
+    clearInterval(_chatMobIv);
+    _chatMobIv = null;
+    renderLista();
+  });
   document.getElementById('mob-ok-solucao').addEventListener('click', () => {
     document.getElementById('mob-solucao').blur();
   });
+
+  // Chat em tempo real
+  if (podeChat) {
+    _atualizarChatMob(c.id);
+    clearInterval(_chatMobIv);
+    _chatMobIv = setInterval(() => _atualizarChatMob(c.id), 4000);
+
+    document.getElementById('mob-chat-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('mob-chat-input');
+      const texto = input.value.trim();
+      if (!texto) return;
+      input.value = '';
+      input.disabled = true;
+      try {
+        await api(`/api/admin/chamados/${c.id}/mensagens`, {
+          method: 'POST',
+          body: JSON.stringify({ texto }),
+        });
+        await _atualizarChatMob(c.id);
+      } catch {} finally {
+        input.disabled = false;
+        input.focus();
+      }
+    });
+  }
 
   // Wizard Sim/Não
   if (temWiz) {
@@ -640,6 +691,35 @@ async function renderDetalhe(c) {
     } catch { msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão.</div>'; }
     finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Concluir chamado'; } }
   });
+}
+
+// ── Chat mobile ───────────────────────────────────────────────
+async function _atualizarChatMob(chamadoId) {
+  const box = document.getElementById('mob-chat-msgs');
+  if (!box) { clearInterval(_chatMobIv); _chatMobIv = null; return; }
+  try {
+    const r = await api(`/api/admin/chamados/${chamadoId}/mensagens`);
+    if (!r.ok) return;
+    const msgs = await r.json();
+    if (!box.isConnected) return;
+    if (!msgs.length) {
+      box.innerHTML = '<div class="mob-chat-vazio">Nenhuma mensagem ainda. Seja o primeiro a escrever!</div>';
+      return;
+    }
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+    box.innerHTML = msgs.map(m => {
+      const isAdmin = !!m.admin_id;
+      return `
+        <div class="mob-chat-msg ${isAdmin ? 'mob-chat-msg-admin' : 'mob-chat-msg-user'}">
+          <div class="mob-chat-bubble">${m.texto.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+          <div class="mob-chat-meta">
+            <span class="mob-chat-autor">${isAdmin ? (m.admin_nome || 'Admin') : (m.usuario_nome || 'Usuário')}</span>
+            <span class="mob-chat-time">${new Date((m.criado_em.includes('T') ? m.criado_em : m.criado_em.replace(' ','T')) + (m.criado_em.endsWith('Z')?'':'Z')).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Fortaleza'})}</span>
+          </div>
+        </div>`;
+    }).join('');
+    if (atBottom) box.scrollTop = box.scrollHeight;
+  } catch {}
 }
 
 // ── Tela de sucesso ───────────────────────────────────────────
