@@ -313,6 +313,30 @@ function initDb() {
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
       atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS estoque_patrimonio (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      codigo TEXT NOT NULL UNIQUE,
+      descricao TEXT NOT NULL DEFAULT '',
+      categoria TEXT DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'disponivel',
+      setor_atual TEXT DEFAULT '',
+      observacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS patrimonio_movimentacoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      patrimonio_id INTEGER NOT NULL REFERENCES estoque_patrimonio(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL,
+      setor_origem TEXT DEFAULT '',
+      setor_destino TEXT DEFAULT '',
+      admin_nome TEXT DEFAULT '',
+      chamado_id INTEGER,
+      observacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   db.exec(`
@@ -771,6 +795,81 @@ function atualizarImpressora(id, dados) {
 
 function deletarImpressora(id) {
   getDb().prepare('DELETE FROM impressoras WHERE id = ?').run(id);
+}
+
+// ── Patrimônio individual ─────────────────────────────────
+
+function listarPatrimonio(filtros = {}) {
+  const db = getDb();
+  let sql = 'SELECT * FROM estoque_patrimonio';
+  const where = [];
+  const params = [];
+  if (filtros.status)   { where.push('status = ?');            params.push(filtros.status); }
+  if (filtros.categoria){ where.push('categoria = ?');         params.push(filtros.categoria); }
+  if (filtros.busca)    { where.push('(codigo LIKE ? OR descricao LIKE ? OR setor_atual LIKE ?)');
+                          params.push(`%${filtros.busca}%`, `%${filtros.busca}%`, `%${filtros.busca}%`); }
+  if (where.length) sql += ' WHERE ' + where.join(' AND ');
+  sql += ' ORDER BY codigo ASC';
+  return db.prepare(sql).all(...params);
+}
+
+function buscarPatrimonioPorId(id) {
+  return getDb().prepare('SELECT * FROM estoque_patrimonio WHERE id = ?').get(id);
+}
+
+function criarPatrimonio(dados) {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    const result = db.prepare(`
+      INSERT INTO estoque_patrimonio (codigo, descricao, categoria, status, setor_atual, observacao)
+      VALUES ('__TMP__', @descricao, @categoria, @status, @setor_atual, @observacao)
+    `).run({ descricao: '', categoria: '', status: 'disponivel', setor_atual: '', observacao: '', ...dados });
+    const id = result.lastInsertRowid;
+    const codigo = (dados.codigo && dados.codigo.trim()) ? dados.codigo.trim() : `PAT-${String(id).padStart(4, '0')}`;
+    db.prepare('UPDATE estoque_patrimonio SET codigo = ? WHERE id = ?').run(codigo, id);
+    return id;
+  });
+  return tx();
+}
+
+function atualizarPatrimonio(id, dados) {
+  const campos = [];
+  const values = [];
+  ['codigo','descricao','categoria','status','setor_atual','observacao'].forEach(f => {
+    if (dados[f] !== undefined) { campos.push(`${f} = ?`); values.push(dados[f]); }
+  });
+  if (!campos.length) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  values.push(id);
+  getDb().prepare(`UPDATE estoque_patrimonio SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarPatrimonio(id) {
+  getDb().prepare('DELETE FROM estoque_patrimonio WHERE id = ?').run(id);
+}
+
+function registrarMovimentacaoPatrimonio(patrimonio_id, tipo, setor_origem, setor_destino, admin_nome, chamado_id, observacao) {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO patrimonio_movimentacoes (patrimonio_id, tipo, setor_origem, setor_destino, admin_nome, chamado_id, observacao)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(patrimonio_id, tipo, setor_origem || '', setor_destino || '', admin_nome || '', chamado_id || null, observacao || '');
+
+  const STATUS_MAP = { entrada: 'disponivel', saida: 'em_uso', retorno: 'disponivel', manutencao: 'manutencao', descarte: 'descartado' };
+  const novoStatus = STATUS_MAP[tipo];
+  const novoSetor  = tipo === 'saida' ? (setor_destino || '') : tipo === 'retorno' ? '' : undefined;
+  const campos = ['atualizado_em = CURRENT_TIMESTAMP'];
+  const vals   = [];
+  if (novoStatus) { campos.push('status = ?'); vals.push(novoStatus); }
+  if (novoSetor !== undefined) { campos.push('setor_atual = ?'); vals.push(novoSetor); }
+  vals.push(patrimonio_id);
+  db.prepare(`UPDATE estoque_patrimonio SET ${campos.join(', ')} WHERE id = ?`).run(...vals);
+}
+
+function listarMovimentacoesPatrimonio(patrimonio_id) {
+  return getDb().prepare(
+    'SELECT * FROM patrimonio_movimentacoes WHERE patrimonio_id = ? ORDER BY criado_em DESC'
+  ).all(patrimonio_id);
 }
 
 function salvarPushSubscription(adminId, { endpoint, p256dh, auth, is_mobile }) {
@@ -1585,5 +1684,12 @@ module.exports = {
   criarImpressora,
   atualizarImpressora,
   deletarImpressora,
+  listarPatrimonio,
+  buscarPatrimonioPorId,
+  criarPatrimonio,
+  atualizarPatrimonio,
+  deletarPatrimonio,
+  registrarMovimentacaoPatrimonio,
+  listarMovimentacoesPatrimonio,
   prazo2DiasUteis,
 };

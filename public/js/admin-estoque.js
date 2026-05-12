@@ -2,6 +2,7 @@ let adminInfo = null;
 let abaAtiva = 'toner';
 let _tonerCache = [];
 let _impressorasCache = [];
+let _patrimonioCache = [];
 
 const TIPO_LABELS = {
   toner_mono: 'Toner Mono',
@@ -16,6 +17,36 @@ const COR_LABELS = {
   magenta: 'Magenta',
   amarelo: 'Amarelo',
   geral: 'Geral',
+};
+
+const STATUS_PAT_LABELS = {
+  disponivel: 'Disponível',
+  em_uso: 'Em uso',
+  manutencao: 'Manutenção',
+  descartado: 'Descartado',
+};
+
+const STATUS_PAT_COLORS = {
+  disponivel: { bg: 'var(--success)', color: '#fff' },
+  em_uso:     { bg: 'var(--navy)',    color: '#fff' },
+  manutencao: { bg: '#d97706',        color: '#fff' },
+  descartado: { bg: 'var(--danger)',  color: '#fff' },
+};
+
+const TIPOS_MOV_PAT_LABELS = {
+  entrada:    '+ Entrada',
+  saida:      '→ Saída',
+  retorno:    '← Retorno',
+  manutencao: '⚙ Manutenção',
+  descarte:   '✕ Descarte',
+};
+
+const TIPOS_MOV_PAT_COLORS = {
+  entrada:    'var(--success)',
+  saida:      'var(--navy)',
+  retorno:    '#0ea5e9',
+  manutencao: '#d97706',
+  descarte:   'var(--danger)',
 };
 
 function esc(s) {
@@ -56,10 +87,20 @@ async function carregarDados() {
       const r = await api('/api/admin/estoque/itens');
       _tonerCache = await r.json();
       renderToner(_tonerCache);
-    } else {
+    } else if (abaAtiva === 'impressoras') {
       const r = await api('/api/admin/estoque/impressoras');
       _impressorasCache = await r.json();
       renderImpressoras(_impressorasCache);
+    } else {
+      const params = new URLSearchParams();
+      const busca = document.getElementById('pat-busca')?.value.trim();
+      const status = document.getElementById('pat-status')?.value;
+      if (busca) params.set('busca', busca);
+      if (status) params.set('status', status);
+      const qs = params.toString();
+      const r = await api('/api/admin/estoque/patrimonio' + (qs ? '?' + qs : ''));
+      _patrimonioCache = await r.json();
+      renderPatrimonio(_patrimonioCache);
     }
   } catch (e) {
     if (e.message !== '401') document.getElementById('estoque-lista').innerHTML = '<div style="padding:2rem;color:var(--danger)">Erro ao carregar dados.</div>';
@@ -196,7 +237,8 @@ function fecharModal() { document.getElementById('modal-overlay').style.display 
 
 function btnNovoItem() {
   if (abaAtiva === 'toner') abrirNovoItem();
-  else abrirNovaImpressora();
+  else if (abaAtiva === 'impressoras') abrirNovaImpressora();
+  else abrirNovoPatrimonio();
 }
 
 function abrirNovoItem() {
@@ -534,6 +576,319 @@ function fecharHistModal() {
   document.getElementById('hist-modal-body').innerHTML = '';
 }
 
+// ── Patrimônio ────────────────────────────────────────────
+
+function statusPatBadge(status) {
+  const c = STATUS_PAT_COLORS[status] || { bg: 'var(--border)', color: 'var(--text)' };
+  const label = STATUS_PAT_LABELS[status] || status;
+  return `<span style="display:inline-block;padding:.18rem .55rem;border-radius:20px;font-size:.72rem;font-weight:700;background:${c.bg};color:${c.color}">${esc(label)}</span>`;
+}
+
+function renderPatrimonio(lista) {
+  const el = document.getElementById('estoque-lista');
+  document.getElementById('badge-patrimonio').textContent = lista.length || '';
+  const isMaster = adminInfo && adminInfo.is_master;
+
+  if (!lista.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum item de patrimônio cadastrado. Clique em "+ Novo Patrimônio".</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th>Status</th>
+            <th>Setor atual</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lista.map(item => `
+            <tr>
+              <td style="font-family:monospace;font-size:.82rem;font-weight:700;color:var(--navy)">${esc(item.codigo)}</td>
+              <td style="font-weight:500">${esc(item.descricao)}</td>
+              <td style="color:var(--text-secondary);font-size:.82rem">${esc(item.categoria) || '—'}</td>
+              <td>${statusPatBadge(item.status)}</td>
+              <td style="font-size:.82rem;color:var(--text-secondary)">${esc(item.setor_atual) || '—'}</td>
+              <td style="white-space:nowrap">
+                <button class="btn btn-secondary btn-sm" onclick="patMovimentar(${item.id})">Movimentar</button>
+                <button class="btn btn-ghost btn-sm" onclick="verHistoricoPatrimonio(${item.id},'${esc(item.codigo).replace(/'/g,"\\'")}')">Histórico</button>
+                <button class="btn btn-ghost btn-sm" onclick="abrirEditarPatrimonio(${item.id})">Editar</button>
+                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deletarPatrimonio(${item.id},'${esc(item.codigo).replace(/'/g,"\\'")}')">Excluir</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderFormPatrimonio(item, isEdit) {
+  const isMaster = adminInfo && adminInfo.is_master;
+  document.getElementById('modal-body').innerHTML = `
+    <form id="form-pat" style="display:flex;flex-direction:column;gap:.8rem">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Código (CPF do item)</label>
+          <input class="form-control" id="pat-codigo" type="text"
+            value="${esc(item.codigo || '')}"
+            placeholder="Auto (PAT-0001)"
+            ${isEdit && !isMaster ? 'readonly style="background:var(--bg-subtle);color:var(--text-muted)"' : ''}>
+          ${isEdit && !isMaster ? '<div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem">Apenas master pode alterar o código</div>' : ''}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <input class="form-control" id="pat-categoria" type="text" value="${esc(item.categoria || '')}" placeholder="Ex: Notebook, Monitor, Teclado…">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição <span style="color:var(--danger)">*</span></label>
+        <input class="form-control" id="pat-descricao" type="text" value="${esc(item.descricao || '')}" placeholder="Ex: Notebook Dell Latitude 5420 — SN: ABC123">
+      </div>
+      ${isEdit ? `
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="pat-status-sel">
+            ${Object.entries(STATUS_PAT_LABELS).map(([v, l]) => `<option value="${v}" ${item.status === v ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Setor atual</label>
+          <input class="form-control" id="pat-setor" type="text" value="${esc(item.setor_atual || '')}" placeholder="Ex: Recepção, RH…">
+        </div>
+      </div>
+      ` : ''}
+      <div class="form-group">
+        <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <input class="form-control" id="pat-obs" type="text" value="${esc(item.observacao || '')}" placeholder="Ex: comprado em 2024, garantia até 2027…">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-pat">${isEdit ? 'Salvar' : 'Adicionar'}</button>
+      </div>
+    </form>
+  `;
+
+  document.getElementById('form-pat').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar-pat');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    const descricao = document.getElementById('pat-descricao').value.trim();
+    if (!descricao) { mostrarToast('Descrição obrigatória', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
+    const body = {
+      descricao,
+      codigo: document.getElementById('pat-codigo').value.trim(),
+      categoria: document.getElementById('pat-categoria').value.trim(),
+      observacao: document.getElementById('pat-obs').value.trim(),
+    };
+    if (isEdit) {
+      body.status = document.getElementById('pat-status-sel').value;
+      body.setor_atual = document.getElementById('pat-setor').value.trim();
+    }
+    try {
+      const url = isEdit ? `/api/admin/estoque/patrimonio/${item.id}` : '/api/admin/estoque/patrimonio';
+      const method = isEdit ? 'PATCH' : 'POST';
+      const r = await api(url, { method, body: JSON.stringify(body) });
+      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
+      fecharModal();
+      mostrarToast(isEdit ? 'Item atualizado' : 'Item criado');
+      carregarDados();
+    } catch { btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; }
+  });
+}
+
+function abrirNovoPatrimonio() {
+  document.getElementById('modal-title').textContent = 'Novo Item de Patrimônio';
+  abrirModal();
+  renderFormPatrimonio({}, false);
+}
+
+function abrirEditarPatrimonio(id) {
+  const item = _patrimonioCache.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('modal-title').textContent = `Editar — ${item.codigo}`;
+  abrirModal();
+  renderFormPatrimonio(item, true);
+}
+
+async function deletarPatrimonio(id, codigo) {
+  if (!confirm(`Excluir patrimônio "${codigo}"? Isso apagará também o histórico de movimentações.`)) return;
+  try {
+    const r = await api(`/api/admin/estoque/patrimonio/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
+    mostrarToast('Item excluído'); carregarDados();
+  } catch {}
+}
+
+// ── Modal Movimentação Patrimônio ─────────────────────────
+
+function patMovimentar(id) {
+  const item = _patrimonioCache.find(i => i.id === id);
+  if (!item) return;
+
+  document.getElementById('pat-mov-title').textContent = `Movimentar — ${item.codigo}`;
+  document.getElementById('pat-mov-overlay').style.display = 'flex';
+
+  document.getElementById('pat-mov-body').innerHTML = `
+    <form id="form-pat-mov" style="display:flex;flex-direction:column;gap:.8rem">
+      <div class="form-group">
+        <label class="form-label">Tipo de movimentação</label>
+        <select class="form-control" id="pm-tipo" onchange="atualizarCamposMovPat(${item.id})">
+          <option value="entrada">Entrada (disponível)</option>
+          <option value="saida">Saída para setor</option>
+          <option value="retorno">Retorno ao almoxarifado</option>
+          <option value="manutencao">Envio para manutenção</option>
+          <option value="descarte">Descarte</option>
+        </select>
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem" id="pm-tipo-desc"></div>
+      </div>
+      <div id="pm-campos-extras"></div>
+      <div class="form-group">
+        <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <input class="form-control" id="pm-obs" type="text" placeholder="Ex: instalado no notebook do gerente…">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharPatMov()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-pm">Registrar</button>
+      </div>
+    </form>
+  `;
+
+  atualizarCamposMovPat(id);
+
+  document.getElementById('form-pat-mov').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar-pm');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    const tipo = document.getElementById('pm-tipo').value;
+    const body = {
+      tipo,
+      observacao: document.getElementById('pm-obs').value.trim(),
+      setor_destino: document.getElementById('pm-setor-destino')?.value.trim() || '',
+      setor_origem: document.getElementById('pm-setor-origem')?.value.trim() || '',
+    };
+    if (tipo === 'saida' && !body.setor_destino) {
+      mostrarToast('Informe o setor de destino', 'erro');
+      btn.disabled = false; btn.textContent = 'Registrar'; return;
+    }
+    try {
+      const r = await api(`/api/admin/estoque/patrimonio/${id}/movimentacao`, { method: 'POST', body: JSON.stringify(body) });
+      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Registrar'; return; }
+      fecharPatMov();
+      mostrarToast('Movimentação registrada');
+      carregarDados();
+    } catch { btn.disabled = false; btn.textContent = 'Registrar'; }
+  });
+}
+
+function atualizarCamposMovPat(itemId) {
+  const tipo = document.getElementById('pm-tipo')?.value;
+  const desc = {
+    entrada:    'O item volta a ficar disponível no almoxarifado.',
+    saida:      'O item será marcado como "Em uso" no setor de destino.',
+    retorno:    'O item retorna ao almoxarifado e fica disponível.',
+    manutencao: 'O item vai para manutenção.',
+    descarte:   'O item será marcado como descartado definitivamente.',
+  };
+  const el = document.getElementById('pm-tipo-desc');
+  if (el) el.textContent = desc[tipo] || '';
+
+  const extras = document.getElementById('pm-campos-extras');
+  if (!extras) return;
+
+  if (tipo === 'saida') {
+    extras.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Setor de destino <span style="color:var(--danger)">*</span></label>
+        <input class="form-control" id="pm-setor-destino" type="text" placeholder="Ex: Recepção, RH, Governança…">
+      </div>
+    `;
+  } else if (tipo === 'retorno') {
+    extras.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Retornando de qual setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <input class="form-control" id="pm-setor-origem" type="text" placeholder="Ex: Recepção…">
+      </div>
+    `;
+  } else {
+    extras.innerHTML = '';
+  }
+}
+
+function fecharPatMov() {
+  document.getElementById('pat-mov-overlay').style.display = 'none';
+  document.getElementById('pat-mov-body').innerHTML = '';
+}
+
+// ── Modal Histórico Patrimônio ────────────────────────────
+
+async function verHistoricoPatrimonio(id, codigo) {
+  document.getElementById('pat-hist-title').textContent = `Histórico — ${codigo}`;
+  document.getElementById('pat-hist-overlay').style.display = 'flex';
+  document.getElementById('pat-hist-body').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  try {
+    const r = await api(`/api/admin/estoque/patrimonio/${id}/historico`);
+    const movs = await r.json();
+
+    if (!movs.length) {
+      document.getElementById('pat-hist-body').innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted)">Nenhuma movimentação registrada.</div>';
+      return;
+    }
+
+    document.getElementById('pat-hist-body').innerHTML = `
+      <div class="table-wrap" style="max-height:420px;overflow-y:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Setor</th>
+              <th>Admin</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${movs.map(m => `
+              <tr>
+                <td style="white-space:nowrap;font-size:.78rem;color:var(--text-muted)">${fmtDataHora(m.criado_em)}</td>
+                <td>
+                  <span style="font-size:.78rem;font-weight:600;color:${TIPOS_MOV_PAT_COLORS[m.tipo] || 'inherit'}">
+                    ${esc(TIPOS_MOV_PAT_LABELS[m.tipo] || m.tipo)}
+                  </span>
+                </td>
+                <td style="font-size:.82rem">${
+                  m.setor_destino ? `<span class="itens-cat-tag" style="font-size:.72rem">→ ${esc(m.setor_destino)}</span>`
+                  : m.setor_origem ? `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--navy)">← ${esc(m.setor_origem)}</span>`
+                  : '<span style="color:var(--text-muted)">—</span>'
+                }</td>
+                <td style="font-size:.82rem;color:var(--text-secondary)">${esc(m.admin_nome) || '—'}</td>
+                <td style="font-size:.78rem;color:var(--text-muted);max-width:160px">
+                  <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(m.observacao)}">${esc(m.observacao) || '—'}</div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch {
+    document.getElementById('pat-hist-body').innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro ao carregar histórico.</div>';
+  }
+}
+
+function fecharPatHist() {
+  document.getElementById('pat-hist-overlay').style.display = 'none';
+  document.getElementById('pat-hist-body').innerHTML = '';
+}
+
 // ── Init ──────────────────────────────────────────────────
 
 (async () => {
@@ -561,13 +916,28 @@ function fecharHistModal() {
     document.getElementById('hist-btn-fechar').addEventListener('click', fecharHistModal);
     document.getElementById('hist-modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharHistModal(); });
 
+    document.getElementById('pat-mov-fechar').addEventListener('click', fecharPatMov);
+    document.getElementById('pat-mov-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharPatMov(); });
+
+    document.getElementById('pat-hist-fechar').addEventListener('click', fecharPatHist);
+    document.getElementById('pat-hist-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharPatHist(); });
+
+    document.getElementById('btn-filtrar-pat').addEventListener('click', () => carregarDados());
+    document.getElementById('btn-limpar-pat').addEventListener('click', () => {
+      document.getElementById('pat-busca').value = '';
+      document.getElementById('pat-status').value = '';
+      carregarDados();
+    });
+    document.getElementById('pat-busca').addEventListener('keydown', e => { if (e.key === 'Enter') carregarDados(); });
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
         btn.classList.add('ativo');
         abaAtiva = btn.dataset.tab;
-        // Update "Novo" button label
-        document.getElementById('btn-novo').textContent = abaAtiva === 'toner' ? '+ Novo Item' : '+ Nova Impressora';
+        const novoLabels = { toner: '+ Novo Item', impressoras: '+ Nova Impressora', patrimonio: '+ Novo Patrimônio' };
+        document.getElementById('btn-novo').textContent = novoLabels[abaAtiva] || '+ Novo Item';
+        document.getElementById('filtros-patrimonio').style.display = abaAtiva === 'patrimonio' ? '' : 'none';
         carregarDados();
       });
     });

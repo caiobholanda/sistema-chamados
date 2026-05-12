@@ -45,6 +45,25 @@
     <button class="tab-btn" data-tab="impressoras">
       Impressoras em Rede <span class="tab-badge" id="badge-impressoras"></span>
     </button>
+    <button class="tab-btn" data-tab="patrimonio">
+      Patrimônio <span class="tab-badge" id="badge-patrimonio"></span>
+    </button>
+  </div>
+
+  <!-- Filtros patrimônio -->
+  <div id="filtros-patrimonio" style="display:none;margin:.75rem 0 0">
+    <div class="filtros">
+      <input class="form-control" type="search" id="pat-busca" placeholder="Buscar código, descrição, setor…" style="max-width:240px">
+      <select class="form-control" id="pat-status">
+        <option value="">Todos os status</option>
+        <option value="disponivel">Disponível</option>
+        <option value="em_uso">Em uso</option>
+        <option value="manutencao">Manutenção</option>
+        <option value="descartado">Descartado</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="btn-filtrar-pat">Filtrar</button>
+      <button class="btn btn-secondary btn-sm" id="btn-limpar-pat">Limpar</button>
+    </div>
   </div>
 
   <div id="estoque-lista"><div class="loading"><div class="spinner"></div></div></div>
@@ -80,6 +99,28 @@
       <button class="modal-close" id="hist-btn-fechar" aria-label="Fechar">&#x2715;</button>
     </div>
     <div class="modal-body" id="hist-modal-body"></div>
+  </div>
+</div>
+
+<!-- Modal movimentação patrimônio -->
+<div class="modal-overlay" id="pat-mov-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 id="pat-mov-title">Movimentação</h2>
+      <button class="modal-close" id="pat-mov-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="pat-mov-body"></div>
+  </div>
+</div>
+
+<!-- Modal histórico patrimônio -->
+<div class="modal-overlay" id="pat-hist-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h2 id="pat-hist-title">Histórico</h2>
+      <button class="modal-close" id="pat-hist-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="pat-hist-body"></div>
   </div>
 </div>
 
