@@ -677,6 +677,27 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
               </optgroup>
             </select>
           </div>
+          <div class="form-group">
+            <label for="ch-categoria">Etiqueta <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+            <select class="form-control" id="ch-categoria">
+              <option value="">Classificar automaticamente</option>
+              <option value="software">Software</option>
+              <option value="hardware">Hardware</option>
+              <option value="impressora">Impressora</option>
+              <option value="ramal">Ramal / Telefone</option>
+              <option value="nobreak">Nobreak</option>
+              <option value="monitor">Monitor</option>
+              <option value="mouse">Mouse</option>
+              <option value="teclado">Teclado</option>
+              <option value="rede">Rede / Internet</option>
+              <option value="acesso_senha">Acesso / Senha</option>
+              <option value="cameras">Câmeras / CFTV</option>
+              <option value="email">E-mail</option>
+              <option value="tv_projetor">TV / Projetor</option>
+              <option value="processo_compra">Processo de Compra</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
         </div>
         <div class="form-group">
           <label for="ch-descricao">Descrição do problema <span class="req">*</span></label>
@@ -697,7 +718,12 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
 
   if (usuario.setor) {
     const sel = document.getElementById('ch-setor');
+    // Tenta match exato; se não encontrar, procura option cujo texto corresponda
     sel.value = usuario.setor;
+    if (!sel.value) {
+      const opt = Array.from(sel.options).find(o => o.text === usuario.setor);
+      if (opt) sel.value = opt.value || opt.text;
+    }
   }
 
   document.getElementById('btn-cancelar-chamado').addEventListener('click', onCancel);
@@ -725,6 +751,8 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       fd.append('setor', document.getElementById('ch-setor').value);
       fd.append('ramal', usuario.ramal || '');
       fd.append('descricao', document.getElementById('ch-descricao').value);
+      const categoria = document.getElementById('ch-categoria').value;
+      if (categoria) fd.append('categoria', categoria);
       const anexo = document.getElementById('ch-anexo').files[0];
       if (anexo) fd.append('anexo', anexo);
 
