@@ -15,8 +15,6 @@
 
   html += link('/admin-relatorios.html', 'Relatórios');
   html += link('/admin-itens.html', 'Itens');
-  html += link('/admin-inventario.html', 'Inventário');
-  html += link('/admin-estoque.html', 'Estoque');
 
   if (path === '/admin-painel.html') {
     html += '<button id="btn-notificacoes" class="btn btn-ghost btn-sm" title="Ativar notificações" style="margin-left:.5rem;font-size:1rem;padding:.3rem .5rem">🔔</button>';

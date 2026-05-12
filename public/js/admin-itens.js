@@ -13,6 +13,22 @@ let _perifericosCache = [];
 let _perifericosFiltered = [];
 let _reservaCache = [];
 let _reservaFiltered = [];
+let _equipamentosCache = [];
+
+const STATUS_EQ = {
+  disponivel: { label: 'Disponível', cor: 'var(--success)' },
+  em_uso:     { label: 'Em uso',     cor: 'var(--navy)'    },
+  manutencao: { label: 'Manutenção', cor: '#d97706'        },
+  descartado: { label: 'Descartado', cor: 'var(--danger)'  },
+};
+
+const MOV_EQ = {
+  entrada:    { label: '+ Entrada',    cor: 'var(--success)' },
+  saida:      { label: '→ Saída',      cor: 'var(--navy)'    },
+  retorno:    { label: '← Retorno',    cor: '#0ea5e9'        },
+  manutencao: { label: '⚙ Manutenção', cor: '#d97706'        },
+  descarte:   { label: '✕ Descarte',   cor: 'var(--danger)'  },
+};
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
@@ -666,43 +682,25 @@ function renderTabelaPerifericos(lista) {
 
 // ── Renderização — Reserva TI ─────────────────────────────
 
-function renderReserva(lista) {
+function badgeStatus(status) {
+  const s = STATUS_EQ[status] || { label: status, cor: 'var(--border)' };
+  return `<span style="display:inline-block;padding:.18rem .55rem;border-radius:20px;font-size:.72rem;font-weight:700;background:${s.cor};color:#fff">${s.label}</span>`;
+}
+
+function renderEquipamentos(lista) {
   const el = document.getElementById('itens-lista');
-  document.getElementById('badge-reserva').textContent = lista.length || '';
-  _reservaFiltered = lista;
-
-  el.innerHTML = `
-    <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <input class="form-control" id="res-search" type="text" placeholder="Buscar nome, especificação…" style="max-width:260px">
-      <span id="res-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem">${lista.length} item${lista.length !== 1 ? 's' : ''}</span>
-    </div>
-    <div id="res-tabela"></div>
-  `;
-
-  document.getElementById('res-search').addEventListener('input', filtrarReserva);
-  renderTabelaReserva(lista);
-}
-
-function filtrarReserva() {
-  const search = (document.getElementById('res-search').value || '').toLowerCase();
-  const filtered = _reservaCache.filter(item =>
-    !search ||
-    (item.nome || '').toLowerCase().includes(search) ||
-    (item.especificacao || '').toLowerCase().includes(search) ||
-    (item.observacao || '').toLowerCase().includes(search)
-  );
-  document.getElementById('res-count').textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`;
-  renderTabelaReserva(filtered);
-}
-
-function renderTabelaReserva(lista) {
-  const el = document.getElementById('res-tabela');
-  if (!el) return;
-  const isMaster = adminInfo && adminInfo.is_master;
+  const badge = document.getElementById('badge-reserva');
+  if (badge) badge.textContent = lista.length || '';
 
   if (!lista.length) {
-    el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum item encontrado.</div>`;
+    el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum equipamento encontrado. Clique em "+ Novo Equipamento" para cadastrar.</div>`;
     return;
+  }
+
+  const grupos = {};
+  for (const eq of lista) {
+    if (!grupos[eq.nome]) grupos[eq.nome] = { categoria: eq.categoria, itens: [] };
+    grupos[eq.nome].itens.push(eq);
   }
 
   el.innerHTML = `
@@ -710,25 +708,74 @@ function renderTabelaReserva(lista) {
       <table>
         <thead>
           <tr>
-            <th>Item</th>
-            <th style="text-align:center">Quantidade</th>
-            <th>Especificações</th>
+            <th>Equipamento</th>
+            <th>Categoria</th>
+            <th style="text-align:center">Total</th>
+            <th>Status geral</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Object.entries(grupos).map(([nome, g]) => {
+            const contagem = {};
+            for (const eq of g.itens) contagem[eq.status] = (contagem[eq.status] || 0) + 1;
+            const resumo = Object.entries(contagem).map(([st, n]) => {
+              const s = STATUS_EQ[st] || { label: st, cor: 'var(--border)' };
+              return `<span style="display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .45rem;border-radius:20px;font-size:.7rem;font-weight:700;background:${s.cor};color:#fff">${n} ${s.label}</span>`;
+            }).join(' ');
+            return `
+              <tr style="cursor:pointer" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}')">
+                <td>
+                  <button class="btn btn-ghost btn-sm" style="font-weight:600;font-size:.92rem;padding:.2rem .4rem;text-align:left" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}');event.stopPropagation()">
+                    ${esc(nome)}
+                  </button>
+                </td>
+                <td style="color:var(--text-secondary);font-size:.82rem">${esc(g.categoria) || '—'}</td>
+                <td style="text-align:center;font-weight:700;color:var(--navy)">${g.itens.length}</td>
+                <td style="display:flex;flex-wrap:wrap;gap:.3rem;padding:.6rem .75rem">${resumo}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:.78rem;color:var(--text-muted);margin-top:.5rem;padding:0 .25rem">Clique no nome do equipamento para ver as unidades individuais com seus IDs.</div>
+  `;
+}
+
+function verUnidades(nome) {
+  const unidades = _equipamentosCache.filter(e => e.nome === nome);
+  if (!unidades.length) return;
+  const isMaster = adminInfo && adminInfo.is_master;
+
+  const el = document.getElementById('eq-hist-title');
+  if (el) el.textContent = `${nome} — ${unidades.length} unidade${unidades.length > 1 ? 's' : ''}`;
+  const overlay = document.getElementById('eq-hist-overlay');
+  if (overlay) overlay.style.display = 'flex';
+  const body = document.getElementById('eq-hist-body');
+  if (body) body.innerHTML = `
+    <div class="table-wrap" style="max-height:480px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Setor atual</th>
             <th>Observação</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          ${lista.map(item => `
+          ${unidades.map(eq => `
             <tr>
-              <td style="font-weight:500">${esc(item.nome)}</td>
-              <td style="text-align:center">${qtdCell(item.qtd_geral)}</td>
-              <td style="font-size:.82rem;color:var(--text-secondary)">${esc(item.especificacao) || '—'}</td>
-              <td style="font-size:.82rem;color:var(--text-muted)">${esc(item.observacao) || '—'}</td>
+              <td style="font-family:monospace;font-weight:700;color:var(--navy);font-size:.85rem">${esc(eq.codigo)}</td>
+              <td>${badgeStatus(eq.status)}</td>
+              <td style="font-size:.82rem;color:var(--text-secondary)">${esc(eq.setor_atual) || '—'}</td>
+              <td style="font-size:.78rem;color:var(--text-muted);max-width:140px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(eq.observacao)}">${esc(eq.observacao) || '—'}</div></td>
               <td style="white-space:nowrap">
-                <button class="btn btn-secondary btn-sm" onclick="abrirModalReserva(${item.id})">Editar</button>
-                <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
-                <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
-                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarReserva(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
+                <button class="btn btn-secondary btn-sm" onclick="fecharEqHist();eqMovimentar(${eq.id})">Movimentar</button>
+                <button class="btn btn-ghost btn-sm" onclick="fecharEqHist();eqHistorico(${eq.id},'${esc(eq.codigo).replace(/'/g, "\\'")}')">Histórico</button>
+                <button class="btn btn-ghost btn-sm" onclick="fecharEqHist();eqEditar(${eq.id})">Editar</button>
+                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="fecharEqHist();eqDeletar(${eq.id},'${esc(eq.codigo).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
               </td>
             </tr>
           `).join('')}
@@ -763,10 +810,15 @@ async function carregarItens() {
       _perifericosCache = todos.filter(i => i.tipo === 'periferico');
       renderPerifericos(_perifericosCache);
     } else if (abaAtiva === 'reserva') {
-      const r = await api('/api/admin/estoque/itens');
-      const todos = await r.json();
-      _reservaCache = todos.filter(i => i.tipo === 'reserva');
-      renderReserva(_reservaCache);
+      const busca = document.getElementById('eq-busca')?.value.trim() || '';
+      const status = document.getElementById('eq-status')?.value || '';
+      const params = new URLSearchParams();
+      if (busca) params.set('busca', busca);
+      if (status) params.set('status', status);
+      const qs = params.toString();
+      const r = await api('/api/admin/estoque/equipamentos' + (qs ? '?' + qs : ''));
+      _equipamentosCache = await r.json();
+      renderEquipamentos(_equipamentosCache);
     } else if (abaAtiva === 'impressoras') {
       const r = await api('/api/admin/estoque/impressoras');
       _impressorasCache = await r.json();
@@ -927,7 +979,7 @@ function abrirModalNovo() {
   } else if (abaAtiva === 'perifericos') {
     abrirModalPeriferico(null);
   } else if (abaAtiva === 'reserva') {
-    abrirModalReserva(null);
+    abrirNovoEquipamento();
   }
 }
 
@@ -1559,69 +1611,258 @@ async function confirmarDeletarPeriferico(id, nome) {
   } catch {}
 }
 
-// ── Modal Reserva TI (novo/editar) ────────────────────────
+// ── Equipamentos com ID individual (EQ-XXXX) ─────────────
 
-function abrirModalReserva(id) {
-  const item = id ? _reservaCache.find(i => i.id === id) : null;
-  const isEdit = !!item;
-  document.getElementById('modal-title').textContent = isEdit ? 'Editar Item de Reserva' : 'Novo Item de Reserva';
+function abrirNovoEquipamento() {
+  document.getElementById('modal-title').textContent = 'Novo Equipamento';
   abrirModal();
   document.getElementById('modal-body').innerHTML = `
-    <form id="form-res" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-eq" style="display:flex;flex-direction:column;gap:.8rem">
       <div class="form-group">
-        <label class="form-label">Item <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="res-nome" type="text" value="${esc(item ? item.nome : '')}" placeholder="Ex: Dell Novo, Switch HP…">
+        <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
+        <input class="form-control" id="eq-nome" type="text" placeholder="Ex: Nobreak APC 600VA, Switch HP…">
       </div>
-      ${isEdit ? `
-      <div class="form-group">
-        <label class="form-label" style="color:var(--text-muted)">Quantidade atual</label>
-        <input class="form-control" type="text" value="${item.qtd_geral ?? 0}" disabled style="background:var(--surface-2);color:var(--text-muted)">
-        <div style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem">Para alterar a quantidade use o botão "Movimentação".</div>
-      </div>
-      ` : ''}
-      <div class="form-group">
-        <label class="form-label">Especificações <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-        <input class="form-control" id="res-spec" type="text" value="${esc(item ? item.especificacao : '')}" placeholder="Ex: I5, 13ºG, 8GB, SSD240">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <input class="form-control" id="eq-cat" type="text" placeholder="Ex: Nobreak, Switch, Monitor…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantidade</label>
+          <input class="form-control" id="eq-qtd" type="number" min="1" max="500" value="1" style="text-align:center" oninput="eqPreviewQtd()">
+          <div id="eq-qtd-hint" style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">1 item — ID gerado automaticamente</div>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-        <input class="form-control" id="res-obs" type="text" value="${esc(item ? item.observacao : '')}" placeholder="Ex: Backup, Mini PC de teste…">
+        <input class="form-control" id="eq-obs" type="text" placeholder="Ex: comprado em 2024, garantia até 2027…">
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-        <button type="submit" class="btn btn-primary" id="btn-salvar-res">${isEdit ? 'Salvar' : 'Adicionar'}</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-eq">Adicionar</button>
       </div>
     </form>
   `;
-  document.getElementById('form-res').addEventListener('submit', async (e) => {
+  document.getElementById('form-eq').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('btn-salvar-res');
-    btn.disabled = true; btn.textContent = 'Salvando…';
-    const nome = document.getElementById('res-nome').value.trim();
-    if (!nome) { mostrarToast('Nome obrigatório', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
-    const body = {
-      nome, tipo: 'reserva',
-      especificacao: document.getElementById('res-spec').value.trim(),
-      observacao: document.getElementById('res-obs').value.trim(),
-    };
+    const btn = document.getElementById('btn-salvar-eq');
+    btn.disabled = true;
+    const nome = document.getElementById('eq-nome').value.trim();
+    if (!nome) { mostrarToast('Nome obrigatório', 'erro'); btn.disabled = false; return; }
+    const quantidade = Math.max(1, parseInt(document.getElementById('eq-qtd').value, 10) || 1);
+    const base = { nome, categoria: document.getElementById('eq-cat').value.trim(), observacao: document.getElementById('eq-obs').value.trim() };
+    let criados = 0;
     try {
-      const url = isEdit ? `/api/admin/estoque/itens/${item.id}` : '/api/admin/estoque/itens';
-      const method = isEdit ? 'PATCH' : 'POST';
-      const r = await api(url, { method, body: JSON.stringify(body) });
-      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
-      fecharModal(); mostrarToast(isEdit ? 'Item atualizado' : 'Item adicionado'); carregarItens();
-    } catch { btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; }
+      for (let i = 0; i < quantidade; i++) {
+        btn.textContent = quantidade > 1 ? `Criando ${criados + 1}/${quantidade}…` : 'Salvando…';
+        const r = await api('/api/admin/estoque/equipamentos', { method: 'POST', body: JSON.stringify(base) });
+        if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
+        criados++;
+      }
+      fecharModal();
+      mostrarToast(quantidade > 1 ? `${quantidade} equipamentos criados` : 'Equipamento criado');
+      carregarItens();
+    } catch { btn.disabled = false; btn.textContent = 'Adicionar'; }
   });
 }
 
-async function confirmarDeletarReserva(id, nome) {
-  if (!adminInfo || !adminInfo.is_master) return;
-  if (!confirm(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
+function eqPreviewQtd() {
+  const n = parseInt(document.getElementById('eq-qtd')?.value, 10) || 1;
+  const el = document.getElementById('eq-qtd-hint');
+  if (el) el.textContent = n === 1 ? '1 item — ID gerado automaticamente' : `${n} itens criados, cada um com ID próprio (EQ-XXXX)`;
+}
+
+function eqEditar(id) {
+  const eq = _equipamentosCache.find(e => e.id === id);
+  if (!eq) return;
+  const isMaster = adminInfo && adminInfo.is_master;
+  document.getElementById('modal-title').textContent = `Editar — ${eq.codigo}`;
+  abrirModal();
+  document.getElementById('modal-body').innerHTML = `
+    <form id="form-eq-edit" style="display:flex;flex-direction:column;gap:.8rem">
+      <div class="form-group">
+        <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
+        <input class="form-control" id="eqe-nome" type="text" value="${esc(eq.nome)}">
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <input class="form-control" id="eqe-cat" type="text" value="${esc(eq.categoria || '')}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ID único</label>
+          <input class="form-control" id="eqe-codigo" type="text" value="${esc(eq.codigo)}"
+            ${!isMaster ? 'readonly style="background:var(--bg-subtle);color:var(--text-muted)"' : ''}>
+          ${!isMaster ? '<div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem">Apenas master pode alterar</div>' : ''}
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="eqe-status">
+            ${Object.entries(STATUS_EQ).map(([v, s]) => `<option value="${v}" ${eq.status === v ? 'selected' : ''}>${s.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Setor atual</label>
+          <input class="form-control" id="eqe-setor" type="text" value="${esc(eq.setor_atual || '')}" placeholder="Ex: Recepção…">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observação</label>
+        <input class="form-control" id="eqe-obs" type="text" value="${esc(eq.observacao || '')}">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-eqe">Salvar</button>
+      </div>
+    </form>
+  `;
+  document.getElementById('form-eq-edit').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const btn = document.getElementById('btn-salvar-eqe');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    const nome = document.getElementById('eqe-nome').value.trim();
+    if (!nome) { mostrarToast('Nome obrigatório', 'erro'); btn.disabled = false; btn.textContent = 'Salvar'; return; }
+    const body = {
+      nome,
+      codigo: document.getElementById('eqe-codigo').value.trim(),
+      categoria: document.getElementById('eqe-cat').value.trim(),
+      status: document.getElementById('eqe-status').value,
+      setor_atual: document.getElementById('eqe-setor').value.trim(),
+      observacao: document.getElementById('eqe-obs').value.trim(),
+    };
+    try {
+      const r = await api(`/api/admin/estoque/equipamentos/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Salvar'; return; }
+      fecharModal(); mostrarToast('Equipamento atualizado'); carregarItens();
+    } catch { btn.disabled = false; btn.textContent = 'Salvar'; }
+  });
+}
+
+async function eqDeletar(id, codigo) {
+  if (!confirm(`Excluir equipamento "${codigo}"? O histórico será apagado também.`)) return;
   try {
-    const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'DELETE' });
-    if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
-    mostrarToast('Item excluído'); carregarItens();
+    const r = await api(`/api/admin/estoque/equipamentos/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); return; }
+    mostrarToast('Excluído'); carregarItens();
   } catch {}
+}
+
+function eqMovimentar(id) {
+  const eq = _equipamentosCache.find(e => e.id === id);
+  if (!eq) return;
+  const titleEl = document.getElementById('eq-mov-title');
+  if (titleEl) titleEl.textContent = `Movimentar — ${eq.codigo}`;
+  const overlay = document.getElementById('eq-mov-overlay');
+  if (overlay) overlay.style.display = 'flex';
+  const body = document.getElementById('eq-mov-body');
+  if (!body) return;
+  body.innerHTML = `
+    <form id="form-eq-mov" style="display:flex;flex-direction:column;gap:.8rem">
+      <div class="form-group">
+        <label class="form-label">Tipo de movimentação</label>
+        <select class="form-control" id="eqm-tipo" onchange="eqMovCampos()">
+          <option value="entrada">Entrada (disponível)</option>
+          <option value="saida">Saída para setor</option>
+          <option value="retorno">Retorno ao almoxarifado</option>
+          <option value="manutencao">Envio para manutenção</option>
+          <option value="descarte">Descarte</option>
+        </select>
+        <div id="eqm-desc" style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">O item volta a ficar disponível.</div>
+      </div>
+      <div id="eqm-extras"></div>
+      <div class="form-group">
+        <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <input class="form-control" id="eqm-obs" type="text" placeholder="Ex: instalado na recepção…">
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+        <button type="button" class="btn btn-secondary" onclick="fecharEqMov()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-eqm">Registrar</button>
+      </div>
+    </form>
+  `;
+  eqMovCampos();
+  document.getElementById('form-eq-mov').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const btn = document.getElementById('btn-salvar-eqm');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    const tipo = document.getElementById('eqm-tipo').value;
+    const setor_destino = document.getElementById('eqm-destino')?.value.trim() || '';
+    const setor_origem = document.getElementById('eqm-origem')?.value.trim() || '';
+    if (tipo === 'saida' && !setor_destino) { mostrarToast('Informe o setor de destino', 'erro'); btn.disabled = false; btn.textContent = 'Registrar'; return; }
+    try {
+      const r = await api(`/api/admin/estoque/equipamentos/${id}/movimentacao`, {
+        method: 'POST', body: JSON.stringify({ tipo, setor_destino, setor_origem, observacao: document.getElementById('eqm-obs').value.trim() }),
+      });
+      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Registrar'; return; }
+      fecharEqMov(); mostrarToast('Movimentação registrada'); carregarItens();
+    } catch { btn.disabled = false; btn.textContent = 'Registrar'; }
+  });
+}
+
+function eqMovCampos() {
+  const tipo = document.getElementById('eqm-tipo')?.value;
+  const descs = { entrada: 'O item fica disponível no almoxarifado.', saida: 'O item vai para um setor e fica "Em uso".', retorno: 'O item retorna ao almoxarifado.', manutencao: 'O item vai para manutenção.', descarte: 'O item será marcado como descartado.' };
+  const d = document.getElementById('eqm-desc');
+  if (d) d.textContent = descs[tipo] || '';
+  const extras = document.getElementById('eqm-extras');
+  if (!extras) return;
+  if (tipo === 'saida') {
+    extras.innerHTML = `<div class="form-group"><label class="form-label">Setor de destino <span style="color:var(--danger)">*</span></label><input class="form-control" id="eqm-destino" type="text" placeholder="Ex: Recepção, RH, Governança…"></div>`;
+  } else if (tipo === 'retorno') {
+    extras.innerHTML = `<div class="form-group"><label class="form-label">Retornando de qual setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label><input class="form-control" id="eqm-origem" type="text" placeholder="Ex: Recepção…"></div>`;
+  } else { extras.innerHTML = ''; }
+}
+
+function fecharEqMov() {
+  const overlay = document.getElementById('eq-mov-overlay');
+  if (overlay) overlay.style.display = 'none';
+  const body = document.getElementById('eq-mov-body');
+  if (body) body.innerHTML = '';
+}
+
+async function eqHistorico(id, codigo) {
+  const titleEl = document.getElementById('eq-hist-title');
+  if (titleEl) titleEl.textContent = `Histórico — ${codigo}`;
+  const overlay = document.getElementById('eq-hist-overlay');
+  if (overlay) overlay.style.display = 'flex';
+  const body = document.getElementById('eq-hist-body');
+  if (body) body.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const r = await api(`/api/admin/estoque/equipamentos/${id}/historico`);
+    const hist = await r.json();
+    if (!hist.length) { if (body) body.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted)">Nenhuma movimentação registrada.</div>'; return; }
+    if (body) body.innerHTML = `
+      <div class="table-wrap" style="max-height:420px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Data</th><th>Tipo</th><th>Setor</th><th>Admin</th><th>Observação</th></tr></thead>
+          <tbody>
+            ${hist.map(h => `
+              <tr>
+                <td style="white-space:nowrap;font-size:.78rem;color:var(--text-muted)">${fmtDataHora(h.criado_em)}</td>
+                <td><span style="font-size:.78rem;font-weight:600;color:${MOV_EQ[h.tipo]?.cor || 'inherit'}">${esc(MOV_EQ[h.tipo]?.label || h.tipo)}</span></td>
+                <td style="font-size:.82rem">${
+                  h.setor_destino ? `<span class="itens-cat-tag" style="font-size:.72rem">→ ${esc(h.setor_destino)}</span>`
+                  : h.setor_origem ? `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--navy)">← ${esc(h.setor_origem)}</span>`
+                  : '<span style="color:var(--text-muted)">—</span>'
+                }</td>
+                <td style="font-size:.82rem;color:var(--text-secondary)">${esc(h.admin_nome) || '—'}</td>
+                <td style="font-size:.78rem;color:var(--text-muted);max-width:160px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(h.observacao)}">${esc(h.observacao) || '—'}</div></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch { if (body) body.innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro ao carregar histórico.</div>'; }
+}
+
+function fecharEqHist() {
+  const overlay = document.getElementById('eq-hist-overlay');
+  if (overlay) overlay.style.display = 'none';
+  const body = document.getElementById('eq-hist-body');
+  if (body) body.innerHTML = '';
 }
 
 // ── Init ──────────────────────────────────────────────────
@@ -1646,6 +1887,8 @@ async function confirmarDeletarReserva(id, nome) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
         btn.classList.add('ativo');
         abaAtiva = btn.dataset.tab;
+        const filtrosEq = document.getElementById('filtros-equipamentos');
+        if (filtrosEq) filtrosEq.style.display = abaAtiva === 'reserva' ? '' : 'none';
         carregarItens();
       });
     });
@@ -1690,6 +1933,25 @@ async function confirmarDeletarReserva(id, nome) {
     document.getElementById('imp-modal-overlay').addEventListener('click', e => {
       if (e.target === e.currentTarget) fecharModalImpressora();
     });
+
+    // Modal movimentação equipamento
+    document.getElementById('eq-mov-fechar')?.addEventListener('click', fecharEqMov);
+    document.getElementById('eq-mov-overlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqMov(); });
+
+    // Modal histórico/unidades equipamento
+    document.getElementById('eq-hist-fechar')?.addEventListener('click', fecharEqHist);
+    document.getElementById('eq-hist-overlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqHist(); });
+
+    // Filtros equipamentos
+    document.getElementById('btn-buscar-eq')?.addEventListener('click', () => carregarItens());
+    document.getElementById('btn-limpar-eq')?.addEventListener('click', () => {
+      const busca = document.getElementById('eq-busca');
+      const status = document.getElementById('eq-status');
+      if (busca) busca.value = '';
+      if (status) status.value = '';
+      carregarItens();
+    });
+    document.getElementById('eq-busca')?.addEventListener('keydown', e => { if (e.key === 'Enter') carregarItens(); });
 
     await carregarItens();
   } catch {}

@@ -51,6 +51,22 @@
     </button>
   </div>
 
+  <!-- Filtros equipamentos (visível só na aba Equipamentos) -->
+  <div id="filtros-equipamentos" style="display:none;margin:.75rem 0 0">
+    <div class="filtros">
+      <input class="form-control" type="search" id="eq-busca" placeholder="Buscar por nome, categoria ou código…" style="max-width:320px">
+      <select class="form-control" id="eq-status" style="max-width:160px">
+        <option value="">Todos os status</option>
+        <option value="disponivel">Disponível</option>
+        <option value="em_uso">Em uso</option>
+        <option value="manutencao">Manutenção</option>
+        <option value="descartado">Descartado</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="btn-buscar-eq">Buscar</button>
+      <button class="btn btn-secondary btn-sm" id="btn-limpar-eq">Limpar</button>
+    </div>
+  </div>
+
   <div id="itens-lista"><div class="loading"><div class="spinner"></div></div></div>
 </main>
 
@@ -117,6 +133,28 @@
       <button class="modal-close" id="imp-btn-fechar" aria-label="Fechar">&#x2715;</button>
     </div>
     <div class="modal-body" id="imp-modal-body"></div>
+  </div>
+</div>
+
+<!-- Modal movimentação equipamento -->
+<div class="modal-overlay" id="eq-mov-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 id="eq-mov-title">Movimentação</h2>
+      <button class="modal-close" id="eq-mov-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="eq-mov-body"></div>
+  </div>
+</div>
+
+<!-- Modal histórico / unidades equipamento -->
+<div class="modal-overlay" id="eq-hist-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <h2 id="eq-hist-title">Unidades</h2>
+      <button class="modal-close" id="eq-hist-fechar" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="eq-hist-body"></div>
   </div>
 </div>
 
