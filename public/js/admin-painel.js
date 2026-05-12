@@ -481,12 +481,6 @@ function renderModalBody(c) {
     ? `<div class="banner-atraso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> <strong>Chamado em atraso</strong> — prazo vencido em ${fmtData(c.prazo)}</div>`
     : '';
 
-  const historicoPrazos = (c.historico || []).filter(h => h.acao === 'prazo_alterado');
-  const bannerPrazo = historicoPrazos.length > 0
-    ? `<div class="banner-prazo"><strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'}: de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
-    : '';
-
-
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
 
   document.getElementById('modal-title').innerHTML = `${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
@@ -508,7 +502,7 @@ function renderModalBody(c) {
         <div></div>
       </div>
 
-      ${bannerAtraso}${bannerPrazo}
+      ${bannerAtraso}
 
       <!-- Layout duas colunas: info + ações -->
       <div class="mv2-layout">
@@ -516,40 +510,14 @@ function renderModalBody(c) {
         <!-- Coluna esquerda: informações -->
         <div class="mv2-main">
 
-          <div class="mv2-cards-row">
-            <div class="mv2-card ${c.admin_nome ? 'mv2-card-ok' : 'mv2-card-vazio'}">
-              <div class="mv2-card-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              </div>
-              <div>
-                <div class="mv2-card-label">Administrador responsável</div>
-                <div class="mv2-card-val">${c.admin_nome || 'Não atribuído'}</div>
-              </div>
-            </div>
-            <div class="mv2-card">
-              <div class="mv2-card-icon mv2-card-icon-neutral">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-              </div>
-              <div>
-                <div class="mv2-card-label">Setor do chamado</div>
-                <div class="mv2-card-val">${c.setor}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mv2-ts-row">
-            <div class="mv2-ts-chip">
-              <span class="mv2-ts-label">Aberto em</span>
-              <span class="mv2-ts-val">${fmtData(c.criado_em)}</span>
-            </div>
-            ${c.prazo ? `<div class="mv2-ts-chip ${atrasado ? 'mv2-ts-danger' : 'mv2-ts-warn'}">
-              <span class="mv2-ts-label">${atrasado ? '⚠ Prazo vencido' : 'Prazo'}</span>
-              <span class="mv2-ts-val">${fmtData(c.prazo)}</span>
-            </div>` : ''}
-            ${c.concluido_em ? `<div class="mv2-ts-chip mv2-ts-ok">
-              <span class="mv2-ts-label">Concluído em</span>
-              <span class="mv2-ts-val">${fmtData(c.concluido_em)}</span>
-            </div>` : ''}
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem .6rem;font-size:.81rem;margin-bottom:.65rem;padding:.4rem .6rem;background:var(--bg-secondary,#f7f6f2);border-radius:6px;border:1px solid var(--border)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text-muted)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span style="color:var(--text-muted)">Responsável:</span>
+            <strong style="color:${c.admin_nome ? 'var(--text)' : 'var(--text-muted)'};font-weight:${c.admin_nome ? '600' : '400'}">${c.admin_nome || 'Não atribuído'}</strong>
+            <span style="color:var(--border)">·</span>
+            <span style="color:var(--text-muted)">Aberto:</span>
+            <span style="color:var(--text)">${fmtData(c.criado_em)}</span>
+            ${c.concluido_em ? `<span style="color:var(--border)">·</span><span style="color:var(--text-muted)">Concluído:</span><span style="color:var(--text)">${fmtData(c.concluido_em)}</span>` : ''}
           </div>
 
           <div class="mv2-section">
@@ -596,9 +564,8 @@ function renderModalBody(c) {
         <div class="mv2-side">
           <div id="msg-modal" style="margin-bottom:.4rem"></div>
 
-          ${isAberto ? `
-          <!-- Card: Configurações -->
-          <div class="mv2-actions-card" style="margin-bottom:.75rem">
+          <div class="mv2-actions-card">
+            ${isAberto ? `
             <div class="mv2-side-title">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               Configurações
@@ -627,20 +594,16 @@ function renderModalBody(c) {
               <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
               ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
             </div>
-          </div>
 
-          <!-- Card: Ações -->
-          <div class="mv2-actions-card">
-            <div class="mv2-side-title">
+            <div style="border-top:1px solid var(--border);margin:.6rem 0 .5rem"></div>
+            <div class="mv2-side-title" style="margin-bottom:.45rem">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               Ações
             </div>
-
             <div class="mv2-action-btns">
               ${(podeAssumir || podeRetomar) ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">${podeRetomar ? 'Retomar' : 'Assumir'}</button>` : ''}
               ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1">Concluir</button>` : ''}
             </div>
-
             <div id="area-concluir" style="display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border)">
               <div class="form-group" style="margin-bottom:.4rem">
                 <label for="txt-solucao" style="font-size:.8rem">Solução aplicada <span class="req">*</span></label>
@@ -648,7 +611,6 @@ function renderModalBody(c) {
               </div>
               <button class="btn btn-success btn-sm" id="btn-confirmar-concluir" style="width:100%">Confirmar conclusão</button>
             </div>
-
             <div style="display:flex;flex-direction:column;gap:.3rem;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border)">
               ${c.status !== 'aguardando_compra' ? `<button class="btn btn-sm" id="btn-aguardar-compra" style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:.8rem">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
@@ -659,7 +621,6 @@ function renderModalBody(c) {
                 Aguardando chegar
               </button>` : ''}
             </div>
-
             <div style="margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border)">
               <button class="btn btn-secondary btn-sm" id="btn-transferir" style="width:100%;font-size:.8rem">Transferir responsável</button>
               <div id="area-transferir" style="display:none;margin-top:.5rem">
@@ -672,9 +633,7 @@ function renderModalBody(c) {
                 <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir" style="width:100%">Confirmar transferência</button>
               </div>
             </div>
-          </div>
-          ` : `
-          <div class="mv2-actions-card">
+            ` : `
             <div class="mv2-side-title">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               Ações
@@ -682,8 +641,8 @@ function renderModalBody(c) {
             <div style="padding:.2rem 0">
               ${podeReabrir ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir" style="width:100%">Reabrir chamado</button>` : '<p class="text-muted" style="font-size:.83rem;margin:0">Chamado encerrado.</p>'}
             </div>
+            `}
           </div>
-          `}
         </div>
       </div>
 
