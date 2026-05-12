@@ -467,10 +467,12 @@ function fecharModal() {
 }
 
 function renderModalBody(c) {
-  const isAberto = ['aberto', 'em_andamento'].includes(c.status);
-  const podeAssumir  = ['aberto', 'em_andamento'].includes(c.status);
-  const podeConcluir = ['aberto', 'em_andamento'].includes(c.status);
+  const _statusAtivos = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
+  const isAberto     = _statusAtivos.includes(c.status);
+  const podeAssumir  = _statusAtivos.includes(c.status);
+  const podeConcluir = _statusAtivos.includes(c.status);
   const podeReabrir  = ['concluido', 'encerrado'].includes(c.status);
+  const isEspera     = ['aguardando_compra', 'aguardando_chegar'].includes(c.status);
   const atrasado = estaAtrasado(c);
 
   const bannerAtraso = atrasado
@@ -624,7 +626,7 @@ function renderModalBody(c) {
                 ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
               </div>
               <div class="mv2-action-btns">
-                ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">Assumir</button>` : ''}
+                ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">${isEspera ? 'Retomar' : 'Assumir'}</button>` : ''}
                 ${isAberto     ? `<button class="btn btn-secondary btn-sm" id="btn-transferir" style="flex:1">Transferir</button>` : ''}
                 ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1">Concluir</button>` : ''}
               </div>
@@ -643,6 +645,16 @@ function renderModalBody(c) {
                   <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
                 </div>
                 <button class="btn btn-success btn-sm" id="btn-confirmar-concluir" style="width:100%">Confirmar conclusão</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:.3rem;margin-top:.4rem;padding-top:.4rem;border-top:1px solid var(--border)">
+                ${c.status !== 'aguardando_compra' ? `<button class="btn btn-sm" id="btn-aguardar-compra" style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:.8rem">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                  Aguardando compra
+                </button>` : ''}
+                ${c.status !== 'aguardando_chegar' ? `<button class="btn btn-sm" id="btn-aguardar-chegar" style="background:#CFFAFE;color:#155E75;border:1px solid #67E8F9;font-size:.8rem">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                  Aguardando chegar
+                </button>` : ''}
               </div>
             ` : `
               <div style="padding:.2rem 0">
@@ -814,6 +826,36 @@ function setupModalEventos(c) {
         if (r.ok) setTimeout(() => abrirModal(c.id), 700);
       } finally {
         if (btnConfConcluir.isConnected) { btnConfConcluir.disabled = false; btnConfConcluir.textContent = 'Confirmar conclusão'; }
+      }
+    });
+  }
+
+  const btnAguardarCompra = document.getElementById('btn-aguardar-compra');
+  if (btnAguardarCompra) {
+    btnAguardarCompra.addEventListener('click', async () => {
+      btnAguardarCompra.disabled = true;
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/aguardar-compra`, { method: 'PATCH', body: JSON.stringify({}) });
+        const d = await r.json();
+        setMsg(r.ok ? '<div class="alert alert-success">Status: aguardando compra.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+      } finally {
+        if (btnAguardarCompra.isConnected) btnAguardarCompra.disabled = false;
+      }
+    });
+  }
+
+  const btnAguardarChegar = document.getElementById('btn-aguardar-chegar');
+  if (btnAguardarChegar) {
+    btnAguardarChegar.addEventListener('click', async () => {
+      btnAguardarChegar.disabled = true;
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/aguardar-chegar`, { method: 'PATCH', body: JSON.stringify({}) });
+        const d = await r.json();
+        setMsg(r.ok ? '<div class="alert alert-success">Status: aguardando chegar.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+      } finally {
+        if (btnAguardarChegar.isConnected) btnAguardarChegar.disabled = false;
       }
     });
   }
