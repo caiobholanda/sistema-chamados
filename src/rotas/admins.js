@@ -478,8 +478,10 @@ router.post('/usuarios', requireMaster, async (req, res) => {
     const usuario = email.split('@')[0];
     if (!senha || !senhaForte(senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
 
-    if (db.buscarAdminPorEmail(email) || db.buscarUsuarioPorEmail(email))
-      return res.status(409).json({ erro: 'E-mail já cadastrado no sistema' });
+    if (db.buscarAdminPorEmail(email))
+      return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail' });
+    if (db.buscarAdminPorUsuario(usuario))
+      return res.status(409).json({ erro: 'Já existe um admin ativo com este usuário' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
     const id = db.criarAdmin({
@@ -512,12 +514,21 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
       if (email && !email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
       if (email) {
         const adminComEmail = db.buscarAdminPorEmail(email);
-        if ((adminComEmail && adminComEmail.id !== alvo.id) || db.buscarUsuarioPorEmail(email))
-          return res.status(409).json({ erro: 'E-mail já cadastrado no sistema' });
+        if (adminComEmail && adminComEmail.id !== alvo.id)
+          return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail' });
       }
       dados.email = email || null;
     }
-    if (req.body.ativo !== undefined) dados.ativo = req.body.ativo ? 1 : 0;
+    if (req.body.ativo !== undefined) {
+      const reativando = req.body.ativo && !alvo.ativo;
+      if (reativando) {
+        if (alvo.email && db.buscarAdminPorEmail(alvo.email))
+          return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail. Desative-o primeiro.' });
+        if (db.buscarAdminPorUsuario(alvo.usuario))
+          return res.status(409).json({ erro: 'Já existe um admin ativo com este usuário. Desative-o primeiro.' });
+      }
+      dados.ativo = req.body.ativo ? 1 : 0;
+    }
     if (req.body.is_master !== undefined) {
       if (alvo.id === req.admin.sub && !req.body.is_master)
         return res.status(400).json({ erro: 'Você não pode remover seu próprio status de master' });
@@ -579,8 +590,8 @@ router.post('/portal-usuarios', requireAdmin, async (req, res) => {
     if (!senha || !senhaForte(senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
     if (ramal && !/^\d{4}$/.test(ramal)) return res.status(400).json({ erro: 'Ramal deve ter exatamente 4 dígitos' });
 
-    if (db.buscarUsuarioPorEmail(email) || db.buscarAdminPorEmail(email))
-      return res.status(409).json({ erro: 'E-mail já cadastrado no sistema' });
+    if (db.buscarUsuarioPorEmail(email))
+      return res.status(409).json({ erro: 'Já existe um usuário ativo com este e-mail' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
     const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null });
@@ -598,6 +609,11 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
 
     // Apenas ativo/inativo (toggle)
     if (req.body.ativo !== undefined && Object.keys(req.body).length === 1) {
+      if (req.body.ativo && !u.ativo) {
+        const emailConflito = db.buscarUsuarioPorEmail(u.email);
+        if (emailConflito)
+          return res.status(409).json({ erro: 'Já existe um usuário ativo com este e-mail. Desative-o primeiro.' });
+      }
       db.atualizarUsuario(u.id, { ativo: req.body.ativo ? 1 : 0 });
       return res.json({ mensagem: req.body.ativo ? 'Usuário reativado' : 'Usuário desativado' });
     }
@@ -613,9 +629,7 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
       const email = (req.body.email || '').trim().toLowerCase();
       if (!email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
       const existente = db.buscarUsuarioPorEmail(email);
-      if (existente && existente.id !== u.id) return res.status(409).json({ erro: 'E-mail já cadastrado' });
-      const adminComEmail = db.buscarAdminPorEmail(email);
-      if (adminComEmail) return res.status(409).json({ erro: 'E-mail já cadastrado' });
+      if (existente && existente.id !== u.id) return res.status(409).json({ erro: 'Já existe um usuário ativo com este e-mail' });
       dados.email = email;
     }
     if (req.body.senha) {

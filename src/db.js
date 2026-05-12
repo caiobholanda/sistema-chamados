@@ -130,6 +130,66 @@ function initDb() {
   try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_destino TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_origem TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE push_subscriptions ADD COLUMN is_mobile INTEGER DEFAULT 0"); } catch {}
+
+  // Migration: trocar UNIQUE inline por partial unique index (ativo=1)
+  // Permite: mesmo @ em usuarios E admins; reutilizar @ após desativação; bloquear reativação se já existe @ ativo
+  if (!db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_usuarios_email_ativo'").get()) {
+    try {
+      db.pragma('foreign_keys = OFF');
+      db.transaction(() => {
+        db.exec(`
+          CREATE TABLE usuarios_v2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            email TEXT NOT NULL,
+            senha_hash TEXT NOT NULL,
+            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            ativo INTEGER DEFAULT 1,
+            senha_plain TEXT,
+            ramal TEXT,
+            setor TEXT
+          );
+          INSERT INTO usuarios_v2 (id, nome, email, senha_hash, criado_em, ativo, senha_plain, ramal, setor)
+            SELECT id, nome, email, senha_hash, COALESCE(criado_em, CURRENT_TIMESTAMP),
+                   COALESCE(ativo, 1), senha_plain, ramal, setor FROM usuarios;
+          DROP TABLE usuarios;
+          ALTER TABLE usuarios_v2 RENAME TO usuarios;
+          CREATE UNIQUE INDEX idx_usuarios_email_ativo ON usuarios(email) WHERE ativo = 1;
+        `);
+      })();
+      db.pragma('foreign_keys = ON');
+    } catch (err) { console.error('[DB] Migration usuarios falhou:', err.message); db.pragma('foreign_keys = ON'); }
+  }
+
+  if (!db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_admins_usuario_ativo'").get()) {
+    try {
+      db.pragma('foreign_keys = OFF');
+      db.transaction(() => {
+        db.exec(`
+          CREATE TABLE admins_v2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario TEXT NOT NULL,
+            nome_completo TEXT NOT NULL,
+            senha_hash TEXT NOT NULL,
+            is_master INTEGER DEFAULT 0,
+            ativo INTEGER DEFAULT 1,
+            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            email TEXT,
+            senha_plain TEXT
+          );
+          INSERT INTO admins_v2 (id, usuario, nome_completo, senha_hash, is_master, ativo, criado_em, email, senha_plain)
+            SELECT id, usuario, nome_completo, senha_hash, COALESCE(is_master, 0), COALESCE(ativo, 1),
+                   COALESCE(criado_em, CURRENT_TIMESTAMP), email, senha_plain FROM admins;
+          DROP TABLE admins;
+          ALTER TABLE admins_v2 RENAME TO admins;
+          CREATE UNIQUE INDEX idx_admins_usuario_ativo ON admins(usuario) WHERE ativo = 1;
+          CREATE UNIQUE INDEX idx_admins_email_ativo ON admins(email) WHERE ativo = 1 AND email IS NOT NULL;
+        `);
+      })();
+      db.pragma('foreign_keys = ON');
+    } catch (err) { console.error('[DB] Migration admins falhou:', err.message); db.pragma('foreign_keys = ON'); }
+  }
+
   // Fix model name for SELB 3Y24 (WF5890 → WF-C5890)
   try { db.exec("UPDATE impressoras SET nome = 'Epson WF-C5890' WHERE selb = '3Y24' AND nome = 'EPSON WF5890'"); } catch {}
   // Add ADE4 impressora if not yet registered
@@ -1153,7 +1213,7 @@ function registrarUsuario(dados) {
 }
 
 function buscarUsuarioPorEmail(email) {
-  return getDb().prepare('SELECT * FROM usuarios WHERE email = ?').get(email);
+  return getDb().prepare('SELECT * FROM usuarios WHERE email = ? AND ativo = 1').get(email);
 }
 
 function buscarUsuarioPorId(id) {
@@ -1211,7 +1271,7 @@ function buscarAdminPorId(id) {
 }
 
 function buscarAdminPorEmail(email) {
-  return getDb().prepare('SELECT * FROM admins WHERE email = ?').get(email);
+  return getDb().prepare('SELECT * FROM admins WHERE email = ? AND ativo = 1').get(email);
 }
 
 function listarAdmins() {
