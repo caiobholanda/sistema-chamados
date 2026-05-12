@@ -718,11 +718,20 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
 
   if (usuario.setor) {
     const sel = document.getElementById('ch-setor');
-    // Tenta match exato; se não encontrar, procura option cujo texto corresponda
     sel.value = usuario.setor;
     if (!sel.value) {
-      const opt = Array.from(sel.options).find(o => o.text === usuario.setor);
-      if (opt) sel.value = opt.value || opt.text;
+      // Setor do cadastro não existe na lista — adiciona dinamicamente
+      const og = sel.querySelector('optgroup[label="Outros"]') || (() => {
+        const g = document.createElement('optgroup');
+        g.label = 'Outros';
+        sel.appendChild(g);
+        return g;
+      })();
+      const opt = document.createElement('option');
+      opt.value = usuario.setor;
+      opt.textContent = usuario.setor;
+      og.appendChild(opt);
+      sel.value = usuario.setor;
     }
   }
 
