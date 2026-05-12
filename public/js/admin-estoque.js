@@ -931,19 +931,21 @@ function fecharEqHist() {
     document.getElementById('hist-btn-fechar').addEventListener('click', fecharHistModal);
     document.getElementById('hist-modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharHistModal(); });
 
-    document.getElementById('eq-mov-fechar').addEventListener('click', fecharEqMov);
-    document.getElementById('eq-mov-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqMov(); });
+    document.getElementById('eq-mov-fechar')?.addEventListener('click', fecharEqMov);
+    document.getElementById('eq-mov-overlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqMov(); });
 
-    document.getElementById('eq-hist-fechar').addEventListener('click', fecharEqHist);
-    document.getElementById('eq-hist-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqHist(); });
+    document.getElementById('eq-hist-fechar')?.addEventListener('click', fecharEqHist);
+    document.getElementById('eq-hist-overlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqHist(); });
 
-    document.getElementById('btn-buscar-eq').addEventListener('click', () => carregarDados());
-    document.getElementById('btn-limpar-eq').addEventListener('click', () => {
-      document.getElementById('eq-busca').value = '';
-      document.getElementById('eq-status').value = '';
+    document.getElementById('btn-buscar-eq')?.addEventListener('click', () => carregarDados());
+    document.getElementById('btn-limpar-eq')?.addEventListener('click', () => {
+      const busca = document.getElementById('eq-busca');
+      const status = document.getElementById('eq-status');
+      if (busca) busca.value = '';
+      if (status) status.value = '';
       carregarDados();
     });
-    document.getElementById('eq-busca').addEventListener('keydown', e => { if (e.key === 'Enter') carregarDados(); });
+    document.getElementById('eq-busca')?.addEventListener('keydown', e => { if (e.key === 'Enter') carregarDados(); });
 
     const NOVO_LABELS = { toner: '+ Novo Item', impressoras: '+ Nova Impressora', equipamentos: '+ Novo Equipamento' };
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -952,7 +954,8 @@ function fecharEqHist() {
         btn.classList.add('ativo');
         abaAtiva = btn.dataset.tab;
         document.getElementById('btn-novo').textContent = NOVO_LABELS[abaAtiva] || '+ Novo Item';
-        document.getElementById('filtros-equipamentos').style.display = abaAtiva === 'equipamentos' ? '' : 'none';
+        const filtrosEq = document.getElementById('filtros-equipamentos');
+        if (filtrosEq) filtrosEq.style.display = abaAtiva === 'equipamentos' ? '' : 'none';
         carregarDados();
       });
     });
