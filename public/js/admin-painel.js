@@ -510,14 +510,29 @@ function renderModalBody(c) {
         <!-- Coluna esquerda: informações -->
         <div class="mv2-main">
 
-          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.35rem .6rem;font-size:.81rem;margin-bottom:.65rem;padding:.4rem .6rem;background:var(--bg-secondary,#f7f6f2);border-radius:6px;border:1px solid var(--border)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text-muted)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span style="color:var(--text-muted)">Responsável:</span>
-            <strong style="color:${c.admin_nome ? 'var(--text)' : 'var(--text-muted)'};font-weight:${c.admin_nome ? '600' : '400'}">${c.admin_nome || 'Não atribuído'}</strong>
-            <span style="color:var(--border)">·</span>
-            <span style="color:var(--text-muted)">Aberto:</span>
-            <span style="color:var(--text)">${fmtData(c.criado_em)}</span>
-            ${c.concluido_em ? `<span style="color:var(--border)">·</span><span style="color:var(--text-muted)">Concluído:</span><span style="color:var(--text)">${fmtData(c.concluido_em)}</span>` : ''}
+          <div class="mv2-card ${c.admin_nome ? 'mv2-card-ok' : 'mv2-card-vazio'}" style="margin-bottom:.5rem">
+            <div class="mv2-card-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <div class="mv2-card-label">Administrador responsável</div>
+              <div class="mv2-card-val">${c.admin_nome || 'Não atribuído'}</div>
+            </div>
+          </div>
+
+          <div class="mv2-ts-row">
+            <div class="mv2-ts-chip">
+              <span class="mv2-ts-label">Aberto em</span>
+              <span class="mv2-ts-val">${fmtData(c.criado_em)}</span>
+            </div>
+            ${c.prazo ? `<div class="mv2-ts-chip ${atrasado ? 'mv2-ts-danger' : 'mv2-ts-warn'}">
+              <span class="mv2-ts-label">${atrasado ? '⚠ Prazo vencido' : 'Prazo'}</span>
+              <span class="mv2-ts-val">${fmtData(c.prazo)}</span>
+            </div>` : ''}
+            ${c.concluido_em ? `<div class="mv2-ts-chip mv2-ts-ok">
+              <span class="mv2-ts-label">Concluído em</span>
+              <span class="mv2-ts-val">${fmtData(c.concluido_em)}</span>
+            </div>` : ''}
           </div>
 
           <div class="mv2-section">
