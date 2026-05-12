@@ -22,7 +22,7 @@ const CATEGORIAS_MAP = {
   outros:         { nome: 'Outros',            cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>' },
 };
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardando_compra: 'Aguardando compra', aguardando_chegar: 'Aguardando chegar', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
 let _chamadoAtual = null;
@@ -94,10 +94,12 @@ async function _atualizarChat(id) {
 
 function _renderBody(c) {
   const adminInfo = window.adminInfo || {};
-  const isAberto    = ['aberto', 'em_andamento'].includes(c.status);
-  const podeAssumir = ['aberto', 'em_andamento'].includes(c.status);
-  const podeConcluir= ['aberto', 'em_andamento'].includes(c.status);
+  const _statusAtivos = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
+  const isAberto    = _statusAtivos.includes(c.status);
+  const podeAssumir = _statusAtivos.includes(c.status);
+  const podeConcluir= _statusAtivos.includes(c.status);
   const podeReabrir = ['concluido', 'encerrado'].includes(c.status);
+  const isEspera    = ['aguardando_compra', 'aguardando_chegar'].includes(c.status);
   const atrasado    = _estaAtrasado(c);
 
   const bannerAtraso = atrasado
@@ -242,7 +244,7 @@ function _renderBody(c) {
                 ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="cm-btn-remover-prazo" style="padding:.32rem .5rem">✕</button>` : ''}
               </div>
               <div class="mv2-action-btns">
-                ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="cm-btn-assumir" style="flex:1">Assumir</button>` : ''}
+                ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="cm-btn-assumir" style="flex:1">${isEspera ? 'Retomar' : 'Assumir'}</button>` : ''}
                 ${isAberto     ? `<button class="btn btn-secondary btn-sm" id="cm-btn-transferir" style="flex:1">Transferir</button>` : ''}
                 ${podeConcluir ? `<button class="btn btn-success btn-sm" id="cm-btn-concluir" style="flex:1">Concluir</button>` : ''}
               </div>
@@ -261,6 +263,16 @@ function _renderBody(c) {
                   <textarea class="form-control" id="cm-txt-solucao" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
                 </div>
                 <button class="btn btn-success btn-sm" id="cm-btn-confirmar-concluir" style="width:100%">Confirmar conclusão</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:.3rem;margin-top:.4rem;padding-top:.4rem;border-top:1px solid var(--border)">
+                ${c.status !== 'aguardando_compra' ? `<button class="btn btn-sm" id="cm-btn-aguardar-compra" style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:.8rem">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                  Aguardando compra
+                </button>` : ''}
+                ${c.status !== 'aguardando_chegar' ? `<button class="btn btn-sm" id="cm-btn-aguardar-chegar" style="background:#CFFAFE;color:#155E75;border:1px solid #67E8F9;font-size:.8rem">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                  Aguardando chegar
+                </button>` : ''}
               </div>
             ` : `
               <div style="padding:.2rem 0">
@@ -420,6 +432,36 @@ function _setupEventos(c) {
         if (r.ok) setTimeout(() => window.abrirChamadoModal(c.id), 700);
       } finally {
         if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Confirmar conclusão'; }
+      }
+    });
+  }
+
+  if (q('cm-btn-aguardar-compra')) {
+    q('cm-btn-aguardar-compra').addEventListener('click', async () => {
+      const btn = q('cm-btn-aguardar-compra');
+      btn.disabled = true;
+      try {
+        const r = await _api(`/api/admin/chamados/${c.id}/aguardar-compra`, { method: 'PATCH', body: JSON.stringify({}) });
+        const d = await r.json();
+        setMsg(r.ok ? '<div class="alert alert-success">Status atualizado: aguardando compra.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        if (r.ok) setTimeout(() => window.abrirChamadoModal(c.id), 600);
+      } finally {
+        if (btn.isConnected) btn.disabled = false;
+      }
+    });
+  }
+
+  if (q('cm-btn-aguardar-chegar')) {
+    q('cm-btn-aguardar-chegar').addEventListener('click', async () => {
+      const btn = q('cm-btn-aguardar-chegar');
+      btn.disabled = true;
+      try {
+        const r = await _api(`/api/admin/chamados/${c.id}/aguardar-chegar`, { method: 'PATCH', body: JSON.stringify({}) });
+        const d = await r.json();
+        setMsg(r.ok ? '<div class="alert alert-success">Status atualizado: aguardando chegar.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        if (r.ok) setTimeout(() => window.abrirChamadoModal(c.id), 600);
+      } finally {
+        if (btn.isConnected) btn.disabled = false;
       }
     });
   }

@@ -37,10 +37,10 @@ async function _atualizarChatAdmin(chamadoId) {
   } catch {}
 }
 
-const STATUS_ABERTOS = ['aberto', 'em_andamento'];
+const STATUS_ABERTOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
 const STATUS_ENCERRADOS = ['concluido', 'encerrado'];
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardando_compra: 'Aguardando compra', aguardando_chegar: 'Aguardando chegar', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
 const CATEGORIAS_MAP = {
@@ -177,6 +177,8 @@ function atualizarFiltrosDeAba() {
       <option value="">Todos (abertos)</option>
       <option value="aberto">Aberto</option>
       <option value="em_andamento">Em andamento</option>
+      <option value="aguardando_compra">Aguardando compra</option>
+      <option value="aguardando_chegar">Aguardando chegar</option>
     `;
   } else if (abaAtiva === 'meus') {
     if (subAbaMeusAtiva === 'abertos') {
@@ -184,6 +186,8 @@ function atualizarFiltrosDeAba() {
         <option value="">Todos (abertos)</option>
         <option value="aberto">Aberto</option>
         <option value="em_andamento">Em andamento</option>
+        <option value="aguardando_compra">Aguardando compra</option>
+        <option value="aguardando_chegar">Aguardando chegar</option>
       `;
     } else {
       sel.innerHTML = `

@@ -353,7 +353,9 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
 .badge-aberto         { background: #DBEAFE; color: #1D4ED8; border: 1px solid #93c5fd; }
 .badge-em_andamento   { background: #EDE9FE; color: #6D28D9; border: 1px solid #c4b5fd; }
 .badge-concluido      { background: var(--success-light);  color: var(--success);  border: 1px solid #86efac; }
-.badge-encerrado      { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+.badge-encerrado           { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+.badge-aguardando_compra   { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+.badge-aguardando_chegar   { background: #CFFAFE; color: #155E75; border: 1px solid #67E8F9; }
 
 .badge-categoria {
   display: inline-flex;

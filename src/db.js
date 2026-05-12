@@ -728,7 +728,7 @@ function getChamadosComPrazoPendente() {
     SELECT c.*, a.id as admin_id_resp
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
-    WHERE c.status IN ('aberto', 'em_andamento')
+    WHERE c.status IN ('aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar')
     AND c.prazo IS NOT NULL
   `).all();
 }
@@ -968,7 +968,7 @@ function atualizarCategoria(id, categoria, adminId) {
 function assumirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
-  if (chamado.status === 'aberto') {
+  if (['aberto', 'aguardando_compra', 'aguardando_chegar'].includes(chamado.status)) {
     db.prepare(`
       UPDATE chamados SET status = 'em_andamento', admin_responsavel_id = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
     `).run(adminId, id);
@@ -1021,6 +1021,16 @@ function encerrarChamado(id, motivo, adminId) {
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'status_alterado', ?, 'encerrado')
   `).run(id, adminId, chamado.status);
+}
+
+function setStatusEspera(id, novoStatus, adminId) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+  db.prepare(`UPDATE chamados SET status = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(novoStatus, id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'status_alterado', ?, ?)
+  `).run(id, adminId, chamado.status, novoStatus);
 }
 
 function transferirChamado(id, adminId, novoAdminId, nomeNovoAdmin) {
@@ -1277,7 +1287,7 @@ function deletarItem(id) {
 }
 
 function listarChamadosProcessoCompra({ apenasAbertos = false } = {}) {
-  const cond = apenasAbertos ? `AND c.status IN ('aberto', 'em_andamento')` : '';
+  const cond = apenasAbertos ? `AND c.status IN ('aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar')` : '';
   return getDb().prepare(`
     SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
            c.prioridade, c.status, c.prazo, c.admin_responsavel_id,
@@ -1288,7 +1298,7 @@ function listarChamadosProcessoCompra({ apenasAbertos = false } = {}) {
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
     WHERE c.categoria = 'processo_compra' ${cond}
     ORDER BY
-      CASE WHEN c.status IN ('aberto','em_andamento') THEN 0 ELSE 1 END ASC,
+      CASE WHEN c.status IN ('aberto','em_andamento','aguardando_compra','aguardando_chegar') THEN 0 ELSE 1 END ASC,
       c.criado_em DESC
   `).all();
 }
@@ -1454,6 +1464,7 @@ module.exports = {
   assumirChamado,
   concluirChamado,
   encerrarChamado,
+  setStatusEspera,
   reabrirChamado,
   reabrirChamadoUsuario,
   avaliarChamado,

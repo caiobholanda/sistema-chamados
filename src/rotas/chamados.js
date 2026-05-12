@@ -18,7 +18,7 @@ function getUsuarioIdFromCookie(req) {
   } catch { return null; }
 }
 
-const STATUS_VALIDOS = ['aberto', 'em_andamento', 'concluido', 'encerrado'];
+const STATUS_VALIDOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar', 'concluido', 'encerrado'];
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
 
 function sanitizarTexto(str) {
@@ -151,7 +151,7 @@ router.post('/:id/mensagens', (req, res) => {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
     if (Number(chamado.usuario_id) !== Number(usuario_id)) return res.status(403).json({ erro: 'Acesso negado' });
-    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
+    if (!['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(chamado.status)) {
       return res.status(400).json({ erro: 'Chamado encerrado — não é possível enviar mensagens' });
     }
     const mensagem = sanitizarTexto(req.body.mensagem || '');

@@ -6,12 +6,15 @@ const db = require('../db');
 const { requireAdmin, requireMaster } = require('../auth');
 const push = require('../push');
 
-const STATUS_VALIDOS = ['aberto', 'em_andamento', 'concluido', 'encerrado'];
+const STATUS_VALIDOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar', 'concluido', 'encerrado'];
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
 const TRANSICOES_VALIDAS = {
   aberto: ['em_andamento'],
-  em_andamento: ['concluido', 'encerrado'],
+  em_andamento: ['concluido', 'encerrado', 'aguardando_compra', 'aguardando_chegar'],
+  aguardando_compra: ['em_andamento', 'aguardando_chegar', 'concluido', 'encerrado'],
+  aguardando_chegar: ['em_andamento', 'concluido', 'encerrado'],
 };
+const STATUS_ATIVOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
 
 const DOMINIO_EMAIL = '@granmarquise.com.br';
 function senhaForte(s) {
@@ -93,8 +96,8 @@ router.patch('/chamados/:id/transferir', requireAdmin, async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
-      return res.status(400).json({ erro: 'Só é possível transferir chamados abertos ou em andamento' });
+    if (!STATUS_ATIVOS.includes(chamado.status)) {
+      return res.status(400).json({ erro: 'Só é possível transferir chamados em aberto' });
     }
     const { admin_id } = req.body;
     if (!admin_id) return res.status(400).json({ erro: 'Admin de destino obrigatório' });
@@ -162,7 +165,7 @@ router.post('/chamados/:id/mensagens', requireAdmin, async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
+    if (!STATUS_ATIVOS.includes(chamado.status)) {
       return res.status(400).json({ erro: 'Chamado encerrado — não é possível enviar mensagens' });
     }
     const mensagem = sanitizarTexto(req.body.mensagem || '');
@@ -233,7 +236,7 @@ router.patch('/chamados/:id/assumir', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
+    if (!STATUS_ATIVOS.includes(chamado.status)) {
       return res.status(400).json({ erro: `Não é possível assumir um chamado com status "${chamado.status}"` });
     }
     db.assumirChamado(chamado.id, req.admin.sub);
@@ -248,8 +251,8 @@ router.patch('/chamados/:id/concluir', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
-      return res.status(400).json({ erro: 'Só é possível concluir chamados abertos ou em andamento' });
+    if (!STATUS_ATIVOS.includes(chamado.status)) {
+      return res.status(400).json({ erro: 'Só é possível concluir chamados em aberto' });
     }
 
     const solucao = sanitizarTexto(req.body.solucao || '');
@@ -274,7 +277,7 @@ router.patch('/chamados/:id/encerrar', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!['aberto', 'em_andamento'].includes(chamado.status)) {
+    if (!STATUS_ATIVOS.includes(chamado.status)) {
       return res.status(400).json({ erro: `Não é possível encerrar um chamado com status "${chamado.status}"` });
     }
 
@@ -285,6 +288,36 @@ router.patch('/chamados/:id/encerrar', requireAdmin, (req, res) => {
 
     db.encerrarChamado(chamado.id, motivo, req.admin.sub);
     return res.json({ mensagem: 'Chamado encerrado' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.patch('/chamados/:id/aguardar-compra', requireAdmin, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (!['aberto', 'em_andamento', 'aguardando_chegar'].includes(chamado.status)) {
+      return res.status(400).json({ erro: `Não é possível usar este status com o chamado atual (${chamado.status})` });
+    }
+    db.setStatusEspera(chamado.id, 'aguardando_compra', req.admin.sub);
+    return res.json({ mensagem: 'Chamado marcado como aguardando compra' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.patch('/chamados/:id/aguardar-chegar', requireAdmin, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (!['aberto', 'em_andamento', 'aguardando_compra'].includes(chamado.status)) {
+      return res.status(400).json({ erro: `Não é possível usar este status com o chamado atual (${chamado.status})` });
+    }
+    db.setStatusEspera(chamado.id, 'aguardando_chegar', req.admin.sub);
+    return res.json({ mensagem: 'Chamado marcado como aguardando chegar' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

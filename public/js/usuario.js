@@ -1,6 +1,6 @@
 const app = document.getElementById('app');
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardando_compra: 'Aguardando compra', aguardando_chegar: 'Aguardando chegar', concluido: 'Concluído', encerrado: 'Encerrado' };
 
 let _refreshInterval = null;
 function _pararRefresh() {
@@ -340,15 +340,15 @@ function renderPainel(usuario) {
 
     todosChamados = novos;
 
-    const qtd = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
+    const qtd = { aberto: 0, em_andamento: 0, aguardando_compra: 0, aguardando_chegar: 0, concluido: 0, encerrado: 0 };
     todosChamados.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
 
     const el = id => document.getElementById(id);
     if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = qtd.aberto;
-    if (el('cnt-u-andamento')) el('cnt-u-andamento').textContent = qtd.em_andamento;
+    if (el('cnt-u-andamento')) el('cnt-u-andamento').textContent = qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
     if (el('cnt-u-concluido')) el('cnt-u-concluido').textContent = qtd.concluido + qtd.encerrado;
 
-    const abertos = qtd.aberto + qtd.em_andamento;
+    const abertos = qtd.aberto + qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
     const encerrados = qtd.concluido + qtd.encerrado;
     el('badge-abertos-u').textContent = abertos || '';
     el('badge-encerrados-u').textContent = encerrados || '';
@@ -380,7 +380,7 @@ function renderPainel(usuario) {
     _limparChats();
     const lista = document.getElementById('lista-usuario');
     const filtrados = (aba === 'abertos'
-      ? todos.filter(c => ['aberto', 'em_andamento'].includes(c.status))
+      ? todos.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status))
       : todos.filter(c => ['concluido', 'encerrado'].includes(c.status)))
       .sort((a, b) => {
         const prioDiff = _scorePrio(a) - _scorePrio(b);
@@ -460,7 +460,7 @@ function renderPainel(usuario) {
       if (btn) btn.addEventListener('click', () => abrirModalReabertura(c.id));
     });
 
-    filtrados.filter(c => ['aberto', 'em_andamento'].includes(c.status)).forEach(c => {
+    filtrados.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status)).forEach(c => {
       _iniciarChat(c.id);
     });
   }
