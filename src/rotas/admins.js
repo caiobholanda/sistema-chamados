@@ -106,7 +106,7 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
 
     const adminCriador = db.buscarAdminPorId(req.admin.sub);
     const nome  = adminCriador ? adminCriador.nome_completo : 'Admin';
-    const setor = 'Tecnologia da Informação';
+    const setor = 'TI';
     const ramal = '';
 
     const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','processo_compra','outros'];

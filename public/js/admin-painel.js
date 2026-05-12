@@ -492,9 +492,9 @@ function renderChamadoItem(c) {
         </span>
         ${c.prazo ? `<span class="chamado-footer-prazo${atrasado ? ' prazo-vencido' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Prazo: ${fmtData(c.prazo)}</span>` : ''}
         ${c.admin_nome ? `<span class="tag">${c.admin_nome}</span>` : ''}
-        ${c.aberto_por_admin_nome ? `<span class="chamado-footer-meta" style="color:var(--navy);font-weight:600;font-size:.76rem">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Aberto por ${c.aberto_por_admin_nome}${c.aberto_por_admin_is_master ? ' (Master)' : ' (Admin)'}
+        ${c.aberto_por_admin_nome ? `<span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--navy);color:#fff;font-size:.7rem;font-weight:600;padding:.18rem .5rem;border-radius:20px;letter-spacing:.02em">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Aberto por ${c.aberto_por_admin_nome} · ${c.aberto_por_admin_is_master ? 'Master' : 'Admin'}
         </span>` : ''}
       </div>
     </div>
@@ -562,9 +562,11 @@ function renderModalBody(c) {
             ${(c.usuario_ramal || c.ramal) ? `<span class="mv2-sep">·</span><span>Ramal ${c.usuario_ramal || c.ramal}</span>` : ''}
             ${c.prioridade ? `<span class="mv2-sep">·</span><span>${PRIO_LABELS[c.prioridade]}</span>` : ''}
           </div>
-          ${c.aberto_por_admin_nome ? `<div style="margin-top:.3rem;font-size:.78rem;color:var(--navy);font-weight:600;display:flex;align-items:center;gap:.3rem">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Aberto por ${c.aberto_por_admin_nome} (${c.aberto_por_admin_is_master ? 'Master' : 'Admin'})
+          ${c.aberto_por_admin_nome ? `<div style="margin-top:.45rem">
+            <span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--navy);color:#fff;font-size:.72rem;font-weight:600;padding:.22rem .6rem;border-radius:20px;letter-spacing:.02em">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Aberto por ${c.aberto_por_admin_nome} · ${c.aberto_por_admin_is_master ? 'Master' : 'Admin'}
+            </span>
           </div>` : ''}
         </div>
         <div></div>
