@@ -578,7 +578,7 @@ function renderModalBody(c) {
       <div class="mv2-layout" style="align-items:stretch">
 
         <!-- Coluna esquerda: informações -->
-        <div class="mv2-main">
+        <div class="mv2-main" style="padding-top:1.25rem">
 
           <div class="mv2-card ${c.admin_nome ? 'mv2-card-ok' : 'mv2-card-vazio'}" style="margin-bottom:.5rem">
             <div class="mv2-card-icon">
