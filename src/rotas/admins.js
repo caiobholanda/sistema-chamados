@@ -109,8 +109,16 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
     const setor = 'Tecnologia da Informação';
     const ramal = '';
 
-    const cat = await classificarInteligente(descricao);
-    const categoria = cat ? cat.id : null;
+    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','processo_compra','outros'];
+    const categoriaEnviada = (req.body.categoria || '').trim();
+    let categoria;
+    if (categoriaEnviada && CATEGORIAS_VALIDAS.includes(categoriaEnviada)) {
+      categoria = categoriaEnviada;
+    } else {
+      const cat = await classificarInteligente(descricao);
+      categoria = cat ? cat.id : null;
+    }
+
     const id = db.inserirChamado({
       usuario_id: null,
       nome, setor, ramal, descricao,

@@ -292,6 +292,7 @@ document.addEventListener('keydown', e => {
 
 // ── Modal "Abrir chamado" ──────────────────────────────────────────────────
 function abrirModalNovoChamado() {
+  document.getElementById('nc-categoria').value = '';
   document.getElementById('nc-descricao').value = '';
   document.getElementById('nc-anexo').value = '';
   document.getElementById('msg-novo-chamado').innerHTML = '';
@@ -322,6 +323,8 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
   try {
     const fd = new FormData();
     fd.append('descricao', descricao);
+    const categoria = document.getElementById('nc-categoria').value;
+    if (categoria) fd.append('categoria', categoria);
     const anexo = document.getElementById('nc-anexo').files[0];
     if (anexo) fd.append('anexo', anexo);
 

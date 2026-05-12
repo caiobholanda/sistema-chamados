@@ -189,6 +189,27 @@
       <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 1rem">Chamado será registrado em seu nome no setor de TI.</p>
       <form id="form-novo-chamado">
         <div class="form-group">
+          <label for="nc-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <select class="form-control" id="nc-categoria">
+            <option value="">Classificar automaticamente</option>
+            <option value="software">Software</option>
+            <option value="hardware">Hardware</option>
+            <option value="impressora">Impressora</option>
+            <option value="ramal">Ramal / Telefone</option>
+            <option value="nobreak">Nobreak</option>
+            <option value="monitor">Monitor</option>
+            <option value="mouse">Mouse</option>
+            <option value="teclado">Teclado</option>
+            <option value="rede">Rede / Internet</option>
+            <option value="acesso_senha">Acesso / Senha</option>
+            <option value="cameras">Câmeras / CFTV</option>
+            <option value="email">E-mail</option>
+            <option value="tv_projetor">TV / Projetor</option>
+            <option value="processo_compra">Processo de Compra</option>
+            <option value="outros">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label for="nc-descricao">Descrição do problema <span class="req">*</span></label>
           <textarea class="form-control" id="nc-descricao" rows="5" maxlength="2000" placeholder="Descreva o problema em detalhes..."></textarea>
         </div>
