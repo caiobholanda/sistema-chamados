@@ -633,23 +633,31 @@ function renderFormPatrimonio(item, isEdit) {
   const isMaster = adminInfo && adminInfo.is_master;
   document.getElementById('modal-body').innerHTML = `
     <form id="form-pat" style="display:flex;flex-direction:column;gap:.8rem">
-      <div class="form-row-2">
-        <div class="form-group">
-          <label class="form-label">Código (CPF do item)</label>
-          <input class="form-control" id="pat-codigo" type="text"
-            value="${esc(item.codigo || '')}"
-            placeholder="Auto (PAT-0001)"
-            ${isEdit && !isMaster ? 'readonly style="background:var(--bg-subtle);color:var(--text-muted)"' : ''}>
-          ${isEdit && !isMaster ? '<div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem">Apenas master pode alterar o código</div>' : ''}
-        </div>
-        <div class="form-group">
-          <label class="form-label">Categoria</label>
-          <input class="form-control" id="pat-categoria" type="text" value="${esc(item.categoria || '')}" placeholder="Ex: Notebook, Monitor, Teclado…">
-        </div>
-      </div>
       <div class="form-group">
         <label class="form-label">Descrição <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="pat-descricao" type="text" value="${esc(item.descricao || '')}" placeholder="Ex: Notebook Dell Latitude 5420 — SN: ABC123">
+        <input class="form-control" id="pat-descricao" type="text" value="${esc(item.descricao || '')}" placeholder="Ex: Nobreak APC 600VA, Notebook Dell…">
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <input class="form-control" id="pat-categoria" type="text" value="${esc(item.categoria || '')}" placeholder="Ex: Nobreak, Notebook…">
+        </div>
+        ${isEdit ? `
+        <div class="form-group">
+          <label class="form-label">Código (ID único)</label>
+          <input class="form-control" id="pat-codigo" type="text"
+            value="${esc(item.codigo || '')}"
+            ${!isMaster ? 'readonly style="background:var(--bg-subtle);color:var(--text-muted)"' : ''}>
+          ${!isMaster ? '<div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem">Apenas master pode alterar</div>' : ''}
+        </div>
+        ` : `
+        <div class="form-group">
+          <label class="form-label">Quantidade</label>
+          <input class="form-control" id="pat-quantidade" type="number" min="1" max="200" value="1"
+            oninput="atualizarPreviewQtd()" style="text-align:center">
+          <div style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem" id="pat-qtd-preview">1 item com ID automático</div>
+        </div>
+        `}
       </div>
       ${isEdit ? `
       <div class="form-row-2">
@@ -682,26 +690,48 @@ function renderFormPatrimonio(item, isEdit) {
     btn.disabled = true; btn.textContent = 'Salvando…';
     const descricao = document.getElementById('pat-descricao').value.trim();
     if (!descricao) { mostrarToast('Descrição obrigatória', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
-    const body = {
-      descricao,
-      codigo: document.getElementById('pat-codigo').value.trim(),
-      categoria: document.getElementById('pat-categoria').value.trim(),
-      observacao: document.getElementById('pat-obs').value.trim(),
-    };
+
     if (isEdit) {
-      body.status = document.getElementById('pat-status-sel').value;
-      body.setor_atual = document.getElementById('pat-setor').value.trim();
+      const body = {
+        descricao,
+        codigo: document.getElementById('pat-codigo').value.trim(),
+        categoria: document.getElementById('pat-categoria').value.trim(),
+        observacao: document.getElementById('pat-obs').value.trim(),
+        status: document.getElementById('pat-status-sel').value,
+        setor_atual: document.getElementById('pat-setor').value.trim(),
+      };
+      try {
+        const r = await api(`/api/admin/estoque/patrimonio/${item.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+        if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Salvar'; return; }
+        fecharModal(); mostrarToast('Item atualizado'); carregarDados();
+      } catch { btn.disabled = false; btn.textContent = 'Salvar'; }
+      return;
     }
+
+    // Criação em lote
+    const quantidade = Math.max(1, parseInt(document.getElementById('pat-quantidade').value, 10) || 1);
+    const base = { descricao, categoria: document.getElementById('pat-categoria').value.trim(), observacao: document.getElementById('pat-obs').value.trim() };
+    btn.textContent = quantidade > 1 ? `Criando 0/${quantidade}…` : 'Salvando…';
+    let criados = 0;
     try {
-      const url = isEdit ? `/api/admin/estoque/patrimonio/${item.id}` : '/api/admin/estoque/patrimonio';
-      const method = isEdit ? 'PATCH' : 'POST';
-      const r = await api(url, { method, body: JSON.stringify(body) });
-      if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; return; }
+      for (let i = 0; i < quantidade; i++) {
+        const r = await api('/api/admin/estoque/patrimonio', { method: 'POST', body: JSON.stringify(base) });
+        if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
+        criados++;
+        if (quantidade > 1) btn.textContent = `Criando ${criados}/${quantidade}…`;
+      }
       fecharModal();
-      mostrarToast(isEdit ? 'Item atualizado' : 'Item criado');
+      mostrarToast(quantidade > 1 ? `${quantidade} itens criados` : 'Item criado');
       carregarDados();
-    } catch { btn.disabled = false; btn.textContent = isEdit ? 'Salvar' : 'Adicionar'; }
+    } catch { btn.disabled = false; btn.textContent = 'Adicionar'; }
   });
+}
+
+function atualizarPreviewQtd() {
+  const el = document.getElementById('pat-qtd-preview');
+  if (!el) return;
+  const n = parseInt(document.getElementById('pat-quantidade')?.value, 10) || 1;
+  el.textContent = n === 1 ? '1 item com ID automático' : `${n} itens criados, cada um com ID próprio (PAT-XXXX)`;
 }
 
 function abrirNovoPatrimonio() {
