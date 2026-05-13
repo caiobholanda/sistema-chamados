@@ -689,106 +689,93 @@ function badgeStatus(status) {
 
 function renderEquipamentos(lista, reservaLegado = []) {
   const el = document.getElementById('itens-lista');
-  const badge = document.getElementById('badge-reserva');
-  if (badge) badge.textContent = (lista.length + reservaLegado.length) || '';
-
   const isMaster = adminInfo && adminInfo.is_master;
-  let html = '';
 
-  // ── Seção EQ-XXXX ──────────────────────────────────────
-  if (lista.length > 0) {
-    const grupos = {};
-    for (const eq of lista) {
-      if (!grupos[eq.nome]) grupos[eq.nome] = { categoria: eq.categoria, itens: [] };
-      grupos[eq.nome].itens.push(eq);
-    }
-
-    html += `
-      <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem">
-        Equipamentos com ID individual (${lista.length} unidades)
-      </div>
-      <div class="table-wrap" style="margin-bottom:1.5rem">
-        <table>
-          <thead>
-            <tr>
-              <th>Equipamento</th>
-              <th>Categoria</th>
-              <th style="text-align:center">Total</th>
-              <th>Status geral</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${Object.entries(grupos).map(([nome, g]) => {
-              const contagem = {};
-              for (const eq of g.itens) contagem[eq.status] = (contagem[eq.status] || 0) + 1;
-              const resumo = Object.entries(contagem).map(([st, n]) => {
-                const s = STATUS_EQ[st] || { label: st, cor: 'var(--border)' };
-                return `<span style="display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .45rem;border-radius:20px;font-size:.7rem;font-weight:700;background:${s.cor};color:#fff">${n} ${s.label}</span>`;
-              }).join(' ');
-              return `
-                <tr style="cursor:pointer" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}')">
-                  <td>
-                    <span style="font-weight:600;cursor:pointer;color:var(--navy);text-decoration:underline;text-underline-offset:2px" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}');event.stopPropagation()">
-                      ${esc(nome)}
-                    </span>
-                  </td>
-                  <td style="color:var(--text-secondary);font-size:.82rem">${esc(g.categoria) || '—'}</td>
-                  <td style="text-align:center;font-weight:700;color:var(--navy)">${g.itens.length}</td>
-                  <td style="display:flex;flex-wrap:wrap;gap:.3rem;padding:.6rem .75rem">${resumo}</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div style="font-size:.78rem;color:var(--text-muted);margin-top:-.75rem;margin-bottom:1.25rem;padding:0 .25rem">Clique no nome para ver as unidades individuais com seus IDs.</div>
-    `;
+  // Agrupar EQ-XXXX por nome
+  const gruposEq = {};
+  for (const eq of lista) {
+    if (!gruposEq[eq.nome]) gruposEq[eq.nome] = { categoria: eq.categoria, itens: [] };
+    gruposEq[eq.nome].itens.push(eq);
   }
 
-  // ── Seção legado (estoque_itens tipo='reserva') ─────────
-  if (reservaLegado.length > 0) {
-    html += `
-      <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem">
-        Estoque de reserva — itens por quantidade (${reservaLegado.length})
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th style="text-align:center">Qtd</th>
-              <th>Especificações</th>
-              <th>Observação</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${reservaLegado.map(item => `
-              <tr>
-                <td style="font-weight:500">${esc(item.nome)}</td>
-                <td style="text-align:center">${qtdCell(item.qtd_geral)}</td>
-                <td style="font-size:.82rem;color:var(--text-secondary)">${esc(item.especificacao) || '—'}</td>
-                <td style="font-size:.82rem;color:var(--text-muted)">${esc(item.observacao) || '—'}</td>
-                <td style="white-space:nowrap">
-                  <button class="btn btn-secondary btn-sm" onclick="abrirModalReservaLegado(${item.id})">Editar</button>
-                  <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
-                  <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
-                  ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarReservaLegado(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
+  // Montar linhas unificadas: primeiro EQ, depois reserva que não tem EQ com mesmo nome
+  const nomesEq = new Set(Object.keys(gruposEq));
+  const reservaSemEq = reservaLegado.filter(i => !nomesEq.has(i.nome));
 
-  if (!html) {
+  const totalItens = Object.keys(gruposEq).length + reservaSemEq.length;
+  const badge = document.getElementById('badge-reserva');
+  if (badge) badge.textContent = (lista.length + reservaSemEq.length) || '';
+
+  if (totalItens === 0) {
     el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum equipamento encontrado. Clique em "+ Novo Equipamento" para cadastrar.</div>`;
     return;
   }
 
-  el.innerHTML = html;
+  const linhasEq = Object.entries(gruposEq).map(([nome, g]) => {
+    const contagem = {};
+    for (const eq of g.itens) contagem[eq.status] = (contagem[eq.status] || 0) + 1;
+    const resumo = Object.entries(contagem).map(([st, n]) => {
+      const s = STATUS_EQ[st] || { label: st, cor: 'var(--border)' };
+      return `<span style="display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .45rem;border-radius:20px;font-size:.7rem;font-weight:700;background:${s.cor};color:#fff">${n} ${s.label}</span>`;
+    }).join(' ');
+    return `
+      <tr style="cursor:pointer" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}')">
+        <td>
+          <span style="font-weight:600;color:var(--navy);text-decoration:underline;text-underline-offset:2px;cursor:pointer">
+            ${esc(nome)}
+          </span>
+        </td>
+        <td style="color:var(--text-secondary);font-size:.82rem">${esc(g.categoria) || '—'}</td>
+        <td style="text-align:center;font-weight:700;color:var(--navy)">${g.itens.length}</td>
+        <td><div style="display:flex;flex-wrap:wrap;gap:.3rem">${resumo}</div></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-secondary btn-sm" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}');event.stopPropagation()">Ver IDs</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const linhasReserva = reservaSemEq.map(item => {
+    const qtd = item.qtd_geral ?? 0;
+    const qtdHtml = qtd === 0
+      ? `<span style="color:var(--danger);font-weight:600">0</span>`
+      : `<span style="color:var(--success);font-weight:600">${qtd}</span>`;
+    return `
+      <tr>
+        <td style="font-weight:500">${esc(item.nome)}</td>
+        <td style="color:var(--text-secondary);font-size:.82rem">${esc(item.especificacao) || '—'}</td>
+        <td style="text-align:center">${qtdHtml}</td>
+        <td><span style="font-size:.72rem;color:var(--text-muted);font-style:italic">sem ID individual</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-secondary btn-sm" onclick="abrirModalReservaLegado(${item.id})">Editar</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Histórico</button>
+          ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarReservaLegado(${item.id},'${esc(item.nome).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Equipamento</th>
+            <th>Categoria / Especificação</th>
+            <th style="text-align:center">Qtd / Unidades</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${linhasEq}
+          ${linhasReserva}
+        </tbody>
+      </table>
+    </div>
+    ${lista.length > 0 ? '<div style="font-size:.78rem;color:var(--text-muted);margin-top:.5rem;padding:0 .25rem">Clique no nome ou em "Ver IDs" para ver as unidades individuais.</div>' : ''}
+  `;
 }
 
 function verUnidades(nome) {
