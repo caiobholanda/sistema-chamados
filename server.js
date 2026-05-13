@@ -27,6 +27,8 @@ function servirHtmlComVersao(res, arquivo) {
   res.send(html);
 }
 
+app.get('/health', (req, res) => res.json({ ok: true }));
+
 app.get('/', (req, res) => servirHtmlComVersao(res, 'index.html'));
 app.get('/index.html', (req, res) => servirHtmlComVersao(res, 'index.html'));
 app.get('/admin-painel.html', (req, res) => servirHtmlComVersao(res, 'admin-painel.html'));
