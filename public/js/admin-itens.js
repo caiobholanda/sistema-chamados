@@ -1894,15 +1894,14 @@ function eqMovCampos() {
   if (tipo === 'saida') {
     extras.innerHTML = `<div class="form-group"><label class="form-label">Setor de destino <span style="color:var(--danger)">*</span></label><input class="form-control" id="eqm-destino" type="text" placeholder="Ex: Recepção, RH, Governança…"></div>`;
   } else if (tipo === 'entrada') {
-    const opts = _SETORES_EQ.map(s => `<option value="${s}"${s === _eqMovSetor ? ' selected' : ''}>${s}</option>`).join('');
-    extras.innerHTML = `
+    extras.innerHTML = _eqMovSetor ? `
       <div class="form-group">
-        <label class="form-label">Devolvido por qual setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <label class="form-label">Devolvido por qual setor?</label>
         <select class="form-control" id="eqm-origem">
-          <option value="">Selecione o setor…</option>
-          ${opts}
+          <option value="${_eqMovSetor}" selected>${_eqMovSetor}</option>
+          <option value="">Nenhum / não informado</option>
         </select>
-      </div>`;
+      </div>` : '';
   } else {
     extras.innerHTML = '';
   }
