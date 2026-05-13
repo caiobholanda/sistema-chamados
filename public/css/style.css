@@ -2030,6 +2030,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .mv2-chat-msgs {
   flex: 1 !important;
   height: auto !important;
+  max-height: none !important;
   min-height: 100px !important;
   overflow-y: auto !important;
 }
@@ -3268,92 +3269,3 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 
 
-/* ═══════════════════════════════════════════
-   CHAMADO PREVIEW TOOLTIP
-═══════════════════════════════════════════ */
-#chamado-preview {
-  position: fixed;
-  z-index: 9990;
-  pointer-events: none;
-  width: 300px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 32px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.08);
-  padding: .9rem 1rem;
-  opacity: 0;
-  transform: translateY(6px) scale(.98);
-  transition: opacity .14s ease, transform .14s ease;
-  font-size: .8rem;
-  line-height: 1.5;
-}
-#chamado-preview.visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-.cp-user {
-  font-weight: 700;
-  font-size: .88rem;
-  color: var(--text);
-  margin-bottom: .15rem;
-}
-.cp-meta {
-  font-size: .74rem;
-  color: var(--text-muted);
-  margin-bottom: .6rem;
-  display: flex;
-  gap: .35rem;
-  flex-wrap: wrap;
-}
-.cp-desc {
-  font-size: .79rem;
-  color: var(--text-secondary);
-  margin-bottom: .65rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 5;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.55;
-}
-.cp-divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: .5rem 0;
-}
-.cp-tags {
-  display: flex;
-  gap: .35rem;
-  flex-wrap: wrap;
-  margin-bottom: .5rem;
-}
-.cp-tag {
-  font-size: .7rem;
-  font-weight: 600;
-  padding: .15rem .5rem;
-  border-radius: 20px;
-  background: var(--surface-2);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  letter-spacing: .02em;
-}
-.cp-info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: .76rem;
-  padding: .18rem 0;
-  gap: .5rem;
-}
-.cp-info-label {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-.cp-info-val {
-  color: var(--text-secondary);
-  font-weight: 500;
-  text-align: right;
-}
-.cp-atraso .cp-info-val {
-  color: var(--danger);
-  font-weight: 700;
-}

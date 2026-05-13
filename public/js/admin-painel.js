@@ -466,7 +466,6 @@ function scorePrioridade(c) {
   return 5; // sem prioridade
 }
 
-function _escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function renderChamadoItem(c) {
   const encerrado = ['concluido', 'encerrado'].includes(c.status);
@@ -474,15 +473,6 @@ function renderChamadoItem(c) {
   return `
     <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}"
          data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"
-         data-pv-nome="${_escAttr(c.nome)}"
-         data-pv-setor="${_escAttr(c.usuario_setor || c.setor)}"
-         data-pv-ramal="${_escAttr(c.ramal)}"
-         data-pv-desc="${_escAttr(c.descricao)}"
-         data-pv-cat="${_escAttr(c.categoria)}"
-         data-pv-prio="${_escAttr(c.prioridade)}"
-         data-pv-admin="${_escAttr(c.admin_nome)}"
-         data-pv-prazo="${_escAttr(c.prazo)}"
-         data-pv-atrasado="${atrasado ? '1' : '0'}">
       <div class="chamado-item-header">
         <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
         ${badgeStatus(c.status)}
@@ -596,36 +586,36 @@ function renderModalBody(c) {
         <div class="mv2-main">
           <div id="msg-modal"></div>
 
-          <!-- Property rows (Planner-style) -->
-          <div class="pl-info-card">
-            <div class="pl-info-row">
-              <div class="pl-info-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-              <span class="pl-info-label">Responsável</span>
-              <span class="pl-info-val ${c.admin_nome ? '' : 'pl-info-empty'}">${c.admin_nome || 'Não atribuído'}</span>
+          <!-- Admin responsável -->
+          <div class="mv2-card ${c.admin_nome ? 'mv2-card-ok' : 'mv2-card-vazio'}">
+            <div class="mv2-card-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
-            <div class="pl-info-row">
-              <div class="pl-info-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-              <span class="pl-info-label">Abertura</span>
-              <span class="pl-info-val">${fmtData(c.criado_em)}</span>
+            <div>
+              <div class="mv2-card-label">Administrador responsável</div>
+              <div class="mv2-card-val">${c.admin_nome || 'Não atribuído'}</div>
             </div>
-            ${c.prazo ? `<div class="pl-info-row${atrasado ? ' pl-warn' : ''}">
-              <div class="pl-info-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-              <span class="pl-info-label">${atrasado ? '⚠ Prazo' : 'Prazo'}</span>
-              <span class="pl-info-val">${fmtData(c.prazo)}</span>
+          </div>
+
+          <!-- Timestamps -->
+          <div class="mv2-ts-row">
+            <div class="mv2-ts-chip">
+              <span class="mv2-ts-label">Aberto em</span>
+              <span class="mv2-ts-val">${fmtData(c.criado_em)}</span>
+            </div>
+            ${c.prazo ? `<div class="mv2-ts-chip ${atrasado ? 'mv2-ts-danger' : 'mv2-ts-warn'}">
+              <span class="mv2-ts-label">${atrasado ? '⚠ Prazo vencido' : 'Prazo'}</span>
+              <span class="mv2-ts-val">${fmtData(c.prazo)}</span>
             </div>` : ''}
-            ${c.concluido_em ? `<div class="pl-info-row pl-ok">
-              <div class="pl-info-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-              <span class="pl-info-label">Concluído</span>
-              <span class="pl-info-val">${fmtData(c.concluido_em)}</span>
+            ${c.concluido_em ? `<div class="mv2-ts-chip mv2-ts-ok">
+              <span class="mv2-ts-label">Concluído em</span>
+              <span class="mv2-ts-val">${fmtData(c.concluido_em)}</span>
             </div>` : ''}
           </div>
 
           <!-- Descrição -->
-          <div class="pl-section">
-            <div class="pl-section-label">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-              Descrição
-            </div>
+          <div class="mv2-section">
+            <span class="mv2-field-label">Descrição do problema</span>
             <div class="mv2-desc">${c.descricao}</div>
           </div>
 
@@ -636,75 +626,69 @@ function renderModalBody(c) {
             </a>` : ''}
 
           ${isAberto ? `
-            <!-- Configurações -->
-            <div class="pl-section">
-              <div class="pl-section-label">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <!-- Configurações + Ações -->
+            <div class="mv2-controls-section">
+              <div class="mv2-section-divider">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Configurações
               </div>
-              <div class="pl-ctrl-list">
-                <div class="mv2-ctrl-row">
-                  <span class="mv2-ctrl-lbl">Categoria</span>
-                  <select class="form-control form-control-sm" id="sel-categoria" style="flex:1">
-                    ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) => `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`).join('')}
-                  </select>
-                  <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria">Salvar</button>
-                </div>
-                <div class="mv2-ctrl-row">
-                  <span class="mv2-ctrl-lbl">Prioridade</span>
-                  <select class="form-control form-control-sm" id="sel-prioridade" style="flex:1">
-                    <option value="">Sem prioridade</option>
-                    <option value="baixa"   ${c.prioridade==='baixa'  ?'selected':''}>Baixa</option>
-                    <option value="media"   ${c.prioridade==='media'  ?'selected':''}>Média</option>
-                    <option value="alta"    ${c.prioridade==='alta'   ?'selected':''}>Alta</option>
-                    <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
-                  </select>
-                  <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar</button>
-                </div>
-                <div class="mv2-ctrl-row">
-                  <span class="mv2-ctrl-lbl">Prazo</span>
-                  <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${utcParaInputFortaleza(c.prazo)}" style="flex:1">
-                  <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
-                  ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
-                </div>
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Categoria</span>
+                <select class="form-control form-control-sm" id="sel-categoria" style="flex:1">
+                  ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) => `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria">Salvar</button>
               </div>
-            </div>
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Prioridade</span>
+                <select class="form-control form-control-sm" id="sel-prioridade" style="flex:1">
+                  <option value="">Sem prioridade</option>
+                  <option value="baixa"   ${c.prioridade==='baixa'  ?'selected':''}>Baixa</option>
+                  <option value="media"   ${c.prioridade==='media'  ?'selected':''}>Média</option>
+                  <option value="alta"    ${c.prioridade==='alta'   ?'selected':''}>Alta</option>
+                  <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar</button>
+              </div>
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Prazo</span>
+                <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${utcParaInputFortaleza(c.prazo)}" style="flex:1">
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
+                ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
+              </div>
 
-            <!-- Ações -->
-            <div class="pl-section">
-              <div class="pl-section-label">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <div class="mv2-section-divider">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 Ações
               </div>
-              <div class="pl-actions">
-                <div class="pl-actions-primary">
-                  ${(podeAssumir || podeRetomar) ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">${podeRetomar ? 'Retomar' : 'Assumir'}</button>` : ''}
-                  ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1">Concluir</button>` : ''}
+              <div class="mv2-action-btns">
+                ${(podeAssumir || podeRetomar) ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">${podeRetomar ? 'Retomar' : 'Assumir'}</button>` : ''}
+                ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1">Concluir</button>` : ''}
+              </div>
+              <div id="area-concluir" style="display:none;padding-top:.5rem;border-top:1px solid var(--border)">
+                <div class="form-group" style="margin-bottom:.4rem">
+                  <label for="txt-solucao" style="font-size:.8rem">Solução aplicada <span class="req">*</span></label>
+                  <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
                 </div>
-                <div id="area-concluir" style="display:none;padding-top:.4rem">
-                  <div class="form-group" style="margin-bottom:.35rem">
-                    <label for="txt-solucao" style="font-size:.78rem;font-weight:500">Solução aplicada <span class="req">*</span></label>
-                    <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
-                  </div>
-                  <button class="btn btn-success btn-sm" id="btn-confirmar-concluir" style="width:100%">Confirmar conclusão</button>
-                </div>
-                <div class="pl-wait-row">
-                  ${c.status !== 'aguardando_compra' ? `<button class="btn btn-sm pl-btn-compra" id="btn-aguardar-compra">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                    Aguardando compra
-                  </button>` : ''}
-                  ${c.status !== 'aguardando_chegar' ? `<button class="btn btn-sm pl-btn-chegar" id="btn-aguardar-chegar">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                    Aguardando chegar
-                  </button>` : ''}
-                </div>
-                <button class="btn btn-secondary btn-sm" id="btn-transferir" style="width:100%;font-size:.78rem;text-align:left;display:flex;align-items:center;gap:.4rem">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-                  Transferir responsável
-                </button>
-                <div id="area-transferir" style="display:none">
-                  <div class="form-group" style="margin-bottom:.35rem">
-                    <label style="font-size:.78rem;font-weight:500">Transferir para</label>
+                <button class="btn btn-success btn-sm" id="btn-confirmar-concluir" style="width:100%">Confirmar conclusão</button>
+              </div>
+
+              <div class="mv2-secondary-btns">
+                ${c.status !== 'aguardando_compra' ? `<button class="btn btn-sm pl-btn-compra" id="btn-aguardar-compra">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                  Aguardando compra
+                </button>` : ''}
+                ${c.status !== 'aguardando_chegar' ? `<button class="btn btn-sm pl-btn-chegar" id="btn-aguardar-chegar">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                  Aguardando chegar
+                </button>` : ''}
+              </div>
+
+              <div class="mv2-transfer-block">
+                <button class="btn btn-secondary btn-sm" id="btn-transferir" style="width:100%;font-size:.8rem">Transferir responsável</button>
+                <div id="area-transferir" style="display:none;margin-top:.5rem">
+                  <div class="form-group" style="margin-bottom:.4rem">
+                    <label style="font-size:.8rem">Transferir para</label>
                     <select class="form-control form-control-sm" id="sel-transferir-admin">
                       <option value="">Selecione um admin...</option>
                     </select>
@@ -715,8 +699,8 @@ function renderModalBody(c) {
             </div>
           ` : `
             ${podeReabrir
-              ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir">Reabrir chamado</button>`
-              : `<p class="text-muted" style="font-size:.82rem;margin:.25rem 0 0">Chamado encerrado.</p>`
+              ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir" style="margin-top:.25rem">Reabrir chamado</button>`
+              : `<p class="text-muted" style="font-size:.83rem;margin:.25rem 0 0">Chamado encerrado.</p>`
             }
           `}
 
@@ -1449,87 +1433,3 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
 
 iniciarPush();
 
-// ── Preview tooltip ao passar o mouse nos chamados ────────────────────────────
-(function () {
-  const CAT_PT = {
-    software:'Software', hardware:'Hardware', impressora:'Impressora',
-    ramal:'Ramal', nobreak:'Nobreak', monitor:'Monitor', mouse:'Mouse',
-    teclado:'Teclado', rede:'Rede', acesso_senha:'Acesso/Senha',
-    cameras:'Câmeras', email:'E-mail', tv_projetor:'TV/Projetor',
-    processo_compra:'Compra', outros:'Outros',
-  };
-  const PRIO_COR = { urgente:'#dc2626', alta:'#ea580c', media:'#ca8a04', baixa:'#16a34a' };
-  const PRIO_PT  = { urgente:'Urgente', alta:'Alta', media:'Média', baixa:'Baixa' };
-
-  const tip = document.createElement('div');
-  tip.id = 'chamado-preview';
-  document.body.appendChild(tip);
-
-  let timer = null;
-
-  function html(d) {
-    const atrasado = d.pvAtrasado === '1';
-    const prio = d.pvPrio;
-    const prioColor = PRIO_COR[prio] || 'var(--text-muted)';
-    const prioLabel = PRIO_PT[prio] || '';
-    const prazoFmt  = d.pvPrazo ? fmtData(d.pvPrazo) : null;
-
-    return `
-      <div class="cp-user">${d.pvNome || '—'}</div>
-      <div class="cp-meta">
-        ${d.pvSetor ? `<span>🏢 ${d.pvSetor}</span>` : ''}
-        ${d.pvRamal ? `<span>· 📞 ${d.pvRamal}</span>` : ''}
-      </div>
-      <div class="cp-desc">${d.pvDesc || '—'}</div>
-      <hr class="cp-divider">
-      <div class="cp-tags">
-        ${d.pvCat ? `<span class="cp-tag">${CAT_PT[d.pvCat] || d.pvCat}</span>` : ''}
-        ${prioLabel ? `<span class="cp-tag" style="background:${prioColor}18;color:${prioColor};border-color:${prioColor}40">${prioLabel}</span>` : ''}
-      </div>
-      <div class="cp-info-row">
-        <span class="cp-info-label">Responsável</span>
-        <span class="cp-info-val">${d.pvAdmin || '—'}</span>
-      </div>
-      ${prazoFmt ? `
-      <div class="cp-info-row ${atrasado ? 'cp-atraso' : ''}">
-        <span class="cp-info-label">Prazo</span>
-        <span class="cp-info-val">${prazoFmt}${atrasado ? ' ⚠ Atrasado' : ''}</span>
-      </div>` : ''}
-    `;
-  }
-
-  function posicionar(e) {
-    const tw = 300, th = tip.offsetHeight || 180;
-    const vw = window.innerWidth, vh = window.innerHeight;
-    let x = e.clientX + 16;
-    let y = e.clientY - 10;
-    if (x + tw > vw - 12) x = e.clientX - tw - 16;
-    if (y + th > vh - 12) y = vh - th - 12;
-    if (y < 8) y = 8;
-    tip.style.left = x + 'px';
-    tip.style.top  = y + 'px';
-  }
-
-  document.getElementById('lista-chamados').addEventListener('mouseover', (e) => {
-    const card = e.target.closest('[data-pv-nome]');
-    if (!card || card._pvActive) return;
-    card._pvActive = true;
-
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      tip.innerHTML = html(card.dataset);
-      posicionar(e);
-      tip.classList.add('visible');
-    }, 160);
-
-    const onMove = (ev) => posicionar(ev);
-    const onLeave = () => {
-      card._pvActive = false;
-      card.removeEventListener('mousemove', onMove);
-      clearTimeout(timer);
-      tip.classList.remove('visible');
-    };
-    card.addEventListener('mousemove', onMove);
-    card.addEventListener('mouseleave', onLeave, { once: true });
-  });
-})();
