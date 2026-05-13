@@ -730,6 +730,7 @@ function renderEquipamentos(lista, reservaLegado = []) {
         <td><div style="display:flex;flex-wrap:wrap;gap:.3rem">${resumo}</div></td>
         <td style="white-space:nowrap">
           <button class="btn btn-secondary btn-sm" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}');event.stopPropagation()">Ver IDs</button>
+          <button class="btn btn-secondary btn-sm" onclick="eqClonarNovo('${esc(nome).replace(/'/g, "\\'")}','${esc(g.categoria||'').replace(/'/g, "\\'")}');event.stopPropagation()" title="Adicionar nova unidade">+ Nova unidade</button>
         </td>
       </tr>
     `;
@@ -821,7 +822,6 @@ function verUnidades(nome) {
               <div style="display:flex;gap:.4rem;flex-shrink:0">
                 <button class="btn btn-primary btn-sm" onclick="fecharEqHist();eqMovimentar(${eq.id})" title="Movimentar">Movimentar</button>
                 <button class="btn btn-secondary btn-sm" onclick="fecharEqHist();eqHistorico(${eq.id},'${esc(eq.codigo).replace(/'/g, "\\'")}')">Histórico</button>
-                <button class="btn btn-secondary btn-sm" onclick="eqClonarNovo('${esc(eq.nome).replace(/'/g, "\\'")}','${esc(eq.categoria||'').replace(/'/g, "\\'")}')" title="Adicionar nova unidade igual">+ Nova unidade</button>
                 <button class="btn btn-secondary btn-sm" onclick="fecharEqHist();eqEditar(${eq.id})">Editar</button>
                 ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="fecharEqHist();eqDeletar(${eq.id},'${esc(eq.codigo).replace(/'/g, "\\'")}')">✕</button>` : ''}
               </div>
