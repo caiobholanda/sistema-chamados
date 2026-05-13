@@ -2202,6 +2202,73 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   line-height: 1.55;
 }
 
+/* ═══ PLANNER-STYLE ELEMENTS ═══════════════════════════════ */
+
+/* Property rows (like Planner's task detail fields) */
+.pl-info-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.pl-info-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .36rem .7rem;
+  border-bottom: 1px solid var(--border);
+}
+.pl-info-row:last-child { border-bottom: none; }
+.pl-info-row.pl-warn { background: #fffbeb; }
+.pl-info-row.pl-ok   { background: #f0fdf4; }
+.pl-info-icon { width: 14px; flex-shrink: 0; color: var(--text-muted); display: flex; align-items: center; }
+.pl-info-label { font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); width: 74px; flex-shrink: 0; }
+.pl-info-val { font-size: .8rem; color: var(--text); }
+.pl-info-empty { color: var(--text-muted) !important; font-style: italic; }
+.pl-warn .pl-info-icon, .pl-warn .pl-info-label { color: #b45309; }
+.pl-warn .pl-info-val { color: #92400e; font-weight: 600; }
+.pl-ok .pl-info-icon  { color: #16a34a; }
+.pl-ok .pl-info-label { color: #15803d; }
+
+/* Section label */
+.pl-section { display: flex; flex-direction: column; gap: .32rem; }
+.pl-section-label {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  padding-bottom: .15rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: .05rem;
+}
+
+/* Control list (compact, Planner-like) */
+.pl-ctrl-list { display: flex; flex-direction: column; gap: .28rem; }
+
+/* Actions area */
+.pl-actions { display: flex; flex-direction: column; gap: .32rem; }
+.pl-actions-primary { display: flex; gap: .4rem; }
+.pl-wait-row { display: flex; gap: .32rem; flex-wrap: wrap; }
+.pl-btn-compra {
+  flex: 1;
+  background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D;
+  font-size: .78rem;
+  display: flex; align-items: center; justify-content: center; gap: .3rem;
+}
+.pl-btn-chegar {
+  flex: 1;
+  background: #CFFAFE; color: #155E75; border: 1px solid #67E8F9;
+  font-size: .78rem;
+  display: flex; align-items: center; justify-content: center; gap: .3rem;
+}
+.pl-btn-compra:hover { background: #FDE68A; }
+.pl-btn-chegar:hover { background: #A5F3FC; }
+
 /* Cards admin + setor */
 .mv2-cards-row {
   display: grid;
