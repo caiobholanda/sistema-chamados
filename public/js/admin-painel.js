@@ -472,7 +472,7 @@ function renderChamadoItem(c) {
   const atrasado  = estaAtrasado(c);
   return `
     <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}"
-         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"
+         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
       <div class="chamado-item-header">
         <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
         ${badgeStatus(c.status)}
