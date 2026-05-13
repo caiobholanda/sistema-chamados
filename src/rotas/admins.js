@@ -85,6 +85,18 @@ router.get('/chamados/:id/termo-aceite', requireAdmin, (req, res) => {
   }
 });
 
+router.patch('/chamados/:id/requer-acordo', requireAdmin, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    const ativo = req.body.ativo ? 1 : 0;
+    db.marcarRequerAcordo(chamado.id, ativo);
+    return res.json({ requer_acordo: ativo });
+  } catch (err) {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.get('/chamados', requireAdmin, (req, res) => {
   try {
     const filtros = {
@@ -316,6 +328,11 @@ router.patch('/chamados/:id/concluir', requireAdmin, (req, res) => {
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
     if (!STATUS_ATIVOS.includes(chamado.status)) {
       return res.status(400).json({ erro: 'Só é possível concluir chamados em aberto' });
+    }
+
+    if (chamado.requer_acordo) {
+      const termo = db.buscarTermoAceite(chamado.id);
+      if (!termo) return res.status(400).json({ erro: 'Este chamado requer a assinatura do acordo pelo usuário antes de ser concluído' });
     }
 
     const solucao = sanitizarTexto(req.body.solucao || '');

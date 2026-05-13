@@ -4,6 +4,10 @@ let abaAtiva = 'abertos';
 let subAbaMeusAtiva = 'abertos';
 let _chatAdminIv = null;
 let _chamadosHash = null;
+let _termoPollingIv = null;
+function _pararPollingTermo() {
+  if (_termoPollingIv) { clearInterval(_termoPollingIv); _termoPollingIv = null; }
+}
 
 
 async function _atualizarChatAdmin(chamadoId) {
@@ -526,6 +530,7 @@ async function abrirModal(id) {
 
 function fecharModal() {
   if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
+  _pararPollingTermo();
   document.getElementById('modal-overlay').classList.remove('open');
   chamadoAtual = null;
   carregarChamados();
@@ -663,8 +668,14 @@ function renderModalBody(c) {
               </div>
               <div class="mv2-action-btns">
                 ${(podeAssumir || podeRetomar) ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">${podeRetomar ? 'Retomar' : 'Assumir'}</button>` : ''}
-                ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1">Concluir</button>` : ''}
+                ${podeConcluir && c.usuario_id ? `<button class="btn btn-secondary btn-sm" id="btn-toggle-acordo" title="${c.requer_acordo ? 'Clique para remover a exigência de acordo' : 'Exigir assinatura de acordo do usuário antes de concluir'}">${c.requer_acordo ? '📋 Acordo obrigatório' : '📋 Requer acordo'}</button>` : ''}
+                ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1" ${c.requer_acordo ? 'disabled title="Aguardando assinatura do acordo pelo usuário"' : ''}>Concluir</button>` : ''}
               </div>
+              ${podeConcluir && c.requer_acordo ? `
+              <div id="acordo-aviso" style="display:flex;align-items:center;gap:.4rem;padding:.4rem .55rem;margin-top:.3rem;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.28);font-size:.76rem;color:#92400e">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span id="acordo-aviso-txt">Verificando assinatura…</span>
+              </div>` : ''}
               <div id="area-concluir" style="display:none;padding-top:.5rem;border-top:1px solid var(--border)">
                 <div class="form-group" style="margin-bottom:.4rem">
                   <label for="txt-solucao" style="font-size:.8rem">Solução aplicada <span class="req">*</span></label>
@@ -777,11 +788,11 @@ function renderModalBody(c) {
                 ${c.assinatura ? `<img src="${c.assinatura}" alt="Assinatura" class="assinatura-img-admin" style="max-height:60px">` : ''}
               </div>` : ''}
 
-              ${['hardware', 'processo_compra'].includes(c.categoria) ? `
+              ${(c.requer_acordo || ['hardware', 'processo_compra'].includes(c.categoria)) ? `
               <div class="mv2-conclusion-block" id="mv2-termo-status">
                 <div class="mv2-conclusion-label">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  Termo de Responsabilidade
+                  Acordo de responsabilidade
                 </div>
                 <div id="mv2-termo-val" class="mv2-conclusion-text" style="color:var(--text-muted);font-style:italic">Verificando…</div>
               </div>` : ''}
@@ -1014,25 +1025,72 @@ function setupModalEventos(c) {
     });
   }
 
-  // Buscar status do Termo de Responsabilidade (elemento só existe em chamados concluídos de hw/compra)
-  if (['hardware', 'processo_compra'].includes(c.categoria) && ['concluido', 'encerrado'].includes(c.status)) {
-    api(`/api/admin/chamados/${c.id}/termo-aceite`).then(async r => {
+  const _statusAtivos = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
+  const isAberto = _statusAtivos.includes(c.status);
+
+  // Toggle "Requer Acordo"
+  const btnToggleAcordo = document.getElementById('btn-toggle-acordo');
+  if (btnToggleAcordo) {
+    btnToggleAcordo.addEventListener('click', async () => {
+      const novoValor = !c.requer_acordo;
+      btnToggleAcordo.disabled = true;
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/requer-acordo`, { method: 'PATCH', body: JSON.stringify({ ativo: novoValor }) });
+        if (!r.ok) { const d = await r.json(); setMsg(`<div class="alert alert-danger">${d.erro}</div>`); return; }
+        await abrirModal(c.id);
+      } finally { if (btnToggleAcordo.isConnected) btnToggleAcordo.disabled = false; }
+    });
+  }
+
+  // Verificar / monitorar Acordo de Responsabilidade
+  const deveChecarTermo = c.requer_acordo || (['hardware', 'processo_compra'].includes(c.categoria) && !isAberto);
+  if (deveChecarTermo) {
+    _pararPollingTermo();
+
+    const atualizarTermoUI = async () => {
       const container = document.getElementById('mv2-termo-status');
-      if (!container) return;
+      if (!container) { _pararPollingTermo(); return; }
+      const r = await api(`/api/admin/chamados/${c.id}/termo-aceite`);
       if (!r.ok) return;
       const t = await r.json();
       const termoVal = document.getElementById('mv2-termo-val');
       if (t) {
+        _pararPollingTermo();
         container.classList.add('aceito');
         const label = container.querySelector('.mv2-conclusion-label');
-        if (label) label.innerHTML = `
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#15803d"><polyline points="20 6 9 17 4 12"/></svg>
-          Termo aceito`;
-        if (termoVal) { termoVal.style.fontStyle = 'normal'; termoVal.style.color = ''; termoVal.textContent = `Por ${t.usuario_nome} (${t.usuario_email}) em ${fmtData(t.aceito_em)}`; }
+        if (label) label.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#15803d"><polyline points="20 6 9 17 4 12"/></svg> Acordo assinado`;
+        if (termoVal) {
+          termoVal.style.fontStyle = 'normal';
+          termoVal.style.color = '';
+          const hora = t.aceito_em ? (t.aceito_em.includes('T') ? t.aceito_em : t.aceito_em.replace(' ', 'T') + 'Z') : null;
+          const dataFormatada = hora ? new Date(hora.endsWith('Z') ? hora : hora + 'Z').toLocaleString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+          termoVal.innerHTML = `<div style="font-weight:600;color:var(--text);margin-bottom:.15rem">${t.usuario_nome}</div><div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.75rem;color:var(--text-muted)">${dataFormatada ? `<span>${dataFormatada}</span>` : ''}${t.setor ? `<span>· ${t.setor}</span>` : ''}</div>`;
+        }
+        if (c.requer_acordo && isAberto) {
+          const btnC = document.getElementById('btn-concluir');
+          if (btnC) { btnC.disabled = false; btnC.removeAttribute('title'); }
+          const aviso = document.getElementById('acordo-aviso');
+          if (aviso) {
+            aviso.style.background = 'rgba(21,128,61,.07)';
+            aviso.style.borderColor = 'rgba(21,128,61,.25)';
+            aviso.style.color = '#166534';
+            const txt = document.getElementById('acordo-aviso-txt');
+            if (txt) txt.textContent = 'Acordo assinado — chamado pode ser concluído agora';
+          }
+        }
       } else {
-        if (termoVal) termoVal.textContent = 'Pendente — aguardando aceite do solicitante no portal';
+        if (termoVal) termoVal.textContent = c.requer_acordo && isAberto ? 'Aguardando assinatura no portal do usuário…' : 'Pendente — aguardando aceite do solicitante';
+        if (c.requer_acordo && isAberto) {
+          const txt = document.getElementById('acordo-aviso-txt');
+          if (txt) txt.textContent = 'Aguardando assinatura do usuário no portal…';
+        }
       }
-    }).catch(() => {});
+    };
+
+    atualizarTermoUI().catch(() => {});
+    if (c.requer_acordo && isAberto) {
+      _termoPollingIv = setInterval(() => atualizarTermoUI().catch(() => {}), 3000);
+    }
   }
 }
 

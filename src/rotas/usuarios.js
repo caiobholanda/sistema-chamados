@@ -117,10 +117,16 @@ router.post('/chamados/:id/aceitar-termo', requireUsuario, (req, res) => {
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
     if (Number(chamado.usuario_id) !== Number(req.usuario.sub))
       return res.status(403).json({ erro: 'Sem permissão' });
-    if (!['hardware', 'processo_compra'].includes(chamado.categoria))
-      return res.status(400).json({ erro: 'Termo não aplicável a esta categoria' });
-    if (!['concluido', 'encerrado'].includes(chamado.status))
-      return res.status(400).json({ erro: 'O chamado precisa estar concluído' });
+    const STATUS_ATIVOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
+    if (chamado.requer_acordo) {
+      if (!STATUS_ATIVOS.includes(chamado.status))
+        return res.status(400).json({ erro: 'O chamado já foi concluído' });
+    } else {
+      if (!['hardware', 'processo_compra'].includes(chamado.categoria))
+        return res.status(400).json({ erro: 'Termo não aplicável a este chamado' });
+      if (!['concluido', 'encerrado'].includes(chamado.status))
+        return res.status(400).json({ erro: 'O chamado precisa estar concluído' });
+    }
 
     const usuario = db.buscarUsuarioPorId(req.usuario.sub);
     if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });

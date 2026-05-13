@@ -134,6 +134,7 @@ function initDb() {
   try { db.exec("ALTER TABLE termos_aceite ADD COLUMN cargo TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE termos_aceite ADD COLUMN setor TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE termos_aceite ADD COLUMN equipamentos TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN requer_acordo INTEGER DEFAULT 0"); } catch {}
 
   // Migration: trocar UNIQUE inline por partial unique index (ativo=1)
   // Regra: mesmo @ não pode existir em usuários E admins ao mesmo tempo (validado nas rotas)
@@ -1338,7 +1339,7 @@ function listarChamadosPorUsuario(usuario_id) {
            c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
            c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
            c.comentario_avaliacao, c.criado_em, c.atualizado_em,
-           c.concluido_em, c.categoria, c.assinado_em,
+           c.concluido_em, c.categoria, c.assinado_em, c.requer_acordo,
            a.nome_completo as admin_nome
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
@@ -1604,6 +1605,10 @@ function buscarTermoAceite(chamado_id) {
   return getDb().prepare('SELECT * FROM termos_aceite WHERE chamado_id = ?').get(chamado_id);
 }
 
+function marcarRequerAcordo(chamadoId, valor) {
+  return getDb().prepare('UPDATE chamados SET requer_acordo = ? WHERE id = ?').run(valor ? 1 : 0, chamadoId);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -1660,6 +1665,7 @@ module.exports = {
   listarChamadosProcessoCompra,
   registrarTermoAceite,
   buscarTermoAceite,
+  marcarRequerAcordo,
   listarAssinaturasHistorico,
   listarInventario,
   buscarInventarioPorId,
