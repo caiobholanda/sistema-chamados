@@ -581,7 +581,10 @@ function renderModalBody(c) {
             </span>
           </div>` : ''}
         </div>
-        <div></div>
+        <div style="text-align:right;justify-self:end">
+          <div style="font-family:monospace;font-size:1.05rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.02em">#${c.id}</div>
+          <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.38);margin-top:.2rem">${CATEGORIAS_MAP[c.categoria]?.nome || 'Chamado'}</div>
+        </div>
       </div>
 
       ${bannerAtraso}
@@ -751,6 +754,22 @@ function renderModalBody(c) {
             `}
           </div>
 
+        ${isAberto ? `
+        <div class="mv2-chat-card">
+          <div class="mv2-chat-head">
+            <span class="mv2-chat-dot"></span>
+            Conversa em tempo real
+          </div>
+          <div class="chat-messages mv2-chat-msgs" id="chat-modal-msgs" data-cnt="0">
+            <div class="chat-vazio">Carregando...</div>
+          </div>
+          <div class="chat-send-error" id="chat-modal-err"></div>
+          <form class="chat-input-row" id="chat-modal-form">
+            <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
+            <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+          </form>
+        </div>` : ''}
+
         </div>
       </div>
 
@@ -770,23 +789,6 @@ function renderModalBody(c) {
           </button>
         </div>` : ''}
       </div>
-
-      <!-- Chat em tempo real: full-width -->
-      ${isAberto ? `
-      <div class="mv2-chat-card mv2-chat-full">
-        <div class="mv2-chat-head">
-          <span class="mv2-chat-dot"></span>
-          Conversa em tempo real
-        </div>
-        <div class="chat-messages mv2-chat-msgs" id="chat-modal-msgs" data-cnt="0">
-          <div class="chat-vazio">Carregando...</div>
-        </div>
-        <div class="chat-send-error" id="chat-modal-err"></div>
-        <form class="chat-input-row" id="chat-modal-form">
-          <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
-          <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-        </form>
-      </div>` : ''}
     </div>
   `;
 

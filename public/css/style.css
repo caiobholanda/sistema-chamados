@@ -2021,11 +2021,14 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 .mv2-danger-compact .modal-danger-label { margin-bottom: .4rem; }
 
-/* Chat maior na coluna principal */
+/* Chat na coluna lateral */
 .mv2-chat-msgs {
-  height: 280px !important;
-  min-height: 280px !important;
+  height: 240px !important;
+  min-height: 240px !important;
 }
+
+/* Chat full-width: classe removida, mantida por compatibilidade */
+.mv2-chat-full { margin-top: 0; }
 
 /* Hero do solicitante */
 .mv2-hero {
@@ -2076,11 +2079,11 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 /* Layout duas colunas */
 .mv2-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 340px;
   gap: 1rem;
   align-items: start;
 }
-@media(max-width: 680px) {
+@media(max-width: 720px) {
   .mv2-layout { grid-template-columns: 1fr; }
   .mv2-hero { margin: -1rem -1rem .75rem; padding: 1rem; }
   .mv2-nome { font-size: 1.15rem; }
@@ -2287,7 +2290,14 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .mv2-historico:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
 
 /* Coluna lateral */
-.mv2-side { display: flex; flex-direction: column; gap: .6rem; }
+.mv2-side {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  position: sticky;
+  top: 1rem;
+  align-self: start;
+}
 .mv2-side-title {
   display: flex;
   align-items: center;
