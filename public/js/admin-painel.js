@@ -482,7 +482,7 @@ function renderChamadoItem(c) {
          data-pv-prio="${_escAttr(c.prioridade)}"
          data-pv-admin="${_escAttr(c.admin_nome)}"
          data-pv-prazo="${_escAttr(c.prazo)}"
-         data-pv-atrasado="${atrasado ? '1' : '0'}">`
+         data-pv-atrasado="${atrasado ? '1' : '0'}">
       <div class="chamado-item-header">
         <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
         ${badgeStatus(c.status)}
