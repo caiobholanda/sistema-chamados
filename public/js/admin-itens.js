@@ -800,7 +800,7 @@ function verUnidades(nome) {
   }).join('');
 
   body.innerHTML = `
-    <div style="padding:.25rem 0 1rem">
+    <div style="padding:.75rem 1.5rem 1.25rem">
       <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem">
         <span style="font-size:.82rem;color:var(--text-muted);font-weight:500">${unidades.length} unidade${unidades.length !== 1 ? 's' : ''} no total</span>
         <span style="color:var(--border)">·</span>
@@ -980,7 +980,7 @@ function renderFormModal(item = {}, isEdit = false) {
 
   const formHtml = tipo === 'estoque' ? formEstoque(item) : formInventario(item);
   document.getElementById('modal-body').innerHTML = `
-    <form id="form-item" style="display:flex;flex-direction:column;gap:.9rem">
+    <form id="form-item" style="display:flex;flex-direction:column;gap:.9rem;padding:1.25rem 1.5rem">
       ${formHtml}
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.5rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
@@ -1075,7 +1075,7 @@ function renderFormMicros(item, isEdit) {
   document.getElementById('micros-modal-title').textContent = isEdit ? 'Editar Equipamento' : 'Adicionar Equipamento';
 
   document.getElementById('micros-modal-body').innerHTML = `
-    <form id="form-micros" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-micros" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Setor <span style="color:var(--danger)">*</span></label>
@@ -1229,7 +1229,7 @@ function abrirNovoItemToner() {
   const todosNomes = [...new Set([...nomesCache, ...EXTRA_NOMES])].sort((a, b) => a.localeCompare(b));
 
   document.getElementById('modal-body').innerHTML = `
-    <form id="form-toner" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-toner" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Modelo <span style="color:var(--danger)">*</span></label>
         <select class="form-control" id="ft-nome">
@@ -1284,7 +1284,7 @@ function abrirEditarItemToner(id) {
   document.getElementById('modal-title').textContent = 'Editar Item';
   abrirModal();
   document.getElementById('modal-body').innerHTML = `
-    <form id="form-toner" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-toner" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
         <input class="form-control" id="ft-nome" type="text" value="${esc(item.nome)}">
@@ -1342,13 +1342,15 @@ function abrirMovimentacao(itemId, tipoMov) {
   if (!tipoMov) {
     document.getElementById('mov-modal-title').textContent = item.nome;
     document.getElementById('mov-modal-body').innerHTML = `
-      <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1.25rem">Selecione o tipo de movimentação:</p>
-      <div style="display:flex;gap:1rem">
-        <button class="btn btn-primary" style="flex:1;padding:.75rem 0;font-size:.95rem" onclick="abrirMovimentacao(${itemId},'entrada')">+ Entrada</button>
-        <button class="btn btn-ghost" style="flex:1;padding:.75rem 0;font-size:.95rem;border:1.5px solid var(--danger);color:var(--danger)" onclick="abrirMovimentacao(${itemId},'saida')">− Saída</button>
-      </div>
-      <div style="margin-top:1rem;text-align:right">
-        <button class="btn btn-secondary btn-sm" onclick="fecharMovModal()">Cancelar</button>
+      <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:.9rem">
+        <p style="color:var(--text-muted);font-size:.85rem;margin:0">Selecione o tipo de movimentação:</p>
+        <div style="display:flex;gap:1rem">
+          <button class="btn btn-primary" style="flex:1;padding:.75rem 0;font-size:.95rem" onclick="abrirMovimentacao(${itemId},'entrada')">+ Entrada</button>
+          <button class="btn btn-ghost" style="flex:1;padding:.75rem 0;font-size:.95rem;border:1.5px solid var(--danger);color:var(--danger)" onclick="abrirMovimentacao(${itemId},'saida')">− Saída</button>
+        </div>
+        <div style="text-align:right;padding-top:.5rem;border-top:1px solid var(--border)">
+          <button class="btn btn-secondary btn-sm" onclick="fecharMovModal()">Cancelar</button>
+        </div>
       </div>
     `;
     return;
@@ -1373,7 +1375,7 @@ function abrirMovimentacao(itemId, tipoMov) {
   document.getElementById('mov-modal-overlay').style.display = 'flex';
 
   document.getElementById('mov-modal-body').innerHTML = `
-    <form id="form-mov" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-mov" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       ${showCor ? `
         <div class="form-group">
           <label class="form-label">Cor / Tipo</label>
@@ -1486,6 +1488,7 @@ async function abrirHistoricoMovimentacoes(itemId, nomeItem) {
     }
 
     document.getElementById('hist-mov-modal-body').innerHTML = `
+      <div style="padding:1.25rem 1.5rem">
       <div class="table-wrap" style="max-height:400px;overflow-y:auto">
         <table>
           <thead>
@@ -1524,9 +1527,10 @@ async function abrirHistoricoMovimentacoes(itemId, nomeItem) {
           </tbody>
         </table>
       </div>
+      </div>
     `;
   } catch {
-    document.getElementById('hist-mov-modal-body').innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro ao carregar histórico.</div>';
+    document.getElementById('hist-mov-modal-body').innerHTML = '<div style="padding:1rem 1.5rem;color:var(--danger)">Erro ao carregar histórico.</div>';
   }
 }
 
@@ -1544,7 +1548,7 @@ function abrirModalImpressora(id) {
   document.getElementById('imp-modal-overlay').style.display = 'flex';
 
   document.getElementById('imp-modal-body').innerHTML = `
-    <form id="form-imp" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-imp" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
         <input class="form-control" id="imp-nome" type="text" value="${esc(item ? item.nome : '')}" placeholder="Ex: RICOH SP 3710SF">
@@ -1617,7 +1621,7 @@ function abrirModalPeriferico(id) {
   document.getElementById('modal-title').textContent = isEdit ? 'Editar Periférico' : 'Novo Periférico';
   abrirModal();
   document.getElementById('modal-body').innerHTML = `
-    <form id="form-per" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-per" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
         <input class="form-control" id="per-nome" type="text" value="${esc(item ? item.nome : '')}" placeholder="Ex: Mouse, Teclado, Patch Cord…">
@@ -1672,7 +1676,7 @@ function abrirNovoEquipamento() {
   document.getElementById('modal-title').textContent = 'Novo Equipamento';
   abrirModal();
   document.getElementById('modal-body').innerHTML = `
-    <form id="form-eq" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-eq" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
         <input class="form-control" id="eq-nome" type="text" placeholder="Ex: Nobreak APC 600VA, Switch HP…">
@@ -2024,7 +2028,7 @@ function abrirModalReservaLegado(id) {
   document.getElementById('modal-title').textContent = 'Editar Item de Reserva';
   abrirModal();
   document.getElementById('modal-body').innerHTML = `
-    <form id="form-res" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-res" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
         <input class="form-control" id="res-nome" type="text" value="${esc(item.nome)}">
