@@ -890,6 +890,8 @@ function abrirModal() {
 function fecharModal() {
   document.getElementById('modal-overlay').style.display = 'none';
   document.getElementById('modal-body').innerHTML = '';
+  const modalEl = document.querySelector('#modal-overlay .modal');
+  if (modalEl) modalEl.style.maxWidth = '';
 }
 
 function formEstoque(item = {}) {
@@ -1728,26 +1730,36 @@ function eqEditar(id) {
   const eq = _equipamentosCache.find(e => e.id === id);
   if (!eq) return;
   const isMaster = adminInfo && adminInfo.is_master;
-  document.getElementById('modal-title').textContent = `Editar — ${eq.codigo}`;
+  document.getElementById('modal-title').textContent = `Editar equipamento`;
   abrirModal();
+  // Largura maior para o modal de edição de equipamento
+  const modalEl = document.querySelector('#modal-overlay .modal');
+  if (modalEl) modalEl.style.maxWidth = '600px';
   document.getElementById('modal-body').innerHTML = `
-    <form id="form-eq-edit" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-eq-edit" style="display:flex;flex-direction:column;gap:1.1rem;padding:1.35rem 1.5rem">
+
+      <div style="display:flex;align-items:center;gap:.6rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)">
+        <div style="font-size:.78rem;font-weight:600;color:var(--text-muted);letter-spacing:.04em;text-transform:uppercase">Código</div>
+        <div style="font-family:monospace;font-size:.95rem;font-weight:700;color:var(--text);background:var(--surface-2);padding:.2rem .6rem;border-radius:6px;border:1px solid var(--border)">${esc(eq.codigo)}</div>
+      </div>
+
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="eqe-nome" type="text" value="${esc(eq.nome)}">
+        <input class="form-control" id="eqe-nome" type="text" value="${esc(eq.nome)}" style="font-size:.95rem">
       </div>
+
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Categoria</label>
-          <input class="form-control" id="eqe-cat" type="text" value="${esc(eq.categoria || '')}">
+          <input class="form-control" id="eqe-cat" type="text" value="${esc(eq.categoria || '')}" placeholder="Ex: Notebook, Impressora…">
         </div>
         <div class="form-group">
-          <label class="form-label">ID único</label>
+          <label class="form-label">ID único (código)${!isMaster ? ' <span style="color:var(--text-muted);font-weight:400;font-size:.75rem">— somente master</span>' : ''}</label>
           <input class="form-control" id="eqe-codigo" type="text" value="${esc(eq.codigo)}"
-            ${!isMaster ? 'readonly style="background:var(--bg-subtle);color:var(--text-muted)"' : ''}>
-          ${!isMaster ? '<div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem">Apenas master pode alterar</div>' : ''}
+            ${!isMaster ? 'readonly style="background:var(--surface-2);color:var(--text-muted);cursor:not-allowed"' : ''}>
         </div>
       </div>
+
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Status</label>
@@ -1757,16 +1769,19 @@ function eqEditar(id) {
         </div>
         <div class="form-group">
           <label class="form-label">Setor atual</label>
-          <input class="form-control" id="eqe-setor" type="text" value="${esc(eq.setor_atual || '')}" placeholder="Ex: Recepção…">
+          <input class="form-control" id="eqe-setor" type="text" value="${esc(eq.setor_atual || '')}" placeholder="Ex: Recepção, RH…">
+          <div style="font-size:.71rem;color:var(--text-muted);margin-top:.2rem">Deixe vazio se estiver no almoxarifado</div>
         </div>
       </div>
+
       <div class="form-group">
         <label class="form-label">Observação</label>
-        <input class="form-control" id="eqe-obs" type="text" value="${esc(eq.observacao || '')}">
+        <input class="form-control" id="eqe-obs" type="text" value="${esc(eq.observacao || '')}" placeholder="Número de série, detalhes adicionais…">
       </div>
-      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;padding-top:.75rem;border-top:1px solid var(--border)">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-        <button type="submit" class="btn btn-primary" id="btn-salvar-eqe">Salvar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-eqe">Salvar alterações</button>
       </div>
     </form>
   `;
@@ -1801,9 +1816,12 @@ async function eqDeletar(id, codigo) {
   } catch {}
 }
 
+let _eqMovSetor = '';
+
 function eqMovimentar(id) {
   const eq = _equipamentosCache.find(e => e.id === id);
   if (!eq) return;
+  _eqMovSetor = eq.setor_atual || '';
   const titleEl = document.getElementById('eq-mov-title');
   if (titleEl) titleEl.textContent = `Movimentar — ${eq.codigo}`;
   const overlay = document.getElementById('eq-mov-overlay');
@@ -1819,7 +1837,7 @@ function eqMovimentar(id) {
           <option value="saida">Saída para setor</option>
           <option value="descarte">Descarte</option>
         </select>
-        <div id="eqm-desc" style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">O item volta a ficar disponível.</div>
+        <div id="eqm-desc" style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem"></div>
       </div>
       <div id="eqm-extras"></div>
       <div class="form-group">
@@ -1853,17 +1871,24 @@ function eqMovimentar(id) {
 
 function eqMovCampos() {
   const tipo = document.getElementById('eqm-tipo')?.value;
-  const descs = { entrada: 'O item fica disponível no almoxarifado.', saida: 'O item vai para um setor e fica "Em uso".', descarte: 'O item será marcado como descartado.' };
+  const descs = {
+    entrada: 'O item fica disponível no almoxarifado.',
+    saida: 'O item vai para um setor e fica "Em uso".',
+    descarte: 'O item será marcado como descartado.',
+  };
   const d = document.getElementById('eqm-desc');
   if (d) d.textContent = descs[tipo] || '';
   const extras = document.getElementById('eqm-extras');
   if (!extras) return;
   if (tipo === 'saida') {
     extras.innerHTML = `<div class="form-group"><label class="form-label">Setor de destino <span style="color:var(--danger)">*</span></label><input class="form-control" id="eqm-destino" type="text" placeholder="Ex: Recepção, RH, Governança…"></div>`;
-  } else { extras.innerHTML = ''; }
+  } else {
+    extras.innerHTML = '';
+  }
 }
 
 function fecharEqMov() {
+  _eqMovSetor = '';
   const overlay = document.getElementById('eq-mov-overlay');
   if (overlay) overlay.style.display = 'none';
   const body = document.getElementById('eq-mov-body');
