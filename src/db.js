@@ -240,6 +240,18 @@ function initDb() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS termos_aceite (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL UNIQUE REFERENCES chamados(id) ON DELETE CASCADE,
+      usuario_id INTEGER REFERENCES usuarios(id),
+      usuario_nome TEXT NOT NULL,
+      usuario_email TEXT NOT NULL,
+      aceito_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_termos_aceite_chamado ON termos_aceite(chamado_id);
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS itens (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
@@ -1578,6 +1590,17 @@ function prazo2DiasUteis() {
   return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate(), horaFinal + 3)).toISOString().replace('T', ' ').substring(0, 19);
 }
 
+function registrarTermoAceite({ chamado_id, usuario_id, usuario_nome, usuario_email }) {
+  return getDb().prepare(`
+    INSERT OR IGNORE INTO termos_aceite (chamado_id, usuario_id, usuario_nome, usuario_email)
+    VALUES (?, ?, ?, ?)
+  `).run(chamado_id, usuario_id, usuario_nome, usuario_email);
+}
+
+function buscarTermoAceite(chamado_id) {
+  return getDb().prepare('SELECT * FROM termos_aceite WHERE chamado_id = ?').get(chamado_id);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -1632,6 +1655,8 @@ module.exports = {
   atualizarItem,
   deletarItem,
   listarChamadosProcessoCompra,
+  registrarTermoAceite,
+  buscarTermoAceite,
   listarAssinaturasHistorico,
   listarInventario,
   buscarInventarioPorId,

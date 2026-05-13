@@ -341,7 +341,7 @@ function renderPainel(usuario) {
       return;
     }
 
-    // Silencioso: só atualiza se os dados mudaram
+    // Silencioso: só atualiza se os dados mudaram (hash sem termo, o termo muda só por ação do usuário)
     if (silencioso) {
       const novoHash = JSON.stringify(novos.map(c =>
         [c.id, c.status, c.admin_nome, c.nota, c.prazo, c.solucao, c.prioridade, c.atualizado_em, c.assinado_em]
@@ -351,6 +351,22 @@ function renderPainel(usuario) {
     } else {
       _chamadosHash = null;
     }
+
+    // Buscar estado do termo para chamados de hardware/processo_compra concluídos
+    const termoRelevantes = novos.filter(c =>
+      ['hardware', 'processo_compra'].includes(c.categoria) &&
+      ['concluido', 'encerrado'].includes(c.status)
+    );
+    await Promise.all(termoRelevantes.map(async c => {
+      try {
+        const rt = await apiFetch(`/api/usuarios/chamados/${c.id}/termo-aceite`);
+        if (rt.ok) {
+          const t = await rt.json();
+          if (t) { c._termoAceito = true; c._termoAceitoEm = t.aceito_em; }
+          else { c._termoAceito = false; }
+        }
+      } catch {}
+    }));
 
     todosChamados = novos;
 
@@ -474,6 +490,15 @@ function renderPainel(usuario) {
       if (btn) btn.addEventListener('click', () => abrirModalReabertura(c.id));
     });
 
+    filtrados.filter(c =>
+      ['hardware', 'processo_compra'].includes(c.categoria) &&
+      ['concluido', 'encerrado'].includes(c.status) &&
+      !c._termoAceito
+    ).forEach(c => {
+      const btn = document.getElementById(`btn-termo-${c.id}`);
+      if (btn) btn.addEventListener('click', () => abrirModalTermo(c.id));
+    });
+
     filtrados.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status)).forEach(c => {
       _iniciarChat(c.id);
     });
@@ -543,6 +568,61 @@ function renderPainel(usuario) {
     textarea.focus();
   }
 
+  async function abrirModalTermo(chamadoId) {
+    const existing = document.getElementById('termo-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'termo-overlay';
+    overlay.className = 'assinatura-overlay';
+    overlay.innerHTML = `
+      <div class="assinatura-modal" style="max-width:600px">
+        <div class="assinatura-modal-header">
+          <div class="assinatura-modal-title">Termo de Responsabilidade</div>
+          <button class="modal-close" id="btn-fechar-termo" aria-label="Fechar">&#x2715;</button>
+        </div>
+        <div class="assinatura-modal-body">
+          <div class="termo-conteudo">
+            <p>Pelo presente termo, declaro que recebi e estou ciente das informações referentes ao chamado de suporte registrado no sistema de TI do Hotel Gran Marquise.</p>
+            <p>Declaro ainda que:</p>
+            <ul>
+              <li>O equipamento ou processo descrito no chamado foi devidamente atendido pela equipe de TI;</li>
+              <li>Estou ciente das orientações fornecidas e me comprometo a segui-las;</li>
+              <li>Assumo responsabilidade pelo uso correto dos equipamentos e sistemas sob minha responsabilidade;</li>
+              <li>Em caso de equipamento fornecido, comprometo-me a zelar pela sua conservação e uso adequado conforme as políticas do hotel;</li>
+              <li>Estou ciente de que danos causados por mau uso serão de minha responsabilidade.</li>
+            </ul>
+            <p>Este termo tem validade legal e será arquivado digitalmente vinculado ao meu cadastro e ao chamado correspondente.</p>
+          </div>
+          <div id="msg-termo"></div>
+          <div class="assinatura-btns" style="margin-top:1rem">
+            <button class="btn btn-secondary btn-sm" id="btn-cancelar-termo">Cancelar</button>
+            <button class="btn btn-primary" id="btn-aceitar-termo">Li e Aceito o Termo</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('btn-fechar-termo').addEventListener('click', () => overlay.remove());
+    document.getElementById('btn-cancelar-termo').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+    document.getElementById('btn-aceitar-termo').addEventListener('click', async () => {
+      const msgEl = document.getElementById('msg-termo');
+      const btn = document.getElementById('btn-aceitar-termo');
+      btn.disabled = true; btn.textContent = 'Registrando...';
+      try {
+        const r = await apiFetch(`/api/usuarios/chamados/${chamadoId}/aceitar-termo`, { method: 'POST' });
+        const d = await r.json();
+        if (!r.ok) { msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+        overlay.remove();
+        await carregarChamados();
+      } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
+      finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Li e Aceito o Termo'; } }
+    });
+  }
+
 }
 
 function renderCardChamado(c) {
@@ -569,6 +649,21 @@ function renderCardChamado(c) {
         </form>
       </div>
     `;
+  };
+
+  const termoHtml = () => {
+    if (!['hardware', 'processo_compra'].includes(c.categoria)) return '';
+    if (!['concluido', 'encerrado'].includes(c.status)) return '';
+    if (c._termoAceito) {
+      return `<div class="termo-aceito-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Termo de Responsabilidade aceito em ${fmtData(c._termoAceitoEm)}
+      </div>`;
+    }
+    return `<button class="btn-termo-responsabilidade" id="btn-termo-${c.id}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Termo de Responsabilidade
+    </button>`;
   };
 
   const reabrirHtml = () => {
@@ -622,6 +717,7 @@ function renderCardChamado(c) {
       ${c.admin_nome ? `<div style="font-size:.75rem;color:var(--gold-dark);font-weight:600;margin-top:.4rem;letter-spacing:.02em">Responsável: <span style="color:var(--text-secondary);font-weight:400">${c.admin_nome}</span></div>` : ''}
       ${c.prazo ? `<div style="font-size:.74rem;color:var(--text-muted);margin-top:.2rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
       ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${c.solucao}</div>` : ''}
+      ${termoHtml()}
       ${avaliacaoHtml()}
       ${reabrirHtml()}
       ${chatHtml}

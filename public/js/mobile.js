@@ -727,6 +727,12 @@ async function _atualizarChatMob(chamadoId) {
 
 // ── Tela de sucesso ───────────────────────────────────────────
 function renderSucesso(c) {
+  const termoAviso = ['hardware', 'processo_compra'].includes(c.categoria)
+    ? `<div style="margin:.75rem 0;padding:.65rem .9rem;background:#fefce8;border:1px solid #fde68a;border-radius:8px;font-size:.8rem;color:#92400e;text-align:left;line-height:1.5">
+        <strong>Termo de Responsabilidade</strong><br>
+        O solicitante deverá acessar o portal de chamados e assinar o Termo de Responsabilidade para formalizar o recebimento.
+      </div>`
+    : '';
   app.innerHTML = `
     <div class="mob-sucesso">
       <div class="mob-sucesso-icone">
@@ -735,6 +741,7 @@ function renderSucesso(c) {
       </div>
       <div class="mob-sucesso-titulo">Chamado concluído!</div>
       <div class="mob-sucesso-sub">${c.nome}</div>
+      ${termoAviso}
       <button class="mob-btn mob-btn-primary" id="mob-btn-voltar-lista">Ver chamados em aberto</button>
     </div>
   `;

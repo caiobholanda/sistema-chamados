@@ -76,6 +76,15 @@ router.get('/me', requireAdmin, (req, res) => {
   return res.json(dados);
 });
 
+router.get('/chamados/:id/termo-aceite', requireAdmin, (req, res) => {
+  try {
+    const termo = db.buscarTermoAceite(parseInt(req.params.id, 10));
+    return res.json(termo || null);
+  } catch (err) {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.get('/chamados', requireAdmin, (req, res) => {
   try {
     const filtros = {

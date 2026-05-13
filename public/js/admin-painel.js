@@ -656,6 +656,15 @@ function renderModalBody(c) {
               </div>
             </div>` : ''}
 
+          ${['hardware', 'processo_compra'].includes(c.categoria) && ['concluido', 'encerrado'].includes(c.status) ? `
+            <div class="mv2-termo-status" id="mv2-termo-status">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:.1rem;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <div>
+                <div class="mv2-field-label">Termo de Responsabilidade</div>
+                <div id="mv2-termo-val" style="font-size:.79rem;color:var(--text-muted);margin-top:.1rem">Verificando…</div>
+              </div>
+            </div>` : ''}
+
         </div>
 
         <!-- Coluna direita: configurações + ações -->
@@ -999,6 +1008,27 @@ function setupModalEventos(c) {
       }
       finally { btn.disabled = false; input.focus(); }
     });
+  }
+
+  // Buscar status do Termo de Responsabilidade para chamados hardware/processo_compra concluídos
+  if (['hardware', 'processo_compra'].includes(c.categoria) && ['concluido', 'encerrado'].includes(c.status)) {
+    api(`/api/admin/chamados/${c.id}/termo-aceite`).then(async r => {
+      const container = document.getElementById('mv2-termo-status');
+      if (!container) return;
+      if (!r.ok) return;
+      const t = await r.json();
+      if (t) {
+        container.classList.add('aceito');
+        container.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:.1rem;color:#16a34a"><polyline points="20 6 9 17 4 12"/></svg>
+          <div>
+            <div class="mv2-field-label" style="color:#15803d">Termo de Responsabilidade aceito</div>
+            <div style="font-size:.79rem;color:var(--text-muted);margin-top:.1rem">Por ${t.usuario_nome} (${t.usuario_email}) em ${fmtData(t.aceito_em)}</div>
+          </div>`;
+      } else {
+        container.querySelector('#mv2-termo-val').textContent = 'Pendente — aguardando aceite do solicitante no portal';
+      }
+    }).catch(() => {});
   }
 }
 
