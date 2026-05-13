@@ -496,7 +496,7 @@ function renderPainel(usuario) {
       !c._termoAceito
     ).forEach(c => {
       const btn = document.getElementById(`btn-termo-${c.id}`);
-      if (btn) btn.addEventListener('click', () => abrirModalTermo(c.id));
+      if (btn) btn.addEventListener('click', () => abrirModalTermo(c.id, c));
     });
 
     filtrados.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status)).forEach(c => {
@@ -568,32 +568,110 @@ function renderPainel(usuario) {
     textarea.focus();
   }
 
-  async function abrirModalTermo(chamadoId) {
+  async function abrirModalTermo(chamadoId, chamado) {
     const existing = document.getElementById('termo-overlay');
     if (existing) existing.remove();
+
+    const hoje = new Date().toLocaleDateString('pt-BR', {
+      timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric',
+    });
+    const nomeUsuario = (chamado && chamado.nome) || '';
+    const adminNome   = (chamado && chamado.admin_nome) || '';
+    const setoratual  = (chamado && (chamado.usuario_setor || chamado.setor)) || '';
+
+    const setorGrupos = [
+      ['Hospedagem', ['Recepção','Concierge','Governança','Reservas','Mensageria / Portaria']],
+      ['Alimentos & Bebidas', ['Restaurante Mucuripe','Restaurante Mangostin','Bar Rooftop','Lobby Bar','Room Service','Cozinha','Confeitaria / Padaria','Nutrição','Banquetes']],
+      ['Eventos', ['Eventos e Convenções']],
+      ['Bem-estar & Lazer', ['Spa by L\'Occitane','Fitness Center','Piscina','Play Gran']],
+      ['Administrativo', ['Gerência Geral','Recursos Humanos','Financeiro','Controladoria','Compras / Almoxarifado','Comercial / Vendas','Marketing','Revenue Management','Tecnologia da Informação','Jurídico']],
+      ['Operacional', ['Manutenção','Segurança','Lavanderia','Rouparia','Estacionamento','Transportes']],
+    ];
+    const setorOptions = setorGrupos.map(([grupo, itens]) =>
+      `<optgroup label="${grupo}">${itens.map(s => `<option${s === setoratual ? ' selected' : ''}>${s}</option>`).join('')}</optgroup>`
+    ).join('');
 
     const overlay = document.createElement('div');
     overlay.id = 'termo-overlay';
     overlay.className = 'assinatura-overlay';
     overlay.innerHTML = `
-      <div class="assinatura-modal" style="max-width:600px">
+      <div class="assinatura-modal termo-doc-modal">
         <div class="assinatura-modal-header">
           <div class="assinatura-modal-title">Termo de Responsabilidade</div>
           <button class="modal-close" id="btn-fechar-termo" aria-label="Fechar">&#x2715;</button>
         </div>
-        <div class="assinatura-modal-body">
-          <div class="termo-conteudo">
-            <p>Pelo presente termo, declaro que recebi e estou ciente das informações referentes ao chamado de suporte registrado no sistema de TI do Hotel Gran Marquise.</p>
-            <p>Declaro ainda que:</p>
-            <ul>
-              <li>O equipamento ou processo descrito no chamado foi devidamente atendido pela equipe de TI;</li>
-              <li>Estou ciente das orientações fornecidas e me comprometo a segui-las;</li>
-              <li>Assumo responsabilidade pelo uso correto dos equipamentos e sistemas sob minha responsabilidade;</li>
-              <li>Em caso de equipamento fornecido, comprometo-me a zelar pela sua conservação e uso adequado conforme as políticas do hotel;</li>
-              <li>Estou ciente de que danos causados por mau uso serão de minha responsabilidade.</li>
-            </ul>
-            <p>Este termo tem validade legal e será arquivado digitalmente vinculado ao meu cadastro e ao chamado correspondente.</p>
+        <div class="assinatura-modal-body termo-doc-body">
+
+          <div class="termo-doc">
+            <div class="termo-doc-header">
+              <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png"
+                   alt="Gran Marquise" class="termo-logo">
+              <div class="termo-empresa">Hotel Gran Marquise</div>
+              <div class="termo-titulo">Termo de Responsabilidade de Equipamentos</div>
+            </div>
+
+            <div class="termo-field-row">
+              <span class="termo-label">Eu</span>
+              <span class="termo-value-fixed">${nomeUsuario}</span>
+              <span class="termo-label">Empresa:</span>
+              <span class="termo-value-fixed">Hotel Gran Marquise</span>
+            </div>
+            <div class="termo-field-row">
+              <span class="termo-label">Setor:</span>
+              <select id="termo-setor" class="termo-input termo-select">${setorOptions}</select>
+              <span class="termo-label">Cargo:</span>
+              <input id="termo-cargo" type="text" class="termo-input" placeholder="Informe o cargo" maxlength="100">
+            </div>
+
+            <div class="termo-texto">
+              estou recebendo emprestado o equipamento abaixo discriminado pelo setor de
+              TI – Tecnologia da Informação. Estou ciente que o mesmo se encontra em perfeito
+              estado de funcionamento. Em caso de quebra, roubo ou avaria estarei me
+              responsabilizando pelo equipamento abaixo.
+            </div>
+
+            <div class="termo-field-single">
+              <span class="termo-label">Equipamento:</span>
+              <input id="termo-equipamento" type="text" class="termo-input" placeholder="Descrição do equipamento" maxlength="200">
+            </div>
+
+            <table class="termo-table">
+              <thead>
+                <tr>
+                  <th style="width:90px">Quantidade</th>
+                  <th>Tipo</th>
+                  <th>Marca</th>
+                  <th>Modelo</th>
+                  <th style="width:28px"></th>
+                </tr>
+              </thead>
+              <tbody id="termo-table-body">
+                <tr>
+                  <td><input class="termo-table-input" type="number" min="1" value="1"></td>
+                  <td><input class="termo-table-input" type="text" placeholder="Tipo"></td>
+                  <td><input class="termo-table-input" type="text" placeholder="Marca"></td>
+                  <td><input class="termo-table-input" type="text" placeholder="Modelo"></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+            <button type="button" id="btn-add-row" class="btn-termo-add-row">+ Adicionar linha</button>
+
+            <div class="termo-footer">
+              <div class="termo-date">Fortaleza, ${hoje}</div>
+              <div class="termo-sigs">
+                <div class="termo-sig">
+                  <div class="termo-sig-line"></div>
+                  <div class="termo-sig-label">Assinatura Funcionário</div>
+                </div>
+                <div class="termo-sig">
+                  <div class="termo-sig-line"></div>
+                  <div class="termo-sig-label">Assinatura TI${adminNome ? ` — ${adminNome}` : ''}</div>
+                </div>
+              </div>
+            </div>
           </div>
+
           <div id="msg-termo"></div>
           <div class="assinatura-btns" style="margin-top:1rem">
             <button class="btn btn-secondary btn-sm" id="btn-cancelar-termo">Cancelar</button>
@@ -604,16 +682,53 @@ function renderPainel(usuario) {
     `;
     document.body.appendChild(overlay);
 
+    document.getElementById('btn-add-row').addEventListener('click', () => {
+      const tbody = document.getElementById('termo-table-body');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="termo-table-input" type="number" min="1" value="1"></td>
+        <td><input class="termo-table-input" type="text" placeholder="Tipo"></td>
+        <td><input class="termo-table-input" type="text" placeholder="Marca"></td>
+        <td><input class="termo-table-input" type="text" placeholder="Modelo"></td>
+        <td><button type="button" class="btn-termo-remove-row" aria-label="Remover">✕</button></td>
+      `;
+      tr.querySelector('.btn-termo-remove-row').addEventListener('click', () => tr.remove());
+      tbody.appendChild(tr);
+    });
+
     document.getElementById('btn-fechar-termo').addEventListener('click', () => overlay.remove());
     document.getElementById('btn-cancelar-termo').addEventListener('click', () => overlay.remove());
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
     document.getElementById('btn-aceitar-termo').addEventListener('click', async () => {
       const msgEl = document.getElementById('msg-termo');
+      const cargo = document.getElementById('termo-cargo').value.trim();
+      if (!cargo) {
+        msgEl.innerHTML = '<div class="alert alert-danger">Informe o cargo antes de aceitar.</div>';
+        document.getElementById('termo-cargo').focus();
+        return;
+      }
+      const setor = document.getElementById('termo-setor').value;
+      const equipamento = document.getElementById('termo-equipamento').value.trim();
+      const rows = [];
+      document.querySelectorAll('#termo-table-body tr').forEach(tr => {
+        const inputs = tr.querySelectorAll('input');
+        const row = {
+          quantidade: inputs[0]?.value || '1',
+          tipo: inputs[1]?.value.trim() || '',
+          marca: inputs[2]?.value.trim() || '',
+          modelo: inputs[3]?.value.trim() || '',
+        };
+        if (row.tipo || row.marca || row.modelo) rows.push(row);
+      });
+
       const btn = document.getElementById('btn-aceitar-termo');
       btn.disabled = true; btn.textContent = 'Registrando...';
       try {
-        const r = await apiFetch(`/api/usuarios/chamados/${chamadoId}/aceitar-termo`, { method: 'POST' });
+        const r = await apiFetch(`/api/usuarios/chamados/${chamadoId}/aceitar-termo`, {
+          method: 'POST',
+          body: JSON.stringify({ cargo, setor, equipamentos: JSON.stringify(rows) }),
+        });
         const d = await r.json();
         if (!r.ok) { msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
         overlay.remove();

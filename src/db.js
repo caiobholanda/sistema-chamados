@@ -131,6 +131,9 @@ function initDb() {
   try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_origem TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE push_subscriptions ADD COLUMN is_mobile INTEGER DEFAULT 0"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN aberto_por_admin_id INTEGER REFERENCES admins(id)"); } catch {}
+  try { db.exec("ALTER TABLE termos_aceite ADD COLUMN cargo TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE termos_aceite ADD COLUMN setor TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE termos_aceite ADD COLUMN equipamentos TEXT DEFAULT ''"); } catch {}
 
   // Migration: trocar UNIQUE inline por partial unique index (ativo=1)
   // Regra: mesmo @ não pode existir em usuários E admins ao mesmo tempo (validado nas rotas)
@@ -1590,11 +1593,11 @@ function prazo2DiasUteis() {
   return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate(), horaFinal + 3)).toISOString().replace('T', ' ').substring(0, 19);
 }
 
-function registrarTermoAceite({ chamado_id, usuario_id, usuario_nome, usuario_email }) {
+function registrarTermoAceite({ chamado_id, usuario_id, usuario_nome, usuario_email, cargo, setor, equipamentos }) {
   return getDb().prepare(`
-    INSERT OR IGNORE INTO termos_aceite (chamado_id, usuario_id, usuario_nome, usuario_email)
-    VALUES (?, ?, ?, ?)
-  `).run(chamado_id, usuario_id, usuario_nome, usuario_email);
+    INSERT OR IGNORE INTO termos_aceite (chamado_id, usuario_id, usuario_nome, usuario_email, cargo, setor, equipamentos)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(chamado_id, usuario_id, usuario_nome, usuario_email, cargo || '', setor || '', equipamentos || '');
 }
 
 function buscarTermoAceite(chamado_id) {

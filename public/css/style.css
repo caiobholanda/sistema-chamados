@@ -3257,6 +3257,175 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   flex-shrink: 0;
 }
 
+/* ═══════════════════════════════════════════
+   TERMO DE RESPONSABILIDADE DE EQUIPAMENTOS
+═══════════════════════════════════════════ */
+.termo-doc-modal { max-width: 700px !important; }
+.termo-doc-body {
+  max-height: calc(90vh - 5.5rem);
+  overflow-y: auto;
+}
+.termo-doc {
+  background: #fefcf5;
+  border: 1px solid #d9c97e;
+  border-radius: 6px;
+  padding: 1.75rem 2rem 1.5rem;
+  font-size: .84rem;
+  color: #2a2208;
+  line-height: 1.65;
+  margin-bottom: .75rem;
+}
+.termo-doc-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 2px solid #c8a951;
+}
+.termo-logo { height: 46px; margin-bottom: .5rem; display: block; margin-left: auto; margin-right: auto; }
+.termo-empresa {
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  color: #8a6520;
+  text-transform: uppercase;
+  margin-bottom: .45rem;
+}
+.termo-titulo {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: #1a1208;
+  text-transform: uppercase;
+}
+.termo-field-row {
+  display: flex;
+  align-items: baseline;
+  gap: .25rem .6rem;
+  flex-wrap: wrap;
+  margin-bottom: .7rem;
+}
+.termo-label {
+  font-size: .79rem;
+  color: #666;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.termo-value-fixed {
+  font-weight: 600;
+  color: #1a1208;
+  border-bottom: 1px solid #bbb;
+  padding: 0 .3rem .05rem;
+  min-width: 100px;
+}
+.termo-input {
+  border: none;
+  border-bottom: 1.5px solid #bbb;
+  border-radius: 0;
+  background: transparent;
+  padding: .05rem .3rem;
+  font-size: .84rem;
+  color: #1a1208;
+  flex: 1;
+  min-width: 80px;
+  outline: none;
+  font-family: inherit;
+}
+.termo-input:focus { border-bottom-color: #c8a951; background: rgba(200,169,81,.05); }
+.termo-select { flex: 1.2; min-width: 130px; }
+.termo-texto {
+  margin: .85rem 0;
+  font-size: .84rem;
+  line-height: 1.7;
+  text-align: justify;
+  color: #333;
+}
+.termo-field-single {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin-bottom: .85rem;
+}
+.termo-field-single .termo-input { min-width: 200px; }
+.termo-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: .4rem;
+  font-size: .82rem;
+}
+.termo-table th {
+  background: #f0e8c8;
+  border: 1px solid #c8a951;
+  padding: .4rem .6rem;
+  text-align: center;
+  font-weight: 700;
+  color: #6b4e15;
+  font-size: .76rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.termo-table td {
+  border: 1px solid #d8d0b8;
+  padding: .1rem .25rem;
+  text-align: center;
+}
+.termo-table-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: .22rem .3rem;
+  font-size: .82rem;
+  color: #1a1208;
+  outline: none;
+  text-align: center;
+  font-family: inherit;
+}
+.termo-table-input:focus { background: rgba(200,169,81,.07); }
+.btn-termo-add-row {
+  font-size: .75rem;
+  color: #8a6520;
+  background: none;
+  border: 1px dashed #c8a951;
+  border-radius: 4px;
+  padding: .22rem .75rem;
+  cursor: pointer;
+  margin-bottom: .85rem;
+  transition: background .15s;
+}
+.btn-termo-add-row:hover { background: #fdf7e3; }
+.btn-termo-remove-row {
+  border: none;
+  background: none;
+  color: #ccc;
+  cursor: pointer;
+  font-size: .82rem;
+  padding: .1rem .25rem;
+  line-height: 1;
+  transition: color .15s;
+}
+.btn-termo-remove-row:hover { color: #dc2626; }
+.termo-footer { margin-top: 1.75rem; }
+.termo-date {
+  text-align: center;
+  font-size: .84rem;
+  color: #555;
+  margin-bottom: 2rem;
+}
+.termo-sigs {
+  display: flex;
+  gap: 2.5rem;
+  justify-content: space-around;
+}
+.termo-sig { flex: 1; text-align: center; }
+.termo-sig-line {
+  border-top: 1.5px solid #777;
+  margin-bottom: .35rem;
+}
+.termo-sig-label {
+  font-size: .74rem;
+  color: #666;
+}
+
 /* Link de ID do chamado no histórico do usuário */
 .huc-id-link:hover {
   background: var(--gold) !important;
