@@ -1829,7 +1829,7 @@ function eqMovimentar(id) {
   const body = document.getElementById('eq-mov-body');
   if (!body) return;
   body.innerHTML = `
-    <form id="form-eq-mov" style="display:flex;flex-direction:column;gap:.8rem">
+    <form id="form-eq-mov" style="display:flex;flex-direction:column;gap:1.1rem;padding:1.35rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Tipo de movimentação</label>
         <select class="form-control" id="eqm-tipo" onchange="eqMovCampos()">
@@ -1837,14 +1837,14 @@ function eqMovimentar(id) {
           <option value="saida">Saída para setor</option>
           <option value="descarte">Descarte</option>
         </select>
-        <div id="eqm-desc" style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem"></div>
+        <div id="eqm-desc" style="font-size:.72rem;color:var(--text-muted);margin-top:.3rem"></div>
       </div>
       <div id="eqm-extras"></div>
       <div class="form-group">
         <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
         <input class="form-control" id="eqm-obs" type="text" placeholder="Ex: instalado na recepção…">
       </div>
-      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;padding-top:.85rem;border-top:1px solid var(--border)">
         <button type="button" class="btn btn-secondary" onclick="fecharEqMov()">Cancelar</button>
         <button type="submit" class="btn btn-primary" id="btn-salvar-eqm">Registrar</button>
       </div>
@@ -1907,7 +1907,8 @@ async function eqHistorico(id, codigo) {
     const hist = await r.json();
     if (!hist.length) { if (body) body.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted)">Nenhuma movimentação registrada.</div>'; return; }
     if (body) body.innerHTML = `
-      <div class="table-wrap" style="max-height:420px;overflow-y:auto">
+      <div style="padding:.75rem 1.25rem 1.25rem">
+      <div class="table-wrap" style="max-height:420px;overflow-y:auto;border-radius:var(--radius);border:1px solid var(--border)">
         <table>
           <thead><tr><th>Data</th><th>Tipo</th><th>Setor</th><th>Admin</th><th>Observação</th></tr></thead>
           <tbody>
@@ -1927,8 +1928,9 @@ async function eqHistorico(id, codigo) {
           </tbody>
         </table>
       </div>
+      </div>
     `;
-  } catch { if (body) body.innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro ao carregar histórico.</div>'; }
+  } catch { if (body) body.innerHTML = '<div style="padding:1.25rem 1.5rem;color:var(--danger)">Erro ao carregar histórico.</div>'; }
 }
 
 function fecharEqHist() {
@@ -2067,13 +2069,11 @@ async function confirmarDeletarReservaLegado(id, nome) {
       if (e.target === e.currentTarget) fecharModalImpressora();
     });
 
-    // Modal movimentação equipamento
+    // Modal movimentação equipamento — fecha só pelo X
     document.getElementById('eq-mov-fechar')?.addEventListener('click', fecharEqMov);
-    document.getElementById('eq-mov-overlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqMov(); });
 
-    // Modal histórico/unidades equipamento
+    // Modal histórico/unidades equipamento — fecha só pelo X
     document.getElementById('eq-hist-fechar')?.addEventListener('click', fecharEqHist);
-    document.getElementById('eq-hist-overlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqHist(); });
 
     // Filtros equipamentos
     document.getElementById('btn-buscar-eq')?.addEventListener('click', () => carregarItens());
