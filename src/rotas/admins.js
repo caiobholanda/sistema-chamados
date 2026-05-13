@@ -48,13 +48,13 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { sub: admin.id, is_master: admin.is_master === 1, nome: admin.nome_completo },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: 30 * 24 * 60 * 60 }
     );
 
     res.cookie('token', token, {
       httpOnly: true,
       sameSite: 'Strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     return res.json({ mensagem: 'Login realizado', is_master: admin.is_master === 1, nome: admin.nome_completo });

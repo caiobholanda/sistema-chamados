@@ -33,8 +33,8 @@ router.post('/login', async (req, res) => {
       db.atualizarUsuario(usuario.id, { senha_plain: senha });
     }
 
-    const token = jwt.sign({ sub: usuario.id, nome: usuario.nome, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    const token = jwt.sign({ sub: usuario.id, nome: usuario.nome, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: 30 * 24 * 60 * 60 });
+    res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', maxAge: 30 * 24 * 60 * 60 * 1000 });
 
     return res.json({ mensagem: 'Login realizado', nome: usuario.nome });
   } catch (err) {
