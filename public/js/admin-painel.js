@@ -564,7 +564,7 @@ function renderModalBody(c) {
   document.getElementById('modal-body').innerHTML = `
     <div class="mv2">
 
-      <!-- Logo Gran Marquise + info centralizada do solicitante -->
+      <!-- Logo Gran Marquise + info do solicitante -->
       <div class="mv2-logo-bar">
         <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise" class="mv2-logo-img">
         <div class="mv2-logo-user">
@@ -589,13 +589,15 @@ function renderModalBody(c) {
 
       ${bannerAtraso}
 
-      <!-- Layout duas colunas: info + ações -->
-      <div class="mv2-layout" style="align-items:start">
+      <!-- Layout duas colunas -->
+      <div class="mv2-layout">
 
-        <!-- Coluna esquerda: informações -->
-        <div class="mv2-main" style="padding-top:1.25rem">
+        <!-- Coluna esquerda: info + controles (scrollável) -->
+        <div class="mv2-main">
+          <div id="msg-modal"></div>
 
-          <div class="mv2-card ${c.admin_nome ? 'mv2-card-ok' : 'mv2-card-vazio'}" style="margin-bottom:.5rem">
+          <!-- Admin responsável -->
+          <div class="mv2-card ${c.admin_nome ? 'mv2-card-ok' : 'mv2-card-vazio'}">
             <div class="mv2-card-icon">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
@@ -605,6 +607,7 @@ function renderModalBody(c) {
             </div>
           </div>
 
+          <!-- Timestamps -->
           <div class="mv2-ts-row">
             <div class="mv2-ts-chip">
               <span class="mv2-ts-label">Aberto em</span>
@@ -620,6 +623,7 @@ function renderModalBody(c) {
             </div>` : ''}
           </div>
 
+          <!-- Descrição -->
           <div class="mv2-section">
             <span class="mv2-field-label">Descrição do problema</span>
             <div class="mv2-desc">${c.descricao}</div>
@@ -631,163 +635,171 @@ function renderModalBody(c) {
               ${c.anexo_nome_original}
             </a>` : ''}
 
-          ${c.solucao ? `
-            <div class="mv2-solucao">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#16a34a"><polyline points="20 6 9 17 4 12"/></svg>
-              <div>
-                <div class="mv2-field-label" style="color:#16a34a">Solução aplicada</div>
-                <div style="font-size:.86rem;color:#166534;margin-top:.1rem">${c.solucao}</div>
+          ${isAberto ? `
+            <!-- Configurações + Ações -->
+            <div class="mv2-controls-section">
+              <div class="mv2-section-divider">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Configurações
               </div>
-            </div>` : ''}
-
-          ${c.nota !== null ? `
-            <div class="mv2-avaliacao">
-              <span style="font-size:1rem">⭐</span>
-              <div>
-                <div class="mv2-field-label">Avaliação do usuário</div>
-                <div style="font-size:.86rem;font-weight:600;color:var(--text)">${c.nota}/10${c.comentario_avaliacao ? `<span style="font-weight:400;color:var(--text-muted)"> — ${c.comentario_avaliacao}</span>` : ''}</div>
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Categoria</span>
+                <select class="form-control form-control-sm" id="sel-categoria" style="flex:1">
+                  ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) => `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria">Salvar</button>
               </div>
-            </div>` : ''}
-
-          ${c.assinado_em ? `
-            <div class="mv2-assinatura-admin">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#15803d;margin-top:.1rem"><polyline points="20 6 9 17 4 12"/></svg>
-              <div>
-                <div class="mv2-field-label" style="color:#15803d">Recebimento confirmado pelo solicitante</div>
-                <div style="font-size:.79rem;color:var(--text-muted);margin:.15rem 0 .5rem">${fmtData(c.assinado_em)}</div>
-                ${c.assinatura ? `<img src="${c.assinatura}" alt="Assinatura do solicitante" class="assinatura-img-admin">` : ''}
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Prioridade</span>
+                <select class="form-control form-control-sm" id="sel-prioridade" style="flex:1">
+                  <option value="">Sem prioridade</option>
+                  <option value="baixa"   ${c.prioridade==='baixa'  ?'selected':''}>Baixa</option>
+                  <option value="media"   ${c.prioridade==='media'  ?'selected':''}>Média</option>
+                  <option value="alta"    ${c.prioridade==='alta'   ?'selected':''}>Alta</option>
+                  <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar</button>
               </div>
-            </div>` : ''}
-
-          ${['hardware', 'processo_compra'].includes(c.categoria) && ['concluido', 'encerrado'].includes(c.status) ? `
-            <div class="mv2-termo-status" id="mv2-termo-status">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:.1rem;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              <div>
-                <div class="mv2-field-label">Termo de Responsabilidade</div>
-                <div id="mv2-termo-val" style="font-size:.79rem;color:var(--text-muted);margin-top:.1rem">Verificando…</div>
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Prazo</span>
+                <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${utcParaInputFortaleza(c.prazo)}" style="flex:1">
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
+                ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
               </div>
-            </div>` : ''}
 
-        </div>
-
-        <!-- Coluna direita: configurações + ações -->
-        <div class="mv2-side">
-          <div id="msg-modal" style="margin-bottom:.4rem"></div>
-
-          <div class="mv2-actions-card">
-            ${isAberto ? `
-            <div class="mv2-side-title">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              Configurações
-            </div>
-            <div class="mv2-ctrl-row">
-              <span class="mv2-ctrl-lbl">Categoria</span>
-              <select class="form-control form-control-sm" id="sel-categoria" style="flex:1">
-                ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) => `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`).join('')}
-              </select>
-              <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria">Salvar</button>
-            </div>
-            <div class="mv2-ctrl-row">
-              <span class="mv2-ctrl-lbl">Prioridade</span>
-              <select class="form-control form-control-sm" id="sel-prioridade" style="flex:1">
-                <option value="">Sem prioridade</option>
-                <option value="baixa"   ${c.prioridade==='baixa'  ?'selected':''}>Baixa</option>
-                <option value="media"   ${c.prioridade==='media'  ?'selected':''}>Média</option>
-                <option value="alta"    ${c.prioridade==='alta'   ?'selected':''}>Alta</option>
-                <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
-              </select>
-              <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar</button>
-            </div>
-            <div class="mv2-ctrl-row">
-              <span class="mv2-ctrl-lbl">Prazo</span>
-              <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${utcParaInputFortaleza(c.prazo)}" style="flex:1">
-              <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
-              ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
-            </div>
-
-            <div style="border-top:1px solid var(--border);margin:.6rem 0 .5rem"></div>
-            <div class="mv2-side-title" style="margin-bottom:.45rem">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              Ações
-            </div>
-            <div class="mv2-action-btns">
-              ${(podeAssumir || podeRetomar) ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">${podeRetomar ? 'Retomar' : 'Assumir'}</button>` : ''}
-              ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1">Concluir</button>` : ''}
-            </div>
-            <div id="area-concluir" style="display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border)">
-              <div class="form-group" style="margin-bottom:.4rem">
-                <label for="txt-solucao" style="font-size:.8rem">Solução aplicada <span class="req">*</span></label>
-                <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
+              <div class="mv2-section-divider">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Ações
               </div>
-              <button class="btn btn-success btn-sm" id="btn-confirmar-concluir" style="width:100%">Confirmar conclusão</button>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:.3rem;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border)">
-              ${c.status !== 'aguardando_compra' ? `<button class="btn btn-sm" id="btn-aguardar-compra" style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:.8rem">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                Aguardando compra
-              </button>` : ''}
-              ${c.status !== 'aguardando_chegar' ? `<button class="btn btn-sm" id="btn-aguardar-chegar" style="background:#CFFAFE;color:#155E75;border:1px solid #67E8F9;font-size:.8rem">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                Aguardando chegar
-              </button>` : ''}
-            </div>
-            <div style="margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border)">
-              <button class="btn btn-secondary btn-sm" id="btn-transferir" style="width:100%;font-size:.8rem">Transferir responsável</button>
-              <div id="area-transferir" style="display:none;margin-top:.5rem">
+              <div class="mv2-action-btns">
+                ${(podeAssumir || podeRetomar) ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">${podeRetomar ? 'Retomar' : 'Assumir'}</button>` : ''}
+                ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1">Concluir</button>` : ''}
+              </div>
+              <div id="area-concluir" style="display:none;padding-top:.5rem;border-top:1px solid var(--border)">
                 <div class="form-group" style="margin-bottom:.4rem">
-                  <label style="font-size:.8rem">Transferir para</label>
-                  <select class="form-control form-control-sm" id="sel-transferir-admin">
-                    <option value="">Selecione um admin...</option>
-                  </select>
+                  <label for="txt-solucao" style="font-size:.8rem">Solução aplicada <span class="req">*</span></label>
+                  <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
                 </div>
-                <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir" style="width:100%">Confirmar transferência</button>
+                <button class="btn btn-success btn-sm" id="btn-confirmar-concluir" style="width:100%">Confirmar conclusão</button>
+              </div>
+
+              <div class="mv2-secondary-btns">
+                ${c.status !== 'aguardando_compra' ? `<button class="btn btn-sm" id="btn-aguardar-compra" style="flex:1;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:.78rem">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                  Aguardando compra
+                </button>` : ''}
+                ${c.status !== 'aguardando_chegar' ? `<button class="btn btn-sm" id="btn-aguardar-chegar" style="flex:1;background:#CFFAFE;color:#155E75;border:1px solid #67E8F9;font-size:.78rem">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                  Aguardando chegar
+                </button>` : ''}
+              </div>
+
+              <div class="mv2-transfer-block">
+                <button class="btn btn-secondary btn-sm" id="btn-transferir" style="width:100%;font-size:.8rem">Transferir responsável</button>
+                <div id="area-transferir" style="display:none;margin-top:.5rem">
+                  <div class="form-group" style="margin-bottom:.4rem">
+                    <label style="font-size:.8rem">Transferir para</label>
+                    <select class="form-control form-control-sm" id="sel-transferir-admin">
+                      <option value="">Selecione um admin...</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir" style="width:100%">Confirmar transferência</button>
+                </div>
               </div>
             </div>
-            ` : `
-            <div class="mv2-side-title">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              Ações
-            </div>
-            <div style="padding:.2rem 0">
-              ${podeReabrir ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir" style="width:100%">Reabrir chamado</button>` : '<p class="text-muted" style="font-size:.83rem;margin:0">Chamado encerrado.</p>'}
-            </div>
-            `}
-          </div>
+          ` : `
+            ${podeReabrir
+              ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir" style="margin-top:.5rem">Reabrir chamado</button>`
+              : `<p class="text-muted" style="font-size:.83rem;margin:.5rem 0 0">Chamado encerrado.</p>`
+            }
+          `}
 
-        ${isAberto ? `
-        <div class="mv2-chat-card">
-          <div class="mv2-chat-head">
-            <span class="mv2-chat-dot"></span>
-            Conversa em tempo real
+          <!-- Histórico + zona de perigo -->
+          <div class="mv2-bottom-strip">
+            <button class="mv2-historico" id="btn-hist-completo" style="flex:1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Histórico de ações
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            ${adminInfo && adminInfo.is_master ? `
+            <div class="modal-danger-zone mv2-danger-compact" style="margin:0;flex-shrink:0">
+              <div class="modal-danger-label">Zona de perigo</div>
+              <button class="btn btn-danger btn-sm" id="btn-deletar">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                Excluir chamado
+              </button>
+            </div>` : ''}
           </div>
-          <div class="chat-messages mv2-chat-msgs" id="chat-modal-msgs" data-cnt="0">
-            <div class="chat-vazio">Carregando...</div>
-          </div>
-          <div class="chat-send-error" id="chat-modal-err"></div>
-          <form class="chat-input-row" id="chat-modal-form">
-            <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
-            <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-          </form>
-        </div>` : ''}
-
         </div>
-      </div>
 
-      <!-- Histórico + Zona de perigo: full-width row -->
-      <div style="display:flex;gap:.75rem;align-items:stretch;margin-top:.6rem">
-        <button class="mv2-historico" id="btn-hist-completo" style="flex:1">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Histórico de ações
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        ${adminInfo && adminInfo.is_master ? `
-        <div class="modal-danger-zone mv2-danger-compact" style="margin:0;flex-shrink:0">
-          <div class="modal-danger-label">Zona de perigo</div>
-          <button class="btn btn-danger btn-sm" id="btn-deletar">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-            Excluir chamado
-          </button>
-        </div>` : ''}
+        <!-- Coluna direita: chat (aberto) ou painel de conclusão (encerrado) -->
+        <div class="mv2-right-col">
+          ${isAberto ? `
+            <div class="mv2-chat-head">
+              <span class="mv2-chat-dot"></span>
+              Conversa em tempo real
+            </div>
+            <div class="chat-messages mv2-chat-msgs" id="chat-modal-msgs" data-cnt="0">
+              <div class="chat-vazio">Carregando...</div>
+            </div>
+            <div class="chat-send-error" id="chat-modal-err"></div>
+            <form class="chat-input-row" id="chat-modal-form">
+              <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
+              <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+            </form>
+          ` : `
+            <div class="mv2-chat-head">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#16a34a"><polyline points="20 6 9 17 4 12"/></svg>
+              Resolução do chamado
+            </div>
+            <div class="mv2-conclusion-panel">
+
+              ${c.solucao ? `
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Solução aplicada
+                </div>
+                <div class="mv2-conclusion-text">${c.solucao}</div>
+              </div>` : `
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">Solução aplicada</div>
+                <div class="mv2-conclusion-text" style="color:var(--text-muted);font-style:italic">Não registrada.</div>
+              </div>`}
+
+              ${c.nota !== null ? `
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  Avaliação do usuário
+                </div>
+                <div class="mv2-rating-num">${c.nota}<span style="font-size:.9rem;color:var(--text-muted)">/10</span></div>
+                ${c.comentario_avaliacao ? `<div class="mv2-rating-comment">"${c.comentario_avaliacao}"</div>` : ''}
+              </div>` : ''}
+
+              ${c.assinado_em ? `
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#15803d"><polyline points="20 6 9 17 4 12"/></svg>
+                  Recebimento confirmado
+                </div>
+                <div style="font-size:.79rem;color:var(--text-muted);margin:.1rem 0 .4rem">${fmtData(c.assinado_em)}</div>
+                ${c.assinatura ? `<img src="${c.assinatura}" alt="Assinatura" class="assinatura-img-admin" style="max-height:60px">` : ''}
+              </div>` : ''}
+
+              ${['hardware', 'processo_compra'].includes(c.categoria) ? `
+              <div class="mv2-conclusion-block" id="mv2-termo-status">
+                <div class="mv2-conclusion-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Termo de Responsabilidade
+                </div>
+                <div id="mv2-termo-val" class="mv2-conclusion-text" style="color:var(--text-muted);font-style:italic">Verificando…</div>
+              </div>` : ''}
+
+            </div>
+          `}
+        </div>
+
       </div>
     </div>
   `;
@@ -1012,23 +1024,23 @@ function setupModalEventos(c) {
     });
   }
 
-  // Buscar status do Termo de Responsabilidade para chamados hardware/processo_compra concluídos
+  // Buscar status do Termo de Responsabilidade (elemento só existe em chamados concluídos de hw/compra)
   if (['hardware', 'processo_compra'].includes(c.categoria) && ['concluido', 'encerrado'].includes(c.status)) {
     api(`/api/admin/chamados/${c.id}/termo-aceite`).then(async r => {
       const container = document.getElementById('mv2-termo-status');
       if (!container) return;
       if (!r.ok) return;
       const t = await r.json();
+      const termoVal = document.getElementById('mv2-termo-val');
       if (t) {
         container.classList.add('aceito');
-        container.innerHTML = `
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:.1rem;color:#16a34a"><polyline points="20 6 9 17 4 12"/></svg>
-          <div>
-            <div class="mv2-field-label" style="color:#15803d">Termo de Responsabilidade aceito</div>
-            <div style="font-size:.79rem;color:var(--text-muted);margin-top:.1rem">Por ${t.usuario_nome} (${t.usuario_email}) em ${fmtData(t.aceito_em)}</div>
-          </div>`;
+        const label = container.querySelector('.mv2-conclusion-label');
+        if (label) label.innerHTML = `
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#15803d"><polyline points="20 6 9 17 4 12"/></svg>
+          Termo aceito`;
+        if (termoVal) { termoVal.style.fontStyle = 'normal'; termoVal.style.color = ''; termoVal.textContent = `Por ${t.usuario_nome} (${t.usuario_email}) em ${fmtData(t.aceito_em)}`; }
       } else {
-        container.querySelector('#mv2-termo-val').textContent = 'Pendente — aguardando aceite do solicitante no portal';
+        if (termoVal) termoVal.textContent = 'Pendente — aguardando aceite do solicitante no portal';
       }
     }).catch(() => {});
   }
