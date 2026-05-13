@@ -466,11 +466,23 @@ function scorePrioridade(c) {
   return 5; // sem prioridade
 }
 
+function _escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 function renderChamadoItem(c) {
   const encerrado = ['concluido', 'encerrado'].includes(c.status);
   const atrasado  = estaAtrasado(c);
   return `
-    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}" data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
+    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}"
+         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"
+         data-pv-nome="${_escAttr(c.nome)}"
+         data-pv-setor="${_escAttr(c.usuario_setor || c.setor)}"
+         data-pv-ramal="${_escAttr(c.ramal)}"
+         data-pv-desc="${_escAttr(c.descricao)}"
+         data-pv-cat="${_escAttr(c.categoria)}"
+         data-pv-prio="${_escAttr(c.prioridade)}"
+         data-pv-admin="${_escAttr(c.admin_nome)}"
+         data-pv-prazo="${_escAttr(c.prazo)}"
+         data-pv-atrasado="${atrasado ? '1' : '0'}">`
       <div class="chamado-item-header">
         <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
         ${badgeStatus(c.status)}
@@ -1386,3 +1398,88 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
 }
 
 iniciarPush();
+
+// ── Preview tooltip ao passar o mouse nos chamados ────────────────────────────
+(function () {
+  const CAT_PT = {
+    software:'Software', hardware:'Hardware', impressora:'Impressora',
+    ramal:'Ramal', nobreak:'Nobreak', monitor:'Monitor', mouse:'Mouse',
+    teclado:'Teclado', rede:'Rede', acesso_senha:'Acesso/Senha',
+    cameras:'Câmeras', email:'E-mail', tv_projetor:'TV/Projetor',
+    processo_compra:'Compra', outros:'Outros',
+  };
+  const PRIO_COR = { urgente:'#dc2626', alta:'#ea580c', media:'#ca8a04', baixa:'#16a34a' };
+  const PRIO_PT  = { urgente:'Urgente', alta:'Alta', media:'Média', baixa:'Baixa' };
+
+  const tip = document.createElement('div');
+  tip.id = 'chamado-preview';
+  document.body.appendChild(tip);
+
+  let timer = null;
+
+  function html(d) {
+    const atrasado = d.pvAtrasado === '1';
+    const prio = d.pvPrio;
+    const prioColor = PRIO_COR[prio] || 'var(--text-muted)';
+    const prioLabel = PRIO_PT[prio] || '';
+    const prazoFmt  = d.pvPrazo ? fmtData(d.pvPrazo) : null;
+
+    return `
+      <div class="cp-user">${d.pvNome || '—'}</div>
+      <div class="cp-meta">
+        ${d.pvSetor ? `<span>🏢 ${d.pvSetor}</span>` : ''}
+        ${d.pvRamal ? `<span>· 📞 ${d.pvRamal}</span>` : ''}
+      </div>
+      <div class="cp-desc">${d.pvDesc || '—'}</div>
+      <hr class="cp-divider">
+      <div class="cp-tags">
+        ${d.pvCat ? `<span class="cp-tag">${CAT_PT[d.pvCat] || d.pvCat}</span>` : ''}
+        ${prioLabel ? `<span class="cp-tag" style="background:${prioColor}18;color:${prioColor};border-color:${prioColor}40">${prioLabel}</span>` : ''}
+      </div>
+      <div class="cp-info-row">
+        <span class="cp-info-label">Responsável</span>
+        <span class="cp-info-val">${d.pvAdmin || '—'}</span>
+      </div>
+      ${prazoFmt ? `
+      <div class="cp-info-row ${atrasado ? 'cp-atraso' : ''}">
+        <span class="cp-info-label">Prazo</span>
+        <span class="cp-info-val">${prazoFmt}${atrasado ? ' ⚠ Atrasado' : ''}</span>
+      </div>` : ''}
+    `;
+  }
+
+  function posicionar(e) {
+    const tw = 300, th = tip.offsetHeight || 180;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let x = e.clientX + 16;
+    let y = e.clientY - 10;
+    if (x + tw > vw - 12) x = e.clientX - tw - 16;
+    if (y + th > vh - 12) y = vh - th - 12;
+    if (y < 8) y = 8;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
+
+  document.getElementById('lista-chamados').addEventListener('mouseover', (e) => {
+    const card = e.target.closest('[data-pv-nome]');
+    if (!card || card._pvActive) return;
+    card._pvActive = true;
+
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      tip.innerHTML = html(card.dataset);
+      posicionar(e);
+      tip.classList.add('visible');
+    }, 160);
+
+    const onMove = (ev) => posicionar(ev);
+    const onLeave = () => {
+      card._pvActive = false;
+      card.removeEventListener('mousemove', onMove);
+      clearTimeout(timer);
+      tip.classList.remove('visible');
+    };
+    card.addEventListener('mousemove', onMove);
+    card.addEventListener('mouseleave', onLeave, { once: true });
+  });
+})();
