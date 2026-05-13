@@ -1869,10 +1869,21 @@ function eqMovimentar(id) {
   });
 }
 
+const _SETORES_EQ = [
+  'Recepção','Concierge','Governança','Reservas','Mensageria / Portaria',
+  'Restaurante Mucuripe','Restaurante Mangostin','Bar Rooftop','Lobby Bar',
+  'Room Service','Cozinha','Confeitaria / Padaria','Nutrição','Banquetes',
+  'Eventos e Convenções','Spa by L\'Occitane','Fitness Center','Piscina','Play Gran',
+  'Gerência Geral','Recursos Humanos','Financeiro','Controladoria',
+  'Compras / Almoxarifado','Comercial / Vendas','Marketing','Revenue Management',
+  'Tecnologia da Informação','Jurídico','Manutenção','Segurança',
+  'Lavanderia','Rouparia','Estacionamento','Transportes',
+];
+
 function eqMovCampos() {
   const tipo = document.getElementById('eqm-tipo')?.value;
   const descs = {
-    entrada: 'O item fica disponível no almoxarifado.',
+    entrada: 'O item volta ao almoxarifado e fica disponível.',
     saida: 'O item vai para um setor e fica "Em uso".',
     descarte: 'O item será marcado como descartado.',
   };
@@ -1882,6 +1893,16 @@ function eqMovCampos() {
   if (!extras) return;
   if (tipo === 'saida') {
     extras.innerHTML = `<div class="form-group"><label class="form-label">Setor de destino <span style="color:var(--danger)">*</span></label><input class="form-control" id="eqm-destino" type="text" placeholder="Ex: Recepção, RH, Governança…"></div>`;
+  } else if (tipo === 'entrada') {
+    const opts = _SETORES_EQ.map(s => `<option value="${s}"${s === _eqMovSetor ? ' selected' : ''}>${s}</option>`).join('');
+    extras.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Devolvido por qual setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <select class="form-control" id="eqm-origem">
+          <option value="">Selecione o setor…</option>
+          ${opts}
+        </select>
+      </div>`;
   } else {
     extras.innerHTML = '';
   }

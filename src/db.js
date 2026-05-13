@@ -1733,7 +1733,7 @@ function registrarMovEquipamento(id, tipo, setor_origem, setor_destino, admin_no
   db.prepare(`INSERT INTO equipamentos_historico (equipamento_id, tipo, setor_origem, setor_destino, admin_nome, observacao) VALUES (?, ?, ?, ?, ?, ?)`).run(id, tipo, setor_origem || '', setor_destino || '', admin_nome || '', observacao || '');
   const STATUS_MAP = { entrada: 'disponivel', saida: 'em_uso', retorno: 'disponivel', manutencao: 'manutencao', descarte: 'descartado' };
   const novoStatus = STATUS_MAP[tipo];
-  const novoSetor = tipo === 'saida' ? setor_destino : tipo === 'retorno' ? '' : undefined;
+  const novoSetor = tipo === 'saida' ? setor_destino : (tipo === 'retorno' || tipo === 'entrada') ? '' : undefined;
   const upd = { status: novoStatus };
   if (novoSetor !== undefined) upd.setor_atual = novoSetor;
   atualizarEquipamento(id, upd);
