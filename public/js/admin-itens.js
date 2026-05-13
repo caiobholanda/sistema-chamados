@@ -810,7 +810,7 @@ function verUnidades(nome) {
         ${unidades.map(eq => {
           const s = STATUS_EQ[eq.status] || { label: eq.status, cor: 'var(--border)' };
           return `
-            <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:10px;background:var(--surface-1);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow=''">
+            <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:0;background:var(--surface-1);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow=''">
               <div style="min-width:90px">
                 <div style="font-family:monospace;font-size:.95rem;font-weight:800;color:var(--navy);letter-spacing:.03em">${esc(eq.codigo)}</div>
                 <div style="margin-top:.25rem"><span style="display:inline-block;padding:.15rem .5rem;border-radius:20px;font-size:.68rem;font-weight:700;background:${s.cor};color:#fff">${s.label}</span></div>
@@ -1741,7 +1741,7 @@ function eqEditar(id) {
 
       <div style="display:flex;align-items:center;gap:.6rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)">
         <div style="font-size:.78rem;font-weight:600;color:var(--text-muted);letter-spacing:.04em;text-transform:uppercase">Código</div>
-        <div style="font-family:monospace;font-size:.95rem;font-weight:700;color:var(--text);background:var(--surface-2);padding:.2rem .6rem;border-radius:6px;border:1px solid var(--border)">${esc(eq.codigo)}</div>
+        <div style="font-family:monospace;font-size:.95rem;font-weight:700;color:var(--text);background:var(--surface-2);padding:.2rem .6rem;border-radius:0;border:1px solid var(--border)">${esc(eq.codigo)}</div>
       </div>
 
       <div class="form-group">
@@ -1982,7 +1982,7 @@ async function eqHistorico(id, codigo) {
     if (!hist.length) { if (body) body.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted)">Nenhuma movimentação registrada.</div>'; return; }
     if (body) body.innerHTML = `
       <div style="padding:.75rem 1.25rem 1.25rem">
-      <div class="table-wrap" style="max-height:420px;overflow-y:auto;border-radius:var(--radius);border:1px solid var(--border)">
+      <div class="table-wrap" style="max-height:420px;overflow-y:auto;border-radius:0;border:1px solid var(--border)">
         <table>
           <thead><tr><th>Data</th><th>Tipo</th><th>Setor</th><th>Admin</th><th>Observação</th></tr></thead>
           <tbody>

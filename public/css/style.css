@@ -3438,3 +3438,39 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 
 
+
+/* ═══════════════════════════════════════════
+   ADMIN ITENS — modais quadrados (sem border-radius)
+═══════════════════════════════════════════ */
+#modal-overlay .modal,
+#cm-modal-overlay .modal,
+#micros-modal-overlay .modal,
+#mov-modal-overlay .modal,
+#hist-mov-modal-overlay .modal,
+#imp-modal-overlay .modal,
+#eq-mov-overlay .modal,
+#eq-hist-overlay .modal {
+  border-radius: 0;
+}
+
+#modal-overlay .form-control,
+#cm-modal-overlay .form-control,
+#micros-modal-overlay .form-control,
+#mov-modal-overlay .form-control,
+#hist-mov-modal-overlay .form-control,
+#imp-modal-overlay .form-control,
+#eq-mov-overlay .form-control,
+#eq-hist-overlay .form-control {
+  border-radius: 0;
+}
+
+#modal-overlay .btn,
+#cm-modal-overlay .btn,
+#micros-modal-overlay .btn,
+#mov-modal-overlay .btn,
+#hist-mov-modal-overlay .btn,
+#imp-modal-overlay .btn,
+#eq-mov-overlay .btn,
+#eq-hist-overlay .btn {
+  border-radius: 0;
+}
