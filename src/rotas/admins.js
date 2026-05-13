@@ -536,6 +536,8 @@ router.post('/usuarios', requireMaster, async (req, res) => {
       return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail' });
     if (db.buscarAdminPorUsuario(usuario))
       return res.status(409).json({ erro: 'Já existe um admin ativo com este usuário' });
+    if (db.buscarUsuarioPorEmail(email))
+      return res.status(409).json({ erro: 'Já existe um usuário ativo com este e-mail' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
     const id = db.criarAdmin({
@@ -570,6 +572,8 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
         const adminComEmail = db.buscarAdminPorEmail(email);
         if (adminComEmail && adminComEmail.id !== alvo.id)
           return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail' });
+        if (db.buscarUsuarioPorEmail(email))
+          return res.status(409).json({ erro: 'Já existe um usuário ativo com este e-mail' });
       }
       dados.email = email || null;
     }
@@ -580,6 +584,8 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
           return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail. Desative-o primeiro.' });
         if (db.buscarAdminPorUsuario(alvo.usuario))
           return res.status(409).json({ erro: 'Já existe um admin ativo com este usuário. Desative-o primeiro.' });
+        if (alvo.email && db.buscarUsuarioPorEmail(alvo.email))
+          return res.status(409).json({ erro: 'Já existe um usuário ativo com este e-mail. Desative-o primeiro.' });
       }
       dados.ativo = req.body.ativo ? 1 : 0;
     }
@@ -646,6 +652,8 @@ router.post('/portal-usuarios', requireAdmin, async (req, res) => {
 
     if (db.buscarUsuarioPorEmail(email))
       return res.status(409).json({ erro: 'Já existe um usuário ativo com este e-mail' });
+    if (db.buscarAdminPorEmail(email))
+      return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
     const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null });
@@ -664,9 +672,10 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
     // Apenas ativo/inativo (toggle)
     if (req.body.ativo !== undefined && Object.keys(req.body).length === 1) {
       if (req.body.ativo && !u.ativo) {
-        const emailConflito = db.buscarUsuarioPorEmail(u.email);
-        if (emailConflito)
+        if (db.buscarUsuarioPorEmail(u.email))
           return res.status(409).json({ erro: 'Já existe um usuário ativo com este e-mail. Desative-o primeiro.' });
+        if (db.buscarAdminPorEmail(u.email))
+          return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail. Desative-o primeiro.' });
       }
       db.atualizarUsuario(u.id, { ativo: req.body.ativo ? 1 : 0 });
       return res.json({ mensagem: req.body.ativo ? 'Usuário reativado' : 'Usuário desativado' });
@@ -684,6 +693,7 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
       if (!email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
       const existente = db.buscarUsuarioPorEmail(email);
       if (existente && existente.id !== u.id) return res.status(409).json({ erro: 'Já existe um usuário ativo com este e-mail' });
+      if (db.buscarAdminPorEmail(email)) return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail' });
       dados.email = email;
     }
     if (req.body.senha) {

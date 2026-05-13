@@ -133,7 +133,8 @@ function initDb() {
   try { db.exec("ALTER TABLE chamados ADD COLUMN aberto_por_admin_id INTEGER REFERENCES admins(id)"); } catch {}
 
   // Migration: trocar UNIQUE inline por partial unique index (ativo=1)
-  // Permite: mesmo @ em usuarios E admins; reutilizar @ após desativação; bloquear reativação se já existe @ ativo
+  // Regra: mesmo @ não pode existir em usuários E admins ao mesmo tempo (validado nas rotas)
+  // Permite: reutilizar @ após desativação; bloqueia reativação se já existe @ ativo em qualquer tabela
   if (!db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_usuarios_email_ativo'").get()) {
     try {
       db.pragma('foreign_keys = OFF');
