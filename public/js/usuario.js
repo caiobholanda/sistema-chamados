@@ -161,9 +161,6 @@ function renderAuth() {
             <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
           </form>
 
-          <div style="text-align:center;margin-top:1.5rem">
-            <a href="/admin-login.html" style="font-size:.78rem;color:var(--text-muted);text-decoration:none;letter-spacing:.04em">Acesso administrativo</a>
-          </div>
         </div>
       </div>
 
@@ -181,16 +178,33 @@ function renderAuth() {
     e.preventDefault();
     const msg = document.getElementById('msg-auth');
     const btn = e.target.querySelector('button[type=submit]');
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const senha = document.getElementById('login-senha').value;
     btn.disabled = true; btn.textContent = 'Entrando...';
     try {
-      const r = await apiFetch('/api/usuarios/login', {
+      // Tenta login como usuário do portal
+      const rU = await apiFetch('/api/usuarios/login', {
         method: 'POST',
-        body: JSON.stringify({ email: document.getElementById('login-email').value, senha: document.getElementById('login-senha').value }),
+        body: JSON.stringify({ email, senha }),
       });
-      const d = await r.json();
-      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
-      const u = await (await apiFetch('/api/usuarios/me')).json();
-      renderPainel(u);
+      if (rU.ok) {
+        const u = await (await apiFetch('/api/usuarios/me')).json();
+        renderPainel(u);
+        return;
+      }
+
+      // Se não for usuário, tenta como admin/master
+      const rA = await apiFetch('/api/admin/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, senha }),
+      });
+      if (rA.ok) {
+        location.replace('/admin-painel.html');
+        return;
+      }
+
+      const d = await rA.json();
+      msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'E-mail ou senha incorretos.'}</div>`;
     } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Entrar'; }
   });
