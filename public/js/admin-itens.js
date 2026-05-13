@@ -1815,10 +1815,8 @@ function eqMovimentar(id) {
       <div class="form-group">
         <label class="form-label">Tipo de movimentação</label>
         <select class="form-control" id="eqm-tipo" onchange="eqMovCampos()">
-          <option value="entrada">Entrada (disponível)</option>
+          <option value="entrada">Entrada</option>
           <option value="saida">Saída para setor</option>
-          <option value="retorno">Retorno ao almoxarifado</option>
-          <option value="manutencao">Envio para manutenção</option>
           <option value="descarte">Descarte</option>
         </select>
         <div id="eqm-desc" style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">O item volta a ficar disponível.</div>
@@ -1855,15 +1853,13 @@ function eqMovimentar(id) {
 
 function eqMovCampos() {
   const tipo = document.getElementById('eqm-tipo')?.value;
-  const descs = { entrada: 'O item fica disponível no almoxarifado.', saida: 'O item vai para um setor e fica "Em uso".', retorno: 'O item retorna ao almoxarifado.', manutencao: 'O item vai para manutenção.', descarte: 'O item será marcado como descartado.' };
+  const descs = { entrada: 'O item fica disponível no almoxarifado.', saida: 'O item vai para um setor e fica "Em uso".', descarte: 'O item será marcado como descartado.' };
   const d = document.getElementById('eqm-desc');
   if (d) d.textContent = descs[tipo] || '';
   const extras = document.getElementById('eqm-extras');
   if (!extras) return;
   if (tipo === 'saida') {
     extras.innerHTML = `<div class="form-group"><label class="form-label">Setor de destino <span style="color:var(--danger)">*</span></label><input class="form-control" id="eqm-destino" type="text" placeholder="Ex: Recepção, RH, Governança…"></div>`;
-  } else if (tipo === 'retorno') {
-    extras.innerHTML = `<div class="form-group"><label class="form-label">Retornando de qual setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label><input class="form-control" id="eqm-origem" type="text" placeholder="Ex: Recepção…"></div>`;
   } else { extras.innerHTML = ''; }
 }
 
