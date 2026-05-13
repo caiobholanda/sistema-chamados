@@ -1830,20 +1830,22 @@ function eqClonarNovo(nome, categoria) {
   const modalEl = document.querySelector('#modal-overlay .modal');
   if (modalEl) modalEl.style.maxWidth = '420px';
   document.getElementById('modal-body').innerHTML = `
-    <div style="padding:.1rem 0 .9rem;border-bottom:1px solid var(--border);margin-bottom:.9rem">
-      <div style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Equipamento</div>
-      <div style="font-weight:700;color:var(--navy)">${esc(nome)}${categoria ? `<span style="font-weight:400;color:var(--text-muted);margin-left:.5rem">· ${esc(categoria)}</span>` : ''}</div>
+    <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:.9rem">
+      <div style="padding-bottom:.85rem;border-bottom:1px solid var(--border)">
+        <div style="font-size:.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Equipamento</div>
+        <div style="font-weight:700;color:var(--navy)">${esc(nome)}${categoria ? `<span style="font-weight:400;color:var(--text-muted);margin-left:.5rem">· ${esc(categoria)}</span>` : ''}</div>
+      </div>
+      <form id="form-clonar" style="display:flex;flex-direction:column;gap:.9rem">
+        <div class="form-group">
+          <label class="form-label">Informação <span style="font-size:.78rem;color:var(--text-muted)">(nº de série, patrimônio, etc.)</span></label>
+          <input class="form-control" id="clonar-obs" type="text" placeholder="Ex: S/N 4XY9823, Patrimônio 00142…" autofocus>
+        </div>
+        <div style="display:flex;gap:.5rem;justify-content:flex-end;padding-top:.75rem;border-top:1px solid var(--border)">
+          <button type="button" class="btn btn-secondary" onclick="fecharModal();verUnidades(_clonarNome)">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-clonar-save">Adicionar</button>
+        </div>
+      </form>
     </div>
-    <form id="form-clonar" style="display:flex;flex-direction:column;gap:.8rem">
-      <div class="form-group">
-        <label class="form-label">Informação <span style="font-size:.78rem;color:var(--text-muted)">(nº de série, patrimônio, etc.)</span></label>
-        <input class="form-control" id="clonar-obs" type="text" placeholder="Ex: S/N 4XY9823, Patrimônio 00142…" autofocus>
-      </div>
-      <div style="display:flex;gap:.5rem;justify-content:flex-end;padding-top:.75rem;border-top:1px solid var(--border)">
-        <button type="button" class="btn btn-secondary" onclick="fecharModal();verUnidades(_clonarNome)">Cancelar</button>
-        <button type="submit" class="btn btn-primary" id="btn-clonar-save">Adicionar</button>
-      </div>
-    </form>
   `;
   document.getElementById('form-clonar').addEventListener('submit', async (e) => {
     e.preventDefault();
