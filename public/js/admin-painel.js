@@ -1382,25 +1382,26 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       }
       #acordo-eq-overlay .modal-header {
         padding: 1.2rem 1.6rem;
-        background: linear-gradient(135deg, #0D1B2A 0%, #162840 100%);
-        color: #fff; display: flex; align-items: center; justify-content: space-between;
+        background: #fff;
+        color: #0D1B2A; display: flex; align-items: center; justify-content: space-between;
         flex-shrink: 0; border-bottom: 2px solid #D4AF37;
       }
       #acordo-eq-overlay .modal-title {
         font-weight: 700; font-size: 1.12rem; letter-spacing: .01em;
         display: flex; align-items: center; gap: .6rem; margin: 0;
+        color: #0D1B2A;
       }
       #acordo-eq-overlay .modal-subtitle {
-        font-size: .8rem; color: #EDD97A; margin-top: .2rem;
+        font-size: .8rem; color: #7A726A; margin-top: .2rem;
       }
       #acordo-eq-overlay .btn-close {
-        background: rgba(212,175,55,.14); border: 1px solid rgba(212,175,55,.4);
-        color: #EDD97A; font-size: 1rem; line-height: 1; width: 36px; height: 36px;
+        background: #fff; border: 1.5px solid #C8BAA5;
+        color: #4A4540; font-size: 1rem; line-height: 1; width: 36px; height: 36px;
         border-radius: 6px; cursor: pointer; display: flex; align-items: center;
-        justify-content: center; transition: background .15s, border-color .15s;
+        justify-content: center; transition: background .15s, border-color .15s, color .15s;
       }
       #acordo-eq-overlay .btn-close:hover {
-        background: rgba(212,175,55,.28); border-color: #D4AF37;
+        background: #F7F3ED; border-color: #D4AF37; color: #0D1B2A;
       }
       #acordo-eq-overlay .modal-body {
         flex: 1; overflow-y: auto; padding: 1.3rem 1.6rem;
