@@ -1272,7 +1272,7 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     ).slice(0, 30);
   }
 
-  function bindDropdown(busca, drop, idHid, badge, rowId) {
+  function bindDropdown(busca, drop, idHid, badge) {
     busca.addEventListener('input', () => {
       const q = busca.value.trim();
       idHid.value = '';
@@ -1300,17 +1300,6 @@ function abrirModalEquipamentosAcordo(chamadoId) {
           badge.textContent = `✓ ${eq.codigo} vinculado`;
           badge.style.display = 'block';
           drop.style.display = 'none';
-          // Auto-preenche tipo/marca/modelo na linha principal se vazios
-          if (rowId) {
-            const tr = document.querySelector(`#acordo-eq-tbody tr[data-row-id="${rowId}"]`);
-            if (tr) {
-              const tipo  = tr.querySelector('.eq-tipo');
-              const marca = tr.querySelector('.eq-marca');
-              const modelo = tr.querySelector('.eq-modelo');
-              if (tipo  && !tipo.value)  tipo.value  = eq.categoria || eq.nome;
-              if (modelo && !modelo.value) modelo.value = eq.nome;
-            }
-          }
         });
         el.addEventListener('mouseover', () => el.style.background = '#f8f5f0');
         el.addEventListener('mouseout',  () => el.style.background = '');
@@ -1320,25 +1309,26 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     busca.addEventListener('focus', () => { if (busca.value.trim()) busca.dispatchEvent(new Event('input')); });
   }
 
-  function criarLinhaInterna(rowId, num) {
+  function criarVinculacao() {
     const div = document.createElement('div');
-    div.dataset.forRow = rowId;
-    div.style.cssText = 'display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.45rem';
+    div.classList.add('vinculacao-item');
+    div.style.cssText = 'display:flex;align-items:flex-start;gap:.4rem;margin-bottom:.4rem';
     div.innerHTML = `
-      <span style="min-width:54px;font-size:.74rem;color:#64748b;padding-top:.3rem;font-weight:500;flex-shrink:0">Item ${num}:</span>
       <div style="position:relative;flex:1">
-        <input type="text" class="eq-busca form-control" placeholder="Buscar item no estoque… (opcional)" autocomplete="off"
+        <input type="text" class="eq-busca form-control" placeholder="Buscar item no estoque…" autocomplete="off"
           style="padding:.22rem .35rem;font-size:.73rem;width:100%;background:#fff">
         <div class="eq-drop" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:140px;overflow-y:auto;background:#fff;border:1px solid #c8a951;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
         <input type="hidden" class="eq-id">
         <div class="eq-badge" style="font-size:.67rem;color:#15803d;margin-top:.15rem;display:none"></div>
       </div>
+      <button type="button" class="remover-vinculacao" title="Remover" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.9rem;line-height:1;padding:.28rem .2rem;flex-shrink:0">✕</button>
     `;
     const busca = div.querySelector('.eq-busca');
     const drop  = div.querySelector('.eq-drop');
     const idHid = div.querySelector('.eq-id');
     const badge = div.querySelector('.eq-badge');
-    bindDropdown(busca, drop, idHid, badge, rowId);
+    bindDropdown(busca, drop, idHid, badge);
+    div.querySelector('.remover-vinculacao').addEventListener('click', () => div.remove());
     return div;
   }
 
@@ -1355,15 +1345,8 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     `;
     tr.querySelector('.remover-eq-row').addEventListener('click', () => {
       const tbody = document.getElementById('acordo-eq-tbody');
-      if (tbody && tbody.querySelectorAll('tr').length > 1) {
-        tr.remove();
-        const interno = document.querySelector(`#acordo-interno-lista [data-for-row="${rowId}"]`);
-        if (interno) interno.remove();
-      }
+      if (tbody && tbody.querySelectorAll('tr').length > 1) tr.remove();
     });
-    // Cria linha correspondente na seção interna TI
-    const lista = document.getElementById('acordo-interno-lista');
-    if (lista) lista.appendChild(criarLinhaInterna(rowId, rowId));
     return tr;
   }
 
@@ -1397,14 +1380,15 @@ function abrirModalEquipamentosAcordo(chamadoId) {
         <button id="btn-add-acordo-eq" class="btn btn-secondary btn-sm" style="margin-top:.5rem;font-size:.75rem">+ Adicionar linha</button>
 
         <div style="margin-top:1.1rem;border-top:2px dashed #cbd5e1;padding-top:.85rem">
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.55rem">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
             <span style="font-size:.71rem;font-weight:700;color:#1e3a5f;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:.15rem .45rem;letter-spacing:.02em">🔒 CONTROLE INTERNO TI</span>
             <span style="font-size:.7rem;color:#94a3b8">Não aparece para o usuário</span>
           </div>
           <p style="font-size:.72rem;color:#64748b;margin:0 0 .55rem">
-            Vincule cada item ao estoque para que o controle seja atualizado automaticamente quando o usuário assinar:
+            Vincule os itens do estoque que serão entregues. Adicione quantos quiser — o estoque é atualizado automaticamente quando o usuário assinar:
           </p>
           <div id="acordo-interno-lista"></div>
+          <button id="btn-add-vinculacao" class="btn btn-secondary btn-sm" style="margin-top:.3rem;font-size:.72rem;border-color:#bfdbfe;color:#1e3a5f">+ Adicionar item do estoque</button>
         </div>
 
         <div id="msg-acordo-eq" style="margin-top:.6rem"></div>
@@ -1420,6 +1404,9 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   const tbody = document.getElementById('acordo-eq-tbody');
   tbody.appendChild(criarLinha());
 
+  // Começa com uma vinculação de estoque vazia
+  document.getElementById('acordo-interno-lista').appendChild(criarVinculacao());
+
   api('/api/admin/estoque/equipamentos?status=disponivel')
     .then(r => r.ok ? r.json() : [])
     .then(lista => { eqsDisponiveis = lista; })
@@ -1434,22 +1421,29 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     tbody.appendChild(criarLinha());
   });
 
+  document.getElementById('btn-add-vinculacao').addEventListener('click', () => {
+    document.getElementById('acordo-interno-lista').appendChild(criarVinculacao());
+  });
+
   document.getElementById('btn-confirmar-acordo-eq').addEventListener('click', async () => {
     const rows = [];
+
+    // Itens visíveis ao usuário (tabela principal)
     tbody.querySelectorAll('tr').forEach(tr => {
-      const rowId = tr.dataset.rowId;
-      const interno = document.querySelector(`#acordo-interno-lista [data-for-row="${rowId}"]`);
       const row = {
-        equipamento_id:     interno?.querySelector('.eq-id')?.value    || null,
-        equipamento_codigo: interno?.querySelector('.eq-busca')?.value.split(' — ')[0]?.trim() || '',
         quantidade: tr.querySelector('.eq-qtd')?.value   || '1',
         tipo:       tr.querySelector('.eq-tipo')?.value.trim()  || '',
         marca:      tr.querySelector('.eq-marca')?.value.trim() || '',
         modelo:     tr.querySelector('.eq-modelo')?.value.trim() || '',
       };
-      if (!row.equipamento_id) delete row.equipamento_id;
-      if (!row.equipamento_codigo) delete row.equipamento_codigo;
-      if (row.tipo || row.marca || row.modelo || row.equipamento_id) rows.push(row);
+      if (row.tipo || row.marca || row.modelo) rows.push(row);
+    });
+
+    // Vinculações internas de estoque (só equipamento_id — não aparecem no documento do usuário)
+    document.querySelectorAll('#acordo-interno-lista .vinculacao-item').forEach(div => {
+      const eqId = div.querySelector('.eq-id')?.value;
+      const eqCodigo = div.querySelector('.eq-busca')?.value.split(' — ')[0]?.trim() || '';
+      if (eqId) rows.push({ equipamento_id: eqId, equipamento_codigo: eqCodigo });
     });
 
     const btn = document.getElementById('btn-confirmar-acordo-eq');
