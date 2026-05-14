@@ -1103,34 +1103,35 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   const existing = document.getElementById('acordo-eq-overlay');
   if (existing) existing.remove();
 
+  const B = '1px solid #e5ddd0';
   const addLinhaHtml = () => `
     <tr>
-      <td style="padding:.25rem .3rem;border:1px solid var(--border)"><input class="form-control" type="number" min="1" value="1" style="padding:.22rem .35rem;font-size:.78rem;width:100%"></td>
-      <td style="padding:.25rem .3rem;border:1px solid var(--border)"><input class="form-control" type="text" placeholder="Tipo" style="padding:.22rem .35rem;font-size:.78rem;width:100%"></td>
-      <td style="padding:.25rem .3rem;border:1px solid var(--border)"><input class="form-control" type="text" placeholder="Marca" style="padding:.22rem .35rem;font-size:.78rem;width:100%"></td>
-      <td style="padding:.25rem .3rem;border:1px solid var(--border)"><input class="form-control" type="text" placeholder="Modelo" style="padding:.22rem .35rem;font-size:.78rem;width:100%"></td>
-      <td style="padding:.25rem .3rem;border:1px solid var(--border);text-align:center"><button type="button" class="remover-eq-row" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.9rem;line-height:1">✕</button></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control" type="number" min="1" value="1" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control" type="text" placeholder="Tipo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control" type="text" placeholder="Marca" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control" type="text" placeholder="Modelo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B};text-align:center"><button type="button" class="remover-eq-row" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.9rem;line-height:1">✕</button></td>
     </tr>`;
 
   const overlay = document.createElement('div');
   overlay.id = 'acordo-eq-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:var(--card);max-width:540px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.22)">
-      <div style="padding:.9rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-weight:700;font-size:.88rem;color:var(--navy)">📋 Equipamentos do Acordo</div>
-        <button id="btn-fechar-acordo-eq" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;line-height:1">✕</button>
+    <div style="background:#ffffff;max-width:540px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid #e5ddd0">
+      <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5ddd0;display:flex;align-items:center;justify-content:space-between;background:#ffffff">
+        <div style="font-weight:700;font-size:.88rem;color:#1e3a5f">📋 Equipamentos do Acordo</div>
+        <button id="btn-fechar-acordo-eq" style="background:none;border:none;cursor:pointer;color:#666;font-size:1.1rem;line-height:1">✕</button>
       </div>
-      <div style="padding:1rem 1.25rem">
-        <p style="font-size:.77rem;color:var(--text-muted);margin:0 0 .85rem">Informe os equipamentos que o funcionário está recebendo. O usuário verá esses dados ao assinar o acordo.</p>
+      <div style="padding:1rem 1.25rem;background:#ffffff">
+        <p style="font-size:.77rem;color:#666;margin:0 0 .85rem">Informe os equipamentos que o funcionário está recebendo. O usuário verá esses dados ao assinar o acordo.</p>
         <table style="width:100%;border-collapse:collapse;font-size:.78rem">
           <thead>
-            <tr style="background:var(--surface)">
-              <th style="padding:.35rem .5rem;border:1px solid var(--border);text-align:left;width:70px;font-weight:600">Qtd</th>
-              <th style="padding:.35rem .5rem;border:1px solid var(--border);text-align:left;font-weight:600">Tipo</th>
-              <th style="padding:.35rem .5rem;border:1px solid var(--border);text-align:left;font-weight:600">Marca</th>
-              <th style="padding:.35rem .5rem;border:1px solid var(--border);text-align:left;font-weight:600">Modelo</th>
-              <th style="padding:.35rem .5rem;border:1px solid var(--border);width:30px"></th>
+            <tr style="background:#f8f5f0">
+              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;width:70px;font-weight:600;color:#333">Qtd</th>
+              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Tipo</th>
+              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Marca</th>
+              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Modelo</th>
+              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;width:30px"></th>
             </tr>
           </thead>
           <tbody id="acordo-eq-tbody">${addLinhaHtml()}</tbody>
@@ -1138,7 +1139,7 @@ function abrirModalEquipamentosAcordo(chamadoId) {
         <button id="btn-add-acordo-eq" class="btn btn-secondary btn-sm" style="margin-top:.5rem;font-size:.75rem">+ Adicionar linha</button>
         <div id="msg-acordo-eq" style="margin-top:.6rem"></div>
       </div>
-      <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end">
+      <div style="padding:.75rem 1.25rem;border-top:1px solid #e5ddd0;display:flex;gap:.5rem;justify-content:flex-end;background:#ffffff">
         <button class="btn btn-secondary" id="btn-cancelar-acordo-eq">Cancelar</button>
         <button class="btn btn-primary" id="btn-confirmar-acordo-eq">Confirmar</button>
       </div>
