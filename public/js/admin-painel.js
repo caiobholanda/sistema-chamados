@@ -1261,8 +1261,6 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   let eqsDisponiveis = [];
   let rowCounter = 0;
 
-  const B = '1px solid #e5ddd0';
-
   function filtrar(q) {
     const q2 = q.toLowerCase();
     return eqsDisponiveis.filter(e =>
@@ -1280,14 +1278,14 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       if (!q) { drop.style.display = 'none'; return; }
       const res = filtrar(q);
       if (!res.length) {
-        drop.innerHTML = '<div style="padding:.35rem .6rem;font-size:.73rem;color:#94a3b8">Nenhum item disponível</div>';
+        drop.innerHTML = '<div style="padding:1rem 1.1rem;font-size:.87rem;color:#94a3b8;text-align:center;font-style:italic">Nenhum item disponível com esse termo</div>';
         drop.style.display = 'block'; return;
       }
       drop.innerHTML = res.map(e => `
-        <div class="eq-drop-item" data-id="${e.id}" style="padding:.32rem .6rem;font-size:.73rem;cursor:pointer;border-bottom:1px solid #f0ebe3;display:flex;gap:.4rem;align-items:baseline">
-          <span style="font-weight:600;color:#1e3a5f;white-space:nowrap">${e.codigo}</span>
-          <span style="color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.nome}</span>
-          ${e.categoria ? `<span style="margin-left:auto;font-size:.67rem;color:#64748b;white-space:nowrap">${e.categoria}</span>` : ''}
+        <div class="eq-drop-item" data-id="${e.id}">
+          <span class="eq-drop-codigo">${e.codigo}</span>
+          <span class="eq-drop-nome">${e.nome}</span>
+          ${e.categoria ? `<span class="eq-drop-cat">${e.categoria}</span>` : ''}
         </div>`).join('');
       drop.style.display = 'block';
       drop.querySelectorAll('.eq-drop-item').forEach(el => {
@@ -1297,12 +1295,10 @@ function abrirModalEquipamentosAcordo(chamadoId) {
           if (!eq) return;
           busca.value = `${eq.codigo} — ${eq.nome}`;
           idHid.value = eq.id;
-          badge.textContent = `✓ ${eq.codigo} vinculado`;
+          badge.innerHTML = `<span class="eq-badge-chip">✓ Vinculado: ${eq.codigo} — ${eq.nome}</span>`;
           badge.style.display = 'block';
           drop.style.display = 'none';
         });
-        el.addEventListener('mouseover', () => el.style.background = '#f8f5f0');
-        el.addEventListener('mouseout',  () => el.style.background = '');
       });
     });
     busca.addEventListener('blur', () => setTimeout(() => { drop.style.display = 'none'; }, 150));
@@ -1312,16 +1308,15 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   function criarVinculacao() {
     const div = document.createElement('div');
     div.classList.add('vinculacao-item');
-    div.style.cssText = 'display:flex;align-items:flex-start;gap:.4rem;margin-bottom:.4rem';
     div.innerHTML = `
-      <div style="position:relative;flex:1">
-        <input type="text" class="eq-busca form-control" placeholder="Buscar item no estoque…" autocomplete="off"
-          style="padding:.22rem .35rem;font-size:.73rem;width:100%;background:#fff">
-        <div class="eq-drop" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:140px;overflow-y:auto;background:#fff;border:1px solid #c8a951;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
+      <div class="vinc-search-wrap">
+        <span class="vinc-search-icon">🔍</span>
+        <input type="text" class="eq-busca acordo-input" placeholder="Buscar por código, nome ou categoria…" autocomplete="off">
+        <div class="eq-drop"></div>
         <input type="hidden" class="eq-id">
-        <div class="eq-badge" style="font-size:.67rem;color:#15803d;margin-top:.15rem;display:none"></div>
+        <div class="eq-badge"></div>
       </div>
-      <button type="button" class="remover-vinculacao" title="Remover" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.9rem;line-height:1;padding:.28rem .2rem;flex-shrink:0">✕</button>
+      <button type="button" class="remover-vinculacao acordo-btn-remove" title="Remover vínculo">✕</button>
     `;
     const busca = div.querySelector('.eq-busca');
     const drop  = div.querySelector('.eq-drop');
@@ -1337,11 +1332,11 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     const tr = document.createElement('tr');
     tr.dataset.rowId = rowId;
     tr.innerHTML = `
-      <td style="padding:.25rem .3rem;border:${B};width:58px"><input class="form-control eq-qtd" type="number" min="1" value="1" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-tipo" type="text" placeholder="Tipo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-marca" type="text" placeholder="Marca" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-modelo" type="text" placeholder="Modelo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B};text-align:center"><button type="button" class="remover-eq-row" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.9rem;line-height:1">✕</button></td>
+      <td class="cell-qtd"><input class="eq-qtd acordo-input" type="number" min="1" value="1"></td>
+      <td><input class="eq-tipo acordo-input" type="text" placeholder="Notebook, Mouse, Teclado…"></td>
+      <td><input class="eq-marca acordo-input" type="text" placeholder="Dell, Logitech, HP…"></td>
+      <td><input class="eq-modelo acordo-input" type="text" placeholder="G15 5520, MX Master 3…"></td>
+      <td class="cell-action"><button type="button" class="remover-eq-row acordo-btn-remove" title="Remover linha">✕</button></td>
     `;
     tr.querySelector('.remover-eq-row').addEventListener('click', () => {
       const tbody = document.getElementById('acordo-eq-tbody');
@@ -1352,47 +1347,268 @@ function abrirModalEquipamentosAcordo(chamadoId) {
 
   const overlay = document.createElement('div');
   overlay.id = 'acordo-eq-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:#ffffff;max-width:680px;width:96%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid #e5ddd0">
-      <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5ddd0;display:flex;align-items:center;justify-content:space-between;background:#ffffff;position:sticky;top:0;z-index:1">
-        <div style="font-weight:700;font-size:.88rem;color:#1e3a5f">📋 Equipamentos do Acordo</div>
-        <button id="btn-fechar-acordo-eq" style="background:none;border:none;cursor:pointer;color:#666;font-size:1.1rem;line-height:1">✕</button>
-      </div>
-      <div style="padding:1rem 1.25rem;background:#ffffff">
-        <p style="font-size:.77rem;color:#666;margin:0 0 .75rem">
-          Preencha os itens que serão entregues ao usuário. Esta lista aparecerá no acordo para assinatura.
-        </p>
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:.78rem;min-width:380px">
-            <thead>
-              <tr style="background:#f8f5f0">
-                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;width:58px;font-weight:600;color:#333">Qtd</th>
-                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Tipo</th>
-                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Marca</th>
-                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Modelo</th>
-                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;width:30px"></th>
-              </tr>
-            </thead>
-            <tbody id="acordo-eq-tbody"></tbody>
-          </table>
+    <style>
+      #acordo-eq-overlay {
+        position: fixed; inset: 0; background: rgba(15,23,42,.55);
+        z-index: 9999; display: flex; align-items: center; justify-content: center;
+        padding: 1rem; font-family: inherit;
+      }
+      #acordo-eq-overlay .modal-shell {
+        background: #f8f5f0; max-width: 860px; width: 100%; max-height: 92vh;
+        display: flex; flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0,0,0,.35);
+        border-radius: 12px; overflow: hidden;
+      }
+      #acordo-eq-overlay .modal-header {
+        padding: 1.2rem 1.6rem;
+        background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+        color: #fff; display: flex; align-items: center; justify-content: space-between;
+        flex-shrink: 0;
+      }
+      #acordo-eq-overlay .modal-title {
+        font-weight: 700; font-size: 1.12rem; letter-spacing: .01em;
+        display: flex; align-items: center; gap: .6rem; margin: 0;
+      }
+      #acordo-eq-overlay .modal-subtitle {
+        font-size: .8rem; color: #cbd5e1; margin-top: .2rem;
+      }
+      #acordo-eq-overlay .btn-close {
+        background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22);
+        color: #fff; font-size: 1rem; line-height: 1; width: 36px; height: 36px;
+        border-radius: 8px; cursor: pointer; display: flex; align-items: center;
+        justify-content: center; transition: background .15s;
+      }
+      #acordo-eq-overlay .btn-close:hover { background: rgba(255,255,255,.24); }
+      #acordo-eq-overlay .modal-body {
+        flex: 1; overflow-y: auto; padding: 1.3rem 1.6rem;
+      }
+      #acordo-eq-overlay .modal-footer {
+        padding: 1rem 1.6rem; background: #fff;
+        border-top: 1px solid #e5ddd0;
+        display: flex; gap: .65rem; justify-content: flex-end; flex-shrink: 0;
+      }
+      #acordo-eq-overlay .card {
+        background: #fff; border: 1px solid #e5ddd0; border-radius: 10px;
+        padding: 1.2rem 1.35rem; margin-bottom: 1.1rem;
+      }
+      #acordo-eq-overlay .card-header {
+        display: flex; align-items: center; gap: .65rem; margin-bottom: .5rem;
+      }
+      #acordo-eq-overlay .card-step {
+        background: #c8a951; color: #fff; font-weight: 700;
+        width: 26px; height: 26px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: .82rem; flex-shrink: 0;
+      }
+      #acordo-eq-overlay .card-step.dark { background: #1e3a5f; }
+      #acordo-eq-overlay .card-title {
+        margin: 0; font-size: 1.02rem; font-weight: 700; color: #1e3a5f;
+      }
+      #acordo-eq-overlay .card-badge {
+        margin-left: auto; font-size: .72rem; font-weight: 700; color: #1e3a5f;
+        background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 5px;
+        padding: .22rem .55rem; letter-spacing: .04em;
+      }
+      #acordo-eq-overlay .card-desc {
+        font-size: .85rem; color: #64748b; margin: 0 0 1rem; padding-left: 2.25rem;
+        line-height: 1.45;
+      }
+      #acordo-eq-overlay .table-wrap {
+        overflow-x: auto; border: 1px solid #e5ddd0; border-radius: 8px;
+        background: #fdfcf9;
+      }
+      #acordo-eq-overlay table.acordo-table {
+        width: 100%; border-collapse: collapse; min-width: 540px;
+      }
+      #acordo-eq-overlay table.acordo-table thead tr {
+        background: #f5f0e6; border-bottom: 1px solid #e5ddd0;
+      }
+      #acordo-eq-overlay table.acordo-table th {
+        padding: .65rem .8rem; text-align: left; font-weight: 700;
+        color: #1e3a5f; font-size: .76rem; letter-spacing: .05em;
+        text-transform: uppercase;
+      }
+      #acordo-eq-overlay table.acordo-table th.cell-qtd { text-align: center; width: 88px; }
+      #acordo-eq-overlay table.acordo-table th.cell-action { width: 52px; }
+      #acordo-eq-overlay table.acordo-table td {
+        padding: .55rem .65rem; border-bottom: 1px solid #ede5d4;
+        vertical-align: top;
+      }
+      #acordo-eq-overlay table.acordo-table tbody tr:last-child td {
+        border-bottom: none;
+      }
+      #acordo-eq-overlay table.acordo-table td.cell-qtd { width: 88px; }
+      #acordo-eq-overlay table.acordo-table td.cell-qtd input { text-align: center; }
+      #acordo-eq-overlay table.acordo-table td.cell-action { text-align: center; width: 52px; }
+      #acordo-eq-overlay .acordo-input {
+        width: 100%; padding: .58rem .75rem; font-size: .9rem;
+        font-family: inherit; color: #1e293b; background: #fff;
+        border: 1.5px solid #d4cdbb; border-radius: 7px; outline: none;
+        transition: border-color .15s, box-shadow .15s;
+        box-sizing: border-box;
+      }
+      #acordo-eq-overlay .acordo-input:focus {
+        border-color: #c8a951;
+        box-shadow: 0 0 0 3px rgba(200,169,81,.18);
+      }
+      #acordo-eq-overlay .acordo-input.invalid {
+        border-color: #ef4444; background: #fef2f2;
+      }
+      #acordo-eq-overlay .acordo-input.invalid:focus {
+        box-shadow: 0 0 0 3px rgba(239,68,68,.18);
+      }
+      #acordo-eq-overlay .acordo-btn-add {
+        margin-top: .7rem; padding: .55rem 1.05rem;
+        background: #fff; border: 1.5px dashed #c8a951; color: #1e3a5f;
+        border-radius: 7px; cursor: pointer; font-size: .88rem; font-weight: 600;
+        font-family: inherit; transition: background .15s, border-color .15s;
+        display: inline-flex; align-items: center; gap: .35rem;
+      }
+      #acordo-eq-overlay .acordo-btn-add:hover {
+        background: #fdf6e3; border-color: #b89a48;
+      }
+      #acordo-eq-overlay .acordo-btn-add.blue {
+        border-color: #93c5fd;
+      }
+      #acordo-eq-overlay .acordo-btn-add.blue:hover {
+        background: #eff6ff; border-color: #60a5fa;
+      }
+      #acordo-eq-overlay .acordo-btn-remove {
+        background: #fff; border: 1.5px solid #fecaca; color: #dc2626;
+        cursor: pointer; font-size: 1rem; line-height: 1;
+        padding: .5rem .7rem; border-radius: 7px;
+        transition: background .15s, border-color .15s;
+      }
+      #acordo-eq-overlay .acordo-btn-remove:hover {
+        background: #fee2e2; border-color: #fca5a5;
+      }
+      #acordo-eq-overlay .acordo-btn-primary {
+        padding: .7rem 1.5rem; background: #1e3a5f; color: #fff;
+        border: 1.5px solid #1e3a5f; border-radius: 7px;
+        cursor: pointer; font-size: .92rem; font-weight: 700;
+        font-family: inherit; transition: background .15s;
+      }
+      #acordo-eq-overlay .acordo-btn-primary:hover { background: #2c5282; }
+      #acordo-eq-overlay .acordo-btn-primary:disabled {
+        background: #94a3b8; border-color: #94a3b8; cursor: not-allowed;
+      }
+      #acordo-eq-overlay .acordo-btn-secondary {
+        padding: .7rem 1.3rem; background: #fff; color: #475569;
+        border: 1.5px solid #cbd5e1; border-radius: 7px;
+        cursor: pointer; font-size: .92rem; font-weight: 600;
+        font-family: inherit; transition: background .15s;
+      }
+      #acordo-eq-overlay .acordo-btn-secondary:hover { background: #f1f5f9; }
+      #acordo-eq-overlay .vinculacao-item {
+        display: flex; align-items: flex-start; gap: .55rem; margin-bottom: .65rem;
+      }
+      #acordo-eq-overlay .vinc-search-wrap {
+        position: relative; flex: 1;
+      }
+      #acordo-eq-overlay .vinc-search-icon {
+        position: absolute; left: .75rem; top: .65rem;
+        color: #94a3b8; pointer-events: none; font-size: 1rem;
+      }
+      #acordo-eq-overlay .vinc-search-wrap .acordo-input {
+        padding-left: 2.4rem;
+      }
+      #acordo-eq-overlay .eq-drop {
+        display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+        max-height: 260px; overflow-y: auto;
+        background: #fff; border: 1.5px solid #c8a951; border-radius: 8px;
+        z-index: 10000; box-shadow: 0 10px 28px rgba(0,0,0,.18);
+      }
+      #acordo-eq-overlay .eq-drop-item {
+        padding: .7rem .95rem; font-size: .88rem; cursor: pointer;
+        border-bottom: 1px solid #f0ebe3;
+        display: flex; gap: .65rem; align-items: center;
+        transition: background .12s;
+      }
+      #acordo-eq-overlay .eq-drop-item:last-child { border-bottom: none; }
+      #acordo-eq-overlay .eq-drop-item:hover { background: #f8f5f0; }
+      #acordo-eq-overlay .eq-drop-codigo {
+        font-weight: 700; color: #1e3a5f; background: #eef2ff;
+        padding: .15rem .5rem; border-radius: 5px; font-size: .78rem;
+        min-width: 56px; text-align: center; flex-shrink: 0;
+      }
+      #acordo-eq-overlay .eq-drop-nome {
+        color: #334155; flex: 1; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap;
+      }
+      #acordo-eq-overlay .eq-drop-cat {
+        font-size: .74rem; color: #64748b; background: #f1f5f9;
+        padding: .15rem .5rem; border-radius: 10px;
+        white-space: nowrap; flex-shrink: 0;
+      }
+      #acordo-eq-overlay .eq-badge {
+        display: none; margin-top: .4rem;
+      }
+      #acordo-eq-overlay .eq-badge-chip {
+        display: inline-flex; align-items: center; gap: .35rem;
+        background: #dcfce7; color: #15803d;
+        padding: .3rem .65rem; border-radius: 14px;
+        font-size: .77rem; font-weight: 600;
+      }
+      #acordo-eq-overlay .msg-erro {
+        background: #fef2f2; border: 1.5px solid #fecaca; color: #991b1b;
+        padding: .8rem 1.1rem; border-radius: 8px;
+        font-size: .88rem; font-weight: 500;
+        display: flex; align-items: center; gap: .5rem;
+      }
+    </style>
+    <div class="modal-shell">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">📋 Novo Acordo de Equipamentos</h2>
+          <div class="modal-subtitle">Chamado #${chamadoId} — defina os itens que serão entregues ao usuário</div>
         </div>
-        <button id="btn-add-acordo-eq" class="btn btn-secondary btn-sm" style="margin-top:.5rem;font-size:.75rem">+ Adicionar linha</button>
+        <button id="btn-fechar-acordo-eq" class="btn-close" title="Fechar">✕</button>
+      </div>
 
-        <div style="margin-top:1.1rem;border-top:2px dashed #cbd5e1;padding-top:.85rem">
-          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
-            <span style="font-size:.71rem;font-weight:700;color:#1e3a5f;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:.15rem .45rem;letter-spacing:.02em">🔒 CONTROLE INTERNO TI</span>
-            <span style="font-size:.7rem;color:#94a3b8">Não aparece para o usuário</span>
+      <div class="modal-body">
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-step">1</span>
+            <h3 class="card-title">Itens do Acordo</h3>
           </div>
-          <div id="acordo-interno-lista"></div>
-          <button id="btn-add-vinculacao" class="btn btn-secondary btn-sm" style="margin-top:.3rem;font-size:.72rem;border-color:#bfdbfe;color:#1e3a5f">+ Adicionar item do estoque</button>
+          <p class="card-desc">Estes itens aparecerão no documento que o usuário irá assinar.</p>
+
+          <div class="table-wrap">
+            <table class="acordo-table">
+              <thead>
+                <tr>
+                  <th class="cell-qtd">Qtd</th>
+                  <th>Tipo *</th>
+                  <th>Marca *</th>
+                  <th>Modelo *</th>
+                  <th class="cell-action"></th>
+                </tr>
+              </thead>
+              <tbody id="acordo-eq-tbody"></tbody>
+            </table>
+          </div>
+          <button id="btn-add-acordo-eq" class="acordo-btn-add">+ Adicionar outro item</button>
         </div>
 
-        <div id="msg-acordo-eq" style="margin-top:.6rem"></div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-step dark">2</span>
+            <h3 class="card-title">Vínculo com Estoque</h3>
+            <span class="card-badge">🔒 USO INTERNO TI</span>
+          </div>
+
+          <div id="acordo-interno-lista"></div>
+          <button id="btn-add-vinculacao" class="acordo-btn-add blue">+ Adicionar vínculo de estoque</button>
+        </div>
+
+        <div id="msg-acordo-eq"></div>
       </div>
-      <div style="padding:.75rem 1.25rem;border-top:1px solid #e5ddd0;display:flex;gap:.5rem;justify-content:flex-end;background:#ffffff">
-        <button class="btn btn-secondary" id="btn-cancelar-acordo-eq">Cancelar</button>
-        <button class="btn btn-primary" id="btn-confirmar-acordo-eq">Confirmar</button>
+
+      <div class="modal-footer">
+        <button id="btn-cancelar-acordo-eq" class="acordo-btn-secondary">Cancelar</button>
+        <button id="btn-confirmar-acordo-eq" class="acordo-btn-primary">Confirmar e Enviar Acordo</button>
       </div>
     </div>
   `;
@@ -1401,7 +1617,6 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   const tbody = document.getElementById('acordo-eq-tbody');
   tbody.appendChild(criarLinha());
 
-  // Começa com uma vinculação de estoque vazia
   document.getElementById('acordo-interno-lista').appendChild(criarVinculacao());
 
   api('/api/admin/estoque/equipamentos?status=disponivel')
@@ -1426,17 +1641,15 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     const rows = [];
     const msgEl = document.getElementById('msg-acordo-eq');
 
-    // Valida e coleta itens visíveis ao usuário (tabela principal)
     let linhaInvalida = false;
-    tbody.querySelectorAll('tr').forEach((tr, idx) => {
+    tbody.querySelectorAll('tr').forEach((tr) => {
       const tipo   = tr.querySelector('.eq-tipo')?.value.trim()  || '';
       const marca  = tr.querySelector('.eq-marca')?.value.trim() || '';
       const modelo = tr.querySelector('.eq-modelo')?.value.trim() || '';
 
-      // Destaca campos vazios
       ['eq-tipo', 'eq-marca', 'eq-modelo'].forEach(cls => {
         const el = tr.querySelector(`.${cls}`);
-        if (el) el.style.borderColor = el.value.trim() ? '' : '#ef4444';
+        if (el) el.classList.toggle('invalid', !el.value.trim());
       });
 
       if (!tipo || !marca || !modelo) {
@@ -1450,11 +1663,11 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     });
 
     if (linhaInvalida) {
-      msgEl.innerHTML = '<div class="alert alert-danger">Preencha todos os campos (Tipo, Marca e Modelo) em todas as linhas.</div>';
+      msgEl.innerHTML = '<div class="msg-erro">⚠ Preencha todos os campos (Tipo, Marca e Modelo) em todas as linhas antes de enviar.</div>';
       return;
     }
+    msgEl.innerHTML = '';
 
-    // Vinculações internas de estoque (só equipamento_id — não aparecem no documento do usuário)
     document.querySelectorAll('#acordo-interno-lista .vinculacao-item').forEach(div => {
       const eqId = div.querySelector('.eq-id')?.value;
       const eqCodigo = div.querySelector('.eq-busca')?.value.split(' — ')[0]?.trim() || '';
@@ -1462,17 +1675,24 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     });
 
     const btn = document.getElementById('btn-confirmar-acordo-eq');
-    btn.disabled = true; btn.textContent = 'Salvando...';
+    btn.disabled = true; btn.textContent = 'Salvando…';
     try {
       const r = await api(`/api/admin/chamados/${chamadoId}/requer-acordo`, {
         method: 'PATCH',
         body: JSON.stringify({ ativo: true, equipamentos: JSON.stringify(rows) }),
       });
-      if (!r.ok) { const d = await r.json(); msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+      if (!r.ok) {
+        const d = await r.json();
+        msgEl.innerHTML = `<div class="msg-erro">⚠ ${d.erro}</div>`;
+        return;
+      }
       fechar();
       await abrirModal(chamadoId);
-    } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
-    finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Confirmar'; } }
+    } catch {
+      msgEl.innerHTML = '<div class="msg-erro">⚠ Erro de conexão.</div>';
+    } finally {
+      if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Confirmar e Enviar Acordo'; }
+    }
   });
 }
 
