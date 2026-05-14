@@ -1258,71 +1258,31 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   const existing = document.getElementById('acordo-eq-overlay');
   if (existing) existing.remove();
 
-  // Lista carregada em paralelo — modal aparece imediatamente
   let eqsDisponiveis = [];
+  let rowCounter = 0;
 
   const B = '1px solid #e5ddd0';
 
-  function criarLinha() {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="padding:.3rem .4rem;border:${B};min-width:160px">
-        <div style="position:relative">
-          <input type="text" class="eq-busca form-control" placeholder="Buscar no estoque…" autocomplete="off"
-            style="padding:.22rem .35rem;font-size:.73rem;width:100%;background:#fff">
-          <div class="eq-drop" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:140px;overflow-y:auto;background:#fff;border:1px solid #c8a951;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
-          <input type="hidden" class="eq-id">
-          <div class="eq-badge" style="font-size:.67rem;color:#15803d;margin-top:.15rem;display:none"></div>
-        </div>
-      </td>
-      <td style="padding:.25rem .3rem;border:${B};width:58px"><input class="form-control eq-qtd" type="number" min="1" value="1" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-tipo" type="text" placeholder="Tipo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-marca" type="text" placeholder="Marca" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-modelo" type="text" placeholder="Modelo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B};text-align:center"><button type="button" class="remover-eq-row" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.9rem;line-height:1">✕</button></td>
-    `;
-    bindLinha(tr);
-    return tr;
+  function filtrar(q) {
+    const q2 = q.toLowerCase();
+    return eqsDisponiveis.filter(e =>
+      e.codigo.toLowerCase().includes(q2) ||
+      e.nome.toLowerCase().includes(q2) ||
+      (e.categoria || '').toLowerCase().includes(q2)
+    ).slice(0, 30);
   }
 
-  function bindLinha(tr) {
-    const busca = tr.querySelector('.eq-busca');
-    const drop  = tr.querySelector('.eq-drop');
-    const idHid = tr.querySelector('.eq-id');
-    const badge = tr.querySelector('.eq-badge');
-    const tbody = document.getElementById('acordo-eq-tbody');
-
-    function filtrar(q) {
-      const q2 = q.toLowerCase();
-      return eqsDisponiveis.filter(e =>
-        e.codigo.toLowerCase().includes(q2) ||
-        e.nome.toLowerCase().includes(q2) ||
-        (e.categoria || '').toLowerCase().includes(q2)
-      ).slice(0, 30);
-    }
-
-    function selecionarItem(eq) {
-      busca.value = `${eq.codigo} — ${eq.nome}`;
-      idHid.value = eq.id;
-      badge.textContent = `✓ ${eq.codigo} vinculado`;
-      badge.style.display = 'block';
-      drop.style.display = 'none';
-      // Auto-preenche campos se vazios
-      const tipo  = tr.querySelector('.eq-tipo');
-      const marca = tr.querySelector('.eq-marca');
-      const modelo = tr.querySelector('.eq-modelo');
-      if (!tipo.value)  tipo.value  = eq.categoria || eq.nome;
-      if (!marca.value) marca.value = '';
-      if (!modelo.value) modelo.value = eq.nome;
-    }
-
+  function bindDropdown(busca, drop, idHid, badge, rowId) {
     busca.addEventListener('input', () => {
       const q = busca.value.trim();
       idHid.value = '';
       badge.style.display = 'none';
       if (!q) { drop.style.display = 'none'; return; }
       const res = filtrar(q);
-      if (!res.length) { drop.innerHTML = '<div style="padding:.35rem .6rem;font-size:.73rem;color:#94a3b8">Nenhum item disponível</div>'; drop.style.display = 'block'; return; }
+      if (!res.length) {
+        drop.innerHTML = '<div style="padding:.35rem .6rem;font-size:.73rem;color:#94a3b8">Nenhum item disponível</div>';
+        drop.style.display = 'block'; return;
+      }
       drop.innerHTML = res.map(e => `
         <div class="eq-drop-item" data-id="${e.id}" style="padding:.32rem .6rem;font-size:.73rem;cursor:pointer;border-bottom:1px solid #f0ebe3;display:flex;gap:.4rem;align-items:baseline">
           <span style="font-weight:600;color:#1e3a5f;white-space:nowrap">${e.codigo}</span>
@@ -1334,40 +1294,96 @@ function abrirModalEquipamentosAcordo(chamadoId) {
         el.addEventListener('mousedown', ev => {
           ev.preventDefault();
           const eq = eqsDisponiveis.find(e => e.id === +el.dataset.id);
-          if (eq) selecionarItem(eq);
+          if (!eq) return;
+          busca.value = `${eq.codigo} — ${eq.nome}`;
+          idHid.value = eq.id;
+          badge.textContent = `✓ ${eq.codigo} vinculado`;
+          badge.style.display = 'block';
+          drop.style.display = 'none';
+          // Auto-preenche tipo/marca/modelo na linha principal se vazios
+          if (rowId) {
+            const tr = document.querySelector(`#acordo-eq-tbody tr[data-row-id="${rowId}"]`);
+            if (tr) {
+              const tipo  = tr.querySelector('.eq-tipo');
+              const marca = tr.querySelector('.eq-marca');
+              const modelo = tr.querySelector('.eq-modelo');
+              if (tipo  && !tipo.value)  tipo.value  = eq.categoria || eq.nome;
+              if (modelo && !modelo.value) modelo.value = eq.nome;
+            }
+          }
         });
         el.addEventListener('mouseover', () => el.style.background = '#f8f5f0');
         el.addEventListener('mouseout',  () => el.style.background = '');
       });
     });
-
     busca.addEventListener('blur', () => setTimeout(() => { drop.style.display = 'none'; }, 150));
     busca.addEventListener('focus', () => { if (busca.value.trim()) busca.dispatchEvent(new Event('input')); });
+  }
 
-    const remBtn = tr.querySelector('.remover-eq-row');
-    if (remBtn) remBtn.addEventListener('click', () => {
-      if (tbody && tbody.querySelectorAll('tr').length > 1) tr.remove();
+  function criarLinhaInterna(rowId, num) {
+    const div = document.createElement('div');
+    div.dataset.forRow = rowId;
+    div.style.cssText = 'display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.45rem';
+    div.innerHTML = `
+      <span style="min-width:54px;font-size:.74rem;color:#64748b;padding-top:.3rem;font-weight:500;flex-shrink:0">Item ${num}:</span>
+      <div style="position:relative;flex:1">
+        <input type="text" class="eq-busca form-control" placeholder="Buscar item no estoque… (opcional)" autocomplete="off"
+          style="padding:.22rem .35rem;font-size:.73rem;width:100%;background:#fff">
+        <div class="eq-drop" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:140px;overflow-y:auto;background:#fff;border:1px solid #c8a951;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
+        <input type="hidden" class="eq-id">
+        <div class="eq-badge" style="font-size:.67rem;color:#15803d;margin-top:.15rem;display:none"></div>
+      </div>
+    `;
+    const busca = div.querySelector('.eq-busca');
+    const drop  = div.querySelector('.eq-drop');
+    const idHid = div.querySelector('.eq-id');
+    const badge = div.querySelector('.eq-badge');
+    bindDropdown(busca, drop, idHid, badge, rowId);
+    return div;
+  }
+
+  function criarLinha() {
+    const rowId = ++rowCounter;
+    const tr = document.createElement('tr');
+    tr.dataset.rowId = rowId;
+    tr.innerHTML = `
+      <td style="padding:.25rem .3rem;border:${B};width:58px"><input class="form-control eq-qtd" type="number" min="1" value="1" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-tipo" type="text" placeholder="Tipo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-marca" type="text" placeholder="Marca" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-modelo" type="text" placeholder="Modelo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B};text-align:center"><button type="button" class="remover-eq-row" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.9rem;line-height:1">✕</button></td>
+    `;
+    tr.querySelector('.remover-eq-row').addEventListener('click', () => {
+      const tbody = document.getElementById('acordo-eq-tbody');
+      if (tbody && tbody.querySelectorAll('tr').length > 1) {
+        tr.remove();
+        const interno = document.querySelector(`#acordo-interno-lista [data-for-row="${rowId}"]`);
+        if (interno) interno.remove();
+      }
     });
+    // Cria linha correspondente na seção interna TI
+    const lista = document.getElementById('acordo-interno-lista');
+    if (lista) lista.appendChild(criarLinhaInterna(rowId, rowId));
+    return tr;
   }
 
   const overlay = document.createElement('div');
   overlay.id = 'acordo-eq-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:#ffffff;max-width:700px;width:96%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid #e5ddd0">
+    <div style="background:#ffffff;max-width:680px;width:96%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid #e5ddd0">
       <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5ddd0;display:flex;align-items:center;justify-content:space-between;background:#ffffff;position:sticky;top:0;z-index:1">
         <div style="font-weight:700;font-size:.88rem;color:#1e3a5f">📋 Equipamentos do Acordo</div>
         <button id="btn-fechar-acordo-eq" style="background:none;border:none;cursor:pointer;color:#666;font-size:1.1rem;line-height:1">✕</button>
       </div>
       <div style="padding:1rem 1.25rem;background:#ffffff">
-        <p style="font-size:.77rem;color:#666;margin:0 0 .85rem">
-          Busque e selecione itens do estoque (opcional) ou preencha manualmente. Ao selecionar, o estoque será atualizado automaticamente quando o usuário assinar.
+        <p style="font-size:.77rem;color:#666;margin:0 0 .75rem">
+          Preencha os itens que serão entregues ao usuário. Esta lista aparecerá no acordo para assinatura.
         </p>
         <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:.78rem;min-width:580px">
+          <table style="width:100%;border-collapse:collapse;font-size:.78rem;min-width:380px">
             <thead>
               <tr style="background:#f8f5f0">
-                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Equipamento do estoque <span style="font-weight:400;color:#94a3b8">(opcional)</span></th>
                 <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;width:58px;font-weight:600;color:#333">Qtd</th>
                 <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Tipo</th>
                 <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Marca</th>
@@ -1379,6 +1395,18 @@ function abrirModalEquipamentosAcordo(chamadoId) {
           </table>
         </div>
         <button id="btn-add-acordo-eq" class="btn btn-secondary btn-sm" style="margin-top:.5rem;font-size:.75rem">+ Adicionar linha</button>
+
+        <div style="margin-top:1.1rem;border-top:2px dashed #cbd5e1;padding-top:.85rem">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.55rem">
+            <span style="font-size:.71rem;font-weight:700;color:#1e3a5f;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:.15rem .45rem;letter-spacing:.02em">🔒 CONTROLE INTERNO TI</span>
+            <span style="font-size:.7rem;color:#94a3b8">Não aparece para o usuário</span>
+          </div>
+          <p style="font-size:.72rem;color:#64748b;margin:0 0 .55rem">
+            Vincule cada item ao estoque para que o controle seja atualizado automaticamente quando o usuário assinar:
+          </p>
+          <div id="acordo-interno-lista"></div>
+        </div>
+
         <div id="msg-acordo-eq" style="margin-top:.6rem"></div>
       </div>
       <div style="padding:.75rem 1.25rem;border-top:1px solid #e5ddd0;display:flex;gap:.5rem;justify-content:flex-end;background:#ffffff">
@@ -1392,7 +1420,6 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   const tbody = document.getElementById('acordo-eq-tbody');
   tbody.appendChild(criarLinha());
 
-  // Carrega equipamentos disponíveis em background — modal já está visível
   api('/api/admin/estoque/equipamentos?status=disponivel')
     .then(r => r.ok ? r.json() : [])
     .then(lista => { eqsDisponiveis = lista; })
@@ -1410,9 +1437,11 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   document.getElementById('btn-confirmar-acordo-eq').addEventListener('click', async () => {
     const rows = [];
     tbody.querySelectorAll('tr').forEach(tr => {
+      const rowId = tr.dataset.rowId;
+      const interno = document.querySelector(`#acordo-interno-lista [data-for-row="${rowId}"]`);
       const row = {
-        equipamento_id:     tr.querySelector('.eq-id')?.value    || null,
-        equipamento_codigo: tr.querySelector('.eq-busca')?.value.split(' — ')[0]?.trim() || '',
+        equipamento_id:     interno?.querySelector('.eq-id')?.value    || null,
+        equipamento_codigo: interno?.querySelector('.eq-busca')?.value.split(' — ')[0]?.trim() || '',
         quantidade: tr.querySelector('.eq-qtd')?.value   || '1',
         tipo:       tr.querySelector('.eq-tipo')?.value.trim()  || '',
         marca:      tr.querySelector('.eq-marca')?.value.trim() || '',
