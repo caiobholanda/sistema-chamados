@@ -142,7 +142,7 @@
             <div style="margin-top:.6rem;display:flex;justify-content:center;border-top:1px solid #e2e8f0;padding-top:.6rem">
               <div style="text-align:center;min-width:180px">
                 <div style="font-weight:600;font-size:.8rem;margin-bottom:.4rem">${usuarioNome.split(' ')[0]}</div>
-                <div style="border-top:1px solid #94a3b8;padding-top:.25rem;font-size:.68rem;color:#94a3b8">Assinatura do responsável</div>
+                <div style="border-top:1px solid #94a3b8;padding-top:.25rem;font-size:.68rem;color:#94a3b8">Assinatura do Funcionário</div>
               </div>
             </div>
           </div>
