@@ -90,7 +90,8 @@ router.patch('/chamados/:id/requer-acordo', requireAdmin, (req, res) => {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
     const ativo = req.body.ativo ? 1 : 0;
-    db.marcarRequerAcordo(chamado.id, ativo);
+    const equipamentos = typeof req.body.equipamentos === 'string' ? req.body.equipamentos : null;
+    db.marcarRequerAcordo(chamado.id, ativo, equipamentos);
     return res.json({ requer_acordo: ativo });
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });

@@ -581,6 +581,11 @@ function renderPainel(usuario) {
     const nomeUsuario = (chamado && chamado.nome) || '';
     const adminNome   = (chamado && chamado.admin_nome) || '';
     const setoratual  = (chamado && (chamado.usuario_setor || chamado.setor)) || '';
+    const equipamentosAdmin = (() => {
+      try { return chamado && chamado.acordo_equipamentos ? JSON.parse(chamado.acordo_equipamentos) : null; }
+      catch { return null; }
+    })();
+    const temEquipamentosAdmin = Array.isArray(equipamentosAdmin) && equipamentosAdmin.length > 0;
 
     const setorGrupos = [
       ['Hospedagem', ['Recepção','Concierge','Governança','Reservas','Mensageria / Portaria']],
@@ -633,10 +638,10 @@ function renderPainel(usuario) {
               responsabilizando pelo equipamento abaixo.
             </div>
 
-            <div class="termo-field-single">
+            ${!temEquipamentosAdmin ? `<div class="termo-field-single">
               <span class="termo-label">Equipamento:</span>
               <input id="termo-equipamento" type="text" class="termo-input" placeholder="Descrição do equipamento" maxlength="200">
-            </div>
+            </div>` : ''}
 
             <table class="termo-table">
               <thead>
@@ -645,20 +650,27 @@ function renderPainel(usuario) {
                   <th>Tipo</th>
                   <th>Marca</th>
                   <th>Modelo</th>
-                  <th style="width:28px"></th>
+                  ${!temEquipamentosAdmin ? '<th style="width:28px"></th>' : ''}
                 </tr>
               </thead>
               <tbody id="termo-table-body">
-                <tr>
-                  <td><input class="termo-table-input" type="number" min="1" value="1"></td>
-                  <td><input class="termo-table-input" type="text" placeholder="Tipo"></td>
-                  <td><input class="termo-table-input" type="text" placeholder="Marca"></td>
-                  <td><input class="termo-table-input" type="text" placeholder="Modelo"></td>
-                  <td></td>
-                </tr>
+                ${temEquipamentosAdmin
+                  ? equipamentosAdmin.map(r => `<tr>
+                      <td style="text-align:center;font-weight:600">${r.quantidade || 1}</td>
+                      <td>${r.tipo || ''}</td>
+                      <td>${r.marca || ''}</td>
+                      <td>${r.modelo || ''}</td>
+                    </tr>`).join('')
+                  : `<tr>
+                      <td><input class="termo-table-input" type="number" min="1" value="1"></td>
+                      <td><input class="termo-table-input" type="text" placeholder="Tipo"></td>
+                      <td><input class="termo-table-input" type="text" placeholder="Marca"></td>
+                      <td><input class="termo-table-input" type="text" placeholder="Modelo"></td>
+                      <td></td>
+                    </tr>`}
               </tbody>
             </table>
-            <button type="button" id="btn-add-row" class="btn-termo-add-row">+ Adicionar linha</button>
+            ${!temEquipamentosAdmin ? '<button type="button" id="btn-add-row" class="btn-termo-add-row">+ Adicionar linha</button>' : ''}
 
             <div class="termo-footer">
               <div class="termo-date">Fortaleza, ${hoje}</div>
@@ -685,19 +697,22 @@ function renderPainel(usuario) {
     `;
     document.body.appendChild(overlay);
 
-    document.getElementById('btn-add-row').addEventListener('click', () => {
-      const tbody = document.getElementById('termo-table-body');
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input class="termo-table-input" type="number" min="1" value="1"></td>
-        <td><input class="termo-table-input" type="text" placeholder="Tipo"></td>
-        <td><input class="termo-table-input" type="text" placeholder="Marca"></td>
-        <td><input class="termo-table-input" type="text" placeholder="Modelo"></td>
-        <td><button type="button" class="btn-termo-remove-row" aria-label="Remover">✕</button></td>
-      `;
-      tr.querySelector('.btn-termo-remove-row').addEventListener('click', () => tr.remove());
-      tbody.appendChild(tr);
-    });
+    const btnAddRow = document.getElementById('btn-add-row');
+    if (btnAddRow) {
+      btnAddRow.addEventListener('click', () => {
+        const tbody = document.getElementById('termo-table-body');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input class="termo-table-input" type="number" min="1" value="1"></td>
+          <td><input class="termo-table-input" type="text" placeholder="Tipo"></td>
+          <td><input class="termo-table-input" type="text" placeholder="Marca"></td>
+          <td><input class="termo-table-input" type="text" placeholder="Modelo"></td>
+          <td><button type="button" class="btn-termo-remove-row" aria-label="Remover">✕</button></td>
+        `;
+        tr.querySelector('.btn-termo-remove-row').addEventListener('click', () => tr.remove());
+        tbody.appendChild(tr);
+      });
+    }
 
     document.getElementById('btn-fechar-termo').addEventListener('click', () => overlay.remove());
     document.getElementById('btn-cancelar-termo').addEventListener('click', () => overlay.remove());
@@ -712,18 +727,22 @@ function renderPainel(usuario) {
         return;
       }
       const setor = document.getElementById('termo-setor').value;
-      const equipamento = document.getElementById('termo-equipamento').value.trim();
-      const rows = [];
-      document.querySelectorAll('#termo-table-body tr').forEach(tr => {
-        const inputs = tr.querySelectorAll('input');
-        const row = {
-          quantidade: inputs[0]?.value || '1',
-          tipo: inputs[1]?.value.trim() || '',
-          marca: inputs[2]?.value.trim() || '',
-          modelo: inputs[3]?.value.trim() || '',
-        };
-        if (row.tipo || row.marca || row.modelo) rows.push(row);
-      });
+      const rows = temEquipamentosAdmin
+        ? equipamentosAdmin
+        : (() => {
+            const r = [];
+            document.querySelectorAll('#termo-table-body tr').forEach(tr => {
+              const inputs = tr.querySelectorAll('input');
+              const row = {
+                quantidade: inputs[0]?.value || '1',
+                tipo: inputs[1]?.value.trim() || '',
+                marca: inputs[2]?.value.trim() || '',
+                modelo: inputs[3]?.value.trim() || '',
+              };
+              if (row.tipo || row.marca || row.modelo) r.push(row);
+            });
+            return r;
+          })();
 
       const btn = document.getElementById('btn-aceitar-termo');
       btn.disabled = true; btn.textContent = 'Registrando...';

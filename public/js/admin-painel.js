@@ -1032,13 +1032,18 @@ function setupModalEventos(c) {
   const btnToggleAcordo = document.getElementById('btn-toggle-acordo');
   if (btnToggleAcordo) {
     btnToggleAcordo.addEventListener('click', async () => {
-      const novoValor = !c.requer_acordo;
-      btnToggleAcordo.disabled = true;
-      try {
-        const r = await api(`/api/admin/chamados/${c.id}/requer-acordo`, { method: 'PATCH', body: JSON.stringify({ ativo: novoValor }) });
-        if (!r.ok) { const d = await r.json(); setMsg(`<div class="alert alert-danger">${d.erro}</div>`); return; }
-        await abrirModal(c.id);
-      } finally { if (btnToggleAcordo.isConnected) btnToggleAcordo.disabled = false; }
+      if (c.requer_acordo) {
+        // Desativar: envia direto
+        btnToggleAcordo.disabled = true;
+        try {
+          const r = await api(`/api/admin/chamados/${c.id}/requer-acordo`, { method: 'PATCH', body: JSON.stringify({ ativo: false }) });
+          if (!r.ok) { const d = await r.json(); setMsg(`<div class="alert alert-danger">${d.erro}</div>`); return; }
+          await abrirModal(c.id);
+        } finally { if (btnToggleAcordo.isConnected) btnToggleAcordo.disabled = false; }
+      } else {
+        // Ativar: abre modal de equipamentos
+        abrirModalEquipamentosAcordo(c.id);
+      }
     });
   }
 
@@ -1092,6 +1097,104 @@ function setupModalEventos(c) {
       _termoPollingIv = setInterval(() => atualizarTermoUI().catch(() => {}), 3000);
     }
   }
+}
+
+function abrirModalEquipamentosAcordo(chamadoId) {
+  const existing = document.getElementById('acordo-eq-overlay');
+  if (existing) existing.remove();
+
+  const addLinhaHtml = () => `
+    <tr>
+      <td style="padding:.25rem .3rem;border:1px solid var(--border)"><input class="form-control" type="number" min="1" value="1" style="padding:.22rem .35rem;font-size:.78rem;width:100%"></td>
+      <td style="padding:.25rem .3rem;border:1px solid var(--border)"><input class="form-control" type="text" placeholder="Tipo" style="padding:.22rem .35rem;font-size:.78rem;width:100%"></td>
+      <td style="padding:.25rem .3rem;border:1px solid var(--border)"><input class="form-control" type="text" placeholder="Marca" style="padding:.22rem .35rem;font-size:.78rem;width:100%"></td>
+      <td style="padding:.25rem .3rem;border:1px solid var(--border)"><input class="form-control" type="text" placeholder="Modelo" style="padding:.22rem .35rem;font-size:.78rem;width:100%"></td>
+      <td style="padding:.25rem .3rem;border:1px solid var(--border);text-align:center"><button type="button" class="remover-eq-row" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.9rem;line-height:1">✕</button></td>
+    </tr>`;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'acordo-eq-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--card);max-width:540px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.22)">
+      <div style="padding:.9rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-weight:700;font-size:.88rem;color:var(--navy)">📋 Equipamentos do Acordo</div>
+        <button id="btn-fechar-acordo-eq" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;line-height:1">✕</button>
+      </div>
+      <div style="padding:1rem 1.25rem">
+        <p style="font-size:.77rem;color:var(--text-muted);margin:0 0 .85rem">Informe os equipamentos que o funcionário está recebendo. O usuário verá esses dados ao assinar o acordo.</p>
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+          <thead>
+            <tr style="background:var(--surface)">
+              <th style="padding:.35rem .5rem;border:1px solid var(--border);text-align:left;width:70px;font-weight:600">Qtd</th>
+              <th style="padding:.35rem .5rem;border:1px solid var(--border);text-align:left;font-weight:600">Tipo</th>
+              <th style="padding:.35rem .5rem;border:1px solid var(--border);text-align:left;font-weight:600">Marca</th>
+              <th style="padding:.35rem .5rem;border:1px solid var(--border);text-align:left;font-weight:600">Modelo</th>
+              <th style="padding:.35rem .5rem;border:1px solid var(--border);width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="acordo-eq-tbody">${addLinhaHtml()}</tbody>
+        </table>
+        <button id="btn-add-acordo-eq" class="btn btn-secondary btn-sm" style="margin-top:.5rem;font-size:.75rem">+ Adicionar linha</button>
+        <div id="msg-acordo-eq" style="margin-top:.6rem"></div>
+      </div>
+      <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn btn-secondary" id="btn-cancelar-acordo-eq">Cancelar</button>
+        <button class="btn btn-primary" id="btn-confirmar-acordo-eq">Confirmar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const fechar = () => overlay.remove();
+  document.getElementById('btn-fechar-acordo-eq').addEventListener('click', fechar);
+  document.getElementById('btn-cancelar-acordo-eq').addEventListener('click', fechar);
+  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
+
+  const tbody = document.getElementById('acordo-eq-tbody');
+
+  function bindRemover(tr) {
+    const btn = tr.querySelector('.remover-eq-row');
+    if (btn) btn.addEventListener('click', () => { if (tbody.querySelectorAll('tr').length > 1) tr.remove(); });
+  }
+  tbody.querySelectorAll('tr').forEach(bindRemover);
+
+  document.getElementById('btn-add-acordo-eq').addEventListener('click', () => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = addLinhaHtml().replace(/^<tr>/, '').replace(/<\/tr>$/, '');
+    const trEl = document.createElement('tr');
+    trEl.innerHTML = addLinhaHtml().trim().slice(4, -5);
+    tbody.insertAdjacentHTML('beforeend', addLinhaHtml());
+    bindRemover(tbody.lastElementChild);
+  });
+
+  document.getElementById('btn-confirmar-acordo-eq').addEventListener('click', async () => {
+    const rows = [];
+    tbody.querySelectorAll('tr').forEach(tr => {
+      const inputs = tr.querySelectorAll('input');
+      const row = {
+        quantidade: inputs[0]?.value || '1',
+        tipo: inputs[1]?.value.trim() || '',
+        marca: inputs[2]?.value.trim() || '',
+        modelo: inputs[3]?.value.trim() || '',
+      };
+      if (row.tipo || row.marca || row.modelo) rows.push(row);
+    });
+
+    const btn = document.getElementById('btn-confirmar-acordo-eq');
+    const msgEl = document.getElementById('msg-acordo-eq');
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    try {
+      const r = await api(`/api/admin/chamados/${chamadoId}/requer-acordo`, {
+        method: 'PATCH',
+        body: JSON.stringify({ ativo: true, equipamentos: JSON.stringify(rows) }),
+      });
+      if (!r.ok) { const d = await r.json(); msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+      fechar();
+      await abrirModal(chamadoId);
+    } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
+    finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Confirmar'; } }
+  });
 }
 
 async function carregarEquipamentos() {
