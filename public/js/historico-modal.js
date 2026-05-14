@@ -125,7 +125,7 @@
               <span style="color:#64748b">Cargo:</span><span>${dados.cargo || '—'}</span>
             </div>
             <p style="font-size:.72rem;color:#475569;margin:.4rem 0;border-left:2px solid #bbf7d0;padding-left:.5rem">
-              ${linhasEquip.length ? `<strong>Equipamento: ${linhasEquip.map(r => [r.quantidade, r.tipo, r.modelo].filter(Boolean).join(' ')).join(', ')}</strong>, ` : '<strong>Equipamento:</strong> '}estou recebendo emprestado o equipamento abaixo discriminado pelo setor de TI – Tecnologia da Informação.
+              ${linhasEquip.length ? `<strong>Equipamento: ${linhasEquip.map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ')}</strong>, ` : '<strong>Equipamento:</strong> '}estou recebendo emprestado o equipamento abaixo discriminado pelo setor de TI – Tecnologia da Informação.
               Estou ciente que o mesmo se encontra em perfeito estado de funcionamento. Em caso de quebra, roubo ou avaria
               estarei me responsabilizando pelo equipamento abaixo.
             </p>
