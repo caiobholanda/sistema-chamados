@@ -638,11 +638,9 @@ function renderPainel(usuario) {
               responsabilizando pelo equipamento abaixo.
             </div>
 
-            <div class="termo-texto" style="margin-top:.5rem">
-              ${temEquipamentosAdmin
-                ? `<strong>Equipamento: ${equipamentosAdmin.map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ')}</strong>, estou recebendo emprestado o equipamento abaixo discriminado pelo setor de TI – Tecnologia da Informação. Estou ciente que o mesmo se encontra em perfeito estado de funcionamento. Em caso de quebra, roubo ou avaria estarei me responsabilizando pelo equipamento abaixo.`
-                : `<strong>Equipamento:</strong> estou recebendo emprestado o equipamento abaixo discriminado pelo setor de TI – Tecnologia da Informação. Estou ciente que o mesmo se encontra em perfeito estado de funcionamento. Em caso de quebra, roubo ou avaria estarei me responsabilizando pelo equipamento abaixo.`}
-            </div>
+            ${temEquipamentosAdmin ? `<div class="termo-texto" style="margin-top:.5rem">
+              <strong>Equipamento: ${equipamentosAdmin.map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ')}</strong>
+            </div>` : ''}
 
             <table class="termo-table">
               <thead>

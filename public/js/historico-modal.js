@@ -125,10 +125,11 @@
               <span style="color:#64748b">Cargo:</span><span>${dados.cargo || '—'}</span>
             </div>
             <p style="font-size:.72rem;color:#475569;margin:.4rem 0;border-left:2px solid #bbf7d0;padding-left:.5rem">
-              ${linhasEquip.length ? `<strong>Equipamento: ${linhasEquip.map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ')}</strong>, ` : '<strong>Equipamento:</strong> '}estou recebendo emprestado o equipamento abaixo discriminado pelo setor de TI – Tecnologia da Informação.
+              estou recebendo emprestado o equipamento abaixo discriminado pelo setor de TI – Tecnologia da Informação.
               Estou ciente que o mesmo se encontra em perfeito estado de funcionamento. Em caso de quebra, roubo ou avaria
               estarei me responsabilizando pelo equipamento abaixo.
             </p>
+            ${linhasEquip.length ? `<p style="font-size:.72rem;font-weight:700;color:#1e293b;margin:.3rem 0"><strong>Equipamento: ${linhasEquip.map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ')}</strong></p>` : ''}
             ${equipRows ? `<table style="width:100%;border-collapse:collapse;font-size:.72rem;margin:.4rem 0">
               <thead><tr style="background:#f0fdf4">
                 <th style="padding:.2rem .4rem;border:1px solid #d1fae5;text-align:left;font-weight:600;width:50px">Qtd</th>
