@@ -674,7 +674,8 @@ function renderModalBody(c) {
               ${podeConcluir && c.requer_acordo ? `
               <div id="acordo-aviso" style="display:flex;align-items:center;gap:.4rem;padding:.4rem .55rem;margin-top:.3rem;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.28);font-size:.76rem;color:#92400e">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span id="acordo-aviso-txt">Aguardando assinatura do usuário no portal…</span>
+                <span id="acordo-aviso-txt" style="flex:1">Aguardando assinatura do usuário no portal…</span>
+                <button id="btn-ver-acordo" style="margin-left:auto;background:none;border:1px solid currentColor;border-radius:3px;padding:.15rem .45rem;font-size:.72rem;cursor:pointer;color:inherit;white-space:nowrap">Ver acordo</button>
               </div>` : ''}
               <div id="area-concluir" style="display:none;padding-top:.5rem;border-top:1px solid var(--border)">
                 <div class="form-group" style="margin-bottom:.4rem">
@@ -1047,6 +1048,12 @@ function setupModalEventos(c) {
     });
   }
 
+  // Botão "Ver acordo" — mostra documento pendente ou assinado
+  const btnVerAcordo = document.getElementById('btn-ver-acordo');
+  if (btnVerAcordo) {
+    btnVerAcordo.addEventListener('click', () => abrirModalDocumentoAcordo(c, null));
+  }
+
   // Verificar / monitorar Acordo de Responsabilidade
   const deveChecarTermo = c.requer_acordo || (['hardware', 'processo_compra'].includes(c.categoria) && !isAberto);
   if (deveChecarTermo) {
@@ -1090,6 +1097,8 @@ function setupModalEventos(c) {
             aviso.style.color = '#166534';
             const txt = document.getElementById('acordo-aviso-txt');
             if (txt) txt.textContent = 'Acordo assinado — chamado pode ser concluído agora';
+            const btnVer = document.getElementById('btn-ver-acordo');
+            if (btnVer) btnVer.onclick = () => abrirModalDocumentoAcordo(c, t);
           }
         }
       } else {
@@ -1106,6 +1115,143 @@ function setupModalEventos(c) {
       _termoPollingIv = setInterval(() => atualizarTermoUI().catch(() => {}), 3000);
     }
   }
+}
+
+function abrirModalDocumentoAcordo(c, termo) {
+  const existing = document.getElementById('acordo-doc-overlay');
+  if (existing) existing.remove();
+
+  const equipamentosAdmin = (() => {
+    try { return c.acordo_equipamentos ? JSON.parse(c.acordo_equipamentos) : []; }
+    catch { return []; }
+  })();
+
+  const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  let conteudo;
+  if (termo) {
+    // Acordo assinado
+    const usuarioNome = termo.usuario_nome || '';
+    const setor = termo.setor || '—';
+    const cargo = termo.cargo || '—';
+    const linhasEquip = (() => { try { return JSON.parse(termo.equipamentos || '[]'); } catch { return equipamentosAdmin; } })();
+    const hora = termo.aceito_em ? (termo.aceito_em.includes('T') ? termo.aceito_em : termo.aceito_em.replace(' ', 'T') + 'Z') : null;
+    const dtObj = hora ? new Date(hora.endsWith('Z') ? hora : hora + 'Z') : null;
+    const dataFmt = dtObj ? dtObj.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric' }) : hoje;
+
+    const equipRows = linhasEquip.filter(r => r.tipo || r.marca || r.modelo).map(r =>
+      `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${r.quantidade||1}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.tipo||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.marca||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.modelo||''}</td></tr>`
+    ).join('');
+    const equipSummary = linhasEquip.filter(r => r.tipo || r.marca || r.modelo).map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ');
+
+    conteudo = `
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;font-weight:700;color:#15803d;letter-spacing:.02em">
+        ✓ Acordo assinado em ${dataFmt}
+      </div>
+      <div class="termo-field-row">
+        <span class="termo-label">Eu</span>
+        <span class="termo-value-fixed">${usuarioNome}</span>
+        <span class="termo-label">Empresa:</span>
+        <span class="termo-value-fixed">Hotel Gran Marquise</span>
+      </div>
+      <div class="termo-field-row">
+        <span class="termo-label">Setor:</span>
+        <span class="termo-value-fixed">${setor}</span>
+        <span class="termo-label">Cargo:</span>
+        <span class="termo-value-fixed">${cargo}</span>
+      </div>
+      <div class="termo-texto">
+        estou recebendo emprestado o equipamento abaixo discriminado pelo setor de
+        TI – Tecnologia da Informação. Estou ciente que o mesmo se encontra em perfeito
+        estado de funcionamento. Em caso de quebra, roubo ou avaria estarei me
+        responsabilizando pelo equipamento abaixo.
+      </div>
+      ${equipSummary ? `<div class="termo-texto" style="margin-top:.5rem"><strong>Equipamento: ${equipSummary}</strong></div>` : ''}
+      <table class="termo-table">
+        <thead><tr><th style="width:90px">Quantidade</th><th>Tipo</th><th>Marca</th><th>Modelo</th></tr></thead>
+        <tbody>${equipRows || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:.4rem">Nenhum equipamento registrado</td></tr>'}</tbody>
+      </table>
+      <div class="termo-footer">
+        <div class="termo-date">Fortaleza, ${dataFmt}</div>
+        <div style="display:flex;justify-content:center">
+          <div class="termo-sig" style="text-align:center;min-width:220px">
+            <div style="font-weight:600;font-size:.85rem;margin-bottom:.4rem">${usuarioNome.split(' ')[0]}</div>
+            <div class="termo-sig-line"></div>
+            <div class="termo-sig-label" style="color:#94a3b8">Assinatura do Funcionário</div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    // Acordo pendente — mostra como o usuário vai ver
+    const nomeUsuario = c.usuario_nome || c.nome || '';
+    const equipRows = equipamentosAdmin.filter(r => r.tipo || r.marca || r.modelo).map(r =>
+      `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${r.quantidade||1}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.tipo||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.marca||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.modelo||''}</td></tr>`
+    ).join('');
+    const equipSummary = equipamentosAdmin.filter(r => r.tipo || r.marca || r.modelo).map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ');
+
+    conteudo = `
+      <div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.28);border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;color:#92400e">
+        Aguardando assinatura do usuário — este é o acordo que ele verá no portal
+      </div>
+      <div class="termo-field-row">
+        <span class="termo-label">Eu</span>
+        <span class="termo-value-fixed">${nomeUsuario}</span>
+        <span class="termo-label">Empresa:</span>
+        <span class="termo-value-fixed">Hotel Gran Marquise</span>
+      </div>
+      <div class="termo-field-row">
+        <span class="termo-label">Setor:</span>
+        <span class="termo-value-fixed" style="color:#94a3b8;font-style:italic">A preencher pelo usuário</span>
+        <span class="termo-label">Cargo:</span>
+        <span class="termo-value-fixed" style="color:#94a3b8;font-style:italic">A preencher pelo usuário</span>
+      </div>
+      <div class="termo-texto">
+        estou recebendo emprestado o equipamento abaixo discriminado pelo setor de
+        TI – Tecnologia da Informação. Estou ciente que o mesmo se encontra em perfeito
+        estado de funcionamento. Em caso de quebra, roubo ou avaria estarei me
+        responsabilizando pelo equipamento abaixo.
+      </div>
+      ${equipSummary ? `<div class="termo-texto" style="margin-top:.5rem"><strong>Equipamento: ${equipSummary}</strong></div>` : ''}
+      <table class="termo-table">
+        <thead><tr><th style="width:90px">Quantidade</th><th>Tipo</th><th>Marca</th><th>Modelo</th></tr></thead>
+        <tbody>${equipRows || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:.4rem">Nenhum equipamento cadastrado ainda</td></tr>'}</tbody>
+      </table>
+      <div class="termo-footer">
+        <div class="termo-date">Fortaleza, ${hoje}</div>
+        <div style="display:flex;justify-content:center">
+          <div class="termo-sig" style="text-align:center;min-width:220px">
+            <div style="font-weight:600;font-size:.85rem;margin-bottom:.4rem">${nomeUsuario.split(' ')[0]}</div>
+            <div class="termo-sig-line"></div>
+            <div class="termo-sig-label" style="color:#94a3b8">Assinatura do Funcionário</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'acordo-doc-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:#ffffff;max-width:600px;width:94%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid #e5ddd0;border-radius:4px">
+      <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5ddd0;display:flex;align-items:center;justify-content:space-between;background:#ffffff;position:sticky;top:0">
+        <div style="font-weight:700;font-size:.88rem;color:#1e3a5f">📋 Termo de Responsabilidade de Equipamentos</div>
+        <button id="btn-fechar-acordo-doc" style="background:none;border:none;cursor:pointer;color:#666;font-size:1.1rem;line-height:1">✕</button>
+      </div>
+      <div style="padding:1rem 1.25rem;background:#ffffff">
+        <div class="termo-doc">
+          <div class="termo-doc-header">
+            <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise" class="termo-logo">
+            <div class="termo-empresa">Hotel Gran Marquise</div>
+            <div class="termo-titulo">Termo de Responsabilidade de Equipamentos</div>
+          </div>
+          ${conteudo}
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('btn-fechar-acordo-doc').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
 function abrirModalEquipamentosAcordo(chamadoId) {
