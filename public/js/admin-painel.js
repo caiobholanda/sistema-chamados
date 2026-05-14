@@ -674,7 +674,7 @@ function renderModalBody(c) {
               ${podeConcluir && c.requer_acordo ? `
               <div id="acordo-aviso" style="display:flex;align-items:center;gap:.4rem;padding:.4rem .55rem;margin-top:.3rem;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.28);font-size:.76rem;color:#92400e">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span id="acordo-aviso-txt">Verificando assinatura…</span>
+                <span id="acordo-aviso-txt">Aguardando assinatura do usuário no portal…</span>
               </div>` : ''}
               <div id="area-concluir" style="display:none;padding-top:.5rem;border-top:1px solid var(--border)">
                 <div class="form-group" style="margin-bottom:.4rem">
@@ -1056,7 +1056,13 @@ function setupModalEventos(c) {
       const container = document.getElementById('mv2-termo-status');
       if (!container) { _pararPollingTermo(); return; }
       const r = await api(`/api/admin/chamados/${c.id}/termo-aceite`);
-      if (!r.ok) return;
+      if (!r.ok) {
+        if (c.requer_acordo && isAberto) {
+          const txt = document.getElementById('acordo-aviso-txt');
+          if (txt) txt.textContent = 'Aguardando assinatura do usuário no portal…';
+        }
+        return;
+      }
       const t = await r.json();
       const termoVal = document.getElementById('mv2-termo-val');
       if (t) {
