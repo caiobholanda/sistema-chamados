@@ -1271,6 +1271,18 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   }
 
   function bindDropdown(busca, drop, idHid, badge) {
+    function posicionarDrop() {
+      const r = busca.getBoundingClientRect();
+      drop.style.top   = `${r.bottom + 4}px`;
+      drop.style.left  = `${r.left}px`;
+      drop.style.width = `${r.width}px`;
+    }
+
+    function abrir() {
+      posicionarDrop();
+      drop.style.display = 'block';
+    }
+
     busca.addEventListener('input', () => {
       const q = busca.value.trim();
       idHid.value = '';
@@ -1278,8 +1290,8 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       if (!q) { drop.style.display = 'none'; return; }
       const res = filtrar(q);
       if (!res.length) {
-        drop.innerHTML = '<div style="padding:1rem 1.1rem;font-size:.87rem;color:#94a3b8;text-align:center;font-style:italic">Nenhum item disponível com esse termo</div>';
-        drop.style.display = 'block'; return;
+        drop.innerHTML = '<div class="eq-drop-empty">Nenhum item disponível com esse termo</div>';
+        abrir(); return;
       }
       drop.innerHTML = res.map(e => `
         <div class="eq-drop-item" data-id="${e.id}">
@@ -1287,7 +1299,7 @@ function abrirModalEquipamentosAcordo(chamadoId) {
           <span class="eq-drop-nome">${e.nome}</span>
           ${e.categoria ? `<span class="eq-drop-cat">${e.categoria}</span>` : ''}
         </div>`).join('');
-      drop.style.display = 'block';
+      abrir();
       drop.querySelectorAll('.eq-drop-item').forEach(el => {
         el.addEventListener('mousedown', ev => {
           ev.preventDefault();
@@ -1295,7 +1307,7 @@ function abrirModalEquipamentosAcordo(chamadoId) {
           if (!eq) return;
           busca.value = `${eq.codigo} — ${eq.nome}`;
           idHid.value = eq.id;
-          badge.innerHTML = `<span class="eq-badge-chip">✓ Vinculado: ${eq.codigo} — ${eq.nome}</span>`;
+          badge.innerHTML = `<span class="eq-badge-chip">✓ Vinculado ao estoque: ${eq.codigo} — ${eq.nome}</span>`;
           badge.style.display = 'block';
           drop.style.display = 'none';
         });
@@ -1303,6 +1315,14 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     });
     busca.addEventListener('blur', () => setTimeout(() => { drop.style.display = 'none'; }, 150));
     busca.addEventListener('focus', () => { if (busca.value.trim()) busca.dispatchEvent(new Event('input')); });
+
+    // Reposicionar enquanto o dropdown estiver aberto e o modal rolar
+    const modalBody = document.querySelector('#acordo-eq-overlay .modal-body');
+    if (modalBody) {
+      modalBody.addEventListener('scroll', () => {
+        if (drop.style.display === 'block') posicionarDrop();
+      });
+    }
   }
 
   function criarVinculacao() {
@@ -1350,156 +1370,156 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   overlay.innerHTML = `
     <style>
       #acordo-eq-overlay {
-        position: fixed; inset: 0; background: rgba(15,23,42,.55);
+        position: fixed; inset: 0; background: rgba(13,27,42,.55);
         z-index: 9999; display: flex; align-items: center; justify-content: center;
-        padding: 1rem; font-family: inherit;
+        padding: 1rem; font-family: 'Inter', system-ui, sans-serif;
       }
       #acordo-eq-overlay .modal-shell {
-        background: #f8f5f0; max-width: 860px; width: 100%; max-height: 92vh;
+        background: #F7F3ED; max-width: 860px; width: 100%; max-height: 92vh;
         display: flex; flex-direction: column;
-        box-shadow: 0 20px 60px rgba(0,0,0,.35);
-        border-radius: 12px; overflow: hidden;
+        box-shadow: 0 20px 60px rgba(13,27,42,.35);
+        border-radius: 10px; overflow: hidden;
       }
       #acordo-eq-overlay .modal-header {
         padding: 1.2rem 1.6rem;
-        background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+        background: linear-gradient(135deg, #0D1B2A 0%, #162840 100%);
         color: #fff; display: flex; align-items: center; justify-content: space-between;
-        flex-shrink: 0;
+        flex-shrink: 0; border-bottom: 2px solid #D4AF37;
       }
       #acordo-eq-overlay .modal-title {
         font-weight: 700; font-size: 1.12rem; letter-spacing: .01em;
         display: flex; align-items: center; gap: .6rem; margin: 0;
       }
       #acordo-eq-overlay .modal-subtitle {
-        font-size: .8rem; color: #cbd5e1; margin-top: .2rem;
+        font-size: .8rem; color: #EDD97A; margin-top: .2rem;
       }
       #acordo-eq-overlay .btn-close {
-        background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22);
-        color: #fff; font-size: 1rem; line-height: 1; width: 36px; height: 36px;
-        border-radius: 8px; cursor: pointer; display: flex; align-items: center;
-        justify-content: center; transition: background .15s;
+        background: rgba(212,175,55,.14); border: 1px solid rgba(212,175,55,.4);
+        color: #EDD97A; font-size: 1rem; line-height: 1; width: 36px; height: 36px;
+        border-radius: 6px; cursor: pointer; display: flex; align-items: center;
+        justify-content: center; transition: background .15s, border-color .15s;
       }
-      #acordo-eq-overlay .btn-close:hover { background: rgba(255,255,255,.24); }
+      #acordo-eq-overlay .btn-close:hover {
+        background: rgba(212,175,55,.28); border-color: #D4AF37;
+      }
       #acordo-eq-overlay .modal-body {
         flex: 1; overflow-y: auto; padding: 1.3rem 1.6rem;
       }
       #acordo-eq-overlay .modal-footer {
         padding: 1rem 1.6rem; background: #fff;
-        border-top: 1px solid #e5ddd0;
+        border-top: 1px solid #E5DDD0;
         display: flex; gap: .65rem; justify-content: flex-end; flex-shrink: 0;
       }
       #acordo-eq-overlay .card {
-        background: #fff; border: 1px solid #e5ddd0; border-radius: 10px;
+        background: #fff; border: 1px solid #E5DDD0; border-radius: 8px;
         padding: 1.2rem 1.35rem; margin-bottom: 1.1rem;
       }
       #acordo-eq-overlay .card-header {
         display: flex; align-items: center; gap: .65rem; margin-bottom: .5rem;
       }
       #acordo-eq-overlay .card-step {
-        background: #c8a951; color: #fff; font-weight: 700;
+        background: #D4AF37; color: #0D1B2A; font-weight: 700;
         width: 26px; height: 26px; border-radius: 50%;
         display: inline-flex; align-items: center; justify-content: center;
         font-size: .82rem; flex-shrink: 0;
       }
-      #acordo-eq-overlay .card-step.dark { background: #1e3a5f; }
+      #acordo-eq-overlay .card-step.dark { background: #0D1B2A; color: #D4AF37; }
       #acordo-eq-overlay .card-title {
-        margin: 0; font-size: 1.02rem; font-weight: 700; color: #1e3a5f;
+        margin: 0; font-size: 1.02rem; font-weight: 700; color: #0D1B2A;
       }
       #acordo-eq-overlay .card-badge {
-        margin-left: auto; font-size: .72rem; font-weight: 700; color: #1e3a5f;
-        background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 5px;
+        margin-left: auto; font-size: .72rem; font-weight: 700; color: #0D1B2A;
+        background: #F8F0CC; border: 1px solid #D4AF37; border-radius: 4px;
         padding: .22rem .55rem; letter-spacing: .04em;
       }
       #acordo-eq-overlay .card-desc {
-        font-size: .85rem; color: #64748b; margin: 0 0 1rem; padding-left: 2.25rem;
+        font-size: .85rem; color: #7A726A; margin: 0 0 1rem; padding-left: 2.25rem;
         line-height: 1.45;
       }
       #acordo-eq-overlay .table-wrap {
-        overflow-x: auto; border: 1px solid #e5ddd0; border-radius: 8px;
-        background: #fdfcf9;
+        overflow-x: auto; border: 1px solid #C8BAA5; border-radius: 6px;
+        background: #FDFAF5;
       }
       #acordo-eq-overlay table.acordo-table {
         width: 100%; border-collapse: collapse; min-width: 540px;
       }
       #acordo-eq-overlay table.acordo-table thead tr {
-        background: #f5f0e6; border-bottom: 1px solid #e5ddd0;
+        background: #F8F0CC;
       }
       #acordo-eq-overlay table.acordo-table th {
-        padding: .65rem .8rem; text-align: left; font-weight: 700;
-        color: #1e3a5f; font-size: .76rem; letter-spacing: .05em;
+        padding: .6rem .75rem; text-align: left; font-weight: 700;
+        color: #0D1B2A; font-size: .76rem; letter-spacing: .05em;
         text-transform: uppercase;
+        border: 1px solid #C8BAA5;
       }
       #acordo-eq-overlay table.acordo-table th.cell-qtd { text-align: center; width: 88px; }
       #acordo-eq-overlay table.acordo-table th.cell-action { width: 52px; }
       #acordo-eq-overlay table.acordo-table td {
-        padding: .55rem .65rem; border-bottom: 1px solid #ede5d4;
-        vertical-align: top;
-      }
-      #acordo-eq-overlay table.acordo-table tbody tr:last-child td {
-        border-bottom: none;
+        padding: .45rem .55rem;
+        border: 1px solid #E5DDD0;
+        vertical-align: middle;
       }
       #acordo-eq-overlay table.acordo-table td.cell-qtd { width: 88px; }
       #acordo-eq-overlay table.acordo-table td.cell-qtd input { text-align: center; }
-      #acordo-eq-overlay table.acordo-table td.cell-action { text-align: center; width: 52px; }
+      #acordo-eq-overlay table.acordo-table td.cell-action {
+        text-align: center; width: 52px;
+      }
       #acordo-eq-overlay .acordo-input {
-        width: 100%; padding: .58rem .75rem; font-size: .9rem;
-        font-family: inherit; color: #1e293b; background: #fff;
-        border: 1.5px solid #d4cdbb; border-radius: 7px; outline: none;
+        width: 100%; padding: .55rem .7rem; font-size: .9rem;
+        font-family: inherit; color: #1C1C1C; background: #fff;
+        border: 1.5px solid #C8BAA5; border-radius: 6px; outline: none;
         transition: border-color .15s, box-shadow .15s;
         box-sizing: border-box;
       }
       #acordo-eq-overlay .acordo-input:focus {
-        border-color: #c8a951;
-        box-shadow: 0 0 0 3px rgba(200,169,81,.18);
+        border-color: #D4AF37;
+        box-shadow: 0 0 0 3px rgba(212,175,55,.22);
       }
       #acordo-eq-overlay .acordo-input.invalid {
-        border-color: #ef4444; background: #fef2f2;
+        border-color: #B91C1C; background: #FEE2E2;
       }
       #acordo-eq-overlay .acordo-input.invalid:focus {
-        box-shadow: 0 0 0 3px rgba(239,68,68,.18);
+        box-shadow: 0 0 0 3px rgba(185,28,28,.2);
       }
       #acordo-eq-overlay .acordo-btn-add {
         margin-top: .7rem; padding: .55rem 1.05rem;
-        background: #fff; border: 1.5px dashed #c8a951; color: #1e3a5f;
-        border-radius: 7px; cursor: pointer; font-size: .88rem; font-weight: 600;
+        background: #fff; border: 1.5px dashed #D4AF37; color: #0D1B2A;
+        border-radius: 6px; cursor: pointer; font-size: .88rem; font-weight: 600;
         font-family: inherit; transition: background .15s, border-color .15s;
         display: inline-flex; align-items: center; gap: .35rem;
       }
       #acordo-eq-overlay .acordo-btn-add:hover {
-        background: #fdf6e3; border-color: #b89a48;
-      }
-      #acordo-eq-overlay .acordo-btn-add.blue {
-        border-color: #93c5fd;
-      }
-      #acordo-eq-overlay .acordo-btn-add.blue:hover {
-        background: #eff6ff; border-color: #60a5fa;
+        background: #F8F0CC; border-color: #B8960C;
       }
       #acordo-eq-overlay .acordo-btn-remove {
-        background: #fff; border: 1.5px solid #fecaca; color: #dc2626;
+        background: #fff; border: 1.5px solid #FECACA; color: #B91C1C;
         cursor: pointer; font-size: 1rem; line-height: 1;
-        padding: .5rem .7rem; border-radius: 7px;
+        padding: .4rem .55rem; border-radius: 6px;
         transition: background .15s, border-color .15s;
       }
       #acordo-eq-overlay .acordo-btn-remove:hover {
-        background: #fee2e2; border-color: #fca5a5;
+        background: #FEE2E2; border-color: #FCA5A5;
       }
       #acordo-eq-overlay .acordo-btn-primary {
-        padding: .7rem 1.5rem; background: #1e3a5f; color: #fff;
-        border: 1.5px solid #1e3a5f; border-radius: 7px;
+        padding: .7rem 1.5rem; background: #D4AF37; color: #0D1B2A;
+        border: 1.5px solid #D4AF37; border-radius: 6px;
         cursor: pointer; font-size: .92rem; font-weight: 700;
-        font-family: inherit; transition: background .15s;
+        font-family: inherit; transition: background .15s, border-color .15s;
+        letter-spacing: .01em;
       }
-      #acordo-eq-overlay .acordo-btn-primary:hover { background: #2c5282; }
+      #acordo-eq-overlay .acordo-btn-primary:hover {
+        background: #B8960C; border-color: #B8960C; color: #fff;
+      }
       #acordo-eq-overlay .acordo-btn-primary:disabled {
-        background: #94a3b8; border-color: #94a3b8; cursor: not-allowed;
+        background: #C8BAA5; border-color: #C8BAA5; color: #7A726A; cursor: not-allowed;
       }
       #acordo-eq-overlay .acordo-btn-secondary {
-        padding: .7rem 1.3rem; background: #fff; color: #475569;
-        border: 1.5px solid #cbd5e1; border-radius: 7px;
+        padding: .7rem 1.3rem; background: #fff; color: #4A4540;
+        border: 1.5px solid #C8BAA5; border-radius: 6px;
         cursor: pointer; font-size: .92rem; font-weight: 600;
         font-family: inherit; transition: background .15s;
       }
-      #acordo-eq-overlay .acordo-btn-secondary:hover { background: #f1f5f9; }
+      #acordo-eq-overlay .acordo-btn-secondary:hover { background: #F7F3ED; }
       #acordo-eq-overlay .vinculacao-item {
         display: flex; align-items: flex-start; gap: .55rem; margin-bottom: .65rem;
       }
@@ -1507,52 +1527,65 @@ function abrirModalEquipamentosAcordo(chamadoId) {
         position: relative; flex: 1;
       }
       #acordo-eq-overlay .vinc-search-icon {
-        position: absolute; left: .75rem; top: .65rem;
-        color: #94a3b8; pointer-events: none; font-size: 1rem;
+        position: absolute; left: .75rem; top: .6rem;
+        color: #7A726A; pointer-events: none; font-size: 1rem;
       }
       #acordo-eq-overlay .vinc-search-wrap .acordo-input {
         padding-left: 2.4rem;
       }
       #acordo-eq-overlay .eq-drop {
-        display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-        max-height: 260px; overflow-y: auto;
-        background: #fff; border: 1.5px solid #c8a951; border-radius: 8px;
-        z-index: 10000; box-shadow: 0 10px 28px rgba(0,0,0,.18);
+        display: none; position: fixed;
+        max-height: 280px; overflow-y: auto;
+        background: #fff; border: 2px solid #D4AF37; border-radius: 8px;
+        z-index: 10000; box-shadow: 0 12px 32px rgba(13,27,42,.25);
+      }
+      #acordo-eq-overlay .eq-drop-empty {
+        padding: 1rem 1.1rem; font-size: .87rem; color: #7A726A;
+        text-align: center; font-style: italic;
       }
       #acordo-eq-overlay .eq-drop-item {
-        padding: .7rem .95rem; font-size: .88rem; cursor: pointer;
-        border-bottom: 1px solid #f0ebe3;
-        display: flex; gap: .65rem; align-items: center;
+        padding: .7rem .95rem; font-size: .9rem; cursor: pointer;
+        border-bottom: 1px solid #F7F3ED;
+        display: flex; gap: .7rem; align-items: center;
         transition: background .12s;
+        color: #1C1C1C;
       }
       #acordo-eq-overlay .eq-drop-item:last-child { border-bottom: none; }
-      #acordo-eq-overlay .eq-drop-item:hover { background: #f8f5f0; }
+      #acordo-eq-overlay .eq-drop-item:hover {
+        background: #F8F0CC;
+      }
       #acordo-eq-overlay .eq-drop-codigo {
-        font-weight: 700; color: #1e3a5f; background: #eef2ff;
-        padding: .15rem .5rem; border-radius: 5px; font-size: .78rem;
-        min-width: 56px; text-align: center; flex-shrink: 0;
+        font-weight: 700; color: #0D1B2A; background: #F8F0CC;
+        border: 1px solid #D4AF37;
+        padding: .2rem .55rem; border-radius: 4px; font-size: .78rem;
+        min-width: 64px; text-align: center; flex-shrink: 0;
+        font-family: 'Inter', monospace;
       }
       #acordo-eq-overlay .eq-drop-nome {
-        color: #334155; flex: 1; overflow: hidden;
+        color: #1C1C1C; flex: 1; overflow: hidden;
         text-overflow: ellipsis; white-space: nowrap;
+        font-weight: 500;
       }
       #acordo-eq-overlay .eq-drop-cat {
-        font-size: .74rem; color: #64748b; background: #f1f5f9;
-        padding: .15rem .5rem; border-radius: 10px;
+        font-size: .74rem; color: #4A4540; background: #F7F3ED;
+        border: 1px solid #C8BAA5;
+        padding: .15rem .55rem; border-radius: 10px;
         white-space: nowrap; flex-shrink: 0;
+        font-weight: 500;
       }
       #acordo-eq-overlay .eq-badge {
         display: none; margin-top: .4rem;
       }
       #acordo-eq-overlay .eq-badge-chip {
         display: inline-flex; align-items: center; gap: .35rem;
-        background: #dcfce7; color: #15803d;
+        background: #DCFCE7; color: #15803D;
+        border: 1px solid #86EFAC;
         padding: .3rem .65rem; border-radius: 14px;
         font-size: .77rem; font-weight: 600;
       }
       #acordo-eq-overlay .msg-erro {
-        background: #fef2f2; border: 1.5px solid #fecaca; color: #991b1b;
-        padding: .8rem 1.1rem; border-radius: 8px;
+        background: #FEE2E2; border: 1.5px solid #FCA5A5; color: #991B1B;
+        padding: .8rem 1.1rem; border-radius: 6px;
         font-size: .88rem; font-weight: 500;
         display: flex; align-items: center; gap: .5rem;
       }
@@ -1600,7 +1633,7 @@ function abrirModalEquipamentosAcordo(chamadoId) {
           </div>
 
           <div id="acordo-interno-lista"></div>
-          <button id="btn-add-vinculacao" class="acordo-btn-add blue">+ Adicionar vínculo de estoque</button>
+          <button id="btn-add-vinculacao" class="acordo-btn-add">+ Adicionar vínculo de estoque</button>
         </div>
 
         <div id="msg-acordo-eq"></div>
