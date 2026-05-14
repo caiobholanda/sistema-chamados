@@ -1254,16 +1254,12 @@ function abrirModalDocumentoAcordo(c, termo) {
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-async function abrirModalEquipamentosAcordo(chamadoId) {
+function abrirModalEquipamentosAcordo(chamadoId) {
   const existing = document.getElementById('acordo-eq-overlay');
   if (existing) existing.remove();
 
-  // Carrega equipamentos disponíveis para o dropdown de busca
+  // Lista carregada em paralelo — modal aparece imediatamente
   let eqsDisponiveis = [];
-  try {
-    const re = await api('/api/admin/estoque/equipamentos?status=disponivel');
-    if (re.ok) eqsDisponiveis = await re.json();
-  } catch {}
 
   const B = '1px solid #e5ddd0';
 
@@ -1395,6 +1391,12 @@ async function abrirModalEquipamentosAcordo(chamadoId) {
 
   const tbody = document.getElementById('acordo-eq-tbody');
   tbody.appendChild(criarLinha());
+
+  // Carrega equipamentos disponíveis em background — modal já está visível
+  api('/api/admin/estoque/equipamentos?status=disponivel')
+    .then(r => r.ok ? r.json() : [])
+    .then(lista => { eqsDisponiveis = lista; })
+    .catch(() => {});
 
   const fechar = () => overlay.remove();
   document.getElementById('btn-fechar-acordo-eq').addEventListener('click', fechar);
