@@ -674,14 +674,10 @@ function renderPainel(usuario) {
 
             <div class="termo-footer">
               <div class="termo-date">Fortaleza, ${hoje}</div>
-              <div class="termo-sigs">
-                <div class="termo-sig">
+              <div style="display:flex;justify-content:center">
+                <div class="termo-sig" style="text-align:center;min-width:220px">
                   <div class="termo-sig-line"></div>
-                  <div class="termo-sig-label">Assinatura Funcionário</div>
-                </div>
-                <div class="termo-sig">
-                  <div class="termo-sig-line"></div>
-                  <div class="termo-sig-label">Assinatura TI${adminNome ? ` — ${adminNome}` : ''}</div>
+                  <div class="termo-sig-label">${nomeUsuario.split(' ')[0]}</div>
                 </div>
               </div>
             </div>
