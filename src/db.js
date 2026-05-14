@@ -136,6 +136,7 @@ function initDb() {
   try { db.exec("ALTER TABLE termos_aceite ADD COLUMN equipamentos TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN requer_acordo INTEGER DEFAULT 0"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN acordo_equipamentos TEXT DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE equipamentos_historico ADD COLUMN chamado_id INTEGER DEFAULT NULL"); } catch {}
 
   // Migration: trocar UNIQUE inline por partial unique index (ativo=1)
   // Regra: mesmo @ não pode existir em usuários E admins ao mesmo tempo (validado nas rotas)
@@ -1714,6 +1715,7 @@ module.exports = {
   deletarEquipamento,
   registrarMovEquipamento,
   listarHistoricoEquipamento,
+  vincularEquipamentosDoAcordo,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────
@@ -1757,15 +1759,39 @@ function deletarEquipamento(id) {
   getDb().prepare('DELETE FROM equipamentos WHERE id = ?').run(id);
 }
 
-function registrarMovEquipamento(id, tipo, setor_origem, setor_destino, admin_nome, observacao) {
+function registrarMovEquipamento(id, tipo, setor_origem, setor_destino, admin_nome, observacao, chamado_id) {
   const db = getDb();
-  db.prepare(`INSERT INTO equipamentos_historico (equipamento_id, tipo, setor_origem, setor_destino, admin_nome, observacao) VALUES (?, ?, ?, ?, ?, ?)`).run(id, tipo, setor_origem || '', setor_destino || '', admin_nome || '', observacao || '');
+  db.prepare(`INSERT INTO equipamentos_historico (equipamento_id, tipo, setor_origem, setor_destino, admin_nome, observacao, chamado_id) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(id, tipo, setor_origem || '', setor_destino || '', admin_nome || '', observacao || '', chamado_id || null);
   const STATUS_MAP = { entrada: 'disponivel', saida: 'em_uso', retorno: 'disponivel', manutencao: 'manutencao', descarte: 'descartado' };
   const novoStatus = STATUS_MAP[tipo];
   const novoSetor = tipo === 'saida' ? setor_destino : (tipo === 'retorno' || tipo === 'entrada') ? '' : undefined;
   const upd = { status: novoStatus };
   if (novoSetor !== undefined) upd.setor_atual = novoSetor;
   atualizarEquipamento(id, upd);
+}
+
+function vincularEquipamentosDoAcordo(chamadoId, usuarioNome, setor) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(chamadoId);
+  if (!chamado || !chamado.acordo_equipamentos) return;
+  let itens = [];
+  try { itens = JSON.parse(chamado.acordo_equipamentos); } catch { return; }
+  for (const item of itens) {
+    let eqId = item.equipamento_id ? parseInt(item.equipamento_id, 10) : null;
+    if (!eqId) {
+      const termos = [item.tipo, item.marca, item.modelo].filter(Boolean);
+      if (!termos.length) continue;
+      const auto = db.prepare(
+        "SELECT id FROM equipamentos WHERE status = 'disponivel' AND (" +
+        termos.map(() => 'nome LIKE ?').join(' OR ') + ') LIMIT 1'
+      ).get(...termos.map(t => `%${t}%`));
+      if (auto) eqId = auto.id;
+    }
+    if (!eqId) continue;
+    const eq = db.prepare('SELECT * FROM equipamentos WHERE id = ?').get(eqId);
+    if (!eq || eq.status !== 'disponivel') continue;
+    registrarMovEquipamento(eq.id, 'saida', eq.setor_atual || '', setor || '', usuarioNome, `${usuarioNome} — Chamado #${chamadoId}`, chamadoId);
+  }
 }
 
 function listarHistoricoEquipamento(id) {

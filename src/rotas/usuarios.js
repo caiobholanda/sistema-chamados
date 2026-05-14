@@ -132,15 +132,17 @@ router.post('/chamados/:id/aceitar-termo', requireUsuario, (req, res) => {
     if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
 
     const { cargo, setor, equipamentos } = req.body || {};
+    const setorFinal = typeof setor === 'string' ? setor.trim() : '';
     db.registrarTermoAceite({
       chamado_id: chamadoId,
       usuario_id: usuario.id,
       usuario_nome: usuario.nome,
       usuario_email: usuario.email,
       cargo: typeof cargo === 'string' ? cargo.trim() : '',
-      setor: typeof setor === 'string' ? setor.trim() : '',
+      setor: setorFinal,
       equipamentos: typeof equipamentos === 'string' ? equipamentos : '',
     });
+    db.vincularEquipamentosDoAcordo(chamadoId, usuario.nome, setorFinal);
 
     return res.json({ mensagem: 'Termo aceito com sucesso' });
   } catch (err) {

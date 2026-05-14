@@ -1254,43 +1254,134 @@ function abrirModalDocumentoAcordo(c, termo) {
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-function abrirModalEquipamentosAcordo(chamadoId) {
+async function abrirModalEquipamentosAcordo(chamadoId) {
   const existing = document.getElementById('acordo-eq-overlay');
   if (existing) existing.remove();
 
+  // Carrega equipamentos disponíveis para o dropdown de busca
+  let eqsDisponiveis = [];
+  try {
+    const re = await api('/api/admin/estoque/equipamentos?status=disponivel');
+    if (re.ok) eqsDisponiveis = await re.json();
+  } catch {}
+
   const B = '1px solid #e5ddd0';
-  const addLinhaHtml = () => `
-    <tr>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control" type="number" min="1" value="1" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control" type="text" placeholder="Tipo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control" type="text" placeholder="Marca" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
-      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control" type="text" placeholder="Modelo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+
+  function criarLinha() {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding:.3rem .4rem;border:${B};min-width:160px">
+        <div style="position:relative">
+          <input type="text" class="eq-busca form-control" placeholder="Buscar no estoque…" autocomplete="off"
+            style="padding:.22rem .35rem;font-size:.73rem;width:100%;background:#fff">
+          <div class="eq-drop" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:140px;overflow-y:auto;background:#fff;border:1px solid #c8a951;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
+          <input type="hidden" class="eq-id">
+          <div class="eq-badge" style="font-size:.67rem;color:#15803d;margin-top:.15rem;display:none"></div>
+        </div>
+      </td>
+      <td style="padding:.25rem .3rem;border:${B};width:58px"><input class="form-control eq-qtd" type="number" min="1" value="1" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-tipo" type="text" placeholder="Tipo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-marca" type="text" placeholder="Marca" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
+      <td style="padding:.25rem .3rem;border:${B}"><input class="form-control eq-modelo" type="text" placeholder="Modelo" style="padding:.22rem .35rem;font-size:.78rem;width:100%;background:#fff"></td>
       <td style="padding:.25rem .3rem;border:${B};text-align:center"><button type="button" class="remover-eq-row" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.9rem;line-height:1">✕</button></td>
-    </tr>`;
+    `;
+    bindLinha(tr);
+    return tr;
+  }
+
+  function bindLinha(tr) {
+    const busca = tr.querySelector('.eq-busca');
+    const drop  = tr.querySelector('.eq-drop');
+    const idHid = tr.querySelector('.eq-id');
+    const badge = tr.querySelector('.eq-badge');
+    const tbody = document.getElementById('acordo-eq-tbody');
+
+    function filtrar(q) {
+      const q2 = q.toLowerCase();
+      return eqsDisponiveis.filter(e =>
+        e.codigo.toLowerCase().includes(q2) ||
+        e.nome.toLowerCase().includes(q2) ||
+        (e.categoria || '').toLowerCase().includes(q2)
+      ).slice(0, 30);
+    }
+
+    function selecionarItem(eq) {
+      busca.value = `${eq.codigo} — ${eq.nome}`;
+      idHid.value = eq.id;
+      badge.textContent = `✓ ${eq.codigo} vinculado`;
+      badge.style.display = 'block';
+      drop.style.display = 'none';
+      // Auto-preenche campos se vazios
+      const tipo  = tr.querySelector('.eq-tipo');
+      const marca = tr.querySelector('.eq-marca');
+      const modelo = tr.querySelector('.eq-modelo');
+      if (!tipo.value)  tipo.value  = eq.categoria || eq.nome;
+      if (!marca.value) marca.value = '';
+      if (!modelo.value) modelo.value = eq.nome;
+    }
+
+    busca.addEventListener('input', () => {
+      const q = busca.value.trim();
+      idHid.value = '';
+      badge.style.display = 'none';
+      if (!q) { drop.style.display = 'none'; return; }
+      const res = filtrar(q);
+      if (!res.length) { drop.innerHTML = '<div style="padding:.35rem .6rem;font-size:.73rem;color:#94a3b8">Nenhum item disponível</div>'; drop.style.display = 'block'; return; }
+      drop.innerHTML = res.map(e => `
+        <div class="eq-drop-item" data-id="${e.id}" style="padding:.32rem .6rem;font-size:.73rem;cursor:pointer;border-bottom:1px solid #f0ebe3;display:flex;gap:.4rem;align-items:baseline">
+          <span style="font-weight:600;color:#1e3a5f;white-space:nowrap">${e.codigo}</span>
+          <span style="color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.nome}</span>
+          ${e.categoria ? `<span style="margin-left:auto;font-size:.67rem;color:#64748b;white-space:nowrap">${e.categoria}</span>` : ''}
+        </div>`).join('');
+      drop.style.display = 'block';
+      drop.querySelectorAll('.eq-drop-item').forEach(el => {
+        el.addEventListener('mousedown', ev => {
+          ev.preventDefault();
+          const eq = eqsDisponiveis.find(e => e.id === +el.dataset.id);
+          if (eq) selecionarItem(eq);
+        });
+        el.addEventListener('mouseover', () => el.style.background = '#f8f5f0');
+        el.addEventListener('mouseout',  () => el.style.background = '');
+      });
+    });
+
+    busca.addEventListener('blur', () => setTimeout(() => { drop.style.display = 'none'; }, 150));
+    busca.addEventListener('focus', () => { if (busca.value.trim()) busca.dispatchEvent(new Event('input')); });
+
+    const remBtn = tr.querySelector('.remover-eq-row');
+    if (remBtn) remBtn.addEventListener('click', () => {
+      if (tbody && tbody.querySelectorAll('tr').length > 1) tr.remove();
+    });
+  }
 
   const overlay = document.createElement('div');
   overlay.id = 'acordo-eq-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:#ffffff;max-width:540px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid #e5ddd0">
-      <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5ddd0;display:flex;align-items:center;justify-content:space-between;background:#ffffff">
+    <div style="background:#ffffff;max-width:700px;width:96%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid #e5ddd0">
+      <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5ddd0;display:flex;align-items:center;justify-content:space-between;background:#ffffff;position:sticky;top:0;z-index:1">
         <div style="font-weight:700;font-size:.88rem;color:#1e3a5f">📋 Equipamentos do Acordo</div>
         <button id="btn-fechar-acordo-eq" style="background:none;border:none;cursor:pointer;color:#666;font-size:1.1rem;line-height:1">✕</button>
       </div>
       <div style="padding:1rem 1.25rem;background:#ffffff">
-        <p style="font-size:.77rem;color:#666;margin:0 0 .85rem">Informe os equipamentos que o funcionário está recebendo. O usuário verá esses dados ao assinar o acordo.</p>
-        <table style="width:100%;border-collapse:collapse;font-size:.78rem">
-          <thead>
-            <tr style="background:#f8f5f0">
-              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;width:70px;font-weight:600;color:#333">Qtd</th>
-              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Tipo</th>
-              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Marca</th>
-              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Modelo</th>
-              <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;width:30px"></th>
-            </tr>
-          </thead>
-          <tbody id="acordo-eq-tbody">${addLinhaHtml()}</tbody>
-        </table>
+        <p style="font-size:.77rem;color:#666;margin:0 0 .85rem">
+          Busque e selecione itens do estoque (opcional) ou preencha manualmente. Ao selecionar, o estoque será atualizado automaticamente quando o usuário assinar.
+        </p>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:.78rem;min-width:580px">
+            <thead>
+              <tr style="background:#f8f5f0">
+                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Equipamento do estoque <span style="font-weight:400;color:#94a3b8">(opcional)</span></th>
+                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;width:58px;font-weight:600;color:#333">Qtd</th>
+                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Tipo</th>
+                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Marca</th>
+                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;text-align:left;font-weight:600;color:#333">Modelo</th>
+                <th style="padding:.35rem .5rem;border:1px solid #e5ddd0;width:30px"></th>
+              </tr>
+            </thead>
+            <tbody id="acordo-eq-tbody"></tbody>
+          </table>
+        </div>
         <button id="btn-add-acordo-eq" class="btn btn-secondary btn-sm" style="margin-top:.5rem;font-size:.75rem">+ Adicionar linha</button>
         <div id="msg-acordo-eq" style="margin-top:.6rem"></div>
       </div>
@@ -1302,39 +1393,32 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   `;
   document.body.appendChild(overlay);
 
+  const tbody = document.getElementById('acordo-eq-tbody');
+  tbody.appendChild(criarLinha());
+
   const fechar = () => overlay.remove();
   document.getElementById('btn-fechar-acordo-eq').addEventListener('click', fechar);
   document.getElementById('btn-cancelar-acordo-eq').addEventListener('click', fechar);
   overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
 
-  const tbody = document.getElementById('acordo-eq-tbody');
-
-  function bindRemover(tr) {
-    const btn = tr.querySelector('.remover-eq-row');
-    if (btn) btn.addEventListener('click', () => { if (tbody.querySelectorAll('tr').length > 1) tr.remove(); });
-  }
-  tbody.querySelectorAll('tr').forEach(bindRemover);
-
   document.getElementById('btn-add-acordo-eq').addEventListener('click', () => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = addLinhaHtml().replace(/^<tr>/, '').replace(/<\/tr>$/, '');
-    const trEl = document.createElement('tr');
-    trEl.innerHTML = addLinhaHtml().trim().slice(4, -5);
-    tbody.insertAdjacentHTML('beforeend', addLinhaHtml());
-    bindRemover(tbody.lastElementChild);
+    tbody.appendChild(criarLinha());
   });
 
   document.getElementById('btn-confirmar-acordo-eq').addEventListener('click', async () => {
     const rows = [];
     tbody.querySelectorAll('tr').forEach(tr => {
-      const inputs = tr.querySelectorAll('input');
       const row = {
-        quantidade: inputs[0]?.value || '1',
-        tipo: inputs[1]?.value.trim() || '',
-        marca: inputs[2]?.value.trim() || '',
-        modelo: inputs[3]?.value.trim() || '',
+        equipamento_id:     tr.querySelector('.eq-id')?.value    || null,
+        equipamento_codigo: tr.querySelector('.eq-busca')?.value.split(' — ')[0]?.trim() || '',
+        quantidade: tr.querySelector('.eq-qtd')?.value   || '1',
+        tipo:       tr.querySelector('.eq-tipo')?.value.trim()  || '',
+        marca:      tr.querySelector('.eq-marca')?.value.trim() || '',
+        modelo:     tr.querySelector('.eq-modelo')?.value.trim() || '',
       };
-      if (row.tipo || row.marca || row.modelo) rows.push(row);
+      if (!row.equipamento_id) delete row.equipamento_id;
+      if (!row.equipamento_codigo) delete row.equipamento_codigo;
+      if (row.tipo || row.marca || row.modelo || row.equipamento_id) rows.push(row);
     });
 
     const btn = document.getElementById('btn-confirmar-acordo-eq');
