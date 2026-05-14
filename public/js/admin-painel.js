@@ -1054,7 +1054,8 @@ function setupModalEventos(c) {
 
     const atualizarTermoUI = async () => {
       const container = document.getElementById('mv2-termo-status');
-      if (!container) { _pararPollingTermo(); return; }
+      const avisoEl = document.getElementById('acordo-aviso');
+      if (!container && !avisoEl) { _pararPollingTermo(); return; }
       const r = await api(`/api/admin/chamados/${c.id}/termo-aceite`);
       if (!r.ok) {
         if (c.requer_acordo && isAberto) {
