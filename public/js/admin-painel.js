@@ -1427,17 +1427,35 @@ function abrirModalEquipamentosAcordo(chamadoId) {
 
   document.getElementById('btn-confirmar-acordo-eq').addEventListener('click', async () => {
     const rows = [];
+    const msgEl = document.getElementById('msg-acordo-eq');
 
-    // Itens visíveis ao usuário (tabela principal)
-    tbody.querySelectorAll('tr').forEach(tr => {
-      const row = {
-        quantidade: tr.querySelector('.eq-qtd')?.value   || '1',
-        tipo:       tr.querySelector('.eq-tipo')?.value.trim()  || '',
-        marca:      tr.querySelector('.eq-marca')?.value.trim() || '',
-        modelo:     tr.querySelector('.eq-modelo')?.value.trim() || '',
-      };
-      if (row.tipo || row.marca || row.modelo) rows.push(row);
+    // Valida e coleta itens visíveis ao usuário (tabela principal)
+    let linhaInvalida = false;
+    tbody.querySelectorAll('tr').forEach((tr, idx) => {
+      const tipo   = tr.querySelector('.eq-tipo')?.value.trim()  || '';
+      const marca  = tr.querySelector('.eq-marca')?.value.trim() || '';
+      const modelo = tr.querySelector('.eq-modelo')?.value.trim() || '';
+
+      // Destaca campos vazios
+      ['eq-tipo', 'eq-marca', 'eq-modelo'].forEach(cls => {
+        const el = tr.querySelector(`.${cls}`);
+        if (el) el.style.borderColor = el.value.trim() ? '' : '#ef4444';
+      });
+
+      if (!tipo || !marca || !modelo) {
+        linhaInvalida = true;
+      } else {
+        rows.push({
+          quantidade: tr.querySelector('.eq-qtd')?.value || '1',
+          tipo, marca, modelo,
+        });
+      }
     });
+
+    if (linhaInvalida) {
+      msgEl.innerHTML = '<div class="alert alert-danger">Preencha todos os campos (Tipo, Marca e Modelo) em todas as linhas.</div>';
+      return;
+    }
 
     // Vinculações internas de estoque (só equipamento_id — não aparecem no documento do usuário)
     document.querySelectorAll('#acordo-interno-lista .vinculacao-item').forEach(div => {
@@ -1447,7 +1465,6 @@ function abrirModalEquipamentosAcordo(chamadoId) {
     });
 
     const btn = document.getElementById('btn-confirmar-acordo-eq');
-    const msgEl = document.getElementById('msg-acordo-eq');
     btn.disabled = true; btn.textContent = 'Salvando...';
     try {
       const r = await api(`/api/admin/chamados/${chamadoId}/requer-acordo`, {
