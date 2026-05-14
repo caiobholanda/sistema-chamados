@@ -1541,13 +1541,13 @@ function abrirModalEquipamentosAcordo(chamadoId) {
         z-index: 10000; box-shadow: 0 12px 32px rgba(13,27,42,.25);
       }
       #acordo-eq-overlay .eq-drop-empty {
-        padding: 1rem 1.1rem; font-size: .87rem; color: #7A726A;
+        padding: .85rem 1rem; font-size: .8rem; color: #7A726A;
         text-align: center; font-style: italic;
       }
       #acordo-eq-overlay .eq-drop-item {
-        padding: .7rem .95rem; font-size: .9rem; cursor: pointer;
+        padding: .55rem .8rem; font-size: .8rem; cursor: pointer;
         border-bottom: 1px solid #F7F3ED;
-        display: flex; gap: .7rem; align-items: center;
+        display: flex; gap: .55rem; align-items: center;
         transition: background .12s;
         color: #1C1C1C;
       }
@@ -1558,19 +1558,19 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       #acordo-eq-overlay .eq-drop-codigo {
         font-weight: 700; color: #0D1B2A; background: #F8F0CC;
         border: 1px solid #D4AF37;
-        padding: .2rem .55rem; border-radius: 4px; font-size: .78rem;
-        min-width: 64px; text-align: center; flex-shrink: 0;
+        padding: .15rem .45rem; border-radius: 4px; font-size: .7rem;
+        min-width: 56px; text-align: center; flex-shrink: 0;
         font-family: 'Inter', monospace;
       }
       #acordo-eq-overlay .eq-drop-nome {
         color: #1C1C1C; flex: 1; overflow: hidden;
         text-overflow: ellipsis; white-space: nowrap;
-        font-weight: 500;
+        font-weight: 500; font-size: .8rem;
       }
       #acordo-eq-overlay .eq-drop-cat {
-        font-size: .74rem; color: #4A4540; background: #F7F3ED;
+        font-size: .68rem; color: #4A4540; background: #F7F3ED;
         border: 1px solid #C8BAA5;
-        padding: .15rem .55rem; border-radius: 10px;
+        padding: .1rem .45rem; border-radius: 10px;
         white-space: nowrap; flex-shrink: 0;
         font-weight: 500;
       }
