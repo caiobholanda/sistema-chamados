@@ -194,11 +194,11 @@
 
     // Sort chronologically
     eventos.sort((a, b) => {
-      if (!a._ts) return -1;
-      if (!b._ts) return 1;
+      if (!a._ts) return 1;
+      if (!b._ts) return -1;
       const ta = new Date(a._ts.includes('T') ? a._ts : a._ts.replace(' ', 'T'));
       const tb = new Date(b._ts.includes('T') ? b._ts : b._ts.replace(' ', 'T'));
-      return ta - tb;
+      return tb - ta;
     });
 
     const itensHtml = eventos.map(ev => {
