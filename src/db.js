@@ -1220,6 +1220,13 @@ function reabrirChamado(id, adminId) {
   // Limpa alertas de prazo — sem isso, ao reabrir um chamado os alertas 10min/1h/24h
   // já marcados como disparados nunca mais fariam push
   db.prepare(`DELETE FROM prazo_alertas WHERE chamado_id = ?`).run(id);
+  if (chamado.requer_acordo) {
+    const termoExistente = db.prepare('SELECT id FROM termos_aceite WHERE chamado_id = ?').get(id);
+    if (termoExistente) {
+      db.prepare('DELETE FROM termos_aceite WHERE chamado_id = ?').run(id);
+      db.prepare(`INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo) VALUES (?, ?, 'acordo_resetado', NULL, NULL)`).run(id, adminId);
+    }
+  }
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'status_alterado', ?, 'aberto')
@@ -1256,6 +1263,14 @@ function reabrirChamadoUsuario(id, novaDescricao) {
   `).run(novaDescricao, id);
   // Limpa alertas de prazo (mesma razão do reabrirChamado)
   db.prepare(`DELETE FROM prazo_alertas WHERE chamado_id = ?`).run(id);
+
+  if (chamado.requer_acordo) {
+    const termoExistente = db.prepare('SELECT id FROM termos_aceite WHERE chamado_id = ?').get(id);
+    if (termoExistente) {
+      db.prepare('DELETE FROM termos_aceite WHERE chamado_id = ?').run(id);
+      db.prepare(`INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo) VALUES (?, NULL, 'acordo_resetado', NULL, NULL)`).run(id);
+    }
+  }
 
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
@@ -1595,10 +1610,18 @@ function prazo2DiasUteis() {
 }
 
 function registrarTermoAceite({ chamado_id, usuario_id, usuario_nome, usuario_email, cargo, setor, equipamentos }) {
-  return getDb().prepare(`
+  const db = getDb();
+  const result = db.prepare(`
     INSERT OR IGNORE INTO termos_aceite (chamado_id, usuario_id, usuario_nome, usuario_email, cargo, setor, equipamentos)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(chamado_id, usuario_id, usuario_nome, usuario_email, cargo || '', setor || '', equipamentos || '');
+  if (result.changes > 0) {
+    db.prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, NULL, 'acordo_assinado', ?, ?)
+    `).run(chamado_id, usuario_nome, JSON.stringify({ setor: setor || '', cargo: cargo || '', equipamentos: equipamentos || '', usuario_email: usuario_email || '' }));
+  }
+  return result;
 }
 
 function buscarTermoAceite(chamado_id) {
