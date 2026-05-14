@@ -1384,9 +1384,6 @@ function abrirModalEquipamentosAcordo(chamadoId) {
             <span style="font-size:.71rem;font-weight:700;color:#1e3a5f;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:.15rem .45rem;letter-spacing:.02em">🔒 CONTROLE INTERNO TI</span>
             <span style="font-size:.7rem;color:#94a3b8">Não aparece para o usuário</span>
           </div>
-          <p style="font-size:.72rem;color:#64748b;margin:0 0 .55rem">
-            Vincule os itens do estoque que serão entregues. Adicione quantos quiser — o estoque é atualizado automaticamente quando o usuário assinar:
-          </p>
           <div id="acordo-interno-lista"></div>
           <button id="btn-add-vinculacao" class="btn btn-secondary btn-sm" style="margin-top:.3rem;font-size:.72rem;border-color:#bfdbfe;color:#1e3a5f">+ Adicionar item do estoque</button>
         </div>
