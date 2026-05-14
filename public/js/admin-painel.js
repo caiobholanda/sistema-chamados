@@ -1068,15 +1068,17 @@ function setupModalEventos(c) {
       const termoVal = document.getElementById('mv2-termo-val');
       if (t) {
         _pararPollingTermo();
-        container.classList.add('aceito');
-        const label = container.querySelector('.mv2-conclusion-label');
-        if (label) label.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#15803d"><polyline points="20 6 9 17 4 12"/></svg> Acordo assinado`;
-        if (termoVal) {
-          termoVal.style.fontStyle = 'normal';
-          termoVal.style.color = '';
-          const hora = t.aceito_em ? (t.aceito_em.includes('T') ? t.aceito_em : t.aceito_em.replace(' ', 'T') + 'Z') : null;
-          const dataFormatada = hora ? new Date(hora.endsWith('Z') ? hora : hora + 'Z').toLocaleString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-          termoVal.innerHTML = `<div style="font-weight:600;color:var(--text);margin-bottom:.15rem">${t.usuario_nome}</div><div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.75rem;color:var(--text-muted)">${dataFormatada ? `<span>${dataFormatada}</span>` : ''}${t.setor ? `<span>· ${t.setor}</span>` : ''}</div>`;
+        if (container) {
+          container.classList.add('aceito');
+          const label = container.querySelector('.mv2-conclusion-label');
+          if (label) label.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#15803d"><polyline points="20 6 9 17 4 12"/></svg> Acordo assinado`;
+          if (termoVal) {
+            termoVal.style.fontStyle = 'normal';
+            termoVal.style.color = '';
+            const hora = t.aceito_em ? (t.aceito_em.includes('T') ? t.aceito_em : t.aceito_em.replace(' ', 'T') + 'Z') : null;
+            const dataFormatada = hora ? new Date(hora.endsWith('Z') ? hora : hora + 'Z').toLocaleString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+            termoVal.innerHTML = `<div style="font-weight:600;color:var(--text);margin-bottom:.15rem">${t.usuario_nome}</div><div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.75rem;color:var(--text-muted)">${dataFormatada ? `<span>${dataFormatada}</span>` : ''}${t.setor ? `<span>· ${t.setor}</span>` : ''}</div>`;
+          }
         }
         if (c.requer_acordo && isAberto) {
           const btnC = document.getElementById('btn-concluir');
