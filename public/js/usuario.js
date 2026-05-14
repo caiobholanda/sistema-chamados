@@ -676,8 +676,9 @@ function renderPainel(usuario) {
               <div class="termo-date">Fortaleza, ${hoje}</div>
               <div style="display:flex;justify-content:center">
                 <div class="termo-sig" style="text-align:center;min-width:220px">
+                  <div style="font-weight:600;font-size:.85rem;margin-bottom:.4rem">${nomeUsuario.split(' ')[0]}</div>
                   <div class="termo-sig-line"></div>
-                  <div class="termo-sig-label">${nomeUsuario.split(' ')[0]}</div>
+                  <div class="termo-sig-label" style="color:#94a3b8">Assinatura do responsável</div>
                 </div>
               </div>
             </div>
