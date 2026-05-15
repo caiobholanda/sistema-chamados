@@ -916,7 +916,7 @@ function setupModalEventos(c) {
       const CATS_WIZARD = ['mouse','monitor','teclado','nobreak'];
       if (CATS_WIZARD.includes(c.categoria)) {
         abrirWizardEstoque(c, solucao, (ok) => {
-          if (ok) setTimeout(() => abrirModal(c.id), 700);
+          if (ok) fecharModal();
         });
         return;
       }
@@ -924,8 +924,7 @@ function setupModalEventos(c) {
       try {
         const r = await api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
         const d = await r.json();
-        setMsg(r.ok ? '<div class="alert alert-success">Chamado concluído.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-        if (r.ok) setTimeout(() => abrirModal(c.id), 700);
+        if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
       } finally {
         if (btnConfConcluir.isConnected) { btnConfConcluir.disabled = false; btnConfConcluir.textContent = 'Confirmar conclusão'; }
       }
