@@ -251,8 +251,18 @@ function renderAuth() {
       });
       const d = await r.json();
       if (r.ok) {
-        msgEl.innerHTML = `<div class="alert alert-success">${d.mensagem}</div>`;
+        msgEl.innerHTML = `<div class="alert alert-success">${d.mensagem}</div>
+          <button type="button" id="btn-reenviar-esqueci"
+            style="background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--text-muted);text-decoration:underline;padding:0;margin-top:.4rem;display:block">
+            Não recebeu? Reenviar link
+          </button>`;
         e.target.style.display = 'none';
+        document.getElementById('btn-reenviar-esqueci').addEventListener('click', () => {
+          msgEl.innerHTML = '';
+          document.getElementById('esqueci-email').value = '';
+          document.getElementById('esqueci-email').focus();
+          e.target.style.display = '';
+        });
       } else {
         msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
         btn.disabled = false; btn.textContent = 'Enviar link de redefinição';

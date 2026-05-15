@@ -303,9 +303,20 @@ function renderLogin() {
         body: JSON.stringify({ email }),
       });
       const d = await r.json();
-      msg.innerHTML = r.ok
-        ? '<div class="mob-alert mob-alert-success">' + d.mensagem + '</div>'
-        : '<div class="mob-alert mob-alert-danger">' + (d.erro || 'Erro ao processar.') + '</div>';
+      if (r.ok) {
+        msg.innerHTML = '<div class="mob-alert mob-alert-success">' + d.mensagem + '</div>'
+          + '<button type="button" id="mob-btn-reenviar"'
+          + ' style="background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted);text-decoration:underline;padding:0;margin-top:.4rem;display:block">'
+          + 'Não recebeu? Reenviar link</button>';
+        document.getElementById('mob-form-esqueci').style.display = 'none';
+        document.getElementById('mob-btn-reenviar').addEventListener('click', () => {
+          msg.innerHTML = '';
+          document.getElementById('mob-email-esqueci').value = '';
+          document.getElementById('mob-form-esqueci').style.display = '';
+        });
+      } else {
+        msg.innerHTML = '<div class="mob-alert mob-alert-danger">' + (d.erro || 'Erro ao processar.') + '</div>';
+      }
     } catch {
       msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão.</div>';
     }
