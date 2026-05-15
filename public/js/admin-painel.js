@@ -5,6 +5,7 @@ let subAbaMeusAtiva = 'abertos';
 let _chatAdminIv = null;
 let _chamadosHash = null;
 let _termoPollingIv = null;
+let _scrollAntesModal = 0;
 function _pararPollingTermo() {
   if (_termoPollingIv) { clearInterval(_termoPollingIv); _termoPollingIv = null; }
 }
@@ -509,6 +510,7 @@ function renderChamadoItem(c) {
 
 
 async function abrirModal(id) {
+  _scrollAntesModal = window.scrollY;
   // Limpa interval de chat de qualquer modal anterior antes de abrir outro
   if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
   chamadoAtual = null;
@@ -528,12 +530,13 @@ async function abrirModal(id) {
   } catch {}
 }
 
-function fecharModal() {
+async function fecharModal() {
   if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
   _pararPollingTermo();
   document.getElementById('modal-overlay').classList.remove('open');
   chamadoAtual = null;
-  carregarChamados();
+  await carregarChamados(true);
+  window.scrollTo({ top: _scrollAntesModal, behavior: 'instant' });
   carregarEstatisticas();
 }
 
