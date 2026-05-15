@@ -507,7 +507,7 @@ async function verHistorico(itemId, nomeItem) {
     const movs = await r.json();
 
     if (!movs.length) {
-      document.getElementById('hist-modal-body').innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted)">Nenhuma movimentação registrada.</div>';
+      document.getElementById('hist-modal-body').innerHTML = '<div style="text-align:center;color:var(--text-muted)">Nenhuma movimentação registrada.</div>';
       return;
     }
 
@@ -552,7 +552,7 @@ async function verHistorico(itemId, nomeItem) {
       </div>
     `;
   } catch {
-    document.getElementById('hist-modal-body').innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro ao carregar histórico.</div>';
+    document.getElementById('hist-modal-body').innerHTML = '<div style="color:var(--danger)">Erro ao carregar histórico.</div>';
   }
 }
 
@@ -873,7 +873,7 @@ async function eqHistorico(id, codigo) {
   try {
     const r = await api(`/api/admin/estoque/equipamentos/${id}/historico`);
     const hist = await r.json();
-    if (!hist.length) { document.getElementById('eq-hist-body').innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted)">Nenhuma movimentação registrada.</div>'; return; }
+    if (!hist.length) { document.getElementById('eq-hist-body').innerHTML = '<div style="text-align:center;color:var(--text-muted)">Nenhuma movimentação registrada.</div>'; return; }
     document.getElementById('eq-hist-body').innerHTML = `
       <div class="table-wrap" style="max-height:420px;overflow-y:auto">
         <table>
@@ -922,7 +922,7 @@ async function eqHistorico(id, codigo) {
         finally { btn.textContent = 'Ver acordo'; btn.disabled = false; }
       });
     });
-  } catch { document.getElementById('eq-hist-body').innerHTML = '<div style="padding:1rem;color:var(--danger)">Erro ao carregar histórico.</div>'; }
+  } catch { document.getElementById('eq-hist-body').innerHTML = '<div style="color:var(--danger)">Erro ao carregar histórico.</div>'; }
 }
 
 function abrirModalDocumentoAcordoEstoque(c, termo) {
