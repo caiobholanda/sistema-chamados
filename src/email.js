@@ -55,10 +55,16 @@ async function enviarResetSenha(destinatario, nome, linkReset) {
               </tr>
               <tr>
                 <td style="padding:28px 40px">
-                  <a href="${linkReset}"
-                     style="display:inline-block;background:#D4AF37;color:#0D1B2A;text-decoration:none;font-size:14px;font-weight:700;padding:14px 32px;letter-spacing:.04em">
-                    Redefinir senha
-                  </a>
+                  <table border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td bgcolor="#D4AF37" style="padding:14px 32px">
+                        <a href="${linkReset}" target="_blank"
+                           style="display:inline-block;color:#0D1B2A;text-decoration:none;font-size:14px;font-weight:700;letter-spacing:.04em;font-family:Inter,Arial,sans-serif">
+                          Redefinir senha
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
               <tr>
@@ -66,6 +72,10 @@ async function enviarResetSenha(destinatario, nome, linkReset) {
                   <p style="margin:0;font-size:12px;color:#7A726A;line-height:1.6">
                     Este link expira em <strong>1 hora</strong>.<br>
                     Se você não solicitou a redefinição, ignore este e-mail — sua senha permanece a mesma.
+                  </p>
+                  <p style="margin:12px 0 0;font-size:11px;color:#B8B0A8;line-height:1.6;word-break:break-all">
+                    Se o botão não abrir, copie e cole este link no navegador:<br>
+                    <a href="${linkReset}" style="color:#7A726A">${linkReset}</a>
                   </p>
                 </td>
               </tr>
