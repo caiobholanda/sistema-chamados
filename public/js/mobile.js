@@ -312,6 +312,7 @@ function renderLogin() {
         document.getElementById('mob-btn-reenviar').addEventListener('click', () => {
           msg.innerHTML = '';
           document.getElementById('mob-email-esqueci').value = '';
+          btn.disabled = false; btn.textContent = 'Enviar instruções';
           document.getElementById('mob-form-esqueci').style.display = '';
         });
       } else {

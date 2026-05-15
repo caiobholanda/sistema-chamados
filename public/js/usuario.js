@@ -260,8 +260,9 @@ function renderAuth() {
         document.getElementById('btn-reenviar-esqueci').addEventListener('click', () => {
           msgEl.innerHTML = '';
           document.getElementById('esqueci-email').value = '';
-          document.getElementById('esqueci-email').focus();
+          btn.disabled = false; btn.textContent = 'Enviar link de redefinição';
           e.target.style.display = '';
+          document.getElementById('esqueci-email').focus();
         });
       } else {
         msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
