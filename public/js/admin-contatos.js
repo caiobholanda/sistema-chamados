@@ -15,7 +15,7 @@
     setTimeout(() => el.remove(), 3500);
   }
 
-  /* ── Fetch helpers ── */
+  /* ── Fetch ── */
   async function apiFetch(url, opts = {}) {
     const res = await fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...opts });
     const data = await res.json().catch(() => ({}));
@@ -23,7 +23,7 @@
     return data;
   }
 
-  /* ── Carregar e renderizar ── */
+  /* ── Carregar ── */
   async function carregar() {
     try {
       contatos = await apiFetch('/api/admin/contatos');
@@ -34,99 +34,96 @@
     }
   }
 
+  /* ── Filtro ── */
   function filtrar() {
-    const q = (document.getElementById('busca-contatos').value || '').toLowerCase();
+    const q = (document.getElementById('busca-contatos').value || '').toLowerCase().trim();
     if (!q) return contatos;
     return contatos.filter(c =>
       (c.area || '').toLowerCase().includes(q) ||
-      (c.nome || '').toLowerCase().includes(q) ||
-      (c.responsabilidade || '').toLowerCase().includes(q) ||
-      (c.email || '').toLowerCase().includes(q)
+      (c.wpp || '').includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
+      (c.pessoas || []).some(p =>
+        (p.nome || '').toLowerCase().includes(q) ||
+        (p.responsabilidade || '').toLowerCase().includes(q)
+      )
     );
   }
 
-  function linkTel(numero) {
-    if (!numero) return '';
-    const limpo = numero.replace(/\D/g, '');
-    return `<a href="tel:+55${limpo}" style="color:inherit;text-decoration:none">${numero}</a>`;
+  /* ── Links ── */
+  function linkTel(n) {
+    if (!n) return '<span style="color:var(--text-muted)">—</span>';
+    const l = n.replace(/\D/g, '');
+    return `<a href="tel:+55${l}">${n}</a>`;
   }
-
-  function linkWpp(numero) {
-    if (!numero) return '';
-    const limpo = numero.replace(/\D/g, '');
-    return `<a href="https://wa.me/55${limpo}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${numero}</a>`;
+  function linkWpp(n) {
+    if (!n) return '<span style="color:var(--text-muted)">—</span>';
+    const l = n.replace(/\D/g, '');
+    return `<a href="https://wa.me/55${l}" target="_blank" rel="noopener">${n}</a>`;
   }
-
-  function linkEmail(email) {
-    if (!email) return '';
-    return `<a href="mailto:${email}" style="color:inherit;text-decoration:none">${email}</a>`;
+  function linkEmail(e) {
+    if (!e) return '<span style="color:var(--text-muted)">—</span>';
+    return `<a href="mailto:${e}">${e}</a>`;
   }
+  function dash(v) { return v || '<span style="color:var(--text-muted)">—</span>'; }
 
+  /* ── Renderizar lista ── */
   function renderizar() {
     const lista = document.getElementById('lista-contatos');
     const dados = filtrar();
 
     if (dados.length === 0) {
-      lista.innerHTML = `<div class="empty-state" style="padding:3rem 0;text-align:center;color:var(--text-muted)">
+      lista.innerHTML = `<div style="padding:3rem 0;text-align:center;color:var(--text-muted);font-size:.9rem">
         Nenhum contato encontrado.
       </div>`;
       return;
     }
 
-    /* Agrupar por área */
-    const grupos = {};
-    for (const c of dados) {
-      const chave = c.area || '—';
-      if (!grupos[chave]) grupos[chave] = [];
-      grupos[chave].push(c);
-    }
+    lista.innerHTML = dados.map(c => {
+      const temMeta = c.wpp || c.telefone_fixo || c.email;
+      const pessoas = c.pessoas || [];
 
-    let html = '';
-    for (const area of Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR'))) {
-      const itens = grupos[area];
-      html += `
+      return `
         <div class="card" style="margin-bottom:1.25rem;overflow:hidden">
-          <div style="background:var(--navy);padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between">
-            <span style="color:var(--gold);font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase">${area}</span>
-            <span style="color:rgba(255,255,255,.4);font-size:.72rem">${itens.length} ${itens.length === 1 ? 'contato' : 'contatos'}</span>
+          <div class="contato-card-header">
+            <span style="color:var(--gold);font-size:.82rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase">
+              ${c.area || '<span style="color:rgba(212,175,55,.5)">Sem nome</span>'}
+            </span>
+            <div style="display:flex;gap:.3rem;flex-shrink:0">
+              <button class="btn btn-ghost btn-sm" data-edit="${c.id}" title="Editar" style="color:rgba(255,255,255,.7)">✏️ Editar</button>
+              <button class="btn btn-ghost btn-sm" data-del="${c.id}" data-nome="${c.area || 'este contato'}" title="Excluir" style="color:#f87171">🗑</button>
+            </div>
           </div>
-          <div class="table-wrap" style="border:none;border-radius:0;box-shadow:none">
-            <table style="margin:0">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Responsabilidade</th>
-                  <th>WhatsApp</th>
-                  <th>Fixo</th>
-                  <th>Celular</th>
-                  <th>E-mail</th>
-                  <th style="width:80px"></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itens.map(c => `
-                  <tr>
-                    <td>${c.nome || '<span style="color:var(--text-muted)">—</span>'}</td>
-                    <td>${c.responsabilidade || '<span style="color:var(--text-muted)">—</span>'}</td>
-                    <td>${c.wpp ? linkWpp(c.wpp) : '<span style="color:var(--text-muted)">—</span>'}</td>
-                    <td>${c.telefone_fixo ? linkTel(c.telefone_fixo) : '<span style="color:var(--text-muted)">—</span>'}</td>
-                    <td>${c.celular ? linkTel(c.celular) : '<span style="color:var(--text-muted)">—</span>'}</td>
-                    <td>${c.email ? linkEmail(c.email) : '<span style="color:var(--text-muted)">—</span>'}</td>
-                    <td>
-                      <div style="display:flex;gap:.3rem;justify-content:flex-end">
-                        <button class="btn btn-ghost btn-sm" data-edit="${c.id}" title="Editar">✏️</button>
-                        <button class="btn btn-ghost btn-sm" data-del="${c.id}" data-nome="${c.nome || c.area || 'este contato'}" title="Excluir" style="color:var(--danger)">🗑</button>
-                      </div>
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+
+          ${temMeta ? `
+          <div class="contato-card-meta">
+            ${c.wpp ? `<span class="meta-item">📱 WPP: ${linkWpp(c.wpp)}</span>` : ''}
+            ${c.telefone_fixo ? `<span class="meta-item">☎️ Fixo: ${linkTel(c.telefone_fixo)}</span>` : ''}
+            ${c.email ? `<span class="meta-item">✉️ ${linkEmail(c.email)}</span>` : ''}
+          </div>` : ''}
+
+          <div class="contato-card-pessoas">
+            ${pessoas.length > 0 ? `
+              <div class="pessoas-header">
+                <div>Nome</div>
+                <div>Responsabilidade</div>
+                <div>Celular</div>
+                <div></div>
+              </div>
+              ${pessoas.map(p => `
+                <div class="pessoa-linha">
+                  <div>${dash(p.nome)}</div>
+                  <div style="color:var(--text-secondary)">${dash(p.responsabilidade)}</div>
+                  <div>${p.celular ? linkTel(p.celular) : '<span style="color:var(--text-muted)">—</span>'}</div>
+                  <div class="p-acoes"></div>
+                </div>
+              `).join('')}
+            ` : `
+              <div style="padding:.75rem 1rem;font-size:.8rem;color:var(--text-muted)">Nenhuma pessoa cadastrada.</div>
+            `}
           </div>
         </div>`;
-    }
+    }).join('');
 
-    lista.innerHTML = html;
     lista.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => abrirEditar(+btn.dataset.edit)));
     lista.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => confirmarExcluir(+btn.dataset.del, btn.dataset.nome)));
   }
@@ -138,7 +135,54 @@
     dl.innerHTML = areas.map(a => `<option value="${a}">`).join('');
   }
 
-  /* ── Modal Contato ── */
+  /* ── Pessoas no modal ── */
+  function renderPessoas(lista) {
+    const container = document.getElementById('pessoas-container');
+    const vazio = document.getElementById('pessoas-vazio');
+    container.innerHTML = '';
+    (lista || []).forEach(p => adicionarLinhaPessoa(p));
+    atualizarVazio();
+  }
+
+  function adicionarLinhaPessoa(p = {}) {
+    const container = document.getElementById('pessoas-container');
+    const row = document.createElement('div');
+    row.className = 'pessoa-row';
+    row.innerHTML = `
+      <div>
+        <input class="form-control p-nome" type="text" placeholder="Nome" maxlength="80" value="${p.nome || ''}" autocomplete="off">
+      </div>
+      <div>
+        <input class="form-control p-resp" type="text" placeholder="Responsabilidade" maxlength="80" value="${p.responsabilidade || ''}" autocomplete="off">
+      </div>
+      <div>
+        <input class="form-control p-cel" type="tel" placeholder="(85) 9 0000-0000" maxlength="20" value="${p.celular || ''}" inputmode="tel">
+      </div>
+      <button type="button" class="btn-remover-pessoa" title="Remover">✕</button>
+    `;
+    row.querySelector('.btn-remover-pessoa').addEventListener('click', () => {
+      row.remove();
+      atualizarVazio();
+    });
+    container.appendChild(row);
+    atualizarVazio();
+  }
+
+  function atualizarVazio() {
+    const container = document.getElementById('pessoas-container');
+    const vazio = document.getElementById('pessoas-vazio');
+    vazio.style.display = container.children.length === 0 ? 'block' : 'none';
+  }
+
+  function coletarPessoas() {
+    return Array.from(document.getElementById('pessoas-container').querySelectorAll('.pessoa-row')).map(row => ({
+      nome: row.querySelector('.p-nome').value.trim() || null,
+      responsabilidade: row.querySelector('.p-resp').value.trim() || null,
+      celular: row.querySelector('.p-cel').value.trim() || null,
+    }));
+  }
+
+  /* ── Modal ── */
   function abrirModal(titulo) {
     document.getElementById('modal-contato-title').textContent = titulo;
     document.getElementById('msg-modal-contato').innerHTML = '';
@@ -149,10 +193,17 @@
     document.getElementById('modal-contato-overlay').style.display = 'none';
     document.getElementById('form-contato').reset();
     document.getElementById('contato-id').value = '';
+    document.getElementById('pessoas-container').innerHTML = '';
+    atualizarVazio();
   }
 
   function abrirNovo() {
     document.getElementById('contato-id').value = '';
+    document.getElementById('fc-area').value = '';
+    document.getElementById('fc-wpp').value = '';
+    document.getElementById('fc-fixo').value = '';
+    document.getElementById('fc-email').value = '';
+    renderPessoas([]);
     abrirModal('Novo Contato');
   }
 
@@ -161,12 +212,10 @@
     if (!c) return;
     document.getElementById('contato-id').value = id;
     document.getElementById('fc-area').value = c.area || '';
-    document.getElementById('fc-nome').value = c.nome || '';
-    document.getElementById('fc-resp').value = c.responsabilidade || '';
     document.getElementById('fc-wpp').value = c.wpp || '';
     document.getElementById('fc-fixo').value = c.telefone_fixo || '';
-    document.getElementById('fc-cel').value = c.celular || '';
     document.getElementById('fc-email').value = c.email || '';
+    renderPessoas(c.pessoas || []);
     abrirModal('Editar Contato');
   }
 
@@ -175,15 +224,12 @@
     const id = document.getElementById('contato-id').value;
     const payload = {
       area: document.getElementById('fc-area').value.trim() || null,
-      nome: document.getElementById('fc-nome').value.trim() || null,
-      responsabilidade: document.getElementById('fc-resp').value.trim() || null,
       wpp: document.getElementById('fc-wpp').value.trim() || null,
       telefone_fixo: document.getElementById('fc-fixo').value.trim() || null,
-      celular: document.getElementById('fc-cel').value.trim() || null,
       email: document.getElementById('fc-email').value.trim() || null,
+      pessoas: coletarPessoas(),
     };
 
-    const msgEl = document.getElementById('msg-modal-contato');
     try {
       if (id) {
         await apiFetch(`/api/admin/contatos/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
@@ -195,14 +241,15 @@
       fecharModal();
       carregar();
     } catch (err) {
-      msgEl.innerHTML = `<div class="alert alert-danger" style="margin-bottom:.75rem">${err.message}</div>`;
+      document.getElementById('msg-modal-contato').innerHTML =
+        `<div class="alert alert-danger" style="margin-bottom:.75rem">${err.message}</div>`;
     }
   }
 
-  /* ── Modal Excluir ── */
+  /* ── Excluir ── */
   function confirmarExcluir(id, nome) {
     excluirId = id;
-    document.getElementById('excluir-msg').textContent = `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`;
+    document.getElementById('excluir-msg').textContent = `Tem certeza que deseja excluir "${nome}"? Todas as pessoas cadastradas neste contato também serão removidas.`;
     document.getElementById('modal-excluir-overlay').style.display = 'flex';
   }
 
@@ -231,6 +278,7 @@
     document.getElementById('btn-novo-contato').addEventListener('click', abrirNovo);
     document.getElementById('btn-fechar-contato').addEventListener('click', fecharModal);
     document.getElementById('btn-cancelar-contato').addEventListener('click', fecharModal);
+    document.getElementById('btn-add-pessoa').addEventListener('click', () => adicionarLinhaPessoa());
     document.getElementById('form-contato').addEventListener('submit', salvar);
 
     document.getElementById('btn-fechar-excluir').addEventListener('click', fecharExcluir);

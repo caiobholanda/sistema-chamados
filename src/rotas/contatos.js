@@ -10,36 +10,43 @@ function san(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#x27;').trim();
 }
 
+function sanPessoas(pessoas) {
+  if (!Array.isArray(pessoas)) return [];
+  return pessoas
+    .filter(p => p.nome || p.responsabilidade || p.celular)
+    .map(p => ({
+      nome: p.nome ? san(p.nome) : null,
+      responsabilidade: p.responsabilidade ? san(p.responsabilidade) : null,
+      celular: p.celular ? san(p.celular) : null,
+    }));
+}
+
 router.get('/', requireAdmin, (req, res) => {
   res.json(db.listarContatos());
 });
 
 router.post('/', requireAdmin, (req, res) => {
-  const { area, nome, responsabilidade, wpp, telefone_fixo, celular, email } = req.body;
+  const { area, wpp, telefone_fixo, email, pessoas } = req.body;
   const id = db.criarContato({
     area: area ? san(area) : null,
-    nome: nome ? san(nome) : null,
-    responsabilidade: responsabilidade ? san(responsabilidade) : null,
     wpp: wpp ? san(wpp) : null,
     telefone_fixo: telefone_fixo ? san(telefone_fixo) : null,
-    celular: celular ? san(celular) : null,
     email: email ? san(email) : null,
   });
+  db.sincronizarPessoas(id, sanPessoas(pessoas));
   res.status(201).json({ id });
 });
 
 router.put('/:id', requireAdmin, (req, res) => {
   const id = +req.params.id;
-  const { area, nome, responsabilidade, wpp, telefone_fixo, celular, email } = req.body;
+  const { area, wpp, telefone_fixo, email, pessoas } = req.body;
   db.atualizarContato(id, {
     area: area !== undefined ? (area ? san(area) : null) : undefined,
-    nome: nome !== undefined ? (nome ? san(nome) : null) : undefined,
-    responsabilidade: responsabilidade !== undefined ? (responsabilidade ? san(responsabilidade) : null) : undefined,
     wpp: wpp !== undefined ? (wpp ? san(wpp) : null) : undefined,
     telefone_fixo: telefone_fixo !== undefined ? (telefone_fixo ? san(telefone_fixo) : null) : undefined,
-    celular: celular !== undefined ? (celular ? san(celular) : null) : undefined,
     email: email !== undefined ? (email ? san(email) : null) : undefined,
   });
+  if (pessoas !== undefined) db.sincronizarPessoas(id, sanPessoas(pessoas));
   res.json({ ok: true });
 });
 

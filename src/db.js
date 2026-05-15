@@ -142,13 +142,18 @@ function initDb() {
     CREATE TABLE IF NOT EXISTS contatos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       area TEXT,
-      nome TEXT,
-      responsabilidade TEXT,
       wpp TEXT,
       telefone_fixo TEXT,
-      celular TEXT,
       email TEXT,
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS contato_pessoas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      contato_id INTEGER NOT NULL REFERENCES contatos(id) ON DELETE CASCADE,
+      nome TEXT,
+      responsabilidade TEXT,
+      celular TEXT
     );
   `);
 
@@ -1650,31 +1655,52 @@ function marcarRequerAcordo(chamadoId, valor, equipamentos) {
 // ── Contatos ──────────────────────────────────────────────
 
 function listarContatos() {
-  return getDb().prepare('SELECT * FROM contatos ORDER BY area ASC, nome ASC').all();
+  const db = getDb();
+  const contatos = db.prepare('SELECT * FROM contatos ORDER BY area ASC').all();
+  const pessoas = db.prepare('SELECT * FROM contato_pessoas ORDER BY id ASC').all();
+  const map = {};
+  for (const p of pessoas) {
+    if (!map[p.contato_id]) map[p.contato_id] = [];
+    map[p.contato_id].push(p);
+  }
+  return contatos.map(c => ({ ...c, pessoas: map[c.id] || [] }));
 }
 
 function criarContato(dados) {
-  const result = getDb().prepare(`
-    INSERT INTO contatos (area, nome, responsabilidade, wpp, telefone_fixo, celular, email)
-    VALUES (@area, @nome, @responsabilidade, @wpp, @telefone_fixo, @celular, @email)
-  `).run({ area: null, nome: null, responsabilidade: null, wpp: null, telefone_fixo: null, celular: null, email: null, ...dados });
+  const db = getDb();
+  const result = db.prepare(`
+    INSERT INTO contatos (area, wpp, telefone_fixo, email)
+    VALUES (@area, @wpp, @telefone_fixo, @email)
+  `).run({ area: null, wpp: null, telefone_fixo: null, email: null, ...dados });
   return result.lastInsertRowid;
 }
 
 function atualizarContato(id, dados) {
   const campos = [];
   const values = [];
-  const CAMPOS = ['area', 'nome', 'responsabilidade', 'wpp', 'telefone_fixo', 'celular', 'email'];
-  for (const c of CAMPOS) {
+  for (const c of ['area', 'wpp', 'telefone_fixo', 'email']) {
     if (dados[c] !== undefined) { campos.push(`${c} = ?`); values.push(dados[c]); }
   }
-  if (campos.length === 0) return;
-  values.push(id);
-  getDb().prepare(`UPDATE contatos SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+  if (campos.length > 0) {
+    values.push(id);
+    getDb().prepare(`UPDATE contatos SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+  }
 }
 
 function deletarContato(id) {
-  getDb().prepare('DELETE FROM contatos WHERE id = ?').run(id);
+  const db = getDb();
+  db.prepare('DELETE FROM contato_pessoas WHERE contato_id = ?').run(id);
+  db.prepare('DELETE FROM contatos WHERE id = ?').run(id);
+}
+
+function sincronizarPessoas(contato_id, pessoas) {
+  const db = getDb();
+  db.prepare('DELETE FROM contato_pessoas WHERE contato_id = ?').run(contato_id);
+  const stmt = db.prepare('INSERT INTO contato_pessoas (contato_id, nome, responsabilidade, celular) VALUES (?, ?, ?, ?)');
+  const inserir = db.transaction((list) => {
+    for (const p of list) stmt.run(contato_id, p.nome || null, p.responsabilidade || null, p.celular || null);
+  });
+  inserir(pessoas || []);
 }
 
 module.exports = {
@@ -1764,6 +1790,7 @@ module.exports = {
   criarContato,
   atualizarContato,
   deletarContato,
+  sincronizarPessoas,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────

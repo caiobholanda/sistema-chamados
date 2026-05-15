@@ -5,6 +5,88 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Contatos — Gran Marquise TI</title>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .pessoa-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: .5rem;
+      align-items: end;
+      margin-bottom: .5rem;
+    }
+    .pessoa-row .btn-remover-pessoa {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--danger);
+      cursor: pointer;
+      padding: .42rem .6rem;
+      font-size: .9rem;
+      line-height: 1;
+      transition: background .15s;
+    }
+    .pessoa-row .btn-remover-pessoa:hover { background: var(--danger-light); }
+    #pessoas-container .label-pessoas {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: .4rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: .5rem;
+      padding-right: .1rem;
+    }
+    .contato-card-header {
+      background: var(--navy);
+      padding: .65rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .contato-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem 1.5rem;
+      padding: .65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .8rem;
+      color: var(--text-secondary);
+    }
+    .contato-card-meta a { color: var(--text-secondary); text-decoration: none; }
+    .contato-card-meta a:hover { color: var(--text); text-decoration: underline; }
+    .contato-card-meta .meta-item { display: flex; align-items: center; gap: .35rem; }
+    .contato-card-pessoas { padding: 0; }
+    .pessoa-linha {
+      display: grid;
+      grid-template-columns: 1.2fr 1.2fr 1fr auto;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .82rem;
+    }
+    .pessoa-linha:last-child { border-bottom: none; }
+    .pessoa-linha > * { padding: .55rem 1rem; }
+    .pessoa-linha .p-acoes {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: .25rem;
+      padding-right: .75rem;
+    }
+    .pessoas-header {
+      display: grid;
+      grid-template-columns: 1.2fr 1.2fr 1fr auto;
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .pessoas-header > * { padding: .4rem 1rem; }
+  </style>
 </head>
 <body>
 <header>
@@ -25,13 +107,13 @@
   <div class="page-header flex-between flex-wrap gap-2">
     <div>
       <div class="page-title">Contatos do Hotel</div>
-      <div class="page-subtitle">Ramais, celulares, e‑mails e responsáveis por área</div>
+      <div class="page-subtitle">Empresas, áreas e responsáveis por setor</div>
     </div>
     <button class="btn btn-primary" id="btn-novo-contato">+ Novo Contato</button>
   </div>
 
   <div class="filtros" style="margin-bottom:1rem">
-    <input class="form-control" type="search" id="busca-contatos" placeholder="Buscar por área, nome ou responsabilidade…" style="max-width:360px">
+    <input class="form-control" type="search" id="busca-contatos" placeholder="Buscar por empresa, nome ou responsabilidade…" style="max-width:380px">
   </div>
 
   <div id="lista-contatos"></div>
@@ -39,7 +121,7 @@
 
 <!-- Modal Contato -->
 <div class="modal-overlay" id="modal-contato-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-contato-title">
-  <div class="modal" style="max-width:560px">
+  <div class="modal" style="max-width:680px">
     <div class="modal-header">
       <h2 id="modal-contato-title">Novo Contato</h2>
       <button class="modal-close" id="btn-fechar-contato" aria-label="Fechar">&#x2715;</button>
@@ -50,23 +132,12 @@
         <input type="hidden" id="contato-id">
 
         <div class="form-group">
-          <label for="fc-area">Área / Setor <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-          <input class="form-control" type="text" id="fc-area" list="areas-datalist" placeholder="Ex: Recepção, Restaurante, Governança…" maxlength="80" autocomplete="off">
+          <label for="fc-area">Empresa / Área <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+          <input class="form-control" type="text" id="fc-area" list="areas-datalist" placeholder="Ex: Cellbet, Recepção, Restaurante…" maxlength="80" autocomplete="off">
           <datalist id="areas-datalist"></datalist>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
-          <div class="form-group" style="margin-bottom:0">
-            <label for="fc-nome">Nome <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-            <input class="form-control" type="text" id="fc-nome" placeholder="Nome da pessoa" maxlength="80" autocomplete="off">
-          </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label for="fc-resp">Responsabilidade <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-            <input class="form-control" type="text" id="fc-resp" placeholder="Ex: Gerente, Recepcionista…" maxlength="80" autocomplete="off">
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-top:.75rem">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem">
           <div class="form-group" style="margin-bottom:0">
             <label for="fc-wpp">WhatsApp <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
             <input class="form-control" type="tel" id="fc-wpp" placeholder="(85) 9 0000-0000" maxlength="20" inputmode="tel">
@@ -76,14 +147,19 @@
             <input class="form-control" type="tel" id="fc-fixo" placeholder="(85) 0000-0000" maxlength="20" inputmode="tel">
           </div>
           <div class="form-group" style="margin-bottom:0">
-            <label for="fc-cel">Celular <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-            <input class="form-control" type="tel" id="fc-cel" placeholder="(85) 9 0000-0000" maxlength="20" inputmode="tel">
+            <label for="fc-email">E-mail <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <input class="form-control" type="email" id="fc-email" placeholder="contato@empresa.com" maxlength="120" autocomplete="off">
           </div>
         </div>
 
-        <div class="form-group" style="margin-top:.75rem">
-          <label for="fc-email">E-mail <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
-          <input class="form-control" type="email" id="fc-email" placeholder="exemplo@granmarquise.com.br" maxlength="120" autocomplete="off">
+        <!-- Pessoas -->
+        <div style="margin-top:1.25rem;border-top:1px solid var(--border);padding-top:1rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+            <span style="font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary)">Pessoas</span>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-add-pessoa" style="font-size:.75rem">+ Adicionar pessoa</button>
+          </div>
+          <div id="pessoas-container"></div>
+          <p id="pessoas-vazio" style="font-size:.82rem;color:var(--text-muted);text-align:center;padding:.75rem 0">Nenhuma pessoa adicionada. Clique em "+ Adicionar pessoa".</p>
         </div>
       </form>
     </div>
