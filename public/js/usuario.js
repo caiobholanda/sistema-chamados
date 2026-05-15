@@ -582,8 +582,10 @@ function renderPainel(usuario) {
     const adminNome   = (chamado && chamado.admin_nome) || '';
     const setoratual  = (chamado && (chamado.usuario_setor || chamado.setor)) || '';
     const equipamentosAdmin = (() => {
-      try { return chamado && chamado.acordo_equipamentos ? JSON.parse(chamado.acordo_equipamentos) : null; }
-      catch { return null; }
+      try {
+        const raw = chamado && chamado.acordo_equipamentos ? JSON.parse(chamado.acordo_equipamentos) : null;
+        return Array.isArray(raw) ? raw.filter(r => r.tipo || r.marca || r.modelo) : null;
+      } catch { return null; }
     })();
     const temEquipamentosAdmin = Array.isArray(equipamentosAdmin) && equipamentosAdmin.length > 0;
 
