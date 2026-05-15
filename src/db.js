@@ -139,6 +139,17 @@ function initDb() {
   try { db.exec("ALTER TABLE equipamentos_historico ADD COLUMN chamado_id INTEGER DEFAULT NULL"); } catch {}
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      usado INTEGER DEFAULT 0,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS contatos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       area TEXT,
@@ -1652,6 +1663,21 @@ function marcarRequerAcordo(chamadoId, valor, equipamentos) {
   return getDb().prepare('UPDATE chamados SET requer_acordo = 0, acordo_equipamentos = NULL WHERE id = ?').run(chamadoId);
 }
 
+// ── Reset de senha ────────────────────────────────────────
+
+function criarResetToken(usuario_id, token, expires_at) {
+  getDb().prepare('DELETE FROM reset_tokens WHERE usuario_id = ? AND usado = 0').run(usuario_id);
+  getDb().prepare('INSERT INTO reset_tokens (usuario_id, token, expires_at) VALUES (?, ?, ?)').run(usuario_id, token, expires_at);
+}
+
+function buscarResetToken(token) {
+  return getDb().prepare('SELECT * FROM reset_tokens WHERE token = ?').get(token);
+}
+
+function marcarResetTokenUsado(token) {
+  getDb().prepare('UPDATE reset_tokens SET usado = 1 WHERE token = ?').run(token);
+}
+
 // ── Contatos ──────────────────────────────────────────────
 
 function listarContatos() {
@@ -1786,6 +1812,9 @@ module.exports = {
   registrarMovEquipamento,
   listarHistoricoEquipamento,
   vincularEquipamentosDoAcordo,
+  criarResetToken,
+  buscarResetToken,
+  marcarResetTokenUsado,
   listarContatos,
   criarContato,
   atualizarContato,

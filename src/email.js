@@ -1,0 +1,84 @@
+const nodemailer = require('nodemailer');
+
+function criarTransporter() {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: Number(SMTP_PORT) || 587,
+    secure: Number(SMTP_PORT) === 465,
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    tls: { rejectUnauthorized: false },
+  });
+}
+
+async function enviarResetSenha(destinatario, nome, linkReset) {
+  const transporter = criarTransporter();
+
+  if (!transporter) {
+    // Sem SMTP configurado → loga no console para testes
+    console.log(`\n[Reset Senha] Link para ${destinatario}:\n${linkReset}\n`);
+    return;
+  }
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `"Gran Marquise TI" <${from}>`,
+    to: destinatario,
+    subject: 'Redefinição de senha — Portal TI Gran Marquise',
+    html: `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head><meta charset="UTF-8"></head>
+      <body style="margin:0;padding:0;background:#F7F3ED;font-family:Inter,system-ui,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F3ED;padding:40px 20px">
+          <tr><td align="center">
+            <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #E5DDD0;border-top:4px solid #D4AF37">
+              <tr>
+                <td style="padding:32px 40px 0;text-align:center">
+                  <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7A726A">Gran Marquise</p>
+                  <p style="margin:0;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#B8B0A8">Suporte de TI</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px 40px 8px">
+                  <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#1C1C1C">Redefinição de senha</h1>
+                  <p style="margin:0;font-size:14px;color:#4A4540;line-height:1.6">
+                    Olá, <strong>${nome}</strong>.<br>
+                    Recebemos uma solicitação para redefinir a senha da sua conta no Portal de TI.
+                    Clique no botão abaixo para criar uma nova senha.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:28px 40px">
+                  <a href="${linkReset}"
+                     style="display:inline-block;background:#D4AF37;color:#0D1B2A;text-decoration:none;font-size:14px;font-weight:700;padding:14px 32px;letter-spacing:.04em">
+                    Redefinir senha
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 40px 28px">
+                  <p style="margin:0;font-size:12px;color:#7A726A;line-height:1.6">
+                    Este link expira em <strong>1 hora</strong>.<br>
+                    Se você não solicitou a redefinição, ignore este e-mail — sua senha permanece a mesma.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:20px 40px;border-top:1px solid #E5DDD0;text-align:center">
+                  <p style="margin:0;font-size:11px;color:#B8B0A8">Hotel Gran Marquise · Fortaleza, CE</p>
+                </td>
+              </tr>
+            </table>
+          </td></tr>
+        </table>
+      </body>
+      </html>
+    `,
+  });
+}
+
+module.exports = { enviarResetSenha };

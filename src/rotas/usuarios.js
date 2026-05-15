@@ -1,10 +1,12 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const router = express.Router();
 const db = require('../db');
 const { requireUsuario } = require('../auth');
 const push = require('../push');
+const { enviarResetSenha } = require('../email');
 
 function sanitizar(str) {
   if (typeof str !== 'string') return str;
@@ -162,6 +164,65 @@ router.get('/chamados/:id/termo-aceite', requireUsuario, (req, res) => {
     const termo = db.buscarTermoAceite(chamadoId);
     return res.json(termo || null);
   } catch (err) {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+function senhaForte(s) {
+  return s.length >= 8 && /[A-Z]/.test(s) && /[a-z]/.test(s) && /[0-9]/.test(s) && /[^A-Za-z0-9]/.test(s);
+}
+
+// POST /api/usuarios/esqueci-senha
+router.post('/esqueci-senha', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ erro: 'E-mail obrigatório' });
+
+    const usuario = db.buscarUsuarioPorEmail(email);
+    // Responde 200 mesmo se não encontrado (não revelar se e-mail existe)
+    if (!usuario || usuario.ativo === 0) return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires_at = new Date(Date.now() + 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
+    db.criarResetToken(usuario.id, token, expires_at);
+
+    const base = process.env.APP_URL || `https://web-production-83b4ae.up.railway.app`;
+    const link = `${base}/redefinir-senha.html?token=${token}`;
+
+    await enviarResetSenha(usuario.email, usuario.nome, link);
+
+    return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
+  } catch (err) {
+    console.error('[esqueci-senha]', err);
+    return res.status(500).json({ erro: 'Erro ao processar solicitação' });
+  }
+});
+
+// POST /api/usuarios/redefinir-senha
+router.post('/redefinir-senha', async (req, res) => {
+  try {
+    const { token, senha } = req.body;
+    if (!token || !senha) return res.status(400).json({ erro: 'Token e senha são obrigatórios' });
+
+    const registro = db.buscarResetToken(token);
+    if (!registro) return res.status(400).json({ erro: 'Link inválido ou expirado' });
+    if (registro.usado) return res.status(400).json({ erro: 'Este link já foi utilizado' });
+
+    const agora = new Date();
+    const expira = new Date(registro.expires_at.replace(' ', 'T') + 'Z');
+    if (agora > expira) return res.status(400).json({ erro: 'Link expirado. Solicite um novo.' });
+
+    if (!senhaForte(senha)) {
+      return res.status(400).json({ erro: 'A senha não atende aos requisitos mínimos de segurança' });
+    }
+
+    const senha_hash = await bcrypt.hash(senha, 10);
+    db.atualizarUsuario(registro.usuario_id, { senha_hash, senha_plain: senha });
+    db.marcarResetTokenUsado(token);
+
+    return res.json({ mensagem: 'Senha redefinida com sucesso!' });
+  } catch (err) {
+    console.error('[redefinir-senha]', err);
     return res.status(500).json({ erro: 'Erro interno' });
   }
 });

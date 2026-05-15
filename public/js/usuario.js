@@ -159,7 +159,23 @@ function renderAuth() {
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
+            <div style="text-align:center;margin-top:.75rem">
+              <button type="button" id="btn-esqueci-senha" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--text-muted);text-decoration:underline;padding:0">Esqueci minha senha</button>
+            </div>
           </form>
+
+          <!-- Painel esqueci senha (oculto inicialmente) -->
+          <div id="painel-esqueci" style="display:none;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+            <p style="font-size:.85rem;color:var(--text-secondary);margin:0 0 .75rem">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
+            <div id="msg-esqueci"></div>
+            <form id="form-esqueci" novalidate>
+              <div class="form-group">
+                <label for="esqueci-email">E-mail</label>
+                <input class="form-control" type="email" id="esqueci-email" placeholder="seu@granmarquise.com.br" autocomplete="email">
+              </div>
+              <button type="submit" class="btn btn-primary btn-full">Enviar link de redefinição</button>
+            </form>
+          </div>
 
         </div>
       </div>
@@ -207,6 +223,44 @@ function renderAuth() {
       msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'E-mail ou senha incorretos.'}</div>`;
     } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+  });
+
+  /* Esqueci a senha */
+  document.getElementById('btn-esqueci-senha').addEventListener('click', () => {
+    const painel = document.getElementById('painel-esqueci');
+    painel.style.display = painel.style.display === 'none' ? 'block' : 'none';
+    if (painel.style.display === 'block') {
+      const emailLogin = document.getElementById('login-email').value;
+      if (emailLogin) document.getElementById('esqueci-email').value = emailLogin;
+      document.getElementById('esqueci-email').focus();
+    }
+  });
+
+  document.getElementById('form-esqueci').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById('msg-esqueci');
+    const btn = e.target.querySelector('button[type=submit]');
+    const email = document.getElementById('esqueci-email').value.trim().toLowerCase();
+    if (!email) { msgEl.innerHTML = '<div class="alert alert-danger">Informe o e-mail.</div>'; return; }
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    try {
+      const r = await fetch('/api/usuarios/esqueci-senha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        msgEl.innerHTML = `<div class="alert alert-success">${d.mensagem}</div>`;
+        e.target.style.display = 'none';
+      } else {
+        msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
+        btn.disabled = false; btn.textContent = 'Enviar link de redefinição';
+      }
+    } catch {
+      msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>';
+      btn.disabled = false; btn.textContent = 'Enviar link de redefinição';
+    }
   });
 }
 
