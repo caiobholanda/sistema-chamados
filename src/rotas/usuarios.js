@@ -178,18 +178,26 @@ router.post('/esqueci-senha', async (req, res) => {
     const email = (req.body.email || '').trim().toLowerCase();
     if (!email) return res.status(400).json({ erro: 'E-mail obrigatório' });
 
-    const usuario = db.buscarUsuarioPorEmail(email);
-    // Responde 200 mesmo se não encontrado (não revelar se e-mail existe)
-    if (!usuario || usuario.ativo === 0) return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
-
-    const token = crypto.randomBytes(32).toString('hex');
-    const expires_at = new Date(Date.now() + 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
-    db.criarResetToken(usuario.id, token, expires_at);
-
     const base = process.env.APP_URL || `https://web-production-83b4ae.up.railway.app`;
-    const link = `${base}/redefinir-senha.html?token=${token}`;
+    const expires_at = new Date(Date.now() + 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
 
-    await enviarResetSenha(usuario.email, usuario.nome, link);
+    const usuario = db.buscarUsuarioPorEmail(email);
+    if (usuario && usuario.ativo !== 0) {
+      const token = crypto.randomBytes(32).toString('hex');
+      db.criarResetToken(usuario.id, token, expires_at);
+      const link = `${base}/redefinir-senha.html?token=${token}`;
+      await enviarResetSenha(usuario.email, usuario.nome, link);
+      return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
+    }
+
+    const admin = db.buscarAdminPorEmail(email);
+    if (admin && admin.ativo !== 0) {
+      const token = crypto.randomBytes(32).toString('hex');
+      db.criarAdminResetToken(admin.id, token, expires_at);
+      const link = `${base}/redefinir-senha.html?token=${token}`;
+      await enviarResetSenha(admin.email, admin.nome_completo, link);
+      return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
+    }
 
     return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
   } catch (err) {
@@ -204,7 +212,12 @@ router.post('/redefinir-senha', async (req, res) => {
     const { token, senha } = req.body;
     if (!token || !senha) return res.status(400).json({ erro: 'Token e senha são obrigatórios' });
 
-    const registro = db.buscarResetToken(token);
+    let registro = db.buscarResetToken(token);
+    let isAdmin = false;
+    if (!registro) {
+      registro = db.buscarAdminResetToken(token);
+      isAdmin = true;
+    }
     if (!registro) return res.status(400).json({ erro: 'Link inválido ou expirado' });
     if (registro.usado) return res.status(400).json({ erro: 'Este link já foi utilizado' });
 
@@ -217,8 +230,13 @@ router.post('/redefinir-senha', async (req, res) => {
     }
 
     const senha_hash = await bcrypt.hash(senha, 10);
-    db.atualizarUsuario(registro.usuario_id, { senha_hash, senha_plain: senha });
-    db.marcarResetTokenUsado(token);
+    if (isAdmin) {
+      db.atualizarAdmin(registro.admin_id, { senha_hash, senha_plain: senha });
+      db.marcarAdminResetTokenUsado(token);
+    } else {
+      db.atualizarUsuario(registro.usuario_id, { senha_hash, senha_plain: senha });
+      db.marcarResetTokenUsado(token);
+    }
 
     return res.json({ mensagem: 'Senha redefinida com sucesso!' });
   } catch (err) {

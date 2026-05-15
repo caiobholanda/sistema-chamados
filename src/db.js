@@ -147,6 +147,15 @@ function initDb() {
       usado INTEGER DEFAULT 0,
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS admin_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      usado INTEGER DEFAULT 0,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   db.exec(`
@@ -1678,6 +1687,19 @@ function marcarResetTokenUsado(token) {
   getDb().prepare('UPDATE reset_tokens SET usado = 1 WHERE token = ?').run(token);
 }
 
+function criarAdminResetToken(admin_id, token, expires_at) {
+  getDb().prepare('DELETE FROM admin_reset_tokens WHERE admin_id = ? AND usado = 0').run(admin_id);
+  getDb().prepare('INSERT INTO admin_reset_tokens (admin_id, token, expires_at) VALUES (?, ?, ?)').run(admin_id, token, expires_at);
+}
+
+function buscarAdminResetToken(token) {
+  return getDb().prepare('SELECT * FROM admin_reset_tokens WHERE token = ?').get(token);
+}
+
+function marcarAdminResetTokenUsado(token) {
+  getDb().prepare('UPDATE admin_reset_tokens SET usado = 1 WHERE token = ?').run(token);
+}
+
 // ── Contatos ──────────────────────────────────────────────
 
 function listarContatos() {
@@ -1815,6 +1837,9 @@ module.exports = {
   criarResetToken,
   buscarResetToken,
   marcarResetTokenUsado,
+  criarAdminResetToken,
+  buscarAdminResetToken,
+  marcarAdminResetTokenUsado,
   listarContatos,
   criarContato,
   atualizarContato,

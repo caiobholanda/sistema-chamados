@@ -2903,6 +2903,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 
 .mob-alert { padding: .65rem .85rem; border-radius: var(--radius); font-size: .85rem; margin-bottom: .75rem; margin-top: .5rem; }
 .mob-alert-danger { background: var(--danger-light); color: var(--danger); }
+.mob-alert-success { background: #dcfce7; color: var(--success); }
 
 .mob-empty, .mob-loading { text-align: center; color: var(--text-muted); font-size: .88rem; padding: 3rem 1.5rem; }
 

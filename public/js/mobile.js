@@ -258,8 +258,59 @@ function renderLogin() {
         </div>
         <button class="mob-btn mob-btn-primary" type="submit" id="mob-btn-entrar">Entrar</button>
       </form>
+      <div style="text-align:center;margin-top:.75rem">
+        <button type="button" id="mob-btn-esqueci"
+          style="background:none;border:none;padding:0;font-size:.82rem;color:var(--text-muted);cursor:pointer;text-decoration:underline">
+          Esqueci minha senha
+        </button>
+      </div>
+      <div id="mob-esqueci-wrap" style="display:none;margin-top:1rem">
+        <div id="mob-msg-esqueci"></div>
+        <form id="mob-form-esqueci" novalidate>
+          <div class="mob-field">
+            <label class="mob-label">Seu e-mail</label>
+            <input class="mob-input" type="email" id="mob-email-esqueci"
+                   placeholder="seu@granmarquise.com.br" autocomplete="email">
+          </div>
+          <button class="mob-btn mob-btn-primary" type="submit" id="mob-btn-enviar-esqueci">Enviar instruções</button>
+        </form>
+      </div>
     </div>
   `;
+
+  document.getElementById('mob-btn-esqueci').addEventListener('click', () => {
+    const wrap = document.getElementById('mob-esqueci-wrap');
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+    if (wrap.style.display === 'block') {
+      const emailPrincipal = document.getElementById('mob-email');
+      const emailEsqueci = document.getElementById('mob-email-esqueci');
+      if (emailPrincipal && emailEsqueci && emailPrincipal.value) {
+        emailEsqueci.value = emailPrincipal.value;
+      }
+    }
+  });
+
+  document.getElementById('mob-form-esqueci').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('mob-msg-esqueci');
+    const btn = document.getElementById('mob-btn-enviar-esqueci');
+    const email = document.getElementById('mob-email-esqueci').value.trim();
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      const r = await fetch('/api/usuarios/esqueci-senha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const d = await r.json();
+      msg.innerHTML = r.ok
+        ? '<div class="mob-alert mob-alert-success">' + d.mensagem + '</div>'
+        : '<div class="mob-alert mob-alert-danger">' + (d.erro || 'Erro ao processar.') + '</div>';
+    } catch {
+      msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão.</div>';
+    }
+    btn.disabled = false; btn.textContent = 'Enviar instruções';
+  });
 
   document.getElementById('mob-form-login').addEventListener('submit', async (e) => {
     e.preventDefault();
