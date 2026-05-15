@@ -366,6 +366,10 @@ async function renderLista() {
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
         </button>
+        <button id="mob-btn-novo-chamado"
+          style="background:var(--gold);color:var(--navy);border:none;border-radius:4px;padding:.35rem .65rem;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">
+          + Abrir
+        </button>
         <button class="mob-sair-btn" id="mob-sair">Sair</button>
       </div>
     </div>
@@ -391,7 +395,133 @@ async function renderLista() {
     });
   });
 
+  document.getElementById('mob-btn-novo-chamado').addEventListener('click', abrirFormNovoChamado);
+
   carregarChamados();
+}
+
+function abrirFormNovoChamado() {
+  const overlay = document.createElement('div');
+  overlay.id = 'mob-novo-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);display:flex;align-items:flex-end';
+
+  overlay.innerHTML = `
+    <div style="background:#fff;width:100%;border-radius:16px 16px 0 0;max-height:90vh;overflow-y:auto;padding:1.2rem 1rem 2rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div style="font-size:1rem;font-weight:700;color:var(--navy)">Abrir chamado</div>
+        <button id="mob-novo-fechar" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted);padding:.1rem .3rem;line-height:1">&#x2715;</button>
+      </div>
+      <div id="mob-novo-msg"></div>
+      <form id="mob-novo-form" novalidate>
+        <div class="mob-field">
+          <label class="mob-label">Nome <span style="color:#dc2626">*</span></label>
+          <input class="mob-input" type="text" id="mob-novo-nome" placeholder="Nome do solicitante" maxlength="80" autocomplete="off">
+        </div>
+        <div class="mob-field">
+          <label class="mob-label">Setor <span style="color:#dc2626">*</span></label>
+          <select class="mob-input" id="mob-novo-setor">
+            <option value="">— selecione —</option>
+            <optgroup label="Hospedagem">
+              <option>Recep&ccedil;&atilde;o</option>
+              <option>Concierge</option>
+              <option>Governan&ccedil;a</option>
+              <option>Reservas</option>
+              <option>Mensageria / Portaria</option>
+            </optgroup>
+            <optgroup label="Alimentos &amp; Bebidas">
+              <option>Restaurante Mucuripe</option>
+              <option>Restaurante Mangostin</option>
+              <option>Bar Rooftop</option>
+              <option>Lobby Bar</option>
+              <option>Room Service</option>
+              <option>Cozinha</option>
+              <option>Confeitaria / Padaria</option>
+              <option>Nutri&ccedil;&atilde;o</option>
+              <option>Banquetes</option>
+            </optgroup>
+            <optgroup label="Eventos">
+              <option>Eventos e Conven&ccedil;&otilde;es</option>
+            </optgroup>
+            <optgroup label="Bem-estar &amp; Lazer">
+              <option>Spa by L'Occitane</option>
+              <option>Fitness Center</option>
+              <option>Piscina</option>
+              <option>Play Gran</option>
+            </optgroup>
+            <optgroup label="Administrativo">
+              <option>Ger&ecirc;ncia Geral</option>
+              <option>Recursos Humanos</option>
+              <option>Financeiro</option>
+              <option>Controladoria</option>
+              <option>Compras / Almoxarifado</option>
+              <option>Comercial / Vendas</option>
+              <option>Marketing</option>
+              <option>Revenue Management</option>
+              <option>Tecnologia da Informa&ccedil;&atilde;o</option>
+              <option>Jur&iacute;dico</option>
+            </optgroup>
+            <optgroup label="Operacional">
+              <option>Manuten&ccedil;&atilde;o</option>
+              <option>Seguran&ccedil;a</option>
+              <option>Lavanderia</option>
+              <option>Rouparia</option>
+              <option>Estacionamento</option>
+              <option>Transportes</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="mob-field">
+          <label class="mob-label">Ramal <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+          <input class="mob-input" type="tel" id="mob-novo-ramal" placeholder="4 d&iacute;gitos" maxlength="4" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="mob-field">
+          <label class="mob-label">Descri&ccedil;&atilde;o <span style="color:#dc2626">*</span></label>
+          <textarea class="mob-input mob-textarea" id="mob-novo-descricao" placeholder="Descreva o problema&hellip;" maxlength="2000" rows="4"></textarea>
+        </div>
+        <button class="mob-btn mob-btn-primary" type="submit" id="mob-novo-submit" style="margin-top:.5rem">Abrir chamado</button>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById('mob-novo-fechar').addEventListener('click', () => overlay.remove());
+
+  document.getElementById('mob-novo-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('mob-novo-msg');
+    const btn = document.getElementById('mob-novo-submit');
+    const nome = document.getElementById('mob-novo-nome').value.trim();
+    const setor = document.getElementById('mob-novo-setor').value;
+    const ramal = document.getElementById('mob-novo-ramal').value.trim();
+    const descricao = document.getElementById('mob-novo-descricao').value.trim();
+
+    msg.innerHTML = '';
+    btn.disabled = true; btn.textContent = 'Abrindo…';
+
+    try {
+      const fd = new FormData();
+      fd.append('nome', nome);
+      fd.append('setor', setor);
+      if (ramal) fd.append('ramal', ramal);
+      fd.append('descricao', descricao);
+
+      const r = await fetch('/api/chamados', { method: 'POST', body: fd });
+      const d = await r.json();
+      if (!r.ok) {
+        msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`;
+        return;
+      }
+      overlay.remove();
+      mostrarToastMob('✅ Chamado aberto!', `#${d.id} — ${nome}`);
+      carregarChamados();
+    } catch {
+      msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão. Tente novamente.</div>';
+    } finally {
+      if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Abrir chamado'; }
+    }
+  });
 }
 
 async function carregarChamados() {
