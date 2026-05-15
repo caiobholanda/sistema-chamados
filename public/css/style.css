@@ -3544,3 +3544,102 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 html.modal-aberto {
   overflow: hidden;
 }
+
+/* ═══════════════════════════════════════════
+   PORTAL USUÁRIO — RESPONSIVO MOBILE
+═══════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  /* ── Header ── */
+  header { padding: 0 1rem; gap: .75rem; }
+  .header-brand-text { display: none; }
+  header nav { margin-left: auto; display: flex; align-items: center; gap: .4rem; }
+  header nav > span { display: none; }
+
+  /* ── Conteúdo principal ── */
+  main, main.wide { padding: 1rem .85rem; }
+
+  /* ── Page header: título + botão empilhados ── */
+  .page-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .75rem;
+    margin-bottom: 1.1rem;
+  }
+  .page-header .btn {
+    width: 100%;
+    justify-content: center;
+    padding: .65rem 1rem;
+    font-size: .9rem;
+  }
+
+  /* ── Stats strip: 3 colunas compactas ── */
+  #stats-strip-u {
+    grid-template-columns: repeat(3, 1fr);
+    gap: .45rem;
+    margin-bottom: 1rem;
+  }
+  #stats-strip-u .stat-pill {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: .65rem .35rem;
+    gap: .3rem;
+  }
+  #stats-strip-u .stat-dot { width: 30px; height: 30px; }
+  #stats-strip-u .stat-dot svg { width: 14px; height: 14px; }
+  #stats-strip-u .stat-num { font-size: 1.05rem; }
+  #stats-strip-u .stat-label { font-size: .58rem; }
+
+  /* ── Tabs ── */
+  .tabs-bar { gap: 0; margin-bottom: .85rem; }
+  .tab-btn { flex: 1; padding: .6rem .4rem; font-size: .78rem; }
+
+  /* ── Cards de chamado ── */
+  .chamado-card-usuario { padding: .85rem .9rem; }
+  .chamado-card-usuario:hover { transform: none; }
+
+  /* ── Formulário novo chamado ── */
+  .form-row { grid-template-columns: 1fr !important; }
+  .card { padding: 1rem .9rem; }
+  .card-header { padding: .75rem .9rem; }
+
+  /* ── Inputs — 16px impede zoom automático do iOS ── */
+  .form-control,
+  textarea.form-control,
+  select.form-control,
+  .chat-input { font-size: 16px !important; }
+
+  /* ── Chat ── */
+  .chat-messages { max-height: 200px; }
+  .chat-input-row { padding: .45rem .6rem; gap: .4rem; }
+  .chat-input-row .btn { padding: .45rem .7rem; font-size: .8rem; flex-shrink: 0; }
+  .chat-msg { max-width: 88%; }
+  .chat-msg-bubble { font-size: .82rem; }
+
+  /* ── Avaliação — estrelas maiores para toque ── */
+  .stars { gap: .35rem; }
+  .star-btn {
+    min-width: 32px; min-height: 32px;
+    font-size: .78rem;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Modal reabrir / termo — sobe da base da tela ── */
+  .assinatura-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .assinatura-modal {
+    max-width: 100%;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+
+  /* ── Login — oculta coluna decorativa ── */
+  .login-left { display: none !important; }
+  .login-page { grid-template-columns: 1fr !important; }
+  .login-card { padding: 1.5rem 1.1rem; }
+}
