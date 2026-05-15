@@ -37,14 +37,31 @@
     .contato-card-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: .5rem 1.5rem;
+      gap: .5rem;
       padding: .65rem 1rem;
       border-bottom: 1px solid var(--border);
-      font-size: .8rem;
-      color: var(--text-secondary);
     }
-    .contato-card-meta a { color: var(--text-secondary); text-decoration: none; }
-    .contato-card-meta a:hover { color: var(--text); text-decoration: underline; }
+    /* Chips clicáveis de contato */
+    .chip-contato {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .3rem .7rem;
+      border-radius: var(--radius-sm);
+      font-size: .78rem;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid;
+      cursor: pointer;
+      transition: filter .15s, transform .1s;
+      white-space: nowrap;
+    }
+    .chip-contato:hover { filter: brightness(.92); transform: translateY(-1px); }
+    .chip-contato:active { transform: translateY(0); }
+    .chip-wpp   { color: #15803d; background: #f0fdf4; border-color: #86efac; }
+    .chip-tel   { color: #1d4ed8; background: #eff6ff; border-color: #93c5fd; }
+    .chip-email { color: #92400e; background: #fffbeb; border-color: #fcd34d; }
+    .chip-icon  { font-size: .9rem; line-height: 1; }
     .pessoa-linha {
       display: grid;
       grid-template-columns: 1.2fr 1.2fr 1fr;

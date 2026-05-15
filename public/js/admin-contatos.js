@@ -49,18 +49,28 @@
     );
   }
 
-  /* ── Links clicáveis ── */
-  function linkTel(n) {
+  /* ── Chips clicáveis ── */
+  function chipWpp(n) {
     if (!n) return '<span style="color:var(--text-muted)">—</span>';
-    return `<a href="tel:+55${n.replace(/\D/g,'')}" style="color:inherit;text-decoration:none">${n}</a>`;
+    const limpo = n.replace(/\D/g, '');
+    return `<a class="chip-contato chip-wpp" href="https://wa.me/55${limpo}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp">
+      <span class="chip-icon">💬</span>${n}
+    </a>`;
   }
-  function linkWpp(n) {
+  function chipTel(n, label) {
     if (!n) return '<span style="color:var(--text-muted)">—</span>';
-    return `<a href="https://wa.me/55${n.replace(/\D/g,'')}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${n}</a>`;
+    const limpo = n.replace(/\D/g, '');
+    const tip = label === 'fixo' ? 'Ligar para o telefone fixo' : 'Ligar para o celular';
+    const icon = label === 'fixo' ? '☎️' : '📞';
+    return `<a class="chip-contato chip-tel" href="tel:+55${limpo}" title="${tip}">
+      <span class="chip-icon">${icon}</span>${n}
+    </a>`;
   }
-  function linkEmail(e) {
+  function chipEmail(e) {
     if (!e) return '<span style="color:var(--text-muted)">—</span>';
-    return `<a href="mailto:${e}" style="color:inherit;text-decoration:none">${e}</a>`;
+    return `<a class="chip-contato chip-email" href="mailto:${e}" title="Enviar e-mail">
+      <span class="chip-icon">✉️</span>${e}
+    </a>`;
   }
   function dash(v) { return v || '<span style="color:var(--text-muted)">—</span>'; }
 
@@ -90,9 +100,9 @@
           </div>
           ${temMeta ? `
           <div class="contato-card-meta">
-            ${c.wpp ? `<span>📱 WPP: ${linkWpp(c.wpp)}</span>` : ''}
-            ${c.telefone_fixo ? `<span>☎️ Fixo: ${linkTel(c.telefone_fixo)}</span>` : ''}
-            ${c.email ? `<span>✉️ ${linkEmail(c.email)}</span>` : ''}
+            ${c.wpp ? chipWpp(c.wpp) : ''}
+            ${c.telefone_fixo ? chipTel(c.telefone_fixo, 'fixo') : ''}
+            ${c.email ? chipEmail(c.email) : ''}
           </div>` : ''}
           <div>
             ${pessoas.length > 0 ? `
@@ -103,7 +113,7 @@
                 <div class="pessoa-linha">
                   <div>${dash(p.nome)}</div>
                   <div style="color:var(--text-secondary)">${dash(p.responsabilidade)}</div>
-                  <div>${p.celular ? linkTel(p.celular) : '<span style="color:var(--text-muted)">—</span>'}</div>
+                  <div>${p.celular ? chipTel(p.celular, 'cel') : '<span style="color:var(--text-muted)">—</span>'}</div>
                 </div>`).join('')}
             ` : `<div style="padding:.75rem 1rem;font-size:.8rem;color:var(--text-muted)">Nenhuma pessoa cadastrada.</div>`}
           </div>
