@@ -31,7 +31,11 @@ async function enviarResetSenha(destinatario, nome, linkReset) {
 
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
 
-  await transporter.sendMail({
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('SMTP timeout após 20s')), 20000)
+  );
+
+  await Promise.race([transporter.sendMail({
     from: `"Gran Marquise TI" <${from}>`,
     to: destinatario,
     subject: 'Redefinição de senha — Portal TI Gran Marquise',
@@ -96,7 +100,7 @@ async function enviarResetSenha(destinatario, nome, linkReset) {
       </body>
       </html>
     `,
-  });
+  }), timeout]);
 }
 
 module.exports = { enviarResetSenha };

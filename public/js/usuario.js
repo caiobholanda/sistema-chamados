@@ -243,12 +243,16 @@ function renderAuth() {
     const email = document.getElementById('esqueci-email').value.trim().toLowerCase();
     if (!email) { msgEl.innerHTML = '<div class="alert alert-danger">Informe o e-mail.</div>'; return; }
     btn.disabled = true; btn.textContent = 'Enviando...';
+    const ctrl = new AbortController();
+    const tOut = setTimeout(() => ctrl.abort(), 25000);
     try {
       const r = await fetch('/api/usuarios/esqueci-senha', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
+        signal: ctrl.signal,
       });
+      clearTimeout(tOut);
       const d = await r.json();
       if (r.ok) {
         msgEl.innerHTML = `<div class="alert alert-success">${d.mensagem}</div>
