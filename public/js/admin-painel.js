@@ -1282,11 +1282,11 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       drop.style.width = `${r.width}px`;
 
       if (spaceBelow >= 150 || spaceBelow >= spaceAbove) {
-        drop.style.top       = `${r.bottom + 4}px`;
+        drop.style.top       = `${r.bottom + 1}px`;
         drop.style.maxHeight = `${Math.min(maxH, Math.max(spaceBelow, 80))}px`;
       } else {
         const h = Math.min(maxH, Math.max(spaceAbove, 80));
-        drop.style.top       = `${r.top - h - 4}px`;
+        drop.style.top       = `${r.top - h - 1}px`;
         drop.style.maxHeight = `${h}px`;
       }
     }
@@ -1396,27 +1396,27 @@ function abrirModalEquipamentosAcordo(chamadoId) {
         overflow: hidden;
       }
       #acordo-eq-overlay .modal-header {
-        padding: 1.1rem 1.8rem .95rem;
+        padding: .8rem 1.6rem .7rem;
         background: #fff;
         display: flex; align-items: flex-start; justify-content: space-between;
         flex-shrink: 0;
         border-bottom: 1px solid #C8BAA5;
       }
       #acordo-eq-overlay .modal-header-marca {
-        font-size: .76rem; font-weight: 700; letter-spacing: .12em;
-        text-transform: uppercase; color: #D4AF37; margin-bottom: .3rem;
+        font-size: .72rem; font-weight: 700; letter-spacing: .12em;
+        text-transform: uppercase; color: #D4AF37; margin-bottom: .2rem;
       }
       #acordo-eq-overlay .modal-title {
-        font-weight: 700; font-size: 1.18rem; letter-spacing: .01em;
-        margin: 0 0 .2rem; color: #0D1B2A; line-height: 1.3;
+        font-weight: 700; font-size: 1.05rem; letter-spacing: .01em;
+        margin: 0 0 .15rem; color: #0D1B2A; line-height: 1.3;
       }
       #acordo-eq-overlay .modal-subtitle {
-        font-size: .88rem; color: #7A726A;
+        font-size: .82rem; color: #7A726A;
       }
       #acordo-eq-overlay .btn-close {
         background: transparent; border: 1px solid #C8BAA5;
-        color: #7A726A; font-size: .9rem; line-height: 1;
-        width: 30px; height: 30px; border-radius: 2px;
+        color: #7A726A; font-size: .85rem; line-height: 1;
+        width: 28px; height: 28px; border-radius: 2px;
         cursor: pointer; display: flex; align-items: center;
         justify-content: center; transition: background .15s, color .15s;
         flex-shrink: 0; margin-top: .1rem;
@@ -1425,38 +1425,38 @@ function abrirModalEquipamentosAcordo(chamadoId) {
         background: #F7F3ED; color: #0D1B2A; border-color: #7A726A;
       }
       #acordo-eq-overlay .modal-body {
-        flex: 1; overflow-y: auto; padding: 1.2rem 1.8rem;
+        flex: 1; overflow-y: auto; padding: .9rem 1.6rem;
       }
       #acordo-eq-overlay .modal-footer {
-        padding: .9rem 1.8rem; background: #fff;
+        padding: .7rem 1.6rem; background: #fff;
         border-top: 1px solid #C8BAA5;
         display: flex; gap: .6rem; justify-content: flex-end; flex-shrink: 0;
       }
       /* Seções */
       #acordo-eq-overlay .secao {
-        margin-bottom: 1.3rem;
+        margin-bottom: .95rem;
       }
       #acordo-eq-overlay .secao-header {
         display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: .8rem; padding-bottom: .5rem;
+        margin-bottom: .6rem; padding-bottom: .4rem;
         border-bottom: 1px solid #C8BAA5;
       }
       #acordo-eq-overlay .secao-titulo {
-        font-size: .8rem; font-weight: 700; letter-spacing: .1em;
+        font-size: .76rem; font-weight: 700; letter-spacing: .1em;
         text-transform: uppercase; color: #0D1B2A;
       }
       #acordo-eq-overlay .secao-numero {
-        font-size: .8rem; font-weight: 600; color: #7A726A;
+        font-size: .76rem; font-weight: 600; color: #7A726A;
         letter-spacing: .06em;
       }
       #acordo-eq-overlay .secao-badge {
-        font-size: .78rem; font-weight: 700; color: #7A726A;
+        font-size: .73rem; font-weight: 700; color: #7A726A;
         border: 1px solid #C8BAA5; background: #F7F3ED;
-        padding: .2rem .55rem; letter-spacing: .06em; text-transform: uppercase;
+        padding: .17rem .5rem; letter-spacing: .06em; text-transform: uppercase;
         border-radius: 2px;
       }
       #acordo-eq-overlay .secao-desc {
-        font-size: .9rem; color: #7A726A; margin: -.3rem 0 .85rem;
+        font-size: .84rem; color: #7A726A; margin: -.2rem 0 .6rem;
         line-height: 1.5;
       }
       /* Tabela */
@@ -1471,27 +1471,27 @@ function abrirModalEquipamentosAcordo(chamadoId) {
         background: #0D1B2A;
       }
       #acordo-eq-overlay table.acordo-table th {
-        padding: .7rem .9rem; text-align: left; font-weight: 600;
-        color: #D4AF37; font-size: .76rem; letter-spacing: .1em;
+        padding: .55rem .85rem; text-align: left; font-weight: 600;
+        color: #D4AF37; font-size: .72rem; letter-spacing: .1em;
         text-transform: uppercase; border-right: 1px solid #1a2f4a;
       }
       #acordo-eq-overlay table.acordo-table th:last-child { border-right: none; }
-      #acordo-eq-overlay table.acordo-table th.cell-qtd { text-align: center; width: 82px; }
-      #acordo-eq-overlay table.acordo-table th.cell-action { width: 50px; }
+      #acordo-eq-overlay table.acordo-table th.cell-qtd { text-align: center; width: 78px; }
+      #acordo-eq-overlay table.acordo-table th.cell-action { width: 46px; }
       #acordo-eq-overlay table.acordo-table td {
-        padding: .55rem .65rem;
+        padding: .4rem .55rem;
         border-bottom: 1px solid #E5DDD0;
         border-right: 1px solid #EDE8E0;
         vertical-align: middle; background: #fff;
       }
       #acordo-eq-overlay table.acordo-table td:last-child { border-right: none; }
       #acordo-eq-overlay table.acordo-table tbody tr:last-child td { border-bottom: none; }
-      #acordo-eq-overlay table.acordo-table td.cell-qtd { width: 82px; }
+      #acordo-eq-overlay table.acordo-table td.cell-qtd { width: 78px; }
       #acordo-eq-overlay table.acordo-table td.cell-qtd input { text-align: center; }
-      #acordo-eq-overlay table.acordo-table td.cell-action { text-align: center; width: 50px; }
+      #acordo-eq-overlay table.acordo-table td.cell-action { text-align: center; width: 46px; }
       /* Inputs */
       #acordo-eq-overlay .acordo-input {
-        width: 100%; padding: .55rem .7rem; font-size: .95rem;
+        width: 100%; padding: .45rem .65rem; font-size: .88rem;
         font-family: inherit; color: #1C1C1C; background: #fff;
         border: 1px solid #C8BAA5; border-radius: 2px; outline: none;
         transition: border-color .15s, box-shadow .15s;
@@ -1509,9 +1509,9 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       }
       /* Botão adicionar linha */
       #acordo-eq-overlay .acordo-btn-add {
-        margin-top: .75rem; padding: .5rem 1rem;
+        margin-top: .55rem; padding: .42rem .85rem;
         background: transparent; border: 1px solid #C8BAA5; color: #4A4540;
-        border-radius: 2px; cursor: pointer; font-size: .88rem; font-weight: 500;
+        border-radius: 2px; cursor: pointer; font-size: .83rem; font-weight: 500;
         font-family: inherit; transition: background .15s, border-color .15s, color .15s;
         display: inline-flex; align-items: center; gap: .35rem;
       }
@@ -1521,8 +1521,8 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       /* Botão remover */
       #acordo-eq-overlay .acordo-btn-remove {
         background: transparent; border: 1px solid #C8BAA5; color: #7A726A;
-        cursor: pointer; font-size: .85rem; line-height: 1;
-        width: 29px; height: 29px; border-radius: 2px;
+        cursor: pointer; font-size: .8rem; line-height: 1;
+        width: 26px; height: 26px; border-radius: 2px;
         transition: background .15s, border-color .15s, color .15s;
         display: inline-flex; align-items: center; justify-content: center;
       }
@@ -1531,9 +1531,9 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       }
       /* Botões do footer */
       #acordo-eq-overlay .acordo-btn-primary {
-        padding: .65rem 1.7rem; background: #D4AF37; color: #0D1B2A;
+        padding: .55rem 1.5rem; background: #D4AF37; color: #0D1B2A;
         border: 1px solid #B8960C; border-radius: 2px;
-        cursor: pointer; font-size: .86rem; font-weight: 700;
+        cursor: pointer; font-size: .82rem; font-weight: 700;
         font-family: inherit; transition: background .15s;
         letter-spacing: .04em; text-transform: uppercase;
       }
@@ -1542,39 +1542,39 @@ function abrirModalEquipamentosAcordo(chamadoId) {
         background: #C8BAA5; border-color: #C8BAA5; color: #7A726A; cursor: not-allowed;
       }
       #acordo-eq-overlay .acordo-btn-secondary {
-        padding: .65rem 1.4rem; background: #fff; color: #4A4540;
+        padding: .55rem 1.2rem; background: #fff; color: #4A4540;
         border: 1px solid #C8BAA5; border-radius: 2px;
-        cursor: pointer; font-size: .86rem; font-weight: 600;
+        cursor: pointer; font-size: .82rem; font-weight: 600;
         font-family: inherit; transition: background .15s;
         letter-spacing: .04em; text-transform: uppercase;
       }
       #acordo-eq-overlay .acordo-btn-secondary:hover { background: #F7F3ED; border-color: #7A726A; }
       /* Vinculação */
       #acordo-eq-overlay .vinculacao-item {
-        display: flex; align-items: flex-start; gap: .55rem; margin-bottom: .55rem;
+        display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .45rem;
       }
       #acordo-eq-overlay .vinc-search-wrap { position: relative; flex: 1; }
       #acordo-eq-overlay .vinc-search-icon {
         position: absolute; left: .7rem; top: 50%; transform: translateY(-50%);
-        color: #7A726A; pointer-events: none; font-size: .95rem; line-height: 1;
+        color: #7A726A; pointer-events: none; font-size: .88rem; line-height: 1;
       }
-      #acordo-eq-overlay .vinc-search-wrap .acordo-input { padding-left: 2.2rem; }
+      #acordo-eq-overlay .vinc-search-wrap .acordo-input { padding-left: 2.1rem; }
       /* Dropdown */
       #acordo-eq-overlay .eq-drop {
         display: none; position: fixed;
-        max-height: 280px; overflow-y: auto;
+        max-height: 260px; overflow-y: auto;
         background: #fff; border: 1px solid #C8BAA5;
         border-radius: 2px; z-index: 10000;
-        box-shadow: 0 6px 20px rgba(13,27,42,.2);
+        box-shadow: 0 4px 16px rgba(13,27,42,.18);
       }
       #acordo-eq-overlay .eq-drop-empty {
-        padding: .9rem 1rem; font-size: .86rem; color: #7A726A;
+        padding: .8rem 1rem; font-size: .83rem; color: #7A726A;
         text-align: center; font-style: italic;
       }
       #acordo-eq-overlay .eq-drop-item {
-        padding: .6rem .9rem; font-size: .88rem; cursor: pointer;
+        padding: .55rem .85rem; font-size: .84rem; cursor: pointer;
         border-bottom: 1px solid #F0EBE3;
-        display: flex; gap: .6rem; align-items: center;
+        display: flex; gap: .55rem; align-items: center;
         transition: background .1s; color: #1C1C1C;
       }
       #acordo-eq-overlay .eq-drop-item:last-child { border-bottom: none; }
@@ -1582,32 +1582,32 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       #acordo-eq-overlay .eq-drop-codigo {
         font-weight: 700; color: #0D1B2A; background: #F8F0CC;
         border: 1px solid #D4AF37;
-        padding: .18rem .5rem; border-radius: 2px; font-size: .76rem;
-        min-width: 58px; text-align: center; flex-shrink: 0;
+        padding: .15rem .45rem; border-radius: 2px; font-size: .72rem;
+        min-width: 54px; text-align: center; flex-shrink: 0;
         font-family: 'Inter', monospace;
       }
       #acordo-eq-overlay .eq-drop-nome {
         color: #1C1C1C; flex: 1; overflow: hidden;
         text-overflow: ellipsis; white-space: nowrap;
-        font-weight: 500; font-size: .88rem;
+        font-weight: 500; font-size: .84rem;
       }
       #acordo-eq-overlay .eq-drop-cat {
-        font-size: .74rem; color: #4A4540; background: #F7F3ED;
+        font-size: .71rem; color: #4A4540; background: #F7F3ED;
         border: 1px solid #C8BAA5;
-        padding: .12rem .5rem; border-radius: 2px;
+        padding: .1rem .45rem; border-radius: 2px;
         white-space: nowrap; flex-shrink: 0; font-weight: 500;
       }
-      #acordo-eq-overlay .eq-badge { display: none; margin-top: .4rem; }
+      #acordo-eq-overlay .eq-badge { display: none; margin-top: .35rem; }
       #acordo-eq-overlay .eq-badge-chip {
         display: inline-flex; align-items: center; gap: .35rem;
         background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC;
-        padding: .3rem .7rem; border-radius: 2px;
-        font-size: .82rem; font-weight: 600;
+        padding: .25rem .6rem; border-radius: 2px;
+        font-size: .79rem; font-weight: 600;
       }
       #acordo-eq-overlay .msg-erro {
         background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B;
-        padding: .85rem 1.1rem; border-radius: 2px;
-        font-size: .9rem; font-weight: 500;
+        padding: .7rem 1rem; border-radius: 2px;
+        font-size: .86rem; font-weight: 500;
         display: flex; align-items: center; gap: .5rem;
       }
     </style>
