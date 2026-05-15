@@ -453,6 +453,19 @@ function abrirFormNovoChamado() {
           <label class="mob-label">Descri&ccedil;&atilde;o <span style="color:#dc2626">*</span></label>
           <textarea class="mob-input mob-textarea" id="mob-novo-descricao" placeholder="Descreva o problema&hellip;" maxlength="2000" rows="5"></textarea>
         </div>
+        <div class="mob-field">
+          <label class="mob-label">Foto / V&iacute;deo <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+          <input type="file" id="mob-novo-anexo" accept="image/*,video/*,.pdf,.txt,.docx"
+            style="display:none" capture="environment">
+          <button type="button" id="mob-btn-anexo"
+            style="display:flex;align-items:center;gap:.5rem;background:var(--bg,#F7F3ED);border:1.5px dashed var(--border,#E5DDD0);border-radius:8px;padding:.65rem .9rem;width:100%;cursor:pointer;font-size:.83rem;color:var(--text-muted,#7A726A)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span id="mob-anexo-label">Selecionar arquivo&hellip;</span>
+          </button>
+        </div>
         <button class="mob-btn mob-btn-primary" type="submit" id="mob-novo-submit" style="margin-top:.5rem">Abrir chamado</button>
       </form>
     </div>
@@ -462,6 +475,13 @@ function abrirFormNovoChamado() {
 
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
   document.getElementById('mob-novo-fechar').addEventListener('click', () => overlay.remove());
+
+  const inputAnexo = document.getElementById('mob-novo-anexo');
+  document.getElementById('mob-btn-anexo').addEventListener('click', () => inputAnexo.click());
+  inputAnexo.addEventListener('change', () => {
+    const label = document.getElementById('mob-anexo-label');
+    label.textContent = inputAnexo.files[0] ? inputAnexo.files[0].name : 'Selecionar arquivo…';
+  });
 
   document.getElementById('mob-novo-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -477,6 +497,7 @@ function abrirFormNovoChamado() {
       const fd = new FormData();
       fd.append('descricao', descricao);
       if (categoria) fd.append('categoria', categoria);
+      if (inputAnexo.files[0]) fd.append('anexo', inputAnexo.files[0]);
 
       const r = await fetch('/api/admin/chamados', { method: 'POST', body: fd });
       const d = await r.json();
