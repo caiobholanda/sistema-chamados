@@ -138,6 +138,20 @@ function initDb() {
   try { db.exec("ALTER TABLE chamados ADD COLUMN acordo_equipamentos TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE equipamentos_historico ADD COLUMN chamado_id INTEGER DEFAULT NULL"); } catch {}
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS contatos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      area TEXT,
+      nome TEXT,
+      responsabilidade TEXT,
+      wpp TEXT,
+      telefone_fixo TEXT,
+      celular TEXT,
+      email TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   // Migration: trocar UNIQUE inline por partial unique index (ativo=1)
   // Regra: mesmo @ não pode existir em usuários E admins ao mesmo tempo (validado nas rotas)
   // Permite: reutilizar @ após desativação; bloqueia reativação se já existe @ ativo em qualquer tabela
@@ -1633,6 +1647,36 @@ function marcarRequerAcordo(chamadoId, valor, equipamentos) {
   return getDb().prepare('UPDATE chamados SET requer_acordo = 0, acordo_equipamentos = NULL WHERE id = ?').run(chamadoId);
 }
 
+// ── Contatos ──────────────────────────────────────────────
+
+function listarContatos() {
+  return getDb().prepare('SELECT * FROM contatos ORDER BY area ASC, nome ASC').all();
+}
+
+function criarContato(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO contatos (area, nome, responsabilidade, wpp, telefone_fixo, celular, email)
+    VALUES (@area, @nome, @responsabilidade, @wpp, @telefone_fixo, @celular, @email)
+  `).run({ area: null, nome: null, responsabilidade: null, wpp: null, telefone_fixo: null, celular: null, email: null, ...dados });
+  return result.lastInsertRowid;
+}
+
+function atualizarContato(id, dados) {
+  const campos = [];
+  const values = [];
+  const CAMPOS = ['area', 'nome', 'responsabilidade', 'wpp', 'telefone_fixo', 'celular', 'email'];
+  for (const c of CAMPOS) {
+    if (dados[c] !== undefined) { campos.push(`${c} = ?`); values.push(dados[c]); }
+  }
+  if (campos.length === 0) return;
+  values.push(id);
+  getDb().prepare(`UPDATE contatos SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarContato(id) {
+  getDb().prepare('DELETE FROM contatos WHERE id = ?').run(id);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -1716,6 +1760,10 @@ module.exports = {
   registrarMovEquipamento,
   listarHistoricoEquipamento,
   vincularEquipamentosDoAcordo,
+  listarContatos,
+  criarContato,
+  atualizarContato,
+  deletarContato,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────

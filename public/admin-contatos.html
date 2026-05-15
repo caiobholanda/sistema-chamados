@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contatos — Gran Marquise TI</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+  <div class="header-brand">
+    <img class="header-logo-img" src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise">
+    <div class="header-brand-text">
+      <div class="header-brand-name">Gran Marquise</div>
+      <div class="header-brand-sub">Suporte de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <nav></nav>
+</header>
+
+<div id="toast-container"></div>
+
+<main class="wide">
+  <div class="page-header flex-between flex-wrap gap-2">
+    <div>
+      <div class="page-title">Contatos do Hotel</div>
+      <div class="page-subtitle">Ramais, celulares, e‑mails e responsáveis por área</div>
+    </div>
+    <button class="btn btn-primary" id="btn-novo-contato">+ Novo Contato</button>
+  </div>
+
+  <div class="filtros" style="margin-bottom:1rem">
+    <input class="form-control" type="search" id="busca-contatos" placeholder="Buscar por área, nome ou responsabilidade…" style="max-width:360px">
+  </div>
+
+  <div id="lista-contatos"></div>
+</main>
+
+<!-- Modal Contato -->
+<div class="modal-overlay" id="modal-contato-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-contato-title">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h2 id="modal-contato-title">Novo Contato</h2>
+      <button class="modal-close" id="btn-fechar-contato" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div id="msg-modal-contato"></div>
+      <form id="form-contato" novalidate>
+        <input type="hidden" id="contato-id">
+
+        <div class="form-group">
+          <label for="fc-area">Área / Setor <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+          <input class="form-control" type="text" id="fc-area" list="areas-datalist" placeholder="Ex: Recepção, Restaurante, Governança…" maxlength="80" autocomplete="off">
+          <datalist id="areas-datalist"></datalist>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div class="form-group" style="margin-bottom:0">
+            <label for="fc-nome">Nome <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <input class="form-control" type="text" id="fc-nome" placeholder="Nome da pessoa" maxlength="80" autocomplete="off">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="fc-resp">Responsabilidade <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <input class="form-control" type="text" id="fc-resp" placeholder="Ex: Gerente, Recepcionista…" maxlength="80" autocomplete="off">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-top:.75rem">
+          <div class="form-group" style="margin-bottom:0">
+            <label for="fc-wpp">WhatsApp <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <input class="form-control" type="tel" id="fc-wpp" placeholder="(85) 9 0000-0000" maxlength="20" inputmode="tel">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="fc-fixo">Telefone Fixo <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <input class="form-control" type="tel" id="fc-fixo" placeholder="(85) 0000-0000" maxlength="20" inputmode="tel">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="fc-cel">Celular <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+            <input class="form-control" type="tel" id="fc-cel" placeholder="(85) 9 0000-0000" maxlength="20" inputmode="tel">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:.75rem">
+          <label for="fc-email">E-mail <span class="text-muted" style="font-size:.72rem;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+          <input class="form-control" type="email" id="fc-email" placeholder="exemplo@granmarquise.com.br" maxlength="120" autocomplete="off">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-cancelar-contato">Cancelar</button>
+      <button type="submit" form="form-contato" class="btn btn-primary" id="btn-salvar-contato">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Exclusão -->
+<div class="modal-overlay" id="modal-excluir-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h2>Excluir contato</h2>
+      <button class="modal-close" id="btn-fechar-excluir" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p id="excluir-msg" style="margin:0;font-size:.95rem;line-height:1.6;color:var(--text)"></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-cancelar-excluir">Cancelar</button>
+      <button type="button" class="btn btn-danger" id="btn-ok-excluir">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/nav.js"></script>
+<script src="/js/admin-contatos.js"></script>
+</body>
+</html>
