@@ -9,6 +9,9 @@ function criarTransporter() {
     port,
     secure: port === 465,
     requireTLS: port !== 465,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: { user: SMTP_USER, pass: SMTP_PASS },
     tls: { rejectUnauthorized: false },
   });
