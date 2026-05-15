@@ -268,6 +268,19 @@
 
   /* ── Init ── */
   document.addEventListener('DOMContentLoaded', function () {
+    /* autenticação + link Usuários para masters */
+    apiFetch('/api/admin/me').then(function (info) {
+      if (info.is_master) {
+        const wrap = document.getElementById('nav-usuarios-wrap');
+        if (wrap) wrap.innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
+      }
+    }).catch(function () { location.replace('/admin-login.html'); });
+
+    document.getElementById('btn-logout').addEventListener('click', async function () {
+      await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
+      location.replace('/admin-login.html');
+    });
+
     carregar();
 
     document.getElementById('btn-novo-contato').addEventListener('click', abrirNovo);
