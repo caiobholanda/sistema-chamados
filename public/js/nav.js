@@ -52,7 +52,7 @@
 
   html += link('/admin-relatorios.html', 'Relatórios');
 
-  const adminDropdownPages = ['/admin-itens.html'];
+  const adminDropdownPages = ['/admin-itens.html', '/admin-contatos.html'];
   const adminAtivo = adminDropdownPages.includes(path);
   html += `<div class="nav-dropdown" id="nav-admin-dropdown">
     <button class="nav-dropdown-trigger${adminAtivo ? ' ativo' : ''}" id="nav-admin-trigger">
@@ -60,6 +60,7 @@
     </button>
     <div class="nav-dropdown-menu">
       <a href="/admin-itens.html"${path === '/admin-itens.html' ? ' class="ativo"' : ''}>Itens</a>
+      <a href="/admin-contatos.html"${path === '/admin-contatos.html' ? ' class="ativo"' : ''}>Contatos</a>
     </div>
   </div>`;
 
