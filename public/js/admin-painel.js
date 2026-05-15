@@ -1264,12 +1264,19 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   let eqsDisponiveis = [];
   let rowCounter = 0;
 
-  function filtrar(q) {
+  function filtrar(q, idHidAtual) {
     const q2 = q.toLowerCase();
+    const jaUsados = new Set(
+      [...document.querySelectorAll('#acordo-interno-lista .eq-id')]
+        .filter(el => el !== idHidAtual && el.value)
+        .map(el => +el.value)
+    );
     return eqsDisponiveis.filter(e =>
-      e.codigo.toLowerCase().includes(q2) ||
-      e.nome.toLowerCase().includes(q2) ||
-      (e.categoria || '').toLowerCase().includes(q2)
+      !jaUsados.has(e.id) && (
+        e.codigo.toLowerCase().includes(q2) ||
+        e.nome.toLowerCase().includes(q2) ||
+        (e.categoria || '').toLowerCase().includes(q2)
+      )
     ).slice(0, 30);
   }
 
@@ -1304,7 +1311,7 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       idHid.value = '';
       badge.style.display = 'none';
       if (!q) { drop.style.display = 'none'; return; }
-      const res = filtrar(q);
+      const res = filtrar(q, idHid);
       if (!res.length) {
         drop.innerHTML = '<div class="eq-drop-empty">Nenhum item disponível com esse termo</div>';
         abrir(); return;
