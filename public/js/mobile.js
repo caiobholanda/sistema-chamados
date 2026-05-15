@@ -352,12 +352,13 @@ function renderLogin() {
         body: JSON.stringify({ email, senha }),
       });
       if (rU.ok) {
-        location.replace('/');
+        msg.innerHTML = '<div class="mob-alert mob-alert-success">Login realizado! Redirecionando…</div>';
+        setTimeout(() => { window.location.href = '/'; }, 700);
         return;
       }
 
-      const d = await rA.json().catch(() => ({}));
-      msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro || 'E-mail ou senha inválidos.'}</div>`;
+      const dU = await rU.json().catch(() => ({}));
+      msg.innerHTML = `<div class="mob-alert mob-alert-danger">${dU.erro || 'E-mail ou senha inválidos.'}</div>`;
     } catch { msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Entrar'; }
   });
