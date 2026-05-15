@@ -1273,9 +1273,22 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   function bindDropdown(busca, drop, idHid, badge) {
     function posicionarDrop() {
       const r = busca.getBoundingClientRect();
-      drop.style.top   = `${r.bottom + 4}px`;
+      const vh = window.innerHeight;
+      const maxH = 280;
+      const spaceBelow = vh - r.bottom - 8;
+      const spaceAbove = r.top - 8;
+
       drop.style.left  = `${r.left}px`;
       drop.style.width = `${r.width}px`;
+
+      if (spaceBelow >= 150 || spaceBelow >= spaceAbove) {
+        drop.style.top       = `${r.bottom + 4}px`;
+        drop.style.maxHeight = `${Math.min(maxH, Math.max(spaceBelow, 80))}px`;
+      } else {
+        const h = Math.min(maxH, Math.max(spaceAbove, 80));
+        drop.style.top       = `${r.top - h - 4}px`;
+        drop.style.maxHeight = `${h}px`;
+      }
     }
 
     function abrir() {
