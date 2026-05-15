@@ -183,6 +183,7 @@ router.post('/esqueci-senha', async (req, res) => {
 
     const usuario = db.buscarUsuarioPorEmail(email);
     if (usuario && usuario.ativo !== 0) {
+      console.log(`[esqueci-senha] Usuário encontrado: ${email}`);
       const token = crypto.randomBytes(32).toString('hex');
       db.criarResetToken(usuario.id, token, expires_at);
       const link = `${base}/redefinir-senha.html?token=${token}`;
@@ -192,6 +193,7 @@ router.post('/esqueci-senha', async (req, res) => {
 
     const admin = db.buscarAdminPorEmail(email);
     if (admin && admin.ativo !== 0) {
+      console.log(`[esqueci-senha] Admin encontrado: ${email}`);
       const token = crypto.randomBytes(32).toString('hex');
       db.criarAdminResetToken(admin.id, token, expires_at);
       const link = `${base}/redefinir-senha.html?token=${token}`;
@@ -199,6 +201,7 @@ router.post('/esqueci-senha', async (req, res) => {
       return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
     }
 
+    console.log(`[esqueci-senha] E-mail não encontrado no sistema: ${email}`);
     return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
   } catch (err) {
     console.error('[esqueci-senha]', err);

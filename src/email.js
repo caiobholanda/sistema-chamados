@@ -18,10 +18,12 @@ async function enviarResetSenha(destinatario, nome, linkReset) {
   const transporter = criarTransporter();
 
   if (!transporter) {
-    // Sem SMTP configurado → loga no console para testes
-    console.log(`\n[Reset Senha] Link para ${destinatario}:\n${linkReset}\n`);
+    console.warn('[Reset Senha] ⚠ SMTP não configurado! Variáveis SMTP_HOST, SMTP_USER ou SMTP_PASS estão faltando.');
+    console.log(`[Reset Senha] Link (apenas console): ${linkReset}`);
     return;
   }
+
+  console.log(`[Reset Senha] Enviando e-mail para ${destinatario} via ${process.env.SMTP_HOST}...`);
 
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
 
