@@ -1370,195 +1370,206 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   overlay.innerHTML = `
     <style>
       #acordo-eq-overlay {
-        position: fixed; inset: 0; background: rgba(13,27,42,.55);
+        position: fixed; inset: 0; background: rgba(13,27,42,.6);
         z-index: 9999; display: flex; align-items: center; justify-content: center;
         padding: 1rem; font-family: 'Inter', system-ui, sans-serif;
       }
       #acordo-eq-overlay .modal-shell {
         background: #F7F3ED; max-width: 860px; width: 100%; max-height: 92vh;
         display: flex; flex-direction: column;
-        box-shadow: 0 20px 60px rgba(13,27,42,.35);
-        border-radius: 10px; overflow: hidden;
+        box-shadow: 0 8px 40px rgba(13,27,42,.4);
+        border-radius: 2px;
+        border-top: 3px solid #D4AF37;
+        overflow: hidden;
       }
       #acordo-eq-overlay .modal-header {
-        padding: 1.2rem 1.6rem;
+        padding: 1.4rem 1.8rem 1.1rem;
         background: #fff;
-        color: #0D1B2A; display: flex; align-items: center; justify-content: space-between;
-        flex-shrink: 0; border-bottom: 2px solid #D4AF37;
+        display: flex; align-items: flex-start; justify-content: space-between;
+        flex-shrink: 0;
+        border-bottom: 1px solid #C8BAA5;
+      }
+      #acordo-eq-overlay .modal-header-marca {
+        font-size: .68rem; font-weight: 700; letter-spacing: .12em;
+        text-transform: uppercase; color: #D4AF37; margin-bottom: .35rem;
       }
       #acordo-eq-overlay .modal-title {
-        font-weight: 700; font-size: 1.12rem; letter-spacing: .01em;
-        display: flex; align-items: center; gap: .6rem; margin: 0;
-        color: #0D1B2A;
+        font-weight: 700; font-size: 1.05rem; letter-spacing: .01em;
+        margin: 0 0 .2rem; color: #0D1B2A; line-height: 1.3;
       }
       #acordo-eq-overlay .modal-subtitle {
-        font-size: .8rem; color: #7A726A; margin-top: .2rem;
+        font-size: .78rem; color: #7A726A;
       }
       #acordo-eq-overlay .btn-close {
-        background: #fff; border: 1.5px solid #C8BAA5;
-        color: #4A4540; font-size: 1rem; line-height: 1; width: 36px; height: 36px;
-        border-radius: 6px; cursor: pointer; display: flex; align-items: center;
-        justify-content: center; transition: background .15s, border-color .15s, color .15s;
+        background: transparent; border: 1px solid #C8BAA5;
+        color: #7A726A; font-size: .85rem; line-height: 1;
+        width: 28px; height: 28px; border-radius: 2px;
+        cursor: pointer; display: flex; align-items: center;
+        justify-content: center; transition: background .15s, color .15s;
+        flex-shrink: 0; margin-top: .1rem;
       }
       #acordo-eq-overlay .btn-close:hover {
-        background: #F7F3ED; border-color: #D4AF37; color: #0D1B2A;
+        background: #F7F3ED; color: #0D1B2A; border-color: #7A726A;
       }
       #acordo-eq-overlay .modal-body {
-        flex: 1; overflow-y: auto; padding: 1.3rem 1.6rem;
+        flex: 1; overflow-y: auto; padding: 1.4rem 1.8rem;
       }
       #acordo-eq-overlay .modal-footer {
-        padding: 1rem 1.6rem; background: #fff;
-        border-top: 1px solid #E5DDD0;
-        display: flex; gap: .65rem; justify-content: flex-end; flex-shrink: 0;
+        padding: 1rem 1.8rem; background: #fff;
+        border-top: 1px solid #C8BAA5;
+        display: flex; gap: .6rem; justify-content: flex-end; flex-shrink: 0;
       }
-      #acordo-eq-overlay .card {
-        background: #fff; border: 1px solid #E5DDD0; border-radius: 8px;
-        padding: 1.2rem 1.35rem; margin-bottom: 1.1rem;
+      /* Seções */
+      #acordo-eq-overlay .secao {
+        margin-bottom: 1.5rem;
       }
-      #acordo-eq-overlay .card-header {
-        display: flex; align-items: center; gap: .65rem; margin-bottom: .5rem;
+      #acordo-eq-overlay .secao-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: .85rem; padding-bottom: .5rem;
+        border-bottom: 1px solid #C8BAA5;
       }
-      #acordo-eq-overlay .card-step {
-        background: #D4AF37; color: #0D1B2A; font-weight: 700;
-        width: 26px; height: 26px; border-radius: 50%;
-        display: inline-flex; align-items: center; justify-content: center;
-        font-size: .82rem; flex-shrink: 0;
+      #acordo-eq-overlay .secao-titulo {
+        font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+        text-transform: uppercase; color: #0D1B2A;
       }
-      #acordo-eq-overlay .card-step.dark { background: #0D1B2A; color: #D4AF37; }
-      #acordo-eq-overlay .card-title {
-        margin: 0; font-size: 1.02rem; font-weight: 700; color: #0D1B2A;
+      #acordo-eq-overlay .secao-numero {
+        font-size: .7rem; font-weight: 600; color: #7A726A;
+        letter-spacing: .06em;
       }
-      #acordo-eq-overlay .card-badge {
-        margin-left: auto; font-size: .72rem; font-weight: 700; color: #0D1B2A;
-        background: #F8F0CC; border: 1px solid #D4AF37; border-radius: 4px;
-        padding: .22rem .55rem; letter-spacing: .04em;
+      #acordo-eq-overlay .secao-badge {
+        font-size: .68rem; font-weight: 700; color: #7A726A;
+        border: 1px solid #C8BAA5; background: #F7F3ED;
+        padding: .18rem .5rem; letter-spacing: .06em; text-transform: uppercase;
+        border-radius: 2px;
       }
-      #acordo-eq-overlay .card-desc {
-        font-size: .85rem; color: #7A726A; margin: 0 0 1rem; padding-left: 2.25rem;
-        line-height: 1.45;
+      #acordo-eq-overlay .secao-desc {
+        font-size: .82rem; color: #7A726A; margin: -.4rem 0 .85rem;
+        line-height: 1.5;
       }
+      /* Tabela */
       #acordo-eq-overlay .table-wrap {
-        overflow-x: auto; border: 1px solid #C8BAA5; border-radius: 6px;
-        background: #FDFAF5;
+        overflow-x: auto; border: 1px solid #C8BAA5;
       }
       #acordo-eq-overlay table.acordo-table {
         width: 100%; border-collapse: collapse; min-width: 540px;
+        background: #fff;
       }
       #acordo-eq-overlay table.acordo-table thead tr {
-        background: #F8F0CC;
+        background: #0D1B2A;
       }
       #acordo-eq-overlay table.acordo-table th {
-        padding: .6rem .75rem; text-align: left; font-weight: 700;
-        color: #0D1B2A; font-size: .76rem; letter-spacing: .05em;
-        text-transform: uppercase;
-        border: 1px solid #C8BAA5;
+        padding: .6rem .85rem; text-align: left; font-weight: 600;
+        color: #D4AF37; font-size: .68rem; letter-spacing: .1em;
+        text-transform: uppercase; border-right: 1px solid #1a2f4a;
       }
-      #acordo-eq-overlay table.acordo-table th.cell-qtd { text-align: center; width: 88px; }
-      #acordo-eq-overlay table.acordo-table th.cell-action { width: 52px; }
+      #acordo-eq-overlay table.acordo-table th:last-child { border-right: none; }
+      #acordo-eq-overlay table.acordo-table th.cell-qtd { text-align: center; width: 80px; }
+      #acordo-eq-overlay table.acordo-table th.cell-action { width: 48px; }
       #acordo-eq-overlay table.acordo-table td {
-        padding: .45rem .55rem;
-        border: 1px solid #E5DDD0;
-        vertical-align: middle;
+        padding: .45rem .6rem;
+        border-bottom: 1px solid #E5DDD0;
+        border-right: 1px solid #EDE8E0;
+        vertical-align: middle; background: #fff;
       }
-      #acordo-eq-overlay table.acordo-table td.cell-qtd { width: 88px; }
+      #acordo-eq-overlay table.acordo-table td:last-child { border-right: none; }
+      #acordo-eq-overlay table.acordo-table tbody tr:last-child td { border-bottom: none; }
+      #acordo-eq-overlay table.acordo-table td.cell-qtd { width: 80px; }
       #acordo-eq-overlay table.acordo-table td.cell-qtd input { text-align: center; }
-      #acordo-eq-overlay table.acordo-table td.cell-action {
-        text-align: center; width: 52px;
-      }
+      #acordo-eq-overlay table.acordo-table td.cell-action { text-align: center; width: 48px; }
+      /* Inputs */
       #acordo-eq-overlay .acordo-input {
-        width: 100%; padding: .55rem .7rem; font-size: .9rem;
+        width: 100%; padding: .5rem .65rem; font-size: .875rem;
         font-family: inherit; color: #1C1C1C; background: #fff;
-        border: 1.5px solid #C8BAA5; border-radius: 6px; outline: none;
+        border: 1px solid #C8BAA5; border-radius: 2px; outline: none;
         transition: border-color .15s, box-shadow .15s;
         box-sizing: border-box;
       }
       #acordo-eq-overlay .acordo-input:focus {
         border-color: #D4AF37;
-        box-shadow: 0 0 0 3px rgba(212,175,55,.22);
+        box-shadow: 0 0 0 2px rgba(212,175,55,.18);
       }
       #acordo-eq-overlay .acordo-input.invalid {
-        border-color: #B91C1C; background: #FEE2E2;
+        border-color: #B91C1C; background: #FEF2F2;
       }
       #acordo-eq-overlay .acordo-input.invalid:focus {
-        box-shadow: 0 0 0 3px rgba(185,28,28,.2);
+        box-shadow: 0 0 0 2px rgba(185,28,28,.15);
       }
+      /* Botão adicionar linha */
       #acordo-eq-overlay .acordo-btn-add {
-        margin-top: .7rem; padding: .55rem 1.05rem;
-        background: #fff; border: 1.5px dashed #D4AF37; color: #0D1B2A;
-        border-radius: 6px; cursor: pointer; font-size: .88rem; font-weight: 600;
-        font-family: inherit; transition: background .15s, border-color .15s;
+        margin-top: .75rem; padding: .45rem .9rem;
+        background: transparent; border: 1px solid #C8BAA5; color: #4A4540;
+        border-radius: 2px; cursor: pointer; font-size: .82rem; font-weight: 500;
+        font-family: inherit; transition: background .15s, border-color .15s, color .15s;
         display: inline-flex; align-items: center; gap: .35rem;
       }
       #acordo-eq-overlay .acordo-btn-add:hover {
-        background: #F8F0CC; border-color: #B8960C;
+        background: #F8F0CC; border-color: #D4AF37; color: #0D1B2A;
       }
+      /* Botão remover */
       #acordo-eq-overlay .acordo-btn-remove {
-        background: #fff; border: 1.5px solid #FECACA; color: #B91C1C;
-        cursor: pointer; font-size: 1rem; line-height: 1;
-        padding: .4rem .55rem; border-radius: 6px;
-        transition: background .15s, border-color .15s;
+        background: transparent; border: 1px solid #C8BAA5; color: #7A726A;
+        cursor: pointer; font-size: .8rem; line-height: 1;
+        width: 26px; height: 26px; border-radius: 2px;
+        transition: background .15s, border-color .15s, color .15s;
+        display: inline-flex; align-items: center; justify-content: center;
       }
       #acordo-eq-overlay .acordo-btn-remove:hover {
-        background: #FEE2E2; border-color: #FCA5A5;
+        background: #FEE2E2; border-color: #B91C1C; color: #B91C1C;
       }
+      /* Botões do footer */
       #acordo-eq-overlay .acordo-btn-primary {
-        padding: .7rem 1.5rem; background: #D4AF37; color: #0D1B2A;
-        border: 1.5px solid #D4AF37; border-radius: 6px;
-        cursor: pointer; font-size: .92rem; font-weight: 700;
-        font-family: inherit; transition: background .15s, border-color .15s;
-        letter-spacing: .01em;
+        padding: .6rem 1.6rem; background: #D4AF37; color: #0D1B2A;
+        border: 1px solid #B8960C; border-radius: 2px;
+        cursor: pointer; font-size: .875rem; font-weight: 700;
+        font-family: inherit; transition: background .15s;
+        letter-spacing: .02em; text-transform: uppercase; font-size: .78rem;
       }
-      #acordo-eq-overlay .acordo-btn-primary:hover {
-        background: #B8960C; border-color: #B8960C; color: #fff;
-      }
+      #acordo-eq-overlay .acordo-btn-primary:hover { background: #C9A227; }
       #acordo-eq-overlay .acordo-btn-primary:disabled {
         background: #C8BAA5; border-color: #C8BAA5; color: #7A726A; cursor: not-allowed;
       }
       #acordo-eq-overlay .acordo-btn-secondary {
-        padding: .7rem 1.3rem; background: #fff; color: #4A4540;
-        border: 1.5px solid #C8BAA5; border-radius: 6px;
-        cursor: pointer; font-size: .92rem; font-weight: 600;
+        padding: .6rem 1.3rem; background: #fff; color: #4A4540;
+        border: 1px solid #C8BAA5; border-radius: 2px;
+        cursor: pointer; font-size: .78rem; font-weight: 600;
         font-family: inherit; transition: background .15s;
+        letter-spacing: .02em; text-transform: uppercase;
       }
-      #acordo-eq-overlay .acordo-btn-secondary:hover { background: #F7F3ED; }
+      #acordo-eq-overlay .acordo-btn-secondary:hover { background: #F7F3ED; border-color: #7A726A; }
+      /* Vinculação */
       #acordo-eq-overlay .vinculacao-item {
-        display: flex; align-items: flex-start; gap: .55rem; margin-bottom: .65rem;
+        display: flex; align-items: flex-start; gap: .55rem; margin-bottom: .55rem;
       }
-      #acordo-eq-overlay .vinc-search-wrap {
-        position: relative; flex: 1;
-      }
+      #acordo-eq-overlay .vinc-search-wrap { position: relative; flex: 1; }
       #acordo-eq-overlay .vinc-search-icon {
-        position: absolute; left: .75rem; top: .6rem;
-        color: #7A726A; pointer-events: none; font-size: 1rem;
+        position: absolute; left: .7rem; top: 50%; transform: translateY(-50%);
+        color: #7A726A; pointer-events: none; font-size: .9rem; line-height: 1;
       }
-      #acordo-eq-overlay .vinc-search-wrap .acordo-input {
-        padding-left: 2.4rem;
-      }
+      #acordo-eq-overlay .vinc-search-wrap .acordo-input { padding-left: 2.2rem; }
+      /* Dropdown */
       #acordo-eq-overlay .eq-drop {
         display: none; position: fixed;
         max-height: 280px; overflow-y: auto;
-        background: #fff; border: 2px solid #D4AF37; border-radius: 8px;
-        z-index: 10000; box-shadow: 0 12px 32px rgba(13,27,42,.25);
+        background: #fff; border: 1px solid #C8BAA5;
+        border-radius: 2px; z-index: 10000;
+        box-shadow: 0 6px 20px rgba(13,27,42,.2);
       }
       #acordo-eq-overlay .eq-drop-empty {
         padding: .85rem 1rem; font-size: .8rem; color: #7A726A;
         text-align: center; font-style: italic;
       }
       #acordo-eq-overlay .eq-drop-item {
-        padding: .55rem .8rem; font-size: .8rem; cursor: pointer;
-        border-bottom: 1px solid #F7F3ED;
+        padding: .55rem .85rem; font-size: .8rem; cursor: pointer;
+        border-bottom: 1px solid #F0EBE3;
         display: flex; gap: .55rem; align-items: center;
-        transition: background .12s;
-        color: #1C1C1C;
+        transition: background .1s; color: #1C1C1C;
       }
       #acordo-eq-overlay .eq-drop-item:last-child { border-bottom: none; }
-      #acordo-eq-overlay .eq-drop-item:hover {
-        background: #F8F0CC;
-      }
+      #acordo-eq-overlay .eq-drop-item:hover { background: #F8F0CC; }
       #acordo-eq-overlay .eq-drop-codigo {
         font-weight: 700; color: #0D1B2A; background: #F8F0CC;
         border: 1px solid #D4AF37;
-        padding: .15rem .45rem; border-radius: 4px; font-size: .7rem;
+        padding: .15rem .45rem; border-radius: 2px; font-size: .7rem;
         min-width: 56px; text-align: center; flex-shrink: 0;
         font-family: 'Inter', monospace;
       }
@@ -1570,44 +1581,41 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       #acordo-eq-overlay .eq-drop-cat {
         font-size: .68rem; color: #4A4540; background: #F7F3ED;
         border: 1px solid #C8BAA5;
-        padding: .1rem .45rem; border-radius: 10px;
-        white-space: nowrap; flex-shrink: 0;
-        font-weight: 500;
+        padding: .1rem .45rem; border-radius: 2px;
+        white-space: nowrap; flex-shrink: 0; font-weight: 500;
       }
-      #acordo-eq-overlay .eq-badge {
-        display: none; margin-top: .4rem;
-      }
+      #acordo-eq-overlay .eq-badge { display: none; margin-top: .4rem; }
       #acordo-eq-overlay .eq-badge-chip {
         display: inline-flex; align-items: center; gap: .35rem;
-        background: #DCFCE7; color: #15803D;
-        border: 1px solid #86EFAC;
-        padding: .3rem .65rem; border-radius: 14px;
-        font-size: .77rem; font-weight: 600;
+        background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC;
+        padding: .28rem .65rem; border-radius: 2px;
+        font-size: .76rem; font-weight: 600;
       }
       #acordo-eq-overlay .msg-erro {
-        background: #FEE2E2; border: 1.5px solid #FCA5A5; color: #991B1B;
-        padding: .8rem 1.1rem; border-radius: 6px;
-        font-size: .88rem; font-weight: 500;
+        background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B;
+        padding: .8rem 1.1rem; border-radius: 2px;
+        font-size: .86rem; font-weight: 500;
         display: flex; align-items: center; gap: .5rem;
       }
     </style>
     <div class="modal-shell">
       <div class="modal-header">
         <div>
-          <h2 class="modal-title">📋 Novo Acordo de Equipamentos</h2>
-          <div class="modal-subtitle">Chamado #${chamadoId} — defina os itens que serão entregues ao usuário</div>
+          <div class="modal-header-marca">Gran Marquise — T.I.</div>
+          <h2 class="modal-title">Acordo de Entrega de Equipamentos</h2>
+          <div class="modal-subtitle">Chamado #${chamadoId} &nbsp;·&nbsp; Defina os itens que serão entregues ao usuário</div>
         </div>
         <button id="btn-fechar-acordo-eq" class="btn-close" title="Fechar">✕</button>
       </div>
 
       <div class="modal-body">
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-step">1</span>
-            <h3 class="card-title">Itens do Acordo</h3>
+        <div class="secao">
+          <div class="secao-header">
+            <span class="secao-titulo">Itens do Acordo</span>
+            <span class="secao-numero">Seção 1 de 2</span>
           </div>
-          <p class="card-desc">Estes itens aparecerão no documento que o usuário irá assinar.</p>
+          <p class="secao-desc">Estes itens aparecerão no documento que o usuário irá assinar.</p>
 
           <div class="table-wrap">
             <table class="acordo-table">
@@ -1623,14 +1631,13 @@ function abrirModalEquipamentosAcordo(chamadoId) {
               <tbody id="acordo-eq-tbody"></tbody>
             </table>
           </div>
-          <button id="btn-add-acordo-eq" class="acordo-btn-add">+ Adicionar outro item</button>
+          <button id="btn-add-acordo-eq" class="acordo-btn-add">+ Adicionar item</button>
         </div>
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-step dark">2</span>
-            <h3 class="card-title">Vínculo com Estoque</h3>
-            <span class="card-badge">🔒 USO INTERNO TI</span>
+        <div class="secao">
+          <div class="secao-header">
+            <span class="secao-titulo">Vínculo com Estoque</span>
+            <span class="secao-badge">Uso Interno — TI</span>
           </div>
 
           <div id="acordo-interno-lista"></div>
