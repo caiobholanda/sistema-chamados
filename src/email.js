@@ -9,6 +9,7 @@ function criarTransporter() {
     port,
     secure: port === 465,
     requireTLS: port !== 465,
+    family: 4,
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
