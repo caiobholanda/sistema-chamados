@@ -328,21 +328,36 @@ function renderLogin() {
     e.preventDefault();
     const msg = document.getElementById('mob-msg-login');
     const btn = document.getElementById('mob-btn-entrar');
+    const email = document.getElementById('mob-email').value.trim();
+    const senha = document.getElementById('mob-senha').value;
     btn.disabled = true; btn.textContent = 'Entrando…';
     try {
-      const r = await fetch('/api/admin/login', {
+      // Tenta login como admin
+      const rA = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: document.getElementById('mob-email').value.trim(),
-          senha: document.getElementById('mob-senha').value,
-        }),
+        body: JSON.stringify({ email, senha }),
       });
-      const d = await r.json();
-      if (!r.ok) { msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`; return; }
-      adminInfo = await (await fetch('/api/admin/me')).json();
-      renderLista();
-      iniciarPush();
+      if (rA.ok) {
+        adminInfo = await (await fetch('/api/admin/me')).json();
+        renderLista();
+        iniciarPush();
+        return;
+      }
+
+      // Se não for admin, tenta login como usuário comum e redireciona para o portal
+      const rU = await fetch('/api/usuarios/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, senha }),
+      });
+      if (rU.ok) {
+        location.replace('/');
+        return;
+      }
+
+      const d = await rA.json().catch(() => ({}));
+      msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro || 'E-mail ou senha inválidos.'}</div>`;
     } catch { msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Entrar'; }
   });
