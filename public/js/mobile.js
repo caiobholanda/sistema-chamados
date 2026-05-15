@@ -414,69 +414,29 @@ function abrirFormNovoChamado() {
       <div id="mob-novo-msg"></div>
       <form id="mob-novo-form" novalidate>
         <div class="mob-field">
-          <label class="mob-label">Nome <span style="color:#dc2626">*</span></label>
-          <input class="mob-input" type="text" id="mob-novo-nome" placeholder="Nome do solicitante" maxlength="80" autocomplete="off">
-        </div>
-        <div class="mob-field">
-          <label class="mob-label">Setor <span style="color:#dc2626">*</span></label>
-          <select class="mob-input" id="mob-novo-setor">
-            <option value="">— selecione —</option>
-            <optgroup label="Hospedagem">
-              <option>Recep&ccedil;&atilde;o</option>
-              <option>Concierge</option>
-              <option>Governan&ccedil;a</option>
-              <option>Reservas</option>
-              <option>Mensageria / Portaria</option>
-            </optgroup>
-            <optgroup label="Alimentos &amp; Bebidas">
-              <option>Restaurante Mucuripe</option>
-              <option>Restaurante Mangostin</option>
-              <option>Bar Rooftop</option>
-              <option>Lobby Bar</option>
-              <option>Room Service</option>
-              <option>Cozinha</option>
-              <option>Confeitaria / Padaria</option>
-              <option>Nutri&ccedil;&atilde;o</option>
-              <option>Banquetes</option>
-            </optgroup>
-            <optgroup label="Eventos">
-              <option>Eventos e Conven&ccedil;&otilde;es</option>
-            </optgroup>
-            <optgroup label="Bem-estar &amp; Lazer">
-              <option>Spa by L'Occitane</option>
-              <option>Fitness Center</option>
-              <option>Piscina</option>
-              <option>Play Gran</option>
-            </optgroup>
-            <optgroup label="Administrativo">
-              <option>Ger&ecirc;ncia Geral</option>
-              <option>Recursos Humanos</option>
-              <option>Financeiro</option>
-              <option>Controladoria</option>
-              <option>Compras / Almoxarifado</option>
-              <option>Comercial / Vendas</option>
-              <option>Marketing</option>
-              <option>Revenue Management</option>
-              <option>Tecnologia da Informa&ccedil;&atilde;o</option>
-              <option>Jur&iacute;dico</option>
-            </optgroup>
-            <optgroup label="Operacional">
-              <option>Manuten&ccedil;&atilde;o</option>
-              <option>Seguran&ccedil;a</option>
-              <option>Lavanderia</option>
-              <option>Rouparia</option>
-              <option>Estacionamento</option>
-              <option>Transportes</option>
-            </optgroup>
+          <label class="mob-label">Servi&ccedil;o <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+          <select class="mob-input" id="mob-novo-categoria">
+            <option value="">Classificar automaticamente</option>
+            <option value="software">Software</option>
+            <option value="hardware">Hardware</option>
+            <option value="impressora">Impressora</option>
+            <option value="ramal">Ramal / Telefone</option>
+            <option value="nobreak">Nobreak</option>
+            <option value="monitor">Monitor</option>
+            <option value="mouse">Mouse</option>
+            <option value="teclado">Teclado</option>
+            <option value="rede">Rede / Internet</option>
+            <option value="acesso_senha">Acesso / Senha</option>
+            <option value="cameras">C&acirc;meras / CFTV</option>
+            <option value="email">E-mail</option>
+            <option value="tv_projetor">TV / Projetor</option>
+            <option value="processo_compra">Processo de Compra</option>
+            <option value="outros">Outros</option>
           </select>
         </div>
         <div class="mob-field">
-          <label class="mob-label">Ramal <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-          <input class="mob-input" type="tel" id="mob-novo-ramal" placeholder="4 d&iacute;gitos" maxlength="4" inputmode="numeric" autocomplete="off">
-        </div>
-        <div class="mob-field">
           <label class="mob-label">Descri&ccedil;&atilde;o <span style="color:#dc2626">*</span></label>
-          <textarea class="mob-input mob-textarea" id="mob-novo-descricao" placeholder="Descreva o problema&hellip;" maxlength="2000" rows="4"></textarea>
+          <textarea class="mob-input mob-textarea" id="mob-novo-descricao" placeholder="Descreva o problema&hellip;" maxlength="2000" rows="5"></textarea>
         </div>
         <button class="mob-btn mob-btn-primary" type="submit" id="mob-novo-submit" style="margin-top:.5rem">Abrir chamado</button>
       </form>
@@ -492,29 +452,25 @@ function abrirFormNovoChamado() {
     e.preventDefault();
     const msg = document.getElementById('mob-novo-msg');
     const btn = document.getElementById('mob-novo-submit');
-    const nome = document.getElementById('mob-novo-nome').value.trim();
-    const setor = document.getElementById('mob-novo-setor').value;
-    const ramal = document.getElementById('mob-novo-ramal').value.trim();
     const descricao = document.getElementById('mob-novo-descricao').value.trim();
+    const categoria = document.getElementById('mob-novo-categoria').value;
 
     msg.innerHTML = '';
     btn.disabled = true; btn.textContent = 'Abrindo…';
 
     try {
       const fd = new FormData();
-      fd.append('nome', nome);
-      fd.append('setor', setor);
-      if (ramal) fd.append('ramal', ramal);
       fd.append('descricao', descricao);
+      if (categoria) fd.append('categoria', categoria);
 
-      const r = await fetch('/api/chamados', { method: 'POST', body: fd });
+      const r = await fetch('/api/admin/chamados', { method: 'POST', body: fd });
       const d = await r.json();
       if (!r.ok) {
         msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`;
         return;
       }
       overlay.remove();
-      mostrarToastMob('✅ Chamado aberto!', `#${d.id} — ${nome}`);
+      mostrarToastMob('✅ Chamado aberto!', d.mensagem || `#${d.id}`);
       carregarChamados();
     } catch {
       msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão. Tente novamente.</div>';
