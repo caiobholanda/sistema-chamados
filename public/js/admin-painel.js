@@ -285,9 +285,6 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
 })();
 
 document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
-document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) fecharModal();
-});
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (document.getElementById('modal-novo-chamado-overlay').classList.contains('open')) fecharModalNovoChamado();
@@ -311,9 +308,6 @@ function fecharModalNovoChamado() {
 
 document.getElementById('btn-novo-chamado').addEventListener('click', abrirModalNovoChamado);
 document.getElementById('btn-fechar-novo-chamado').addEventListener('click', fecharModalNovoChamado);
-document.getElementById('modal-novo-chamado-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) fecharModalNovoChamado();
-});
 
 document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1254,7 +1248,6 @@ function abrirModalDocumentoAcordo(c, termo) {
   `;
   document.body.appendChild(overlay);
   document.getElementById('btn-fechar-acordo-doc').addEventListener('click', () => overlay.remove());
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
 function abrirModalEquipamentosAcordo(chamadoId) {
@@ -1691,7 +1684,6 @@ function abrirModalEquipamentosAcordo(chamadoId) {
   const fechar = () => overlay.remove();
   document.getElementById('btn-fechar-acordo-eq').addEventListener('click', fechar);
   document.getElementById('btn-cancelar-acordo-eq').addEventListener('click', fechar);
-  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
 
   document.getElementById('btn-add-acordo-eq').addEventListener('click', () => {
     tbody.appendChild(criarLinha());

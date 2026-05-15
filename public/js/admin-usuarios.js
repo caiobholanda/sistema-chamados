@@ -155,9 +155,6 @@ function fecharModalConfirmar(resultado) {
 document.getElementById('btn-fechar-confirmar').addEventListener('click', () => fecharModalConfirmar(false));
 document.getElementById('btn-cancelar-confirmar').addEventListener('click', () => fecharModalConfirmar(false));
 document.getElementById('btn-ok-confirmar').addEventListener('click', () => fecharModalConfirmar(true));
-document.getElementById('modal-confirmar-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) fecharModalConfirmar(false);
-});
 
 (async () => {
   const r = await api('/api/admin/me');
@@ -182,11 +179,6 @@ document.getElementById('modal-confirmar-overlay').addEventListener('click', e =
 // Listener pro botão X do modal de chamado (chamado-modal.js usa este overlay)
 document.getElementById('cm-btn-fechar-modal').addEventListener('click', () => {
   if (typeof window.fecharChamadoModal === 'function') window.fecharChamadoModal();
-});
-document.getElementById('cm-modal-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget && typeof window.fecharChamadoModal === 'function') {
-    window.fecharChamadoModal();
-  }
 });
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
@@ -811,7 +803,6 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
 
   const fechar = () => overlay.remove();
   document.getElementById('huc-fechar').addEventListener('click', fechar);
-  overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
   document.addEventListener('keydown', function esc(e) {
     if (e.key === 'Escape') { fechar(); document.removeEventListener('keydown', esc); }
   });

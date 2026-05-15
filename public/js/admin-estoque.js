@@ -1006,7 +1006,6 @@ function abrirModalDocumentoAcordoEstoque(c, termo) {
     </div>`;
   document.body.appendChild(overlay);
   document.getElementById('btn-fechar-acordo-doc-est').addEventListener('click', () => overlay.remove());
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
 function fecharEqHist() {
@@ -1033,19 +1032,10 @@ function fecharEqHist() {
 
     document.getElementById('btn-novo').addEventListener('click', btnNovoItem);
     document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
-    document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModal(); });
-
     document.getElementById('mov-btn-fechar').addEventListener('click', fecharMovModal);
-    document.getElementById('mov-modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharMovModal(); });
-
     document.getElementById('hist-btn-fechar').addEventListener('click', fecharHistModal);
-    document.getElementById('hist-modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) fecharHistModal(); });
-
     document.getElementById('eq-mov-fechar')?.addEventListener('click', fecharEqMov);
-    document.getElementById('eq-mov-overlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqMov(); });
-
     document.getElementById('eq-hist-fechar')?.addEventListener('click', fecharEqHist);
-    document.getElementById('eq-hist-overlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) fecharEqHist(); });
 
     document.getElementById('btn-buscar-eq')?.addEventListener('click', () => carregarDados());
     document.getElementById('btn-limpar-eq')?.addEventListener('click', () => {

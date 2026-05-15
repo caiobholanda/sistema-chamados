@@ -543,7 +543,6 @@ function renderPainel(usuario) {
 
     document.getElementById('btn-fechar-reabrir').addEventListener('click', () => overlay.remove());
     document.getElementById('btn-cancelar-reabrir').addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
     document.getElementById('btn-confirmar-reabrir').addEventListener('click', async () => {
       const msgEl = document.getElementById('msg-reabrir');
@@ -714,7 +713,6 @@ function renderPainel(usuario) {
 
     document.getElementById('btn-fechar-termo').addEventListener('click', () => overlay.remove());
     document.getElementById('btn-cancelar-termo').addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
     document.getElementById('btn-aceitar-termo').addEventListener('click', async () => {
       const msgEl = document.getElementById('msg-termo');

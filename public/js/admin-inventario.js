@@ -309,9 +309,6 @@ function debouncedCarregar() {
 
     document.getElementById('btn-novo-equip').addEventListener('click', () => abrirModal(null));
     document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
-    document.getElementById('modal-overlay').addEventListener('click', e => {
-      if (e.target === e.currentTarget) fecharModal();
-    });
 
     document.getElementById('f-setor').addEventListener('input', debouncedCarregar);
     document.getElementById('f-status').addEventListener('change', carregarInventario);

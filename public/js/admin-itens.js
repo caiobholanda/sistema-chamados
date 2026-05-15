@@ -2115,39 +2115,20 @@ async function confirmarDeletarReservaLegado(id, nome) {
 
     // Modal genérico (estoque/inventario legado)
     document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
-    document.getElementById('modal-overlay').addEventListener('click', e => {
-      if (e.target === e.currentTarget) fecharModal();
-    });
-
     // Modal chamado
     document.getElementById('cm-btn-fechar-modal').addEventListener('click', () => window.fecharChamadoModal());
-    document.getElementById('cm-modal-overlay').addEventListener('click', e => {
-      if (e.target === e.currentTarget) window.fecharChamadoModal();
-    });
 
     // Modal micros
     document.getElementById('micros-btn-fechar').addEventListener('click', fecharModalMicros);
-    document.getElementById('micros-modal-overlay').addEventListener('click', e => {
-      if (e.target === e.currentTarget) fecharModalMicros();
-    });
 
     // Modal movimentação
     document.getElementById('mov-btn-fechar').addEventListener('click', fecharMovModal);
-    document.getElementById('mov-modal-overlay').addEventListener('click', e => {
-      if (e.target === e.currentTarget) fecharMovModal();
-    });
 
     // Modal histórico movimentações
     document.getElementById('hist-mov-btn-fechar').addEventListener('click', fecharHistMovModal);
-    document.getElementById('hist-mov-modal-overlay').addEventListener('click', e => {
-      if (e.target === e.currentTarget) fecharHistMovModal();
-    });
 
     // Modal impressoras
     document.getElementById('imp-btn-fechar').addEventListener('click', fecharModalImpressora);
-    document.getElementById('imp-modal-overlay').addEventListener('click', e => {
-      if (e.target === e.currentTarget) fecharModalImpressora();
-    });
 
     // Modal movimentação equipamento — fecha só pelo X
     document.getElementById('eq-mov-fechar')?.addEventListener('click', fecharEqMov);

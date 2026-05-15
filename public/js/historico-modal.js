@@ -273,7 +273,6 @@
 
     const fechar = () => overlay.remove();
     document.getElementById('hist-fechar').addEventListener('click', fechar);
-    overlay.addEventListener('click', e => { if (e.target === overlay) fechar(); });
     document.addEventListener('keydown', function esc(e) {
       if (e.key === 'Escape') { fechar(); document.removeEventListener('keydown', esc); }
     });
