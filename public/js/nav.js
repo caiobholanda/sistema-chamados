@@ -1,3 +1,40 @@
+/* Bloqueia o scroll da página quando qualquer modal/popup estiver aberto */
+(function lockBodyScroll() {
+  var attrObs = new MutationObserver(sincronizar);
+
+  function ehOverlay(el) {
+    return el && el.nodeType === 1 && el.id && el.id.indexOf('overlay') !== -1;
+  }
+
+  function sincronizar() {
+    var aberto = Array.from(document.body.children).some(function (el) {
+      if (!ehOverlay(el)) return false;
+      return window.getComputedStyle(el).display !== 'none';
+    });
+    document.documentElement.classList.toggle('modal-aberto', aberto);
+  }
+
+  /* Observa filhos diretos do body (modais dinâmicos que são append/remove) */
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      m.addedNodes.forEach(function (node) {
+        if (ehOverlay(node)) {
+          attrObs.observe(node, { attributes: true, attributeFilter: ['class', 'style'] });
+        }
+      });
+    });
+    sincronizar();
+  }).observe(document.body, { childList: true });
+
+  /* Observa modais já presentes no DOM (toggled via .open ou style.display) */
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[id*="overlay"]').forEach(function (el) {
+      attrObs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+    });
+    sincronizar();
+  });
+})();
+
 (function () {
   const path = window.location.pathname;
 

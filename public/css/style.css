@@ -3475,3 +3475,8 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 #eq-hist-overlay .btn {
   border-radius: 0;
 }
+
+/* Scroll lock: bloqueia a página quando qualquer modal estiver aberto */
+html.modal-aberto {
+  overflow: hidden;
+}
