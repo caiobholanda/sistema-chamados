@@ -7,7 +7,7 @@ const router = express.Router();
 const db = require('../db');
 const { requireAdmin, requireMaster } = require('../auth');
 const push = require('../push');
-const { upload, renomearAnexoComId } = require('../upload');
+const { upload, uploadMiddleware, renomearAnexoComId } = require('../upload');
 
 const STATUS_VALIDOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar', 'concluido', 'encerrado'];
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
@@ -248,7 +248,7 @@ router.get('/chamados/:id/mensagens', requireAdmin, (req, res) => {
   }
 });
 
-router.post('/chamados/:id/mensagens', requireAdmin, upload.single('chat_anexo'), async (req, res) => {
+router.post('/chamados/:id/mensagens', requireAdmin, uploadMiddleware('chat_anexo'), async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) {
@@ -822,7 +822,7 @@ router.delete('/portal-usuarios/:id', requireMaster, (req, res) => {
   }
 });
 
-router.post('/chamados/:id/admin-anexo', requireAdmin, upload.single('admin_anexo'), async (req, res) => {
+router.post('/chamados/:id/admin-anexo', requireAdmin, uploadMiddleware('admin_anexo'), async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) {

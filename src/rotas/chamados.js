@@ -4,7 +4,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../db');
-const { upload, renomearAnexoComId, UPLOADS_DIR } = require('../upload');
+const { upload, uploadMiddleware, renomearAnexoComId, UPLOADS_DIR } = require('../upload');
 const { classificarInteligente } = require('../categorizador');
 const { extrairEquipamentos } = require('../analisador-equipamentos');
 const push = require('../push');
@@ -156,7 +156,7 @@ router.get('/:id/mensagens', (req, res) => {
   }
 });
 
-router.post('/:id/mensagens', upload.single('chat_anexo'), (req, res) => {
+router.post('/:id/mensagens', uploadMiddleware('chat_anexo'), (req, res) => {
   try {
     const usuario_id = getUsuarioIdFromCookie(req);
     if (!usuario_id) {

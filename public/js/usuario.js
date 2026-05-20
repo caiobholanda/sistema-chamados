@@ -954,7 +954,7 @@ function renderCardChamado(c) {
         <button type="button" data-cid="${c.id}" class="btn-chat-file-clear" style="background:none;border:none;cursor:pointer;padding:0;font-size:.85rem;color:var(--text-muted)" title="Remover">✕</button>
       </div>
       <form class="chat-input-row" id="chat-form-${c.id}">
-        <input type="file" id="chat-file-${c.id}" style="display:none" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
+        <input type="file" id="chat-file-${c.id}" style="display:none" accept="image/*,video/*,.pdf,.txt,.docx">
         <button type="button" data-cid="${c.id}" class="btn-chat-anexo btn btn-secondary btn-sm" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         </button>
@@ -1076,7 +1076,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
         </div>
         <div class="form-group">
           <label for="ch-anexo">Anexo (opcional)</label>
-          <input class="form-control" type="file" id="ch-anexo" name="anexo" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
+          <input class="form-control" type="file" id="ch-anexo" name="anexo" accept="image/*,video/*,.pdf,.txt,.docx">
           <p class="form-hint">jpg, png, pdf, txt, docx, mp4, mov, webm, avi, mkv — máx. 200 MB</p>
         </div>
         <div style="display:flex;gap:.5rem">

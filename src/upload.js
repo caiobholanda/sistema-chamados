@@ -59,4 +59,14 @@ function renomearAnexoComId(chamadoId, tempPath, nomeOriginal) {
   return novoNome;
 }
 
-module.exports = { upload, renomearAnexoComId, UPLOADS_DIR };
+function uploadMiddleware(field) {
+  return (req, res, next) => {
+    upload.single(field)(req, res, err => {
+      if (!err) return next();
+      if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ erro: 'Arquivo muito grande (máx. 200 MB).' });
+      return res.status(400).json({ erro: 'Tipo de arquivo não permitido. São aceitos: imagens, vídeos, PDF, TXT e DOCX.' });
+    });
+  };
+}
+
+module.exports = { upload, uploadMiddleware, renomearAnexoComId, UPLOADS_DIR };

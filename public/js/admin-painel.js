@@ -666,7 +666,7 @@ function renderModalBody(c) {
                 </div>` : `<p style="font-size:.78rem;color:var(--text-muted);margin:0 0 .3rem">Nenhum arquivo anexado.</p>`}
             </div>
             <div style="display:flex;align-items:center;gap:.4rem">
-              <input type="file" id="input-admin-anexo" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv" style="font-size:.78rem;flex:1">
+              <input type="file" id="input-admin-anexo" accept="image/*,video/*,.pdf,.txt,.docx" style="font-size:.78rem;flex:1">
               <button class="btn btn-secondary btn-sm" id="btn-enviar-admin-anexo">Anexar</button>
             </div>
             <div id="msg-admin-anexo" style="margin-top:.3rem"></div>
@@ -793,7 +793,7 @@ function renderModalBody(c) {
               <button type="button" id="btn-chat-modal-file-clear" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;color:var(--text-muted);font-size:.85rem" title="Remover arquivo">✕</button>
             </div>
             <form class="chat-input-row" id="chat-modal-form">
-              <input type="file" id="chat-modal-file" style="display:none" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
+              <input type="file" id="chat-modal-file" style="display:none" accept="image/*,video/*,.pdf,.txt,.docx">
               <button type="button" id="btn-chat-modal-anexo" class="btn btn-secondary btn-sm" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
               </button>
@@ -1121,8 +1121,8 @@ function setupModalEventos(c) {
         if (selectedFile) {
           const fd = new FormData();
           if (texto) fd.append('mensagem', texto);
-          fd.append('chat_anexo', selectedFile);
-          r = await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd });
+          fd.append('chat_anexo', selectedFile, selectedFile.name || 'imagem.png');
+          r = await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd, credentials: 'same-origin' });
         } else {
           r = await api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
         }

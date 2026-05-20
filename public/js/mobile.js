@@ -701,7 +701,7 @@ async function renderDetalhe(c) {
           <button type="button" id="mob-btn-chat-file-clear" style="background:none;border:none;cursor:pointer;padding:0;font-size:.9rem;color:var(--text-muted)" title="Remover">✕</button>
         </div>
         <form class="mob-chat-form" id="mob-chat-form" autocomplete="off">
-          <input type="file" id="mob-chat-file" style="display:none" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
+          <input type="file" id="mob-chat-file" style="display:none" accept="image/*,video/*,.pdf,.txt,.docx">
           <button type="button" id="mob-btn-chat-anexo" class="mob-chat-send-btn" aria-label="Anexar arquivo" style="background:var(--surface-2);color:var(--text-secondary)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
           </button>
@@ -752,7 +752,7 @@ async function renderDetalhe(c) {
           <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-btn-remover-admin-anexo" style="flex-shrink:0">✕</button>
         </div>` : ''}
         <div style="display:flex;align-items:center;gap:.5rem">
-          <input type="file" id="mob-input-admin-anexo" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv" style="flex:1;font-size:.8rem">
+          <input type="file" id="mob-input-admin-anexo" accept="image/*,video/*,.pdf,.txt,.docx" style="flex:1;font-size:.8rem">
           <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-btn-enviar-admin-anexo" style="flex-shrink:0">Enviar</button>
         </div>
         <div id="mob-msg-admin-anexo" style="font-size:.78rem;margin-top:.25rem"></div>
@@ -846,18 +846,23 @@ async function renderDetalhe(c) {
       if (f) { setFile(f); mobChatInput.focus(); }
     });
 
+    let _chatSending = false;
+    const mobChatSendBtn = document.querySelector('#mob-chat-form [type="submit"]');
     document.getElementById('mob-chat-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (_chatSending) return;
       const texto = mobChatInput.value.trim();
       if (!texto && !selectedFile) return;
+      _chatSending = true;
       mobChatInput.disabled = true;
+      if (mobChatSendBtn) mobChatSendBtn.disabled = true;
       try {
         let r;
         if (selectedFile) {
           const fd = new FormData();
           if (texto) fd.append('mensagem', texto);
           fd.append('chat_anexo', selectedFile, selectedFile.name || 'imagem.png');
-          r = await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd });
+          r = await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd, credentials: 'same-origin' });
         } else {
           r = await api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
         }
@@ -867,10 +872,13 @@ async function renderDetalhe(c) {
           await _atualizarChatMob(c.id);
         } else {
           const d = await r.json().catch(() => ({}));
-          alert(d.erro || 'Erro ao enviar. Verifique o tipo/tamanho do arquivo.');
+          alert(d.erro || 'Erro ao enviar. Verifique o tipo e tamanho (máx. 200 MB).');
         }
-      } catch (err) { console.error(err); } finally {
+      } catch (err) { console.error(err); alert('Erro de conexão. Tente novamente.'); }
+      finally {
+        _chatSending = false;
         mobChatInput.disabled = false;
+        if (mobChatSendBtn) mobChatSendBtn.disabled = false;
         mobChatInput.focus();
       }
     });
