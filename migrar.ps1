@@ -6,59 +6,49 @@ $flyApp = "https://sistema-chamados-granmarquise.fly.dev"
 $dbLocal = "$env:TEMP\chamados_railway.db"
 $uplLocal = "$env:TEMP\uploads_railway.tar.gz"
 
-Write-Host "`n=== MIGRACAO Railway -> Fly.io ===" -ForegroundColor Cyan
+Write-Host "=== MIGRACAO Railway -> Fly.io ==="
 
-# 1. Baixar banco de dados do Railway
-Write-Host "`n[1/4] Baixando banco de dados do Railway..." -ForegroundColor Yellow
-Invoke-WebRequest -Uri "$railway/api/export/db?key=$key" -OutFile $dbLocal -UseBasicParsing -TimeoutSec 120
+Write-Host "[1/4] Baixando banco de dados do Railway..."
+$dbUrl = $railway + "/api/export/db?key=" + $key
+Invoke-WebRequest -Uri $dbUrl -OutFile $dbLocal -UseBasicParsing -TimeoutSec 120
 $dbSize = [math]::Round((Get-Item $dbLocal).Length / 1MB, 2)
-Write-Host "      OK — $dbSize MB baixados" -ForegroundColor Green
+Write-Host "OK - $dbSize MB"
 
-# 2. Baixar uploads do Railway
-Write-Host "`n[2/4] Baixando uploads do Railway..." -ForegroundColor Yellow
+Write-Host "[2/4] Baixando uploads do Railway..."
+$uplUrl = $railway + "/api/export/uploads?key=" + $key
+$temUploads = $false
 try {
-  $resp = Invoke-WebRequest -Uri "$railway/api/export/uploads?key=$key" -OutFile $uplLocal -UseBasicParsing -TimeoutSec 300
-  $uplSize = [math]::Round((Get-Item $uplLocal).Length / 1MB, 2)
-  Write-Host "      OK — $uplSize MB baixados" -ForegroundColor Green
-  $temUploads = $true
+    Invoke-WebRequest -Uri $uplUrl -OutFile $uplLocal -UseBasicParsing -TimeoutSec 300
+    $uplSize = [math]::Round((Get-Item $uplLocal).Length / 1MB, 2)
+    if ($uplSize -gt 0) {
+        Write-Host "OK - $uplSize MB"
+        $temUploads = $true
+    } else {
+        Write-Host "Sem uploads"
+    }
 } catch {
-  if ($_.Exception.Response.StatusCode -eq 204) {
-    Write-Host "      Nenhum upload encontrado (pasta vazia)" -ForegroundColor Gray
-    $temUploads = $false
-  } else {
-    throw $_
-  }
+    Write-Host "Sem uploads (pasta vazia)"
 }
 
-# 3. Importar banco no Fly.io
-Write-Host "`n[3/4] Importando banco no Fly.io..." -ForegroundColor Yellow
-$r = Invoke-RestMethod -Uri "$flyApp/api/export/import-db?key=$key" `
-  -Method POST `
-  -InFile $dbLocal `
-  -ContentType "application/octet-stream" `
-  -TimeoutSec 120
-Write-Host "      OK — $($r.bytes) bytes importados" -ForegroundColor Green
+Write-Host "[3/4] Importando banco no Fly.io..."
+$importDbUrl = $flyApp + "/api/export/import-db?key=" + $key
+$r = Invoke-RestMethod -Uri $importDbUrl -Method POST -InFile $dbLocal -ContentType "application/octet-stream" -TimeoutSec 120
+Write-Host "OK - $($r.bytes) bytes importados"
 
-# Aguarda o app reiniciar
-Write-Host "      Aguardando app reiniciar..." -ForegroundColor Gray
-Start-Sleep -Seconds 8
+Write-Host "Aguardando app reiniciar..."
+Start-Sleep -Seconds 10
 
-# 4. Importar uploads no Fly.io
 if ($temUploads) {
-  Write-Host "`n[4/4] Importando uploads no Fly.io..." -ForegroundColor Yellow
-  $r2 = Invoke-RestMethod -Uri "$flyApp/api/export/import-uploads?key=$key" `
-    -Method POST `
-    -InFile $uplLocal `
-    -ContentType "application/octet-stream" `
-    -TimeoutSec 600
-  Write-Host "      OK — $($r2.bytes) bytes importados" -ForegroundColor Green
+    Write-Host "[4/4] Importando uploads no Fly.io..."
+    $importUplUrl = $flyApp + "/api/export/import-uploads?key=" + $key
+    $r2 = Invoke-RestMethod -Uri $importUplUrl -Method POST -InFile $uplLocal -ContentType "application/octet-stream" -TimeoutSec 600
+    Write-Host "OK - $($r2.bytes) bytes importados"
 } else {
-  Write-Host "`n[4/4] Nenhum upload para importar — pulando" -ForegroundColor Gray
+    Write-Host "[4/4] Sem uploads para importar"
 }
 
-# Limpeza
 Remove-Item $dbLocal -ErrorAction SilentlyContinue
 Remove-Item $uplLocal -ErrorAction SilentlyContinue
 
-Write-Host "`n=== MIGRACAO CONCLUIDA! ===" -ForegroundColor Green
-Write-Host "Acesse: https://sistema-chamados-granmarquise.fly.dev" -ForegroundColor Cyan
+Write-Host "=== MIGRACAO CONCLUIDA! ==="
+Write-Host "Acesse: https://sistema-chamados-granmarquise.fly.dev"
