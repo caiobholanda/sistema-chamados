@@ -980,10 +980,10 @@ async function criarAdminMasterSeNecessario() {
 function inserirChamado(dados) {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original, categoria, aberto_por_admin_id)
-    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria, @aberto_por_admin_id)
+    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original, categoria, aberto_por_admin_id, admin_responsavel_id)
+    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria, @aberto_por_admin_id, @admin_responsavel_id)
   `);
-  const result = stmt.run({ usuario_id: null, categoria: null, aberto_por_admin_id: null, ...dados });
+  const result = stmt.run({ usuario_id: null, categoria: null, aberto_por_admin_id: null, admin_responsavel_id: null, ...dados });
   return result.lastInsertRowid;
 }
 

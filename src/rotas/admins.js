@@ -147,7 +147,13 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
       anexo_path: null, anexo_nome_original: null,
       categoria,
       aberto_por_admin_id: req.admin.sub,
+      admin_responsavel_id: req.admin.sub,
     });
+
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'atribuido', NULL, ?)
+    `).run(id, req.admin.sub, adminCriador.nome_completo);
 
     if (req.file) {
       const novoNome = renomearAnexoComId(id, req.file.path, req.file.originalname);
