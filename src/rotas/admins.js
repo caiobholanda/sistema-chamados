@@ -272,17 +272,21 @@ router.post('/chamados/:id/mensagens', requireAdmin, upload.single('chat_anexo')
     let chat_anexo_nome_original = null;
     if (req.file) {
       const { UPLOADS_DIR } = require('../upload');
-      const ext = path.extname(req.file.originalname).toLowerCase();
-      const base = path.basename(req.file.originalname, ext)
+      const MIME_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp', 'image/heic': '.heic', 'image/avif': '.avif' };
+      let nomeOriginal = req.file.originalname || '';
+      let ext = path.extname(nomeOriginal).toLowerCase();
+      if (!ext && req.file.mimetype) ext = MIME_EXT[req.file.mimetype] || '';
+      if (!nomeOriginal || !path.extname(nomeOriginal)) nomeOriginal = `imagem${ext || ''}`;
+      const base = path.basename(nomeOriginal, ext)
         .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100);
+        .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100) || 'arquivo';
       const tmpNome = `chatadm_${Date.now()}__${base}${ext}`;
       const tmpPath = path.join(UPLOADS_DIR, tmpNome);
       fs.renameSync(req.file.path, tmpPath);
       const msgId = db.criarMensagem({
         chamado_id: chamado.id, autor_tipo: 'admin',
         autor_id: req.admin.sub, autor_nome: admin ? admin.nome_completo : 'Suporte',
-        mensagem, chat_anexo_path: tmpNome, chat_anexo_nome_original: req.file.originalname,
+        mensagem, chat_anexo_path: tmpNome, chat_anexo_nome_original: nomeOriginal,
       });
       const novoNome = `chatadm_${msgId}__${base}${ext}`;
       const novoCaminho = path.join(UPLOADS_DIR, novoNome);

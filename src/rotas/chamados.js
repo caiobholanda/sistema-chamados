@@ -184,17 +184,21 @@ router.post('/:id/mensagens', upload.single('chat_anexo'), (req, res) => {
     const usuario = db.buscarUsuarioPorId(usuario_id);
     const nomeAutor = usuario ? usuario.nome : 'Usuário';
     if (req.file) {
-      const ext = path.extname(req.file.originalname).toLowerCase();
-      const base = path.basename(req.file.originalname, ext)
+      const MIME_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp', 'image/heic': '.heic', 'image/avif': '.avif' };
+      let nomeOriginal = req.file.originalname || '';
+      let ext = path.extname(nomeOriginal).toLowerCase();
+      if (!ext && req.file.mimetype) ext = MIME_EXT[req.file.mimetype] || '';
+      if (!nomeOriginal || !path.extname(nomeOriginal)) nomeOriginal = `imagem${ext || ''}`;
+      const base = path.basename(nomeOriginal, ext)
         .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100);
+        .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100) || 'arquivo';
       const tmpNome = `chatusr_${Date.now()}__${base}${ext}`;
       const tmpPath = path.join(UPLOADS_DIR, tmpNome);
       fs.renameSync(req.file.path, tmpPath);
       const msgId = db.criarMensagem({
         chamado_id: chamado.id, autor_tipo: 'usuario',
         autor_id: usuario_id, autor_nome: nomeAutor,
-        mensagem, chat_anexo_path: tmpNome, chat_anexo_nome_original: req.file.originalname,
+        mensagem, chat_anexo_path: tmpNome, chat_anexo_nome_original: nomeOriginal,
       });
       const novoNome = `chatusr_${msgId}__${base}${ext}`;
       fs.renameSync(tmpPath, path.join(UPLOADS_DIR, novoNome));

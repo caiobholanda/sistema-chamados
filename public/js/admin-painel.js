@@ -12,6 +12,18 @@ function _pararPollingTermo() {
 }
 
 
+function _chatAnexoHtml(url, nome) {
+  if (!nome) return '';
+  const ext = nome.split('.').pop().toLowerCase();
+  const imgs = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
+  const vids = ['mp4','webm','mov','avi','mkv','wmv'];
+  if (imgs.includes(ext))
+    return `<a href="${url}" target="_blank" rel="noopener"><img class="chat-msg-img" src="${url}" alt="${nome}"></a>`;
+  if (vids.includes(ext))
+    return `<video class="chat-msg-video" src="${url}" controls></video>`;
+  return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
+}
+
 async function _atualizarChatAdmin(chamadoId) {
   const box = document.getElementById('chat-modal-msgs');
   if (!box) return;
@@ -33,9 +45,7 @@ async function _atualizarChatAdmin(chamadoId) {
     box.innerHTML = msgs.map(m => {
       const mine = m.autor_tipo === 'admin';
       const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
-      const anexoHtml = m.chat_anexo_nome_original ? `<a class="chat-msg-anexo" href="/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo" target="_blank" rel="noopener">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-        ${m.chat_anexo_nome_original}</a>` : '';
+      const anexoHtml = _chatAnexoHtml(`/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
       return `
       <div class="chat-msg ${mine ? 'mine' : 'theirs'}">
         <div class="chat-msg-author">${m.autor_nome}</div>
