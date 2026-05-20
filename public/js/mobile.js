@@ -818,43 +818,53 @@ async function renderDetalhe(c) {
     const mobChatFile = document.getElementById('mob-chat-file');
     const mobChatChip = document.getElementById('mob-chat-file-chip');
     const mobChatFileName = document.getElementById('mob-chat-file-name');
+    const mobChatInput = document.getElementById('mob-chat-input');
+    let selectedFile = null;
+
+    function setFile(file) { selectedFile = file; mobChatFileName.textContent = file.name; mobChatChip.style.display = 'flex'; }
+    function clearFile() { selectedFile = null; mobChatFile.value = ''; mobChatChip.style.display = 'none'; }
+
     document.getElementById('mob-btn-chat-anexo').addEventListener('click', () => mobChatFile.click());
-    mobChatFile.addEventListener('change', () => {
-      if (mobChatFile.files.length) {
-        mobChatFileName.textContent = mobChatFile.files[0].name;
-        mobChatChip.style.display = 'flex';
-      } else {
-        mobChatChip.style.display = 'none';
-      }
+    mobChatFile.addEventListener('change', () => { if (mobChatFile.files.length) setFile(mobChatFile.files[0]); else clearFile(); });
+    document.getElementById('mob-btn-chat-file-clear').addEventListener('click', clearFile);
+
+    // Colar do clipboard
+    mobChatInput.addEventListener('paste', (e) => {
+      const item = Array.from(e.clipboardData?.items || []).find(i => i.kind === 'file');
+      if (item) { e.preventDefault(); const f = item.getAsFile(); if (f) setFile(f); }
     });
-    document.getElementById('mob-btn-chat-file-clear').addEventListener('click', () => {
-      mobChatFile.value = '';
-      mobChatChip.style.display = 'none';
+
+    // Arrastar e soltar
+    const dropZone = document.getElementById('mob-chat-section');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('chat-drop-active'); });
+    dropZone.addEventListener('dragleave', (e) => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('chat-drop-active'); });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('chat-drop-active');
+      const f = e.dataTransfer.files[0];
+      if (f) { setFile(f); mobChatInput.focus(); }
     });
 
     document.getElementById('mob-chat-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const input = document.getElementById('mob-chat-input');
-      const texto = input.value.trim();
-      const temArquivo = mobChatFile.files.length > 0;
-      if (!texto && !temArquivo) return;
-      input.disabled = true;
+      const texto = mobChatInput.value.trim();
+      if (!texto && !selectedFile) return;
+      mobChatInput.disabled = true;
       try {
-        if (temArquivo) {
+        if (selectedFile) {
           const fd = new FormData();
           if (texto) fd.append('mensagem', texto);
-          fd.append('chat_anexo', mobChatFile.files[0]);
+          fd.append('chat_anexo', selectedFile);
           await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd });
         } else {
           await api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
         }
-        input.value = '';
-        mobChatFile.value = '';
-        mobChatChip.style.display = 'none';
+        mobChatInput.value = '';
+        clearFile();
         await _atualizarChatMob(c.id);
       } catch {} finally {
-        input.disabled = false;
-        input.focus();
+        mobChatInput.disabled = false;
+        mobChatInput.focus();
       }
     });
   }

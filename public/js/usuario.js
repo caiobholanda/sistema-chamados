@@ -74,45 +74,54 @@ function _iniciarChat(chamadoId) {
   const fileInput = document.getElementById('chat-file-' + chamadoId);
   const fileChip = document.getElementById('chat-file-chip-' + chamadoId);
   const fileNameEl = document.getElementById('chat-file-name-' + chamadoId);
+  const chatInput = document.getElementById('chat-input-' + chamadoId);
+  let selectedFile = null;
+
+  function setFile(file) { selectedFile = file; fileNameEl.textContent = file.name; fileChip.style.display = 'flex'; }
+  function clearFile() { selectedFile = null; fileInput.value = ''; fileChip.style.display = 'none'; }
 
   form.querySelector('.btn-chat-anexo').addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files.length) {
-      fileNameEl.textContent = fileInput.files[0].name;
-      fileChip.style.display = 'flex';
-    } else {
-      fileChip.style.display = 'none';
-    }
+  fileInput.addEventListener('change', () => { if (fileInput.files.length) setFile(fileInput.files[0]); else clearFile(); });
+  fileChip.querySelector('.btn-chat-file-clear').addEventListener('click', clearFile);
+
+  // Colar imagem do clipboard
+  chatInput.addEventListener('paste', (e) => {
+    const item = Array.from(e.clipboardData?.items || []).find(i => i.kind === 'file');
+    if (item) { e.preventDefault(); const f = item.getAsFile(); if (f) setFile(f); }
   });
-  fileChip.querySelector('.btn-chat-file-clear').addEventListener('click', () => {
-    fileInput.value = '';
-    fileChip.style.display = 'none';
+
+  // Arrastar e soltar na caixa de chat
+  const dropZone = form.closest('.chat-wrap') || form.parentElement;
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('chat-drop-active'); });
+  dropZone.addEventListener('dragleave', (e) => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('chat-drop-active'); });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('chat-drop-active');
+    const f = e.dataTransfer.files[0];
+    if (f) { setFile(f); chatInput.focus(); }
   });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const input = document.getElementById('chat-input-' + chamadoId);
     const errEl = document.getElementById('chat-err-' + chamadoId);
-    const texto = input.value.trim();
-    const temArquivo = fileInput.files.length > 0;
-    if (!texto && !temArquivo) return;
+    const texto = chatInput.value.trim();
+    if (!texto && !selectedFile) return;
     const btn = form.querySelector('[type="submit"]');
     btn.disabled = true;
     if (errEl) errEl.textContent = '';
     try {
       let r;
-      if (temArquivo) {
+      if (selectedFile) {
         const fd = new FormData();
         if (texto) fd.append('mensagem', texto);
-        fd.append('chat_anexo', fileInput.files[0]);
+        fd.append('chat_anexo', selectedFile);
         r = await fetch('/api/chamados/' + chamadoId + '/mensagens', { method: 'POST', body: fd, credentials: 'same-origin' });
       } else {
         r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens', { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
       }
       if (r.ok) {
-        input.value = '';
-        fileInput.value = '';
-        fileChip.style.display = 'none';
+        chatInput.value = '';
+        clearFile();
         await _atualizarChat(chamadoId);
       } else {
         const d = await r.json().catch(() => ({}));
@@ -121,7 +130,7 @@ function _iniciarChat(chamadoId) {
     } catch {
       if (errEl) errEl.textContent = 'Erro de conexão.';
     }
-    finally { btn.disabled = false; input.focus(); }
+    finally { btn.disabled = false; chatInput.focus(); }
   });
 }
 

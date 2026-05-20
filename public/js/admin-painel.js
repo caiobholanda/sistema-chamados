@@ -1046,44 +1046,54 @@ function setupModalEventos(c) {
     const fileInput = document.getElementById('chat-modal-file');
     const fileChip = document.getElementById('chat-modal-file-chip');
     const fileName = document.getElementById('chat-modal-file-name');
+    const chatInput = document.getElementById('chat-modal-input');
+    let selectedFile = null;
+
+    function setFile(file) { selectedFile = file; fileName.textContent = file.name; fileChip.style.display = 'flex'; }
+    function clearFile() { selectedFile = null; fileInput.value = ''; fileChip.style.display = 'none'; }
+
     document.getElementById('btn-chat-modal-anexo').addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files.length) {
-        fileName.textContent = fileInput.files[0].name;
-        fileChip.style.display = 'flex';
-      } else {
-        fileChip.style.display = 'none';
-      }
+    fileInput.addEventListener('change', () => { if (fileInput.files.length) setFile(fileInput.files[0]); else clearFile(); });
+    document.getElementById('btn-chat-modal-file-clear').addEventListener('click', clearFile);
+
+    // Colar imagem do clipboard
+    chatInput.addEventListener('paste', (e) => {
+      const item = Array.from(e.clipboardData?.items || []).find(i => i.kind === 'file');
+      if (item) { e.preventDefault(); const f = item.getAsFile(); if (f) setFile(f); }
     });
-    document.getElementById('btn-chat-modal-file-clear').addEventListener('click', () => {
-      fileInput.value = '';
-      fileChip.style.display = 'none';
+
+    // Arrastar e soltar na área de chat
+    const dropZone = chatForm.closest('.mv2-right-col') || chatForm.parentElement;
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('chat-drop-active'); });
+    dropZone.addEventListener('dragleave', (e) => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('chat-drop-active'); });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('chat-drop-active');
+      const f = e.dataTransfer.files[0];
+      if (f) { setFile(f); chatInput.focus(); }
     });
 
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const input = document.getElementById('chat-modal-input');
       const errEl = document.getElementById('chat-modal-err');
-      const texto = input.value.trim();
-      const temArquivo = fileInput.files.length > 0;
-      if (!texto && !temArquivo) return;
+      const texto = chatInput.value.trim();
+      if (!texto && !selectedFile) return;
       const btn = chatForm.querySelector('[type="submit"]');
       btn.disabled = true;
       if (errEl) errEl.textContent = '';
       try {
         let r;
-        if (temArquivo) {
+        if (selectedFile) {
           const fd = new FormData();
           if (texto) fd.append('mensagem', texto);
-          fd.append('chat_anexo', fileInput.files[0]);
+          fd.append('chat_anexo', selectedFile);
           r = await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd });
         } else {
           r = await api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
         }
         if (r.ok) {
-          input.value = '';
-          fileInput.value = '';
-          fileChip.style.display = 'none';
+          chatInput.value = '';
+          clearFile();
           await _atualizarChatAdmin(c.id);
         } else {
           const d = await r.json().catch(() => ({}));
@@ -1092,7 +1102,7 @@ function setupModalEventos(c) {
       } catch {
         if (errEl) errEl.textContent = 'Erro de conexão.';
       }
-      finally { btn.disabled = false; input.focus(); }
+      finally { btn.disabled = false; chatInput.focus(); }
     });
   }
 
