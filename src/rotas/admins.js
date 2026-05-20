@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
+const path = require('path');
 const router = express.Router();
 const db = require('../db');
 const { requireAdmin, requireMaster } = require('../auth');
@@ -216,12 +217,16 @@ router.delete('/chamados/:id', requireMaster, (req, res) => {
 
     const deletado = db.deletarChamado(req.params.id);
 
-    if (deletado && deletado.anexo_path) {
+    if (deletado) {
       const { UPLOADS_DIR } = require('../upload');
-      const path = require('path');
-      const fs = require('fs');
-      const filePath = path.join(UPLOADS_DIR, deletado.anexo_path);
-      try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
+      if (deletado.anexo_path) {
+        const filePath = path.join(UPLOADS_DIR, deletado.anexo_path);
+        try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
+      }
+      if (deletado.admin_anexo_path) {
+        const filePath = path.join(UPLOADS_DIR, deletado.admin_anexo_path);
+        try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
+      }
     }
 
     return res.json({ mensagem: 'Chamado excluído com sucesso' });
@@ -763,6 +768,70 @@ router.delete('/portal-usuarios/:id', requireMaster, (req, res) => {
     if (!u) return res.status(404).json({ erro: 'Usuário não encontrado' });
     db.deletarUsuario(u.id);
     return res.json({ mensagem: 'Usuário excluído permanentemente' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.post('/chamados/:id/admin-anexo', requireAdmin, upload.single('admin_anexo'), async (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(404).json({ erro: 'Chamado não encontrado' });
+    }
+    if (!req.file) return res.status(400).json({ erro: 'Nenhum arquivo enviado' });
+
+    const { UPLOADS_DIR } = require('../upload');
+
+    if (chamado.admin_anexo_path) {
+      const oldPath = path.join(UPLOADS_DIR, chamado.admin_anexo_path);
+      try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); } catch {}
+    }
+
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    const base = path.basename(req.file.originalname, ext)
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100);
+    const novoNome = `admin_${chamado.id}__${base}${ext}`;
+    fs.renameSync(req.file.path, path.join(UPLOADS_DIR, novoNome));
+
+    db.getDb().prepare('UPDATE chamados SET admin_anexo_path = ?, admin_anexo_nome_original = ? WHERE id = ?')
+      .run(novoNome, req.file.originalname, chamado.id);
+
+    return res.json({ mensagem: 'Arquivo enviado', nome: req.file.originalname });
+  } catch (err) {
+    console.error(err);
+    if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.get('/chamados/:id/admin-anexo', requireAdmin, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado || !chamado.admin_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
+    const { UPLOADS_DIR } = require('../upload');
+    const filePath = path.join(UPLOADS_DIR, chamado.admin_anexo_path);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(chamado.admin_anexo_nome_original)}"`);
+    return res.sendFile(filePath);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.delete('/chamados/:id/admin-anexo', requireAdmin, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado || !chamado.admin_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
+    const { UPLOADS_DIR } = require('../upload');
+    const filePath = path.join(UPLOADS_DIR, chamado.admin_anexo_path);
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
+    db.getDb().prepare('UPDATE chamados SET admin_anexo_path = NULL, admin_anexo_nome_original = NULL WHERE id = ?').run(chamado.id);
+    return res.json({ mensagem: 'Anexo removido' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

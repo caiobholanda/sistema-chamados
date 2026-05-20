@@ -732,6 +732,22 @@ async function renderDetalhe(c) {
         <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-limpar">Limpar assinatura</button>
       </div>
 
+      <div class="mob-admin-anexo-section">
+        <div class="mob-assin-titulo">Anexo do suporte <span class="mob-assin-opcional">(opcional)</span></div>
+        ${c.admin_anexo_nome_original ? `
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+          <a href="/api/admin/chamados/${c.id}/admin-anexo" class="mob-btn mob-btn-ghost mob-btn-sm" download style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ⬇ ${c.admin_anexo_nome_original}
+          </a>
+          <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-btn-remover-admin-anexo" style="flex-shrink:0">✕</button>
+        </div>` : ''}
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <input type="file" id="mob-input-admin-anexo" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv" style="flex:1;font-size:.8rem">
+          <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-btn-enviar-admin-anexo" style="flex-shrink:0">Enviar</button>
+        </div>
+        <div id="mob-msg-admin-anexo" style="font-size:.78rem;margin-top:.25rem"></div>
+      </div>
+
       <button class="mob-btn mob-btn-success" id="mob-btn-concluir">Concluir chamado</button>
     </div>
   `;
@@ -744,6 +760,45 @@ async function renderDetalhe(c) {
   document.getElementById('mob-ok-solucao').addEventListener('click', () => {
     document.getElementById('mob-solucao').blur();
   });
+
+  document.getElementById('mob-btn-enviar-admin-anexo').addEventListener('click', async () => {
+    const input = document.getElementById('mob-input-admin-anexo');
+    const msgEl = document.getElementById('mob-msg-admin-anexo');
+    if (!input.files.length) { msgEl.textContent = 'Selecione um arquivo.'; return; }
+    const btn = document.getElementById('mob-btn-enviar-admin-anexo');
+    btn.disabled = true;
+    btn.textContent = '…';
+    const fd = new FormData();
+    fd.append('admin_anexo', input.files[0]);
+    try {
+      const r = await fetch(`/api/admin/chamados/${c.id}/admin-anexo`, { method: 'POST', body: fd });
+      const d = await r.json();
+      if (r.ok) {
+        const resp = await api(`/api/admin/chamados/${c.id}`);
+        if (resp.ok) renderDetalhe(await resp.json());
+      } else {
+        msgEl.textContent = d.erro || 'Erro ao enviar.';
+        btn.disabled = false;
+        btn.textContent = 'Enviar';
+      }
+    } catch {
+      msgEl.textContent = 'Erro de conexão.';
+      btn.disabled = false;
+      btn.textContent = 'Enviar';
+    }
+  });
+
+  const btnRemoverMobAnexo = document.getElementById('mob-btn-remover-admin-anexo');
+  if (btnRemoverMobAnexo) {
+    btnRemoverMobAnexo.addEventListener('click', async () => {
+      if (!confirm('Remover o anexo?')) return;
+      const r = await api(`/api/admin/chamados/${c.id}/admin-anexo`, { method: 'DELETE' });
+      if (r.ok) {
+        const resp = await api(`/api/admin/chamados/${c.id}`);
+        if (resp.ok) renderDetalhe(await resp.json());
+      }
+    });
+  }
 
   // Chat em tempo real
   if (podeChat) {

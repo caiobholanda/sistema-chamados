@@ -137,6 +137,8 @@ function initDb() {
   try { db.exec("ALTER TABLE chamados ADD COLUMN requer_acordo INTEGER DEFAULT 0"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN acordo_equipamentos TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE equipamentos_historico ADD COLUMN chamado_id INTEGER DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_path TEXT"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS reset_tokens (

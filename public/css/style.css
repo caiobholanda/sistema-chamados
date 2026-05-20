@@ -2489,6 +2489,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   width: fit-content;
 }
 .mv2-anexo-btn:hover { background: var(--border); color: var(--text); }
+.mv2-admin-anexo-section { margin-top: .25rem; padding: .6rem 0; }
 
 /* Solução */
 .mv2-solucao {
@@ -2881,6 +2882,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .mob-wiz-sel-wrap { padding: .5rem; background: var(--bg); border-radius: 6px; border: 1px solid var(--border); }
 .mob-wiz-sel-label { font-size: .76rem; color: var(--text-muted); margin-bottom: .3rem; }
 
+.mob-admin-anexo-section { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
 .mob-assin-section { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
 .mob-assin-titulo { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: .25rem; }
 .mob-assin-opcional { font-weight: 400; font-size: .78rem; color: var(--text-muted); }

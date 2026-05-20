@@ -610,6 +610,29 @@ function renderModalBody(c) {
               ${c.anexo_nome_original}
             </a>` : ''}
 
+          <!-- Anexo do admin -->
+          <div class="mv2-admin-anexo-section">
+            <div class="mv2-section-divider" style="margin-top:.6rem">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Anexo do suporte
+            </div>
+            <div id="admin-anexo-atual" style="margin-bottom:.4rem">
+              ${c.admin_anexo_nome_original ? `
+                <div style="display:flex;align-items:center;gap:.4rem">
+                  <a href="/api/admin/chamados/${c.id}/admin-anexo" class="mv2-anexo-btn" download style="flex:1;margin:0">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    ${c.admin_anexo_nome_original}
+                  </a>
+                  <button class="btn btn-danger btn-sm" id="btn-remover-admin-anexo" style="padding:.25rem .55rem;font-size:.75rem" title="Remover anexo">✕</button>
+                </div>` : `<p style="font-size:.78rem;color:var(--text-muted);margin:0 0 .3rem">Nenhum arquivo anexado.</p>`}
+            </div>
+            <div style="display:flex;align-items:center;gap:.4rem">
+              <input type="file" id="input-admin-anexo" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv" style="font-size:.78rem;flex:1">
+              <button class="btn btn-secondary btn-sm" id="btn-enviar-admin-anexo">Anexar</button>
+            </div>
+            <div id="msg-admin-anexo" style="margin-top:.3rem"></div>
+          </div>
+
           ${isAberto ? `
             <!-- Configurações + Ações -->
             <div class="mv2-controls-section">
@@ -792,6 +815,36 @@ function renderModalBody(c) {
 function setupModalEventos(c) {
   const msg = () => document.getElementById('msg-modal');
   const setMsg = (html) => { msg().innerHTML = html; };
+
+  const btnEnviarAdminAnexo = document.getElementById('btn-enviar-admin-anexo');
+  if (btnEnviarAdminAnexo) {
+    btnEnviarAdminAnexo.addEventListener('click', async () => {
+      const input = document.getElementById('input-admin-anexo');
+      const msgEl = document.getElementById('msg-admin-anexo');
+      if (!input.files.length) { msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Selecione um arquivo.</span>'; return; }
+      btnEnviarAdminAnexo.disabled = true;
+      btnEnviarAdminAnexo.textContent = 'Enviando…';
+      const fd = new FormData();
+      fd.append('admin_anexo', input.files[0]);
+      try {
+        const r = await fetch(`/api/admin/chamados/${c.id}/admin-anexo`, { method: 'POST', body: fd });
+        const d = await r.json();
+        if (r.ok) { setTimeout(() => abrirModal(c.id), 300); }
+        else { msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${d.erro}</span>`; }
+      } catch { msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>'; }
+      btnEnviarAdminAnexo.disabled = false;
+      btnEnviarAdminAnexo.textContent = 'Anexar';
+    });
+  }
+
+  const btnRemoverAdminAnexo = document.getElementById('btn-remover-admin-anexo');
+  if (btnRemoverAdminAnexo) {
+    btnRemoverAdminAnexo.addEventListener('click', async () => {
+      if (!confirm('Remover o anexo do suporte?')) return;
+      const r = await api(`/api/admin/chamados/${c.id}/admin-anexo`, { method: 'DELETE' });
+      if (r.ok) abrirModal(c.id);
+    });
+  }
 
   const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
   if (btnSalvarCategoria) {
