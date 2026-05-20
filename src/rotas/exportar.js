@@ -42,7 +42,7 @@ router.get('/uploads', checkKey, (req, res) => {
   tar.on('error', err => { console.error('[export-uploads] erro:', err); res.destroy(); });
 });
 
-// Importa banco SQLite — streaming para disco, sem bufferar na RAM
+// Importa banco SQLite — apaga WAL antes de substituir para evitar corrupção
 router.post('/import-db', checkKey, (req, res) => {
   const dataPath = path.join(__dirname, '../../data');
   const dbPath = path.join(dataPath, 'chamados.db');
@@ -52,21 +52,58 @@ router.post('/import-db', checkKey, (req, res) => {
   const writeStream = fs.createWriteStream(tmpPath);
   req.pipe(writeStream);
   writeStream.on('finish', () => {
-    try {
-      if (fs.existsSync(dbPath)) fs.copyFileSync(dbPath, bakPath);
-      fs.renameSync(tmpPath, dbPath);
-      const size = fs.statSync(dbPath).size;
-      console.log(`[import-db] ${size} bytes gravados — reiniciando em 2s`);
-      res.json({ ok: true, bytes: size });
-      setTimeout(() => process.exit(0), 2000);
-    } catch (err) {
-      console.error('[import-db] erro:', err);
-      res.status(500).json({ erro: err.message });
-    }
+    writeStream.close(() => {
+      try {
+        if (fs.existsSync(dbPath)) fs.copyFileSync(dbPath, bakPath);
+        // Apaga WAL/SHM ANTES do rename para evitar que o SQLite antigo sobrescreva o novo DB no exit
+        try { fs.unlinkSync(dbPath + '-wal'); } catch {}
+        try { fs.unlinkSync(dbPath + '-shm'); } catch {}
+        fs.renameSync(tmpPath, dbPath);
+        const size = fs.statSync(dbPath).size;
+        console.log(`[import-db] ${size} bytes gravados — reiniciando em 200ms`);
+        res.json({ ok: true, bytes: size });
+        setTimeout(() => process.exit(0), 200);
+      } catch (err) {
+        console.error('[import-db] erro:', err);
+        res.status(500).json({ erro: err.message });
+      }
+    });
   });
   writeStream.on('error', err => {
     console.error('[import-db] write error:', err);
     res.status(500).json({ erro: err.message });
+  });
+});
+
+// Fly.io baixa o banco DIRETAMENTE do Railway (servidor a servidor)
+router.post('/puxar-db', checkKey, (req, res) => {
+  const dataPath = path.join(__dirname, '../../data');
+  const dbPath = path.join(dataPath, 'chamados.db');
+  const tmpPath = dbPath + '.tmp';
+  const srcUrl = `${RAILWAY_URL}/api/export/db?key=${EXPORT_KEY}`;
+  console.log('[puxar-db] Baixando do Railway...');
+  res.json({ ok: true, msg: 'Download do banco iniciado em background' });
+  const file = fs.createWriteStream(tmpPath);
+  https.get(srcUrl, dlRes => {
+    dlRes.pipe(file);
+    file.on('finish', () => {
+      file.close(() => {
+        try {
+          const size = fs.statSync(tmpPath).size;
+          console.log(`[puxar-db] ${size} bytes baixados — substituindo...`);
+          try { fs.unlinkSync(dbPath + '-wal'); } catch {}
+          try { fs.unlinkSync(dbPath + '-shm'); } catch {}
+          fs.renameSync(tmpPath, dbPath);
+          console.log('[puxar-db] Banco substituído — reiniciando em 200ms');
+          setTimeout(() => process.exit(0), 200);
+        } catch (err) {
+          console.error('[puxar-db] erro ao substituir:', err);
+        }
+      });
+    });
+  }).on('error', err => {
+    console.error('[puxar-db] erro no download:', err.message);
+    try { fs.unlinkSync(tmpPath); } catch {}
   });
 });
 
