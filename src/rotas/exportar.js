@@ -109,14 +109,19 @@ router.post('/puxar-uploads', checkKey, (req, res) => {
       }
     });
     file.on('finish', () => {
-      file.close();
-      console.log(`[puxar-uploads] Download concluído: ${Math.round(received / 1048576)} MB — extraindo...`);
-      const tar = spawn('tar', ['-xzf', tarPath, '-C', dataPath]);
-      tar.on('close', code => {
-        try { fs.unlinkSync(tarPath); } catch {}
-        console.log(`[puxar-uploads] Extração concluída code=${code}`);
+      file.close(() => {
+        console.log(`[puxar-uploads] Download concluído: ${Math.round(received / 1048576)} MB — extraindo...`);
+        const tar = spawn('tar', ['-xzf', tarPath, '-C', dataPath]);
+        tar.on('close', code => {
+          if (code === 0) {
+            try { fs.unlinkSync(tarPath); } catch {}
+            console.log('[puxar-uploads] Extração concluída com sucesso!');
+          } else {
+            console.error(`[puxar-uploads] Extração falhou code=${code} — arquivo mantido em ${tarPath}`);
+          }
+        });
+        tar.stderr.on('data', d => console.error('[puxar-uploads]', d.toString()));
       });
-      tar.stderr.on('data', d => console.error('[puxar-uploads]', d.toString()));
     });
   }).on('error', err => {
     console.error('[puxar-uploads] erro:', err.message);
