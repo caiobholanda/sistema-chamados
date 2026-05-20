@@ -107,7 +107,7 @@ function filtrarPorStatus(status) {
   document.getElementById('tab-meus').classList.remove('ativo');
   document.getElementById('subtabs-meus').style.display = 'none';
   // Marca visualmente a pill selecionada
-  const pillMap = { 'aberto': 'cnt-aberto', 'em_andamento': 'cnt-andamento', 'concluido,encerrado': 'cnt-concluido' };
+  const pillMap = { 'aberto,em_andamento': 'cnt-aberto', 'em_andamento': 'cnt-andamento', 'concluido,encerrado': 'cnt-concluido' };
   document.querySelectorAll('#stats-strip .stat-pill').forEach(p => p.classList.remove('ativo'));
   const targetId = pillMap[status];
   if (targetId) document.getElementById(targetId)?.closest('.stat-pill')?.classList.add('ativo');
@@ -240,7 +240,7 @@ document.getElementById('stats-strip').addEventListener('click', e => {
   if (!pill) return;
   const num = pill.querySelector('.stat-num');
   if (!num) return;
-  const map = { 'cnt-aberto': 'aberto', 'cnt-andamento': 'em_andamento', 'cnt-concluido': 'concluido,encerrado' };
+  const map = { 'cnt-aberto': 'aberto,em_andamento', 'cnt-andamento': 'em_andamento', 'cnt-concluido': 'concluido,encerrado' };
   const status = map[num.id];
   if (status) filtrarPorStatus(status);
 });
