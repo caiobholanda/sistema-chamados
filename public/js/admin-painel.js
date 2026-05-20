@@ -49,36 +49,64 @@ function _chatAnexoHtml(url, nome) {
   return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
 }
 
+function _renderMsgAdmin(m, chamadoId) {
+  const mine = m.autor_tipo === 'admin';
+  const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+  const anexoHtml = _chatAnexoHtml(`/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
+  return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
+    <div class="chat-msg-author">${m.autor_nome}</div>
+    ${textoHtml}${anexoHtml}
+    <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
+  </div>`;
+}
+
 async function _atualizarChatAdmin(chamadoId) {
   const box = document.getElementById('chat-modal-msgs');
   if (!box) return;
-  const atFundo = box.scrollTop + box.clientHeight >= box.scrollHeight - 6;
-  const anterior = +(box.dataset.cnt || 0);
   try {
     const r = await api('/api/admin/chamados/' + chamadoId + '/mensagens?_t=' + Date.now());
     if (!r.ok) return;
-    // Race-condition guard: se o modal já mudou para outro chamado enquanto o fetch estava em andamento, ignora a resposta
+    // Race-condition guard
     if (!chamadoAtual || Number(chamadoAtual.id) !== Number(chamadoId)) return;
     const msgs = await r.json();
-    box.dataset.cnt = msgs.length;
+
     if (!msgs.length) {
-      if (!box.querySelector('.chat-msg'))
+      if (!box.querySelector('[data-msg-id]'))
         box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem trocada ainda.</div>';
       return;
     }
-    if (msgs.length === anterior) return;
-    box.innerHTML = msgs.map(m => {
-      const mine = m.autor_tipo === 'admin';
-      const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
-      const anexoHtml = _chatAnexoHtml(`/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
-      return `
-      <div class="chat-msg ${mine ? 'mine' : 'theirs'}">
-        <div class="chat-msg-author">${m.autor_nome}</div>
-        ${textoHtml}${anexoHtml}
-        <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
-      </div>`;
-    }).join('');
-    if (atFundo || anterior < msgs.length) box.scrollTop = box.scrollHeight;
+
+    // Remove placeholder
+    const vazio = box.querySelector('.chat-vazio');
+    if (vazio) vazio.remove();
+
+    // Detect already-rendered messages by ID — never re-render existing ones
+    const rendered = new Set([...box.querySelectorAll('[data-msg-id]')].map(el => +el.dataset.msgId));
+    const novas = msgs.filter(m => !rendered.has(m.id));
+    if (!novas.length) return;
+
+    // Capture scroll state before touching the DOM
+    const atFundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+
+    // Append-only: insert new messages at the bottom
+    const tmp = document.createElement('div');
+    tmp.innerHTML = novas.map(m => _renderMsgAdmin(m, chamadoId)).join('');
+    while (tmp.firstChild) box.appendChild(tmp.firstChild);
+
+    if (atFundo) {
+      box.scrollTop = box.scrollHeight;
+      // Re-anchor after images/videos expand the container
+      novas.forEach(m => {
+        const ext = (m.chat_anexo_nome_original || '').split('.').pop().toLowerCase();
+        if (_IMGS_EXT.includes(ext)) {
+          const img = box.querySelector(`[data-msg-id="${m.id}"] img`);
+          if (img && !img.complete) img.addEventListener('load', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+        } else if (['mp4','webm','mov','avi','mkv','wmv'].includes(ext)) {
+          const vid = box.querySelector(`[data-msg-id="${m.id}"] video`);
+          if (vid) vid.addEventListener('loadedmetadata', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+        }
+      });
+    }
   } catch {}
 }
 

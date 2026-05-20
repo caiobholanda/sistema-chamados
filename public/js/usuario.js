@@ -70,7 +70,7 @@ function _renderMsgChat(m) {
   const mine = m.autor_tipo === 'usuario';
   const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
   const anexoHtml = _chatAnexoHtmlUsr(`/api/chamados/${m.chamado_id}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
-  return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}">
+  return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
     <div class="chat-msg-author">${m.autor_nome}</div>
     ${textoHtml}${anexoHtml}
     <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
@@ -80,22 +80,49 @@ function _renderMsgChat(m) {
 async function _atualizarChat(chamadoId) {
   const box = document.getElementById('chat-msgs-' + chamadoId);
   if (!box) return;
-  const atFundo = box.scrollTop + box.clientHeight >= box.scrollHeight - 6;
-  const anterior = +(box.dataset.cnt || 0);
   try {
     const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens?_t=' + Date.now());
     if (r.status === 401) { _pararRefresh(); _limparChats(); renderAuth(); return; }
     if (!r.ok) return;
     const msgs = await r.json();
-    box.dataset.cnt = msgs.length;
+
     if (!msgs.length) {
-      if (!box.querySelector('.chat-msg'))
+      if (!box.querySelector('[data-msg-id]'))
         box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem ainda. Escreva para o suporte!</div>';
       return;
     }
-    if (msgs.length === anterior) return;
-    box.innerHTML = msgs.map(_renderMsgChat).join('');
-    if (atFundo || anterior < msgs.length) box.scrollTop = box.scrollHeight;
+
+    // Remove placeholder
+    const vazio = box.querySelector('.chat-vazio');
+    if (vazio) vazio.remove();
+
+    // Detect already-rendered messages by ID — never re-render existing ones
+    const rendered = new Set([...box.querySelectorAll('[data-msg-id]')].map(el => +el.dataset.msgId));
+    const novas = msgs.filter(m => !rendered.has(m.id));
+    if (!novas.length) return;
+
+    // Capture scroll state before touching the DOM
+    const atFundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+
+    // Append-only: insert new messages at the bottom
+    const tmp = document.createElement('div');
+    tmp.innerHTML = novas.map(_renderMsgChat).join('');
+    while (tmp.firstChild) box.appendChild(tmp.firstChild);
+
+    if (atFundo) {
+      box.scrollTop = box.scrollHeight;
+      // After images/videos expand the container, re-anchor to bottom
+      novas.forEach(m => {
+        const ext = (m.chat_anexo_nome_original || '').split('.').pop().toLowerCase();
+        if (_IMGS_EXT.includes(ext)) {
+          const img = box.querySelector(`[data-msg-id="${m.id}"] img`);
+          if (img && !img.complete) img.addEventListener('load', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+        } else if (['mp4','webm','mov','avi','mkv','wmv'].includes(ext)) {
+          const vid = box.querySelector(`[data-msg-id="${m.id}"] video`);
+          if (vid) vid.addEventListener('loadedmetadata', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+        }
+      });
+    }
   } catch {}
 }
 

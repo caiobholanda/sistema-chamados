@@ -1053,6 +1053,22 @@ const _IMGS_EXT = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
 function _isImgAnexo(nome) { return _IMGS_EXT.includes((nome || '').split('.').pop().toLowerCase()); }
 
 // ── Chat mobile ───────────────────────────────────────────────
+function _renderMsgMob(m, chamadoId) {
+  const isAdmin = m.autor_tipo === 'admin';
+  const iso = m.criado_em.includes('T') ? m.criado_em : m.criado_em.replace(' ', 'T');
+  const hora = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
+    .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' });
+  const textoHtml = m.mensagem ? `<div class="mob-chat-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+  const anexoHtml = _mobChatAnexoHtml(`/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
+  return `<div class="mob-chat-msg ${isAdmin ? 'mob-chat-msg-admin' : 'mob-chat-msg-user'}" data-msg-id="${m.id}">
+    ${textoHtml}${anexoHtml}
+    <div class="mob-chat-meta">
+      <span class="mob-chat-autor">${m.autor_nome || (isAdmin ? 'Admin' : 'Usuário')}</span>
+      <span class="mob-chat-time">${hora}</span>
+    </div>
+  </div>`;
+}
+
 function _mobChatAnexoHtml(url, nome) {
   if (!nome) return '';
   const ext = nome.split('.').pop().toLowerCase();
@@ -1072,28 +1088,44 @@ async function _atualizarChatMob(chamadoId) {
     if (!r.ok) return;
     const msgs = await r.json();
     if (!box.isConnected) return;
+
     if (!msgs.length) {
-      box.innerHTML = '<div class="mob-chat-vazio">Nenhuma mensagem ainda. Seja o primeiro a escrever!</div>';
+      if (!box.querySelector('[data-msg-id]'))
+        box.innerHTML = '<div class="mob-chat-vazio">Nenhuma mensagem ainda. Seja o primeiro a escrever!</div>';
       return;
     }
-    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
-    box.innerHTML = msgs.map(m => {
-      const isAdmin = m.autor_tipo === 'admin';
-      const iso = m.criado_em.includes('T') ? m.criado_em : m.criado_em.replace(' ', 'T');
-      const hora = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
-        .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' });
-      const textoHtml = m.mensagem ? `<div class="mob-chat-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
-      const anexoHtml = _mobChatAnexoHtml(`/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
-      return `
-        <div class="mob-chat-msg ${isAdmin ? 'mob-chat-msg-admin' : 'mob-chat-msg-user'}">
-          ${textoHtml}${anexoHtml}
-          <div class="mob-chat-meta">
-            <span class="mob-chat-autor">${m.autor_nome || (isAdmin ? 'Admin' : 'Usuário')}</span>
-            <span class="mob-chat-time">${hora}</span>
-          </div>
-        </div>`;
-    }).join('');
-    if (atBottom) box.scrollTop = box.scrollHeight;
+
+    // Remove placeholder
+    const vazio = box.querySelector('.mob-chat-vazio');
+    if (vazio) vazio.remove();
+
+    // Detect already-rendered messages by ID — never re-render existing ones
+    const rendered = new Set([...box.querySelectorAll('[data-msg-id]')].map(el => +el.dataset.msgId));
+    const novas = msgs.filter(m => !rendered.has(m.id));
+    if (!novas.length) return;
+
+    // Capture scroll state before touching the DOM
+    const atFundo = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+
+    // Append-only: insert new messages at the bottom
+    const tmp = document.createElement('div');
+    tmp.innerHTML = novas.map(m => _renderMsgMob(m, chamadoId)).join('');
+    while (tmp.firstChild) box.appendChild(tmp.firstChild);
+
+    if (atFundo) {
+      box.scrollTop = box.scrollHeight;
+      // Re-anchor after images/videos expand the container
+      novas.forEach(m => {
+        const ext = (m.chat_anexo_nome_original || '').split('.').pop().toLowerCase();
+        if (_IMGS_EXT.includes(ext)) {
+          const img = box.querySelector(`[data-msg-id="${m.id}"] img`);
+          if (img && !img.complete) img.addEventListener('load', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+        } else if (['mp4','webm','mov','avi','mkv','wmv'].includes(ext)) {
+          const vid = box.querySelector(`[data-msg-id="${m.id}"] video`);
+          if (vid) vid.addEventListener('loadedmetadata', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+        }
+      });
+    }
   } catch {}
 }
 
