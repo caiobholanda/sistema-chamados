@@ -60,9 +60,9 @@ function _chatAnexoHtmlUsr(url, nome) {
   const ext = nome.split('.').pop().toLowerCase();
   const vids = ['mp4','webm','mov','avi','mkv','wmv'];
   if (_IMGS_EXT.includes(ext))
-    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}">`;
+    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}" loading="lazy">`;
   if (vids.includes(ext))
-    return `<video class="chat-msg-video" src="${url}" controls></video>`;
+    return `<video class="chat-msg-video" src="${url}" controls preload="metadata"></video>`;
   return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
 }
 
@@ -142,30 +142,47 @@ function _iniciarChat(chamadoId) {
     const texto = chatInput.value.trim();
     if (!texto && !selectedFile) return;
     const btn = form.querySelector('[type="submit"]');
+    const btnTxt = btn.textContent;
     btn.disabled = true;
+    chatInput.disabled = true;
     if (errEl) errEl.textContent = '';
     try {
-      let r;
+      let ok = false, erroMsg = '';
       if (selectedFile) {
         const fd = new FormData();
         if (texto) fd.append('mensagem', texto);
         fd.append('chat_anexo', selectedFile, selectedFile.name || 'imagem.png');
-        r = await fetch('/api/chamados/' + chamadoId + '/mensagens', { method: 'POST', body: fd, credentials: 'same-origin' });
+        btn.textContent = '0%';
+        await new Promise((resolve) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', '/api/chamados/' + chamadoId + '/mensagens');
+          xhr.withCredentials = true;
+          xhr.upload.onprogress = ev => {
+            if (ev.lengthComputable) btn.textContent = Math.round(ev.loaded / ev.total * 100) + '%';
+          };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) { ok = true; }
+            else { try { erroMsg = JSON.parse(xhr.responseText).erro || 'Erro ao enviar.'; } catch { erroMsg = 'Erro ao enviar.'; } }
+            resolve();
+          };
+          xhr.onerror = () => { erroMsg = 'Erro de conexão.'; resolve(); };
+          xhr.send(fd);
+        });
       } else {
-        r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens', { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+        const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens', { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+        ok = r.ok;
+        if (!ok) { const d = await r.json().catch(() => ({})); erroMsg = d.erro || 'Erro ao enviar mensagem.'; }
       }
-      if (r.ok) {
-        chatInput.value = '';
-        clearFile();
-        await _atualizarChat(chamadoId);
-      } else {
-        const d = await r.json().catch(() => ({}));
-        if (errEl) errEl.textContent = d.erro || 'Erro ao enviar mensagem.';
-      }
+      if (ok) { chatInput.value = ''; clearFile(); await _atualizarChat(chamadoId); }
+      else if (errEl) errEl.textContent = erroMsg;
     } catch {
       if (errEl) errEl.textContent = 'Erro de conexão.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = btnTxt;
+      chatInput.disabled = false;
+      chatInput.focus();
     }
-    finally { btn.disabled = false; chatInput.focus(); }
   });
 }
 

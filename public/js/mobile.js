@@ -1040,9 +1040,9 @@ function _mobChatAnexoHtml(url, nome) {
   const ext = nome.split('.').pop().toLowerCase();
   const vids = ['mp4','webm','mov','avi','mkv','wmv'];
   if (_IMGS_EXT.includes(ext))
-    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}">`;
+    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}" loading="lazy">`;
   if (vids.includes(ext))
-    return `<video class="chat-msg-video" src="${url}" controls></video>`;
+    return `<video class="chat-msg-video" src="${url}" controls preload="metadata"></video>`;
   return `<a class="mob-chat-anexo" href="${url}" target="_blank" rel="noopener"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
 }
 
