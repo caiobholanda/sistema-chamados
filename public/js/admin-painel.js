@@ -463,7 +463,7 @@ function renderChamadoItem(c) {
         ${badgeCategoria(c.categoria)}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
       </div>
-      <div class="chamado-nome">${c.nome}</div>
+      <div class="chamado-nome"><span style="font-weight:400">Usuário: </span>${c.nome}</div>
       <div class="chamado-desc">${c.descricao}</div>
       <div class="chamado-item-footer">
         <span class="chamado-footer-meta">
