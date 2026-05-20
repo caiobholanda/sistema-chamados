@@ -407,7 +407,7 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
   letter-spacing: .07em;
 }
 .badge-urgente        { background: var(--danger-light);  color: var(--danger);   border: 1px solid #fecaca; }
-.badge-atraso         { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; animation: pulso-atraso 1.8s ease-in-out infinite; }
+.badge-atraso         { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; animation: pulso-atraso 1.8s ease-in-out infinite; will-change: opacity; }
 @keyframes pulso-atraso { 0%,100% { opacity:1; } 50% { opacity:.6; } }
 .badge-alta           { background: #FFEDD5;               color: #C2410C;         border: 1px solid #fdba74; }
 .badge-media          { background: #DBEAFE;               color: #1D4ED8;         border: 1px solid #93c5fd; }
@@ -741,6 +741,7 @@ tbody tr:hover td { background: #FAF7F2; }
   transition: box-shadow .15s, border-color .15s, transform .1s;
   border-left: 3px solid var(--border-strong);
   position: relative;
+  content-visibility: auto; contain-intrinsic-size: 0 100px;
 }
 .chamado-item:hover {
   box-shadow: var(--shadow-md);
@@ -1318,6 +1319,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border-radius: var(--radius);
   padding: 1.1rem 1.25rem;
   margin-bottom: .5rem;
+  content-visibility: auto; contain-intrinsic-size: 0 200px;
   border-left: 3px solid var(--gold);
   box-shadow: var(--shadow-sm);
   transition: box-shadow .15s, border-color .15s, transform .1s;
@@ -2731,12 +2733,13 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   width: 7px; height: 7px;
   background: #22c55e;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(34,197,94,.3);
-  animation: chat-pulse 2s infinite;
+  box-shadow: 0 0 0 3px rgba(34,197,94,.25);
+  will-change: opacity;
+  animation: chat-pulse 2s ease-in-out infinite;
 }
 @keyframes chat-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(34,197,94,.3); }
-  50% { box-shadow: 0 0 0 4px rgba(34,197,94,.15); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 /* Empty text */
@@ -2949,6 +2952,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
   padding: .9rem 1rem; cursor: pointer; -webkit-tap-highlight-color: rgba(212,175,55,.12);
   transition: box-shadow .15s;
+  content-visibility: auto; contain-intrinsic-size: 0 110px;
 }
 .mob-card:active { box-shadow: 0 0 0 2px var(--gold); }
 .mob-card-head { display: flex; gap: .35rem; align-items: center; flex-wrap: wrap; margin-bottom: .4rem; }
@@ -3075,7 +3079,8 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .mob-chat-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--success); flex-shrink: 0;
-  animation: mobChatPulse 2s infinite;
+  will-change: opacity;
+  animation: mobChatPulse 2s ease-in-out infinite;
 }
 @keyframes mobChatPulse {
   0%,100% { opacity:1; } 50% { opacity:.4; }

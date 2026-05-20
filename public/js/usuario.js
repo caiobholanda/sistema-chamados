@@ -101,7 +101,7 @@ async function _atualizarChat(chamadoId) {
 
 function _iniciarChat(chamadoId) {
   _atualizarChat(chamadoId);
-  _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 3000));
+  _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 6000));
 
   const form = document.getElementById('chat-form-' + chamadoId);
   if (!form) return;
@@ -549,7 +549,7 @@ function renderPainel(usuario) {
 
   carregarChamados();
   _pararRefresh();
-  _refreshInterval = setInterval(() => carregarChamados(true), 5000);
+  _refreshInterval = setInterval(() => carregarChamados(true), 10000);
 
   function _estaAtrasado(c) {
     if (!c.prazo) return false;

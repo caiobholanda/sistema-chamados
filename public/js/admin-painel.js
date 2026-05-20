@@ -185,12 +185,12 @@ async function api(url, opts = {}) {
       setTimeout(() => abrirModal(+chamadoParam), 200);
     }
 
-    // Auto-refresh silencioso a cada 5s (não atualiza se o modal estiver aberto)
+    // Auto-refresh silencioso a cada 10s (não atualiza se o modal estiver aberto)
     setInterval(() => {
       if (chamadoAtual) return;
       carregarChamados(true);
       carregarEstatisticas();
-    }, 5000);
+    }, 10000);
   } catch {}
 })();
 
@@ -1076,7 +1076,7 @@ function setupModalEventos(c) {
     // Garante que nenhum interval órfão de chamado anterior continue rodando
     if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
     _atualizarChatAdmin(c.id);
-    _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 3000);
+    _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 6000);
 
     const fileInput = document.getElementById('chat-modal-file');
     const fileChip = document.getElementById('chat-modal-file-chip');
@@ -1227,7 +1227,7 @@ function setupModalEventos(c) {
 
     atualizarTermoUI().catch(() => {});
     if (c.requer_acordo && isAberto) {
-      _termoPollingIv = setInterval(() => atualizarTermoUI().catch(() => {}), 3000);
+      _termoPollingIv = setInterval(() => atualizarTermoUI().catch(() => {}), 6000);
     }
   }
 }

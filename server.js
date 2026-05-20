@@ -11,6 +11,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const BUILD_TS = Date.now(); // deploy-test
 
+// Prevent process crash on unhandled errors — keeps Railway from returning 502
+process.on('uncaughtException', err => {
+  console.error('[FATAL uncaughtException]', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[WARN unhandledRejection]', reason);
+});
+
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

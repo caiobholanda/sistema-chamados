@@ -814,7 +814,7 @@ async function renderDetalhe(c) {
   if (podeChat) {
     _atualizarChatMob(c.id);
     clearInterval(_chatMobIv);
-    _chatMobIv = setInterval(() => _atualizarChatMob(c.id), 4000);
+    _chatMobIv = setInterval(() => _atualizarChatMob(c.id), 8000);
 
     const mobChatFile = document.getElementById('mob-chat-file');
     const mobChatChip = document.getElementById('mob-chat-file-chip');
