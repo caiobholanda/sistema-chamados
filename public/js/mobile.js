@@ -695,7 +695,16 @@ async function renderDetalhe(c) {
         <div class="mob-chat-msgs" id="mob-chat-msgs">
           <div class="mob-chat-vazio">Carregando mensagens…</div>
         </div>
+        <div id="mob-chat-file-chip" style="display:none;font-size:.75rem;color:var(--text-secondary);padding:.2rem .6rem .1rem;align-items:center;gap:.35rem">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <span id="mob-chat-file-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <button type="button" id="mob-btn-chat-file-clear" style="background:none;border:none;cursor:pointer;padding:0;font-size:.9rem;color:var(--text-muted)" title="Remover">✕</button>
+        </div>
         <form class="mob-chat-form" id="mob-chat-form" autocomplete="off">
+          <input type="file" id="mob-chat-file" style="display:none" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
+          <button type="button" id="mob-btn-chat-anexo" class="mob-chat-send-btn" aria-label="Anexar arquivo" style="background:var(--surface-2);color:var(--text-secondary)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
           <input class="mob-chat-input" id="mob-chat-input" type="text" placeholder="Digite uma mensagem…" maxlength="1000" autocomplete="off">
           <button class="mob-chat-send-btn" type="submit" aria-label="Enviar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -806,18 +815,42 @@ async function renderDetalhe(c) {
     clearInterval(_chatMobIv);
     _chatMobIv = setInterval(() => _atualizarChatMob(c.id), 4000);
 
+    const mobChatFile = document.getElementById('mob-chat-file');
+    const mobChatChip = document.getElementById('mob-chat-file-chip');
+    const mobChatFileName = document.getElementById('mob-chat-file-name');
+    document.getElementById('mob-btn-chat-anexo').addEventListener('click', () => mobChatFile.click());
+    mobChatFile.addEventListener('change', () => {
+      if (mobChatFile.files.length) {
+        mobChatFileName.textContent = mobChatFile.files[0].name;
+        mobChatChip.style.display = 'flex';
+      } else {
+        mobChatChip.style.display = 'none';
+      }
+    });
+    document.getElementById('mob-btn-chat-file-clear').addEventListener('click', () => {
+      mobChatFile.value = '';
+      mobChatChip.style.display = 'none';
+    });
+
     document.getElementById('mob-chat-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = document.getElementById('mob-chat-input');
       const texto = input.value.trim();
-      if (!texto) return;
-      input.value = '';
+      const temArquivo = mobChatFile.files.length > 0;
+      if (!texto && !temArquivo) return;
       input.disabled = true;
       try {
-        await api(`/api/admin/chamados/${c.id}/mensagens`, {
-          method: 'POST',
-          body: JSON.stringify({ mensagem: texto }),
-        });
+        if (temArquivo) {
+          const fd = new FormData();
+          if (texto) fd.append('mensagem', texto);
+          fd.append('chat_anexo', mobChatFile.files[0]);
+          await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd });
+        } else {
+          await api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+        }
+        input.value = '';
+        mobChatFile.value = '';
+        mobChatChip.style.display = 'none';
         await _atualizarChatMob(c.id);
       } catch {} finally {
         input.disabled = false;
@@ -968,9 +1001,13 @@ async function _atualizarChatMob(chamadoId) {
       const iso = m.criado_em.includes('T') ? m.criado_em : m.criado_em.replace(' ', 'T');
       const hora = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
         .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' });
+      const textoHtml = m.mensagem ? `<div class="mob-chat-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+      const anexoHtml = m.chat_anexo_nome_original ? `<a class="mob-chat-anexo" href="/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo" target="_blank" rel="noopener">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        ${m.chat_anexo_nome_original}</a>` : '';
       return `
         <div class="mob-chat-msg ${isAdmin ? 'mob-chat-msg-admin' : 'mob-chat-msg-user'}">
-          <div class="mob-chat-bubble">${(m.mensagem || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+          ${textoHtml}${anexoHtml}
           <div class="mob-chat-meta">
             <span class="mob-chat-autor">${m.autor_nome || (isAdmin ? 'Admin' : 'Usuário')}</span>
             <span class="mob-chat-time">${hora}</span>

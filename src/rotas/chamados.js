@@ -153,34 +153,85 @@ router.get('/:id/mensagens', (req, res) => {
   }
 });
 
-router.post('/:id/mensagens', (req, res) => {
+router.post('/:id/mensagens', upload.single('chat_anexo'), (req, res) => {
+  try {
+    const usuario_id = getUsuarioIdFromCookie(req);
+    if (!usuario_id) {
+      if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(401).json({ erro: 'Não autenticado' });
+    }
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) {
+      if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(404).json({ erro: 'Chamado não encontrado' });
+    }
+    if (Number(chamado.usuario_id) !== Number(usuario_id)) {
+      if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(403).json({ erro: 'Acesso negado' });
+    }
+    if (!['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(chamado.status)) {
+      if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(400).json({ erro: 'Chamado encerrado — não é possível enviar mensagens' });
+    }
+    const mensagem = sanitizarTexto(req.body.mensagem || '');
+    if (!mensagem && !req.file) {
+      return res.status(400).json({ erro: 'Envie uma mensagem ou um arquivo' });
+    }
+    if (mensagem.length > 1000) {
+      if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(400).json({ erro: 'Mensagem muito longa (máx. 1000 caracteres)' });
+    }
+    const usuario = db.buscarUsuarioPorId(usuario_id);
+    const nomeAutor = usuario ? usuario.nome : 'Usuário';
+    if (req.file) {
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const base = path.basename(req.file.originalname, ext)
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100);
+      const tmpNome = `chatusr_${Date.now()}__${base}${ext}`;
+      const tmpPath = path.join(UPLOADS_DIR, tmpNome);
+      fs.renameSync(req.file.path, tmpPath);
+      const msgId = db.criarMensagem({
+        chamado_id: chamado.id, autor_tipo: 'usuario',
+        autor_id: usuario_id, autor_nome: nomeAutor,
+        mensagem, chat_anexo_path: tmpNome, chat_anexo_nome_original: req.file.originalname,
+      });
+      const novoNome = `chatusr_${msgId}__${base}${ext}`;
+      fs.renameSync(tmpPath, path.join(UPLOADS_DIR, novoNome));
+      db.getDb().prepare('UPDATE mensagens_chamado SET chat_anexo_path = ? WHERE id = ?').run(novoNome, msgId);
+    } else {
+      db.criarMensagem({
+        chamado_id: chamado.id, autor_tipo: 'usuario',
+        autor_id: usuario_id, autor_nome: nomeAutor,
+        mensagem,
+      });
+    }
+    const notifMsg = mensagem || `[Arquivo: ${req.file ? req.file.originalname : ''}]`;
+    if (chamado.admin_responsavel_id) {
+      push.enviarParaAdmin(chamado.admin_responsavel_id, `💬 ${nomeAutor}`, notifMsg.slice(0, 100)).catch(() => {});
+    } else {
+      push.enviarParaTodos(`💬 ${nomeAutor}`, notifMsg.slice(0, 100)).catch(() => {});
+    }
+    return res.status(201).json({ mensagem: 'Mensagem enviada' });
+  } catch (err) {
+    console.error(err);
+    if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.get('/:id/mensagens/:msgId/chat-anexo', (req, res) => {
   try {
     const usuario_id = getUsuarioIdFromCookie(req);
     if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
-    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (Number(chamado.usuario_id) !== Number(usuario_id)) return res.status(403).json({ erro: 'Acesso negado' });
-    if (!['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(chamado.status)) {
-      return res.status(400).json({ erro: 'Chamado encerrado — não é possível enviar mensagens' });
-    }
-    const mensagem = sanitizarTexto(req.body.mensagem || '');
-    if (!mensagem || mensagem.length < 1 || mensagem.length > 1000) {
-      return res.status(400).json({ erro: 'Mensagem deve ter entre 1 e 1000 caracteres' });
-    }
-    const usuario = db.buscarUsuarioPorId(usuario_id);
-    db.criarMensagem({
-      chamado_id: chamado.id,
-      autor_tipo: 'usuario',
-      autor_id: usuario_id,
-      autor_nome: usuario ? usuario.nome : 'Usuário',
-      mensagem,
-    });
-    if (chamado.admin_responsavel_id) {
-      push.enviarParaAdmin(chamado.admin_responsavel_id, `💬 ${usuario ? usuario.nome : 'Usuário'}`, mensagem.slice(0, 100)).catch(() => {});
-    } else {
-      push.enviarParaTodos(`💬 ${usuario ? usuario.nome : 'Usuário'}`, mensagem.slice(0, 100)).catch(() => {});
-    }
-    return res.status(201).json({ mensagem: 'Mensagem enviada' });
+    if (!chamado || Number(chamado.usuario_id) !== Number(usuario_id)) return res.status(403).json({ erro: 'Acesso negado' });
+    const msg = db.getDb().prepare('SELECT * FROM mensagens_chamado WHERE id = ? AND chamado_id = ?').get(req.params.msgId, req.params.id);
+    if (!msg || !msg.chat_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
+    const filePath = path.join(UPLOADS_DIR, msg.chat_anexo_path);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
+    return res.sendFile(filePath);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

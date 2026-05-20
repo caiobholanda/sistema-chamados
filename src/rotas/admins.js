@@ -248,26 +248,70 @@ router.get('/chamados/:id/mensagens', requireAdmin, (req, res) => {
   }
 });
 
-router.post('/chamados/:id/mensagens', requireAdmin, async (req, res) => {
+router.post('/chamados/:id/mensagens', requireAdmin, upload.single('chat_anexo'), async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
-    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (!chamado) {
+      if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(404).json({ erro: 'Chamado não encontrado' });
+    }
     if (!STATUS_ATIVOS.includes(chamado.status)) {
+      if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
       return res.status(400).json({ erro: 'Chamado encerrado — não é possível enviar mensagens' });
     }
     const mensagem = sanitizarTexto(req.body.mensagem || '');
-    if (!mensagem || mensagem.length < 1 || mensagem.length > 1000) {
-      return res.status(400).json({ erro: 'Mensagem deve ter entre 1 e 1000 caracteres' });
+    if (!mensagem && !req.file) {
+      return res.status(400).json({ erro: 'Envie uma mensagem ou um arquivo' });
+    }
+    if (mensagem.length > 1000) {
+      if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(400).json({ erro: 'Mensagem muito longa (máx. 1000 caracteres)' });
     }
     const admin = db.buscarAdminPorId(req.admin.sub);
+    let chat_anexo_path = null;
+    let chat_anexo_nome_original = null;
+    if (req.file) {
+      const { UPLOADS_DIR } = require('../upload');
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const base = path.basename(req.file.originalname, ext)
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100);
+      const tmpNome = `chatadm_${Date.now()}__${base}${ext}`;
+      const tmpPath = path.join(UPLOADS_DIR, tmpNome);
+      fs.renameSync(req.file.path, tmpPath);
+      const msgId = db.criarMensagem({
+        chamado_id: chamado.id, autor_tipo: 'admin',
+        autor_id: req.admin.sub, autor_nome: admin ? admin.nome_completo : 'Suporte',
+        mensagem, chat_anexo_path: tmpNome, chat_anexo_nome_original: req.file.originalname,
+      });
+      const novoNome = `chatadm_${msgId}__${base}${ext}`;
+      const novoCaminho = path.join(UPLOADS_DIR, novoNome);
+      fs.renameSync(tmpPath, novoCaminho);
+      db.getDb().prepare('UPDATE mensagens_chamado SET chat_anexo_path = ? WHERE id = ?').run(novoNome, msgId);
+      return res.status(201).json({ mensagem: 'Mensagem enviada' });
+    }
     db.criarMensagem({
-      chamado_id: chamado.id,
-      autor_tipo: 'admin',
-      autor_id: req.admin.sub,
-      autor_nome: admin ? admin.nome_completo : 'Suporte',
+      chamado_id: chamado.id, autor_tipo: 'admin',
+      autor_id: req.admin.sub, autor_nome: admin ? admin.nome_completo : 'Suporte',
       mensagem,
     });
     return res.status(201).json({ mensagem: 'Mensagem enviada' });
+  } catch (err) {
+    console.error(err);
+    if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.get('/chamados/:id/mensagens/:msgId/chat-anexo', requireAdmin, (req, res) => {
+  try {
+    const msg = db.getDb().prepare('SELECT * FROM mensagens_chamado WHERE id = ? AND chamado_id = ?').get(req.params.msgId, req.params.id);
+    if (!msg || !msg.chat_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
+    const { UPLOADS_DIR } = require('../upload');
+    const filePath = path.join(UPLOADS_DIR, msg.chat_anexo_path);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
+    return res.sendFile(filePath);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

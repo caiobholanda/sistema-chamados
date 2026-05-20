@@ -32,10 +32,14 @@ async function _atualizarChatAdmin(chamadoId) {
     if (msgs.length === anterior) return;
     box.innerHTML = msgs.map(m => {
       const mine = m.autor_tipo === 'admin';
+      const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+      const anexoHtml = m.chat_anexo_nome_original ? `<a class="chat-msg-anexo" href="/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo" target="_blank" rel="noopener">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        ${m.chat_anexo_nome_original}</a>` : '';
       return `
       <div class="chat-msg ${mine ? 'mine' : 'theirs'}">
         <div class="chat-msg-author">${m.autor_nome}</div>
-        <div class="chat-msg-bubble">${m.mensagem}</div>
+        ${textoHtml}${anexoHtml}
         <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
       </div>`;
     }).join('');
@@ -748,7 +752,16 @@ function renderModalBody(c) {
               <div class="chat-vazio">Carregando...</div>
             </div>
             <div class="chat-send-error" id="chat-modal-err"></div>
+            <div id="chat-modal-file-chip" style="display:none;font-size:.75rem;color:var(--text-secondary);padding:.2rem .5rem .1rem;display:none;align-items:center;gap:.35rem">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              <span id="chat-modal-file-name" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+              <button type="button" id="btn-chat-modal-file-clear" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;color:var(--text-muted);font-size:.85rem" title="Remover arquivo">✕</button>
+            </div>
             <form class="chat-input-row" id="chat-modal-form">
+              <input type="file" id="chat-modal-file" style="display:none" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
+              <button type="button" id="btn-chat-modal-anexo" class="btn btn-secondary btn-sm" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </button>
               <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
               <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
             </form>
@@ -1030,22 +1043,47 @@ function setupModalEventos(c) {
     _atualizarChatAdmin(c.id);
     _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 3000);
 
+    const fileInput = document.getElementById('chat-modal-file');
+    const fileChip = document.getElementById('chat-modal-file-chip');
+    const fileName = document.getElementById('chat-modal-file-name');
+    document.getElementById('btn-chat-modal-anexo').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) {
+        fileName.textContent = fileInput.files[0].name;
+        fileChip.style.display = 'flex';
+      } else {
+        fileChip.style.display = 'none';
+      }
+    });
+    document.getElementById('btn-chat-modal-file-clear').addEventListener('click', () => {
+      fileInput.value = '';
+      fileChip.style.display = 'none';
+    });
+
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = document.getElementById('chat-modal-input');
       const errEl = document.getElementById('chat-modal-err');
       const texto = input.value.trim();
-      if (!texto) return;
-      const btn = chatForm.querySelector('button');
+      const temArquivo = fileInput.files.length > 0;
+      if (!texto && !temArquivo) return;
+      const btn = chatForm.querySelector('[type="submit"]');
       btn.disabled = true;
       if (errEl) errEl.textContent = '';
       try {
-        const r = await api(`/api/admin/chamados/${c.id}/mensagens`, {
-          method: 'POST',
-          body: JSON.stringify({ mensagem: texto }),
-        });
+        let r;
+        if (temArquivo) {
+          const fd = new FormData();
+          if (texto) fd.append('mensagem', texto);
+          fd.append('chat_anexo', fileInput.files[0]);
+          r = await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd });
+        } else {
+          r = await api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+        }
         if (r.ok) {
           input.value = '';
+          fileInput.value = '';
+          fileChip.style.display = 'none';
           await _atualizarChatAdmin(c.id);
         } else {
           const d = await r.json().catch(() => ({}));

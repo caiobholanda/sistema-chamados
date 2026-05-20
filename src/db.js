@@ -139,6 +139,8 @@ function initDb() {
   try { db.exec("ALTER TABLE equipamentos_historico ADD COLUMN chamado_id INTEGER DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_path TEXT"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
+  try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
+  try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_nome_original TEXT"); } catch {}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS reset_tokens (
@@ -1004,11 +1006,11 @@ function listarMensagensChamado(chamadoId) {
   ).all(chamadoId);
 }
 
-function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem }) {
+function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original }) {
   const result = getDb().prepare(`
-    INSERT INTO mensagens_chamado (chamado_id, autor_tipo, autor_id, autor_nome, mensagem)
-    VALUES (@chamado_id, @autor_tipo, @autor_id, @autor_nome, @mensagem)
-  `).run({ chamado_id, autor_tipo, autor_id: autor_id || null, autor_nome, mensagem });
+    INSERT INTO mensagens_chamado (chamado_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original)
+    VALUES (@chamado_id, @autor_tipo, @autor_id, @autor_nome, @mensagem, @chat_anexo_path, @chat_anexo_nome_original)
+  `).run({ chamado_id, autor_tipo, autor_id: autor_id || null, autor_nome, mensagem: mensagem || '', chat_anexo_path: chat_anexo_path || null, chat_anexo_nome_original: chat_anexo_nome_original || null });
   return result.lastInsertRowid;
 }
 

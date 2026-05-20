@@ -31,9 +31,13 @@ function _limparChats() {
 
 function _renderMsgChat(m) {
   const mine = m.autor_tipo === 'usuario';
+  const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+  const anexoHtml = m.chat_anexo_nome_original ? `<a class="chat-msg-anexo" href="/api/chamados/${m.chamado_id}/mensagens/${m.id}/chat-anexo" target="_blank" rel="noopener">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+    ${m.chat_anexo_nome_original}</a>` : '';
   return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}">
     <div class="chat-msg-author">${m.autor_nome}</div>
-    <div class="chat-msg-bubble">${m.mensagem}</div>
+    ${textoHtml}${anexoHtml}
     <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
   </div>`;
 }
@@ -66,22 +70,49 @@ function _iniciarChat(chamadoId) {
 
   const form = document.getElementById('chat-form-' + chamadoId);
   if (!form) return;
+
+  const fileInput = document.getElementById('chat-file-' + chamadoId);
+  const fileChip = document.getElementById('chat-file-chip-' + chamadoId);
+  const fileNameEl = document.getElementById('chat-file-name-' + chamadoId);
+
+  form.querySelector('.btn-chat-anexo').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      fileNameEl.textContent = fileInput.files[0].name;
+      fileChip.style.display = 'flex';
+    } else {
+      fileChip.style.display = 'none';
+    }
+  });
+  fileChip.querySelector('.btn-chat-file-clear').addEventListener('click', () => {
+    fileInput.value = '';
+    fileChip.style.display = 'none';
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = document.getElementById('chat-input-' + chamadoId);
     const errEl = document.getElementById('chat-err-' + chamadoId);
     const texto = input.value.trim();
-    if (!texto) return;
-    const btn = form.querySelector('button');
+    const temArquivo = fileInput.files.length > 0;
+    if (!texto && !temArquivo) return;
+    const btn = form.querySelector('[type="submit"]');
     btn.disabled = true;
     if (errEl) errEl.textContent = '';
     try {
-      const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens', {
-        method: 'POST',
-        body: JSON.stringify({ mensagem: texto }),
-      });
+      let r;
+      if (temArquivo) {
+        const fd = new FormData();
+        if (texto) fd.append('mensagem', texto);
+        fd.append('chat_anexo', fileInput.files[0]);
+        r = await fetch('/api/chamados/' + chamadoId + '/mensagens', { method: 'POST', body: fd, credentials: 'same-origin' });
+      } else {
+        r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens', { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+      }
       if (r.ok) {
         input.value = '';
+        fileInput.value = '';
+        fileChip.style.display = 'none';
         await _atualizarChat(chamadoId);
       } else {
         const d = await r.json().catch(() => ({}));
@@ -873,7 +904,16 @@ function renderCardChamado(c) {
         <div class="chat-vazio">Carregando...</div>
       </div>
       <div class="chat-send-error" id="chat-err-${c.id}"></div>
+      <div id="chat-file-chip-${c.id}" style="display:none;font-size:.75rem;color:var(--text-secondary);padding:.2rem .5rem .1rem;align-items:center;gap:.35rem">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        <span id="chat-file-name-${c.id}" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        <button type="button" data-cid="${c.id}" class="btn-chat-file-clear" style="background:none;border:none;cursor:pointer;padding:0;font-size:.85rem;color:var(--text-muted)" title="Remover">✕</button>
+      </div>
       <form class="chat-input-row" id="chat-form-${c.id}">
+        <input type="file" id="chat-file-${c.id}" style="display:none" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
+        <button type="button" data-cid="${c.id}" class="btn-chat-anexo btn btn-secondary btn-sm" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
         <input type="text" class="chat-input" id="chat-input-${c.id}" placeholder="Escreva uma mensagem para o suporte..." maxlength="1000" autocomplete="off">
         <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
       </form>
