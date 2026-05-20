@@ -858,8 +858,12 @@ async function renderDetalhe(c) {
           });
           if (!r.ok) {
             const d = await r.json();
-            msg.innerHTML = `<div class="mob-alert mob-alert-danger">Erro no estoque: ${d.erro}</div>`;
-            btn.disabled = false; btn.textContent = 'Concluir chamado';
+            if (btn.isConnected) {
+              msg.innerHTML = `<div class="mob-alert mob-alert-danger">Erro no estoque: ${d.erro}</div>`;
+              btn.disabled = false; btn.textContent = 'Concluir chamado';
+            } else {
+              mostrarToastMob('⚠ Erro no estoque', d.erro || 'Não foi possível registrar a movimentação.');
+            }
             return;
           }
         }
@@ -872,9 +876,20 @@ async function renderDetalhe(c) {
         }),
       });
       const d = await r.json();
-      if (!r.ok) { msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`; return; }
+      if (!r.ok) {
+        if (btn.isConnected) msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`;
+        else mostrarToastMob('⚠ Chamado não concluído', d.erro || 'Tente novamente.');
+        return;
+      }
       renderSucesso(c);
-    } catch { msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão.</div>'; }
+    } catch {
+      if (btn.isConnected) {
+        msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão. Tente novamente.</div>';
+      } else {
+        // Sessão expirou durante a operação — renderLogin() já substituiu a tela
+        mostrarToastMob('⚠ Conclusão NÃO registrada', 'Sua sessão expirou. Refaça o login e conclua o chamado novamente.');
+      }
+    }
     finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Concluir chamado'; } }
   });
 }
