@@ -856,29 +856,47 @@ async function renderDetalhe(c) {
       _chatSending = true;
       mobChatInput.disabled = true;
       if (mobChatSendBtn) mobChatSendBtn.disabled = true;
+      const btnHtml = mobChatSendBtn ? mobChatSendBtn.innerHTML : '';
       try {
-        let r;
+        let ok = false, erroMsg = '';
         if (selectedFile) {
           const fd = new FormData();
           if (texto) fd.append('mensagem', texto);
           fd.append('chat_anexo', selectedFile, selectedFile.name || 'imagem.png');
-          r = await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd, credentials: 'same-origin' });
+          if (mobChatSendBtn) mobChatSendBtn.textContent = '0%';
+          await new Promise((resolve) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/api/admin/chamados/${c.id}/mensagens`);
+            xhr.withCredentials = true;
+            xhr.upload.onprogress = ev => {
+              if (ev.lengthComputable && mobChatSendBtn)
+                mobChatSendBtn.textContent = Math.round(ev.loaded / ev.total * 100) + '%';
+            };
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) { ok = true; }
+              else { try { erroMsg = JSON.parse(xhr.responseText).erro || 'Erro ao enviar.'; } catch { erroMsg = 'Erro ao enviar.'; } }
+              resolve();
+            };
+            xhr.onerror = () => { erroMsg = 'Erro de conexão.'; resolve(); };
+            xhr.send(fd);
+          });
         } else {
-          r = await api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+          const r = await api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+          ok = r.ok;
+          if (!ok) { const d = await r.json().catch(() => ({})); erroMsg = d.erro || 'Erro ao enviar.'; }
         }
-        if (r.ok) {
+        if (ok) {
           mobChatInput.value = '';
           clearFile();
           await _atualizarChatMob(c.id);
         } else {
-          const d = await r.json().catch(() => ({}));
-          alert(d.erro || 'Erro ao enviar. Verifique o tipo e tamanho (máx. 200 MB).');
+          alert(erroMsg || 'Erro ao enviar. Verifique o tipo e tamanho (máx. 200 MB).');
         }
       } catch (err) { console.error(err); alert('Erro de conexão. Tente novamente.'); }
       finally {
         _chatSending = false;
         mobChatInput.disabled = false;
-        if (mobChatSendBtn) mobChatSendBtn.disabled = false;
+        if (mobChatSendBtn) { mobChatSendBtn.disabled = false; mobChatSendBtn.innerHTML = btnHtml; }
         mobChatInput.focus();
       }
     });
