@@ -586,6 +586,7 @@ tbody tr:hover td { background: #FAF7F2; }
   transition: box-shadow .15s, transform .15s;
 }
 .stat-pill:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+.stat-pill.ativo { box-shadow: 0 0 0 2px var(--gold); transform: translateY(-1px); }
 .stat-dot {
   width: 40px; height: 40px;
   border-radius: var(--radius-sm);

@@ -74,13 +74,7 @@
   </div>
 
   <div class="tabs-bar">
-    <button class="tab-btn ativo" id="tab-abertos" data-tab="abertos">
-      Em Aberto <span class="tab-badge" id="badge-abertos"></span>
-    </button>
-    <button class="tab-btn" id="tab-encerrados" data-tab="encerrados">
-      Concluídos <span class="tab-badge" id="badge-encerrados"></span>
-    </button>
-    <button class="tab-btn" id="tab-meus" data-tab="meus" style="margin-left:auto">
+    <button class="tab-btn" id="tab-meus" data-tab="meus">
       Meus chamados <span class="tab-badge" id="badge-meus"></span>
     </button>
   </div>
@@ -96,8 +90,7 @@
 
   <div class="filtros-card">
     <div class="filtros">
-      <input class="form-control" type="search" id="filtro-id" aria-label="Buscar por ID" placeholder="Buscar #ID" style="max-width:140px" inputmode="numeric">
-      <select class="form-control" id="filtro-status" aria-label="Status"></select>
+      <input class="form-control" type="search" id="filtro-busca" aria-label="Buscar chamados" placeholder="Buscar por ID, nome, descrição, setor…" style="min-width:220px;flex:1">
       <select class="form-control" id="filtro-setor" aria-label="Setor">
         <option value="">Todos os setores</option>
         <optgroup label="Hospedagem">

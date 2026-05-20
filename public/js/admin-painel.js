@@ -2,6 +2,7 @@ let adminInfo = null;
 let chamadoAtual = null;
 let abaAtiva = 'abertos';
 let subAbaMeusAtiva = 'abertos';
+let statusFiltroAtual = '';
 let _chatAdminIv = null;
 let _chamadosHash = null;
 let _termoPollingIv = null;
@@ -101,13 +102,15 @@ function badgeStatus(s) {
 }
 
 function filtrarPorStatus(status) {
-  const tabTarget = STATUS_ABERTOS.includes(status) ? 'abertos' : 'encerrados';
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
-  document.getElementById('tab-' + tabTarget).classList.add('ativo');
-  abaAtiva = tabTarget;
+  statusFiltroAtual = status;
+  abaAtiva = 'abertos';
+  document.getElementById('tab-meus').classList.remove('ativo');
   document.getElementById('subtabs-meus').style.display = 'none';
-  atualizarFiltrosDeAba();
-  document.getElementById('filtro-status').value = status;
+  // Marca visualmente a pill selecionada
+  const pillMap = { 'aberto': 'cnt-aberto', 'em_andamento': 'cnt-andamento', 'concluido,encerrado': 'cnt-concluido' };
+  document.querySelectorAll('#stats-strip .stat-pill').forEach(p => p.classList.remove('ativo'));
+  const targetId = pillMap[status];
+  if (targetId) document.getElementById(targetId)?.closest('.stat-pill')?.classList.add('ativo');
   carregarChamados();
 }
 function badgePrio(p) {
@@ -152,16 +155,21 @@ async function api(url, opts = {}) {
   } catch {}
 })();
 
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+document.getElementById('tab-meus').addEventListener('click', () => {
+  const btn = document.getElementById('tab-meus');
+  const jaAtivo = btn.classList.contains('ativo');
+  if (jaAtivo) {
+    // Toggle: desativar "Meus chamados" e voltar para todos
+    btn.classList.remove('ativo');
+    abaAtiva = 'abertos';
+    document.getElementById('subtabs-meus').style.display = 'none';
+  } else {
     btn.classList.add('ativo');
-    abaAtiva = btn.dataset.tab;
-    const subtabs = document.getElementById('subtabs-meus');
-    subtabs.style.display = abaAtiva === 'meus' ? 'inline-flex' : 'none';
-    atualizarFiltrosDeAba();
-    carregarChamados();
-  });
+    abaAtiva = 'meus';
+    document.getElementById('subtabs-meus').style.display = 'inline-flex';
+  }
+  atualizarFiltrosDeAba();
+  carregarChamados();
 });
 
 document.querySelectorAll('.sub-tab-btn').forEach(btn => {
@@ -175,37 +183,9 @@ document.querySelectorAll('.sub-tab-btn').forEach(btn => {
 });
 
 function atualizarFiltrosDeAba() {
-  const sel = document.getElementById('filtro-status');
-  sel.innerHTML = '';
-  if (abaAtiva === 'abertos') {
-    sel.innerHTML = `
-      <option value="">Todos (abertos)</option>
-      <option value="aberto">Aberto</option>
-      <option value="em_andamento">Em andamento</option>
-      <option value="aguardando_compra">Aguardando compra</option>
-      <option value="aguardando_chegar">Aguardando chegar</option>
-    `;
-  } else if (abaAtiva === 'meus') {
-    if (subAbaMeusAtiva === 'abertos') {
-      sel.innerHTML = `
-        <option value="">Todos (abertos)</option>
-        <option value="aberto">Aberto</option>
-        <option value="em_andamento">Em andamento</option>
-        <option value="aguardando_compra">Aguardando compra</option>
-        <option value="aguardando_chegar">Aguardando chegar</option>
-      `;
-    } else {
-      sel.innerHTML = `
-        <option value="">Todos (concluídos)</option>
-        <option value="concluido,encerrado">Concluído</option>
-      `;
-    }
-  } else {
-    sel.innerHTML = `
-      <option value="">Todos (concluídos)</option>
-      <option value="concluido,encerrado">Concluído</option>
-    `;
-  }
+  // Sem select de status: resetar o filtro ao trocar de aba
+  statusFiltroAtual = '';
+  document.querySelectorAll('#stats-strip .stat-pill').forEach(p => p.classList.remove('ativo'));
 }
 
 async function carregarEstatisticas() {
@@ -265,22 +245,23 @@ document.getElementById('stats-strip').addEventListener('click', e => {
   if (status) filtrarPorStatus(status);
 });
 document.getElementById('btn-limpar').addEventListener('click', () => {
-  document.getElementById('filtro-status').value = '';
+  statusFiltroAtual = '';
+  document.querySelectorAll('#stats-strip .stat-pill').forEach(p => p.classList.remove('ativo'));
   document.getElementById('filtro-setor').value = '';
   document.getElementById('filtro-admin').value = '';
-  const fid = document.getElementById('filtro-id');
-  if (fid) fid.value = '';
+  const fb = document.getElementById('filtro-busca');
+  if (fb) fb.value = '';
   carregarChamados();
 });
 
-// Filtro por ID — atualização instantânea (debounce de 150ms)
+// Filtro por texto — atualização instantânea (debounce de 200ms)
 (() => {
-  const inp = document.getElementById('filtro-id');
+  const inp = document.getElementById('filtro-busca');
   if (!inp) return;
   let t = null;
   inp.addEventListener('input', () => {
     clearTimeout(t);
-    t = setTimeout(() => carregarChamados(), 150);
+    t = setTimeout(() => carregarChamados(), 200);
   });
 })();
 
@@ -364,24 +345,18 @@ async function carregarChamados(silencioso = false) {
   if (!silencioso) lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
   const params = new URLSearchParams();
-  const statusFiltro = document.getElementById('filtro-status').value;
   const setor = document.getElementById('filtro-setor').value;
   const adminId = document.getElementById('filtro-admin').value;
 
   if (abaAtiva === 'meus') {
     params.set('admin_id', adminInfo.id);
-    if (statusFiltro) {
-      params.set('status', statusFiltro);
-    } else {
-      const statusDaSubAba = subAbaMeusAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
-      params.set('status', statusDaSubAba.join(','));
-    }
+    const statusDaSubAba = subAbaMeusAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
+    params.set('status', statusDaSubAba.join(','));
   } else {
-    if (statusFiltro) {
-      params.set('status', statusFiltro);
+    if (statusFiltroAtual) {
+      params.set('status', statusFiltroAtual);
     } else {
-      const statusDaAba = abaAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
-      params.set('status', statusDaAba.join(','));
+      params.set('status', STATUS_ABERTOS.join(','));
     }
     if (adminId) params.set('admin_id', adminId);
   }
@@ -392,17 +367,25 @@ async function carregarChamados(silencioso = false) {
     const r = await api('/api/admin/chamados?' + params);
     let chamados = await r.json();
 
-    // Filtro local por ID (busca substring no número)
-    const filtroIdRaw = (document.getElementById('filtro-id')?.value || '').trim().replace(/^#/, '');
-    if (filtroIdRaw) {
-      chamados = chamados.filter(c => String(c.id).includes(filtroIdRaw));
+    // Filtro local por texto: ID, nome, descrição, setor, ramal
+    const filtroBusca = (document.getElementById('filtro-busca')?.value || '').trim().replace(/^#/, '');
+    if (filtroBusca) {
+      const q = filtroBusca.toLowerCase();
+      chamados = chamados.filter(c =>
+        String(c.id).includes(filtroBusca) ||
+        (c.nome || '').toLowerCase().includes(q) ||
+        (c.descricao || '').toLowerCase().includes(q) ||
+        (c.setor || '').toLowerCase().includes(q) ||
+        (c.usuario_setor || '').toLowerCase().includes(q) ||
+        (c.ramal || '').toLowerCase().includes(q)
+      );
     }
 
     // Silencioso: só re-renderiza se os dados mudaram
     if (silencioso) {
       const novoHash = JSON.stringify(chamados.map(c =>
         [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em]
-      )) + '|' + filtroIdRaw;
+      )) + '|' + filtroBusca;
       if (novoHash === _chamadosHash) return;
       _chamadosHash = novoHash;
     } else {
