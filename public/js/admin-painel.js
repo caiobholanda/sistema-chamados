@@ -11,14 +11,39 @@ function _pararPollingTermo() {
   if (_termoPollingIv) { clearInterval(_termoPollingIv); _termoPollingIv = null; }
 }
 
+// ── Lightbox ──────────────────────────────────────────────────
+let _lbxEl = null;
+function _abrirLightbox(src, nome) {
+  if (!_lbxEl) {
+    _lbxEl = document.createElement('div');
+    _lbxEl.id = 'lbx';
+    _lbxEl.innerHTML = '<button id="lbx-close" aria-label="Fechar">✕</button><img id="lbx-img" alt=""><div id="lbx-nome"></div>';
+    document.body.appendChild(_lbxEl);
+    _lbxEl.addEventListener('click', e => {
+      if (e.target === _lbxEl || e.target.id === 'lbx-close') _lbxEl.classList.remove('lbx-open');
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && _lbxEl) _lbxEl.classList.remove('lbx-open');
+    });
+  }
+  _lbxEl.querySelector('#lbx-img').src = src;
+  _lbxEl.querySelector('#lbx-nome').textContent = nome || '';
+  _lbxEl.classList.add('lbx-open');
+}
+document.addEventListener('click', e => {
+  const img = e.target.closest('.lbx-img');
+  if (img) _abrirLightbox(img.src, img.alt);
+});
+
+const _IMGS_EXT = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
+function _isImgAnexo(nome) { return _IMGS_EXT.includes((nome || '').split('.').pop().toLowerCase()); }
 
 function _chatAnexoHtml(url, nome) {
   if (!nome) return '';
   const ext = nome.split('.').pop().toLowerCase();
-  const imgs = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
   const vids = ['mp4','webm','mov','avi','mkv','wmv'];
-  if (imgs.includes(ext))
-    return `<a href="${url}" target="_blank" rel="noopener"><img class="chat-msg-img" src="${url}" alt="${nome}"></a>`;
+  if (_IMGS_EXT.includes(ext))
+    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}">`;
   if (vids.includes(ext))
     return `<video class="chat-msg-video" src="${url}" controls></video>`;
   return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
@@ -618,11 +643,11 @@ function renderModalBody(c) {
             <div class="mv2-desc">${c.descricao}</div>
           </div>
 
-          ${c.anexo_nome_original ? `
-            <a href="/api/chamados/${c.id}/anexo" class="mv2-anexo-btn" download>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              ${c.anexo_nome_original}
-            </a>` : ''}
+          ${c.anexo_nome_original ? (
+            _isImgAnexo(c.anexo_nome_original)
+            ? `<div class="anexo-preview-wrap"><img class="lbx-img anexo-preview-img" src="/api/chamados/${c.id}/anexo" alt="${c.anexo_nome_original}"><a href="/api/chamados/${c.id}/anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
+            : `<a href="/api/chamados/${c.id}/anexo" class="mv2-anexo-btn" download><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${c.anexo_nome_original}</a>`
+          ) : ''}
 
           <!-- Anexo do admin -->
           <div class="mv2-admin-anexo-section">
@@ -632,12 +657,12 @@ function renderModalBody(c) {
             </div>
             <div id="admin-anexo-atual" style="margin-bottom:.4rem">
               ${c.admin_anexo_nome_original ? `
-                <div style="display:flex;align-items:center;gap:.4rem">
-                  <a href="/api/admin/chamados/${c.id}/admin-anexo" class="mv2-anexo-btn" download style="flex:1;margin:0">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    ${c.admin_anexo_nome_original}
-                  </a>
-                  <button class="btn btn-danger btn-sm" id="btn-remover-admin-anexo" style="padding:.25rem .55rem;font-size:.75rem" title="Remover anexo">✕</button>
+                <div style="display:flex;align-items:flex-start;gap:.4rem;flex-wrap:wrap">
+                  ${_isImgAnexo(c.admin_anexo_nome_original)
+                    ? `<div class="anexo-preview-wrap" style="flex:1"><img class="lbx-img anexo-preview-img" src="/api/admin/chamados/${c.id}/admin-anexo" alt="${c.admin_anexo_nome_original}"><a href="/api/admin/chamados/${c.id}/admin-anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
+                    : `<a href="/api/admin/chamados/${c.id}/admin-anexo" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${c.admin_anexo_nome_original}</a>`
+                  }
+                  <button class="btn btn-danger btn-sm" id="btn-remover-admin-anexo" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo">✕</button>
                 </div>` : `<p style="font-size:.78rem;color:var(--text-muted);margin:0 0 .3rem">Nenhum arquivo anexado.</p>`}
             </div>
             <div style="display:flex;align-items:center;gap:.4rem">

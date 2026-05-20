@@ -744,10 +744,11 @@ async function renderDetalhe(c) {
       <div class="mob-admin-anexo-section">
         <div class="mob-assin-titulo">Anexo do suporte <span class="mob-assin-opcional">(opcional)</span></div>
         ${c.admin_anexo_nome_original ? `
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
-          <a href="/api/admin/chamados/${c.id}/admin-anexo" class="mob-btn mob-btn-ghost mob-btn-sm" download style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-            ⬇ ${c.admin_anexo_nome_original}
-          </a>
+        <div style="display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
+          ${_isImgAnexo(c.admin_anexo_nome_original)
+            ? `<div class="anexo-preview-wrap" style="flex:1"><img class="lbx-img anexo-preview-img" src="/api/admin/chamados/${c.id}/admin-anexo" alt="${c.admin_anexo_nome_original}"><a href="/api/admin/chamados/${c.id}/admin-anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
+            : `<a href="/api/admin/chamados/${c.id}/admin-anexo" class="mob-btn mob-btn-ghost mob-btn-sm" download style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">⬇ ${c.admin_anexo_nome_original}</a>`
+          }
           <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-btn-remover-admin-anexo" style="flex-shrink:0">✕</button>
         </div>` : ''}
         <div style="display:flex;align-items:center;gap:.5rem">
@@ -998,14 +999,40 @@ async function renderDetalhe(c) {
   });
 }
 
+// ── Lightbox ──────────────────────────────────────────────────
+let _lbxEl = null;
+function _abrirLightbox(src, nome) {
+  if (!_lbxEl) {
+    _lbxEl = document.createElement('div');
+    _lbxEl.id = 'lbx';
+    _lbxEl.innerHTML = '<button id="lbx-close" aria-label="Fechar">✕</button><img id="lbx-img" alt=""><div id="lbx-nome"></div>';
+    document.body.appendChild(_lbxEl);
+    _lbxEl.addEventListener('click', e => {
+      if (e.target === _lbxEl || e.target.id === 'lbx-close') _lbxEl.classList.remove('lbx-open');
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && _lbxEl) _lbxEl.classList.remove('lbx-open');
+    });
+  }
+  _lbxEl.querySelector('#lbx-img').src = src;
+  _lbxEl.querySelector('#lbx-nome').textContent = nome || '';
+  _lbxEl.classList.add('lbx-open');
+}
+document.addEventListener('click', e => {
+  const img = e.target.closest('.lbx-img');
+  if (img) _abrirLightbox(img.src, img.alt);
+});
+
+const _IMGS_EXT = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
+function _isImgAnexo(nome) { return _IMGS_EXT.includes((nome || '').split('.').pop().toLowerCase()); }
+
 // ── Chat mobile ───────────────────────────────────────────────
 function _mobChatAnexoHtml(url, nome) {
   if (!nome) return '';
   const ext = nome.split('.').pop().toLowerCase();
-  const imgs = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
   const vids = ['mp4','webm','mov','avi','mkv','wmv'];
-  if (imgs.includes(ext))
-    return `<a href="${url}" target="_blank" rel="noopener"><img class="chat-msg-img" src="${url}" alt="${nome}"></a>`;
+  if (_IMGS_EXT.includes(ext))
+    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}">`;
   if (vids.includes(ext))
     return `<video class="chat-msg-video" src="${url}" controls></video>`;
   return `<a class="mob-chat-anexo" href="${url}" target="_blank" rel="noopener"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;

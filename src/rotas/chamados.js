@@ -131,7 +131,10 @@ router.get('/:id/anexo', (req, res) => {
     if (!chamado || !chamado.anexo_path) return res.status(404).json({ erro: 'Anexo não encontrado' });
     const filePath = path.join(UPLOADS_DIR, chamado.anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado no servidor' });
-    res.download(filePath, chamado.anexo_nome_original || chamado.anexo_path);
+    const nomeAnexo = chamado.anexo_nome_original || chamado.anexo_path;
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(nomeAnexo);
+    res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(nomeAnexo)}"`);
+    return res.sendFile(filePath);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

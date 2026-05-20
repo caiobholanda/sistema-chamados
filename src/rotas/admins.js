@@ -863,7 +863,9 @@ router.get('/chamados/:id/admin-anexo', requireAdmin, (req, res) => {
     const { UPLOADS_DIR } = require('../upload');
     const filePath = path.join(UPLOADS_DIR, chamado.admin_anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(chamado.admin_anexo_nome_original)}"`);
+    const nomeAnexo = chamado.admin_anexo_nome_original || chamado.admin_anexo_path;
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(nomeAnexo);
+    res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(nomeAnexo)}"`);
     return res.sendFile(filePath);
   } catch (err) {
     console.error(err);
