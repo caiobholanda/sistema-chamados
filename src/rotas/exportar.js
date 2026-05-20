@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const { spawn } = require('child_process');
 const { getDb } = require('../db');
 
 const EXPORT_KEY = process.env.EXPORT_KEY || 'gM3f9xK7vQ2pL8nR4wE6';
+const RAILWAY_URL = 'https://web-production-83b4ae.up.railway.app';
 
 function checkKey(req, res, next) {
   if (req.query.key !== EXPORT_KEY) return res.status(403).json({ erro: 'Chave inválida' });
@@ -40,41 +42,86 @@ router.get('/uploads', checkKey, (req, res) => {
   tar.on('error', err => { console.error('[export-uploads] erro:', err); res.destroy(); });
 });
 
-// Importa banco SQLite (roda no Fly.io)
-router.post('/import-db', checkKey, express.raw({ type: '*/*', limit: '500mb' }), (req, res) => {
+// Importa banco SQLite — streaming para disco, sem bufferar na RAM
+router.post('/import-db', checkKey, (req, res) => {
   const dataPath = path.join(__dirname, '../../data');
   const dbPath = path.join(dataPath, 'chamados.db');
-  const bakPath = path.join(dataPath, 'chamados.db.bak');
-  try {
-    if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath, { recursive: true });
-    if (fs.existsSync(dbPath)) fs.copyFileSync(dbPath, bakPath);
-    fs.writeFileSync(dbPath, req.body);
-    console.log(`[import-db] ${req.body.length} bytes gravados — reiniciando em 2s`);
-    res.json({ ok: true, bytes: req.body.length });
-    setTimeout(() => process.exit(0), 2000);
-  } catch (err) {
-    console.error('[import-db] erro:', err);
+  const tmpPath = dbPath + '.tmp';
+  const bakPath = dbPath + '.bak';
+  if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath, { recursive: true });
+  const writeStream = fs.createWriteStream(tmpPath);
+  req.pipe(writeStream);
+  writeStream.on('finish', () => {
+    try {
+      if (fs.existsSync(dbPath)) fs.copyFileSync(dbPath, bakPath);
+      fs.renameSync(tmpPath, dbPath);
+      const size = fs.statSync(dbPath).size;
+      console.log(`[import-db] ${size} bytes gravados — reiniciando em 2s`);
+      res.json({ ok: true, bytes: size });
+      setTimeout(() => process.exit(0), 2000);
+    } catch (err) {
+      console.error('[import-db] erro:', err);
+      res.status(500).json({ erro: err.message });
+    }
+  });
+  writeStream.on('error', err => {
+    console.error('[import-db] write error:', err);
     res.status(500).json({ erro: err.message });
-  }
+  });
 });
 
-// Importa uploads tar.gz (roda no Fly.io)
-router.post('/import-uploads', checkKey, express.raw({ type: '*/*', limit: '2gb' }), (req, res) => {
+// Importa uploads — streaming para disco, sem bufferar na RAM
+router.post('/import-uploads', checkKey, (req, res) => {
   const dataPath = path.join(__dirname, '../../data');
   const tarPath = path.join(dataPath, '_import.tar.gz');
-  try {
-    fs.writeFileSync(tarPath, req.body);
-    res.json({ ok: true, bytes: req.body.length });
+  const writeStream = fs.createWriteStream(tarPath);
+  req.pipe(writeStream);
+  writeStream.on('finish', () => {
+    res.json({ ok: true });
     const tar = spawn('tar', ['-xzf', tarPath, '-C', dataPath]);
     tar.on('close', code => {
-      fs.unlinkSync(tarPath);
+      try { fs.unlinkSync(tarPath); } catch {}
       console.log(`[import-uploads] extração concluída code=${code}`);
     });
     tar.stderr.on('data', d => console.error('[import-uploads]', d.toString()));
-  } catch (err) {
-    console.error('[import-uploads] erro:', err);
-    res.status(500).json({ erro: err.message });
-  }
+  });
+  writeStream.on('error', err => {
+    console.error('[import-uploads] write error:', err);
+    if (!res.headersSent) res.status(500).json({ erro: err.message });
+  });
+});
+
+// Fly.io baixa uploads DIRETAMENTE do Railway (servidor a servidor)
+router.post('/puxar-uploads', checkKey, (req, res) => {
+  const dataPath = path.join(__dirname, '../../data');
+  const tarPath = path.join(dataPath, '_import.tar.gz');
+  const srcUrl = `${RAILWAY_URL}/api/export/uploads?key=${EXPORT_KEY}`;
+  console.log('[puxar-uploads] Baixando do Railway...');
+  res.json({ ok: true, msg: 'Download iniciado em background' });
+  const file = fs.createWriteStream(tarPath);
+  https.get(srcUrl, dlRes => {
+    dlRes.pipe(file);
+    let received = 0;
+    dlRes.on('data', chunk => {
+      received += chunk.length;
+      if (received % (10 * 1024 * 1024) < chunk.length) {
+        console.log(`[puxar-uploads] ${Math.round(received / 1048576)} MB`);
+      }
+    });
+    file.on('finish', () => {
+      file.close();
+      console.log(`[puxar-uploads] Download concluído: ${Math.round(received / 1048576)} MB — extraindo...`);
+      const tar = spawn('tar', ['-xzf', tarPath, '-C', dataPath]);
+      tar.on('close', code => {
+        try { fs.unlinkSync(tarPath); } catch {}
+        console.log(`[puxar-uploads] Extração concluída code=${code}`);
+      });
+      tar.stderr.on('data', d => console.error('[puxar-uploads]', d.toString()));
+    });
+  }).on('error', err => {
+    console.error('[puxar-uploads] erro:', err.message);
+    try { fs.unlinkSync(tarPath); } catch {}
+  });
 });
 
 module.exports = router;
