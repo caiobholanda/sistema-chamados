@@ -1319,6 +1319,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border-radius: var(--radius);
   padding: 1.1rem 1.25rem;
   margin-bottom: .5rem;
+  overflow-x: hidden;
   content-visibility: auto; contain-intrinsic-size: 0 200px;
   border-left: 3px solid var(--gold);
   box-shadow: var(--shadow-sm);
@@ -1339,7 +1340,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   font-weight: 600; font-size: 1rem;
   color: var(--text); margin-bottom: .2rem;
 }
-.chamado-card-desc { font-size: .82rem; color: var(--text-secondary); line-height: 1.55; }
+.chamado-card-desc { font-size: .82rem; color: var(--text-secondary); line-height: 1.55; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; max-width: 100%; }
 
 .solucao-box {
   margin-top: .65rem;
