@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy:
     name: Deploy
@@ -18,4 +21,4 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           npm install -g @railway/cli
-          railway up --service 2acb4524-0b02-4dc9-918c-d6f0b5ebbae2 --detach
+          railway up --service 2acb4524-0b02-4dc9-918c-d6f0b5ebbae2 --detach 2>&1 || (echo "Railway CLI exit code: $?"; exit 1)
