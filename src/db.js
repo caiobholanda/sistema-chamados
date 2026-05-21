@@ -1406,6 +1406,7 @@ function listarChamadosPorUsuario(usuario_id) {
            c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
            c.comentario_avaliacao, c.criado_em, c.atualizado_em,
            c.concluido_em, c.categoria, c.assinado_em, c.requer_acordo, c.acordo_equipamentos,
+           c.cancelamento_motivo, c.cancelado_em,
            a.nome_completo as admin_nome
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id

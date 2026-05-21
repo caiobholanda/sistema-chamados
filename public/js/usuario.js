@@ -421,7 +421,7 @@ function renderPainel(usuario) {
           <span><strong style="color:var(--text-secondary)">Ramal:</strong> ${usuario.ramal || '—'}</span>
         </div>
       </div>
-      <button class="btn btn-primary btn-sm" id="btn-novo-chamado">+ Abrir chamado</button>
+      <button class="btn btn-primary" id="btn-novo-chamado" style="font-size:.95rem;padding:.55rem 1.3rem;font-weight:700;box-shadow:0 2px 8px rgba(180,140,60,.25)">+ Abrir chamado</button>
     </div>
 
     <div class="stats-strip" id="stats-strip-u">
@@ -465,6 +465,7 @@ function renderPainel(usuario) {
     <div class="tabs-bar">
       <button class="tab-btn ativo" id="tab-abertos">Em Aberto <span class="tab-badge" id="badge-abertos-u"></span></button>
       <button class="tab-btn" id="tab-encerrados">Concluídos <span class="tab-badge" id="badge-encerrados-u"></span></button>
+      <button class="tab-btn" id="tab-cancelados-u">Cancelados <span class="tab-badge" id="badge-cancelados-u"></span></button>
     </div>
 
     <div id="lista-usuario"><div class="loading"><div class="spinner"></div></div></div>
@@ -499,6 +500,7 @@ function renderPainel(usuario) {
     abaAtiva = 'abertos';
     document.getElementById('tab-abertos').classList.add('ativo');
     document.getElementById('tab-encerrados').classList.remove('ativo');
+    document.getElementById('tab-cancelados-u').classList.remove('ativo');
     renderListaChamados(todosChamados, abaAtiva);
   });
 
@@ -506,6 +508,15 @@ function renderPainel(usuario) {
     abaAtiva = 'encerrados';
     document.getElementById('tab-encerrados').classList.add('ativo');
     document.getElementById('tab-abertos').classList.remove('ativo');
+    document.getElementById('tab-cancelados-u').classList.remove('ativo');
+    renderListaChamados(todosChamados, abaAtiva);
+  });
+
+  document.getElementById('tab-cancelados-u').addEventListener('click', () => {
+    abaAtiva = 'cancelados';
+    document.getElementById('tab-cancelados-u').classList.add('ativo');
+    document.getElementById('tab-abertos').classList.remove('ativo');
+    document.getElementById('tab-encerrados').classList.remove('ativo');
     renderListaChamados(todosChamados, abaAtiva);
   });
 
@@ -558,7 +569,7 @@ function renderPainel(usuario) {
 
     todosChamados = novos;
 
-    const qtd = { aberto: 0, em_andamento: 0, aguardando_compra: 0, aguardando_chegar: 0, concluido: 0, encerrado: 0 };
+    const qtd = { aberto: 0, em_andamento: 0, aguardando_compra: 0, aguardando_chegar: 0, concluido: 0, encerrado: 0, cancelado: 0 };
     todosChamados.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
 
     const el = id => document.getElementById(id);
@@ -570,6 +581,7 @@ function renderPainel(usuario) {
     const encerrados = qtd.concluido + qtd.encerrado;
     el('badge-abertos-u').textContent = abertos || '';
     el('badge-encerrados-u').textContent = encerrados || '';
+    if (el('badge-cancelados-u')) el('badge-cancelados-u').textContent = qtd.cancelado || '';
 
     renderListaChamados(todosChamados, abaAtiva);
   }
@@ -580,7 +592,7 @@ function renderPainel(usuario) {
 
   function _estaAtrasado(c) {
     if (!c.prazo) return false;
-    if (['concluido', 'encerrado'].includes(c.status)) return false;
+    if (['concluido', 'encerrado', 'cancelado'].includes(c.status)) return false;
     const iso = c.prazo.includes('T') ? c.prazo : c.prazo.replace(' ', 'T');
     return new Date(iso.endsWith('Z') ? iso : iso + 'Z') < new Date();
   }
@@ -597,6 +609,35 @@ function renderPainel(usuario) {
   function renderListaChamados(todos, aba) {
     _limparChats();
     const lista = document.getElementById('lista-usuario');
+
+    if (aba === 'cancelados') {
+      const cancelados = todos.filter(c => c.status === 'cancelado')
+        .sort((a, b) => new Date(b.cancelado_em || b.atualizado_em || b.criado_em) - new Date(a.cancelado_em || a.atualizado_em || a.criado_em));
+      if (!cancelados.length) {
+        lista.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><p>Nenhum chamado cancelado.</p></div>`;
+        return;
+      }
+      lista.innerHTML = cancelados.map(c => `
+        <div class="chamado-card" style="border-left:3px solid #fca5a5;opacity:.92">
+          <div class="chamado-card-header">
+            <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
+            <span class="badge badge-cancelado">Cancelado</span>
+            ${c.categoria ? `<span class="badge badge-categoria" style="font-size:.7rem">${c.categoria.replace(/_/g,' ')}</span>` : ''}
+            <span class="chamado-data-rel" style="margin-left:auto">${fmtData(c.cancelado_em || c.atualizado_em)}</span>
+          </div>
+          <div class="chamado-desc" style="margin:.5rem 0">${c.descricao}</div>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:.7rem 1rem;margin-top:.5rem">
+            <div style="font-size:.75rem;font-weight:600;color:#b91c1c;margin-bottom:.3rem;display:flex;align-items:center;gap:.35rem">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Motivo do cancelamento
+            </div>
+            <div style="font-size:.85rem;color:#7f1d1d">${c.cancelamento_motivo || '<em style="color:#b91c1c;opacity:.7">Não informado.</em>'}</div>
+          </div>
+        </div>
+      `).join('');
+      return;
+    }
+
     const filtrados = (aba === 'abertos'
       ? todos.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status))
       : todos.filter(c => ['concluido', 'encerrado'].includes(c.status)))
