@@ -7,20 +7,34 @@
   }
 
   const ACAO_LABEL = {
-    prioridade_definida:  'Prioridade definida',
-    status_alterado:      'Status alterado',
-    prazo_alterado:       'Prazo alterado',
-    solucao_registrada:   'Solução registrada',
-    assumido:             'Chamado assumido',
-    transferido:          'Chamado transferido',
-    categoria_alterada:   'Categoria alterada',
-    avaliacao_registrada: 'Avaliação do solicitante',
-    descricao_alterada:   'Chamado reaberto pelo solicitante',
-    acordo_assinado:      'Acordo de Responsabilidade assinado',
-    acordo_resetado:      'Acordo cancelado ao reabrir',
+    prioridade_definida:    'Prioridade definida',
+    status_alterado:        'Status alterado',
+    prazo_alterado:         'Prazo alterado',
+    solucao_registrada:     'Solução registrada',
+    assumido:               'Chamado assumido',
+    transferido:            'Chamado transferido',
+    categoria_alterada:     'Categoria alterada',
+    avaliacao_registrada:   'Avaliação do solicitante',
+    descricao_alterada:     'Chamado reaberto pelo solicitante',
+    acordo_assinado:        'Acordo de Responsabilidade assinado',
+    acordo_resetado:        'Acordo cancelado ao reabrir',
+    cancelado:              'Chamado cancelado',
+    criado_por_admin:       'Chamado criado pelo administrador',
+    criado_para_usuario:    'Chamado criado pelo administrador para usuário',
+    atribuido:              'Chamado aberto pelo administrador',
+    admin_anexo_adicionado: 'Arquivo adicionado pelo suporte',
+    admin_anexo_removido:   'Arquivo removido pelo suporte',
+    acordo_requerido:       'Acordo de responsabilidade exigido',
+    acordo_desativado:      'Exigência de acordo removida',
   };
 
-  const STATUS_LABEL = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+  const STATUS_LABEL = {
+    aberto:       'Aberto',
+    em_andamento: 'Em andamento',
+    concluido:    'Concluído',
+    encerrado:    'Encerrado',
+    cancelado:    'Cancelado',
+  };
 
   function iconeAcao(acao, valorNovo) {
     if (acao === 'status_alterado') {
@@ -29,6 +43,12 @@
       if (valorNovo === 'em_andamento') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
       if (valorNovo === 'encerrado')    return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
     }
+    if (acao === 'cancelado') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    if (acao === 'criado_por_admin' || acao === 'criado_para_usuario' || acao === 'atribuido') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>';
+    if (acao === 'admin_anexo_adicionado') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
+    if (acao === 'admin_anexo_removido') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+    if (acao === 'acordo_requerido') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg>';
+    if (acao === 'acordo_desativado') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>';
     if (acao === 'solucao_registrada') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
     if (acao === 'assumido' || acao === 'transferido') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
     if (acao === 'prazo_alterado') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
@@ -47,16 +67,22 @@
       if (valorNovo === 'em_andamento') return '#d97706';
       if (valorNovo === 'encerrado')    return '#6b7280';
     }
-    if (acao === 'solucao_registrada')  return '#7c3aed';
-    if (acao === 'prazo_alterado')      return '#dc2626';
-    if (acao === 'avaliacao_registrada') return '#f59e0b';
-    if (acao === 'descricao_alterada')  return '#0ea5e9';
-    if (acao === 'acordo_assinado')     return '#15803d';
-    if (acao === 'acordo_resetado')     return '#f59e0b';
+    if (acao === 'cancelado')              return '#dc2626';
+    if (acao === 'criado_por_admin' || acao === 'criado_para_usuario' || acao === 'atribuido') return '#1d4ed8';
+    if (acao === 'admin_anexo_adicionado') return '#0891b2';
+    if (acao === 'admin_anexo_removido')   return '#6b7280';
+    if (acao === 'acordo_requerido')       return '#15803d';
+    if (acao === 'acordo_desativado')      return '#d97706';
+    if (acao === 'solucao_registrada')     return '#7c3aed';
+    if (acao === 'prazo_alterado')         return '#dc2626';
+    if (acao === 'avaliacao_registrada')   return '#f59e0b';
+    if (acao === 'descricao_alterada')     return '#0ea5e9';
+    if (acao === 'acordo_assinado')        return '#15803d';
+    if (acao === 'acordo_resetado')        return '#f59e0b';
     return '#64748b';
   }
 
-  function descricaoAcao(h) {
+  function descricaoAcao(h, chamado) {
     const label = ACAO_LABEL[h.acao] || h.acao;
     if (h.acao === 'status_alterado') {
       const ant = STATUS_LABEL[h.valor_anterior] || h.valor_anterior || '—';
@@ -152,6 +178,50 @@
     if (h.acao === 'acordo_resetado') {
       return `Acordo de responsabilidade cancelado <span style="font-size:.8em;color:#94a3b8">(chamado reaberto — nova assinatura será necessária)</span>`;
     }
+    if (h.acao === 'cancelado') {
+      return `Chamado cancelado${h.valor_novo ? ': <em style="color:#555">' + h.valor_novo + '</em>' : ''}`;
+    }
+    if (h.acao === 'criado_por_admin') {
+      return `Chamado aberto pelo administrador <strong>${h.valor_novo || '?'}</strong>`;
+    }
+    if (h.acao === 'criado_para_usuario') {
+      return `Chamado aberto por <strong>${h.valor_anterior || '?'}</strong> e direcionado para <strong>${h.valor_novo || '?'}</strong>`;
+    }
+    if (h.acao === 'atribuido') {
+      return `Chamado aberto pelo administrador <strong>${h.valor_novo || '?'}</strong>`;
+    }
+    if (h.acao === 'admin_anexo_adicionado') {
+      let parsed = null;
+      try { parsed = JSON.parse(h.valor_novo || ''); } catch { parsed = null; }
+      if (parsed && parsed.nome && parsed.path) {
+        const chamadoId = chamado ? chamado.id : '?';
+        const url = `/api/admin/chamados/${chamadoId}/historico-anexo/${encodeURIComponent(parsed.path)}`;
+        const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(parsed.nome);
+        const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)$/i.test(parsed.nome);
+        const substituicao = h.valor_anterior
+          ? `Arquivo substituído: <strong>${h.valor_anterior}</strong> → <strong>${parsed.nome}</strong>`
+          : `Arquivo adicionado: <strong>${parsed.nome}</strong>`;
+        let preview = '';
+        if (isImg) {
+          preview = `<div style="margin-top:.4rem"><a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${parsed.nome}" style="max-width:180px;max-height:120px;border-radius:4px;border:1px solid #e2e8f0;cursor:pointer" /></a></div>`;
+        } else if (isVideo) {
+          preview = `<div style="margin-top:.4rem"><video src="${url}" controls style="max-width:260px;border-radius:4px;border:1px solid #e2e8f0"></video></div>`;
+        } else {
+          preview = `<div style="margin-top:.3rem"><a href="${url}" target="_blank" rel="noopener" style="font-size:.78rem;color:#0891b2;text-decoration:underline">Baixar arquivo</a></div>`;
+        }
+        return substituicao + preview;
+      }
+      return `Arquivo adicionado${h.valor_novo ? ': <strong>' + h.valor_novo + '</strong>' : ''}`;
+    }
+    if (h.acao === 'admin_anexo_removido') {
+      return `Arquivo removido: <strong>${h.valor_anterior || '?'}</strong>`;
+    }
+    if (h.acao === 'acordo_requerido') {
+      return `Acordo de responsabilidade exigido${h.valor_novo ? ' — equipamentos: <em>' + h.valor_novo + '</em>' : ''}`;
+    }
+    if (h.acao === 'acordo_desativado') {
+      return `Exigência de acordo de responsabilidade removida`;
+    }
     const partes = [];
     if (h.valor_anterior !== null && h.valor_anterior !== undefined) partes.push(`de "${h.valor_anterior}"`);
     if (h.valor_novo     !== null && h.valor_novo     !== undefined) partes.push(`para "${h.valor_novo}"`);
@@ -223,7 +293,7 @@
           <div class="ht-item">
             <div class="ht-dot" style="background:${cor}">${iconeAcao(ev.acao, ev.valor_novo)}</div>
             <div class="ht-content">
-              <div class="ht-titulo">${descricaoAcao(ev)}</div>
+              <div class="ht-titulo">${descricaoAcao(ev, c)}</div>
               <div class="ht-meta">${ev.admin_nome || 'Sistema'} · ${fmtD(ev.timestamp)}</div>
             </div>
           </div>`;

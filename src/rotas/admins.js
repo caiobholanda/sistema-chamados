@@ -93,6 +93,10 @@ router.patch('/chamados/:id/requer-acordo', requireAdmin, (req, res) => {
     const ativo = req.body.ativo ? 1 : 0;
     const equipamentos = typeof req.body.equipamentos === 'string' ? req.body.equipamentos : null;
     db.marcarRequerAcordo(chamado.id, ativo, equipamentos);
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, ?, NULL, ?)
+    `).run(chamado.id, req.admin.sub, ativo ? 'acordo_requerido' : 'acordo_desativado', equipamentos || null);
     return res.json({ requer_acordo: ativo });
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });
@@ -164,10 +168,17 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
       admin_responsavel_id: req.admin.sub,
     });
 
-    db.getDb().prepare(`
-      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
-      VALUES (?, ?, 'atribuido', NULL, ?)
-    `).run(id, req.admin.sub, adminCriador.nome_completo);
+    if (usuarioId) {
+      db.getDb().prepare(`
+        INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+        VALUES (?, ?, 'criado_para_usuario', ?, ?)
+      `).run(id, req.admin.sub, adminCriador.nome_completo, nome);
+    } else {
+      db.getDb().prepare(`
+        INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+        VALUES (?, ?, 'criado_por_admin', NULL, ?)
+      `).run(id, req.admin.sub, adminCriador.nome_completo);
+    }
 
     if (req.file) {
       const novoNome = renomearAnexoComId(id, req.file.path, req.file.originalname);
@@ -862,10 +873,7 @@ router.post('/chamados/:id/admin-anexo', requireAdmin, uploadMiddleware('admin_a
 
     const { UPLOADS_DIR } = require('../upload');
 
-    if (chamado.admin_anexo_path) {
-      const oldPath = path.join(UPLOADS_DIR, chamado.admin_anexo_path);
-      try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); } catch {}
-    }
+    const oldAnexoNome = chamado.admin_anexo_nome_original || null;
 
     const ext = path.extname(req.file.originalname).toLowerCase();
     const base = path.basename(req.file.originalname, ext)
@@ -876,6 +884,11 @@ router.post('/chamados/:id/admin-anexo', requireAdmin, uploadMiddleware('admin_a
 
     db.getDb().prepare('UPDATE chamados SET admin_anexo_path = ?, admin_anexo_nome_original = ? WHERE id = ?')
       .run(novoNome, req.file.originalname, chamado.id);
+
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'admin_anexo_adicionado', ?, ?)
+    `).run(chamado.id, req.admin.sub, oldAnexoNome, JSON.stringify({ nome: req.file.originalname, path: novoNome }));
 
     return res.json({ mensagem: 'Arquivo enviado', nome: req.file.originalname });
   } catch (err) {
@@ -902,14 +915,39 @@ router.get('/chamados/:id/admin-anexo', requireAdmin, (req, res) => {
   }
 });
 
+router.get('/chamados/:id/historico-anexo/:filename', requireAdmin, (req, res) => {
+  try {
+    const { UPLOADS_DIR } = require('../upload');
+    const filename = req.params.filename;
+    // Validação de segurança: só arquivos que pertencem a este chamado
+    if (!filename || !/^admin_\d+__[a-zA-Z0-9._-]+$/.test(filename)) {
+      return res.status(400).json({ erro: 'Nome de arquivo inválido' });
+    }
+    const filePath = path.join(UPLOADS_DIR, filename);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    const nomeOriginal = filename.replace(/^admin_\d+__/, '');
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(nomeOriginal);
+    res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(nomeOriginal)}"`);
+    return res.sendFile(filePath);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.delete('/chamados/:id/admin-anexo', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado || !chamado.admin_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
     const { UPLOADS_DIR } = require('../upload');
     const filePath = path.join(UPLOADS_DIR, chamado.admin_anexo_path);
+    const nomeAnexoRemovido = chamado.admin_anexo_nome_original || chamado.admin_anexo_path;
     try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
     db.getDb().prepare('UPDATE chamados SET admin_anexo_path = NULL, admin_anexo_nome_original = NULL WHERE id = ?').run(chamado.id);
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'admin_anexo_removido', ?, NULL)
+    `).run(chamado.id, req.admin.sub, nomeAnexoRemovido);
     return res.json({ mensagem: 'Anexo removido' });
   } catch (err) {
     console.error(err);

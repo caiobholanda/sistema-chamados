@@ -1011,11 +1011,16 @@ function deletarChamado(id) {
 }
 
 function cancelarChamado(id, adminId, motivo) {
-  getDb().prepare(`
+  const db = getDb();
+  db.prepare(`
     UPDATE chamados SET status = 'cancelado', cancelamento_motivo = ?,
       cancelado_em = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(motivo || null, id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'cancelado', NULL, ?)
+  `).run(id, adminId || null, motivo || null);
 }
 
 function marcarMensagensLidas(adminId, chamadoId) {
