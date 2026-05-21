@@ -388,46 +388,72 @@ document.getElementById('btn-cancelar-confirmar').addEventListener('click', asyn
 // ── Modal "Abrir chamado" ──────────────────────────────────────────────────
 let _usuariosPortalNc = null;
 
-function _renderUsuariosNcSelect(filtro) {
-  const sel = document.getElementById('nc-usuario');
-  if (!sel || !_usuariosPortalNc) return;
-  const f = (filtro || '').toLowerCase();
-  const lista = f
-    ? _usuariosPortalNc.filter(u =>
-        u.nome.toLowerCase().includes(f) ||
-        (u.email && u.email.toLowerCase().includes(f)) ||
-        (u.setor && u.setor.toLowerCase().includes(f)))
-    : _usuariosPortalNc;
-  sel.innerHTML = '<option value="">— Abrir em nome do TI —</option>' +
-    lista.map(u => `<option value="${u.id}">${u.nome}${u.setor ? ' · ' + u.setor : ''}</option>`).join('');
-}
-
 async function _carregarUsuariosNc() {
   const wrap = document.getElementById('nc-usuario-wrap');
   if (!wrap) return;
   if (!adminInfo || !adminInfo.is_master) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
-  document.getElementById('nc-usuario-busca').value = '';
+  const busca = document.getElementById('nc-usuario-busca');
+  const resultados = document.getElementById('nc-usuario-resultados');
+  const selecionado = document.getElementById('nc-usuario-selecionado');
+  busca.value = '';
+  resultados.style.display = 'none';
+  resultados.innerHTML = '';
+  selecionado.style.display = 'none';
+  selecionado.dataset.usuarioId = '';
+
   if (!_usuariosPortalNc) {
     try {
       const r = await api('/api/admin/portal-usuarios');
       if (r.ok) _usuariosPortalNc = (await r.json()).filter(u => u.ativo);
     } catch {}
   }
-  _renderUsuariosNcSelect('');
-}
 
-document.getElementById('nc-usuario-busca').addEventListener('input', e => {
-  _renderUsuariosNcSelect(e.target.value);
-});
+  busca.addEventListener('input', function _ncBuscaInput(e) {
+    const f = e.target.value.toLowerCase();
+    selecionado.style.display = 'none';
+    selecionado.dataset.usuarioId = '';
+    if (!f) { resultados.style.display = 'none'; resultados.innerHTML = ''; return; }
+    const filtrados = (_usuariosPortalNc || []).filter(u =>
+      u.nome.toLowerCase().includes(f) ||
+      (u.email && u.email.toLowerCase().includes(f)) ||
+      (u.setor && u.setor.toLowerCase().includes(f)));
+    if (!filtrados.length) {
+      resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
+    } else {
+      resultados.innerHTML = filtrados.map(u => `
+        <div class="nc-usuario-item" data-id="${u.id}" data-nome="${u.nome.replace(/"/g,'&quot;')}"
+          style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">
+          ${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}
+        </div>`).join('');
+      resultados.querySelectorAll('.nc-usuario-item').forEach(el => {
+        el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover,#f3f4f6)');
+        el.addEventListener('mouseleave', () => el.style.background = '');
+        el.addEventListener('click', () => {
+          selecionado.textContent = '✓ ' + el.dataset.nome;
+          selecionado.dataset.usuarioId = el.dataset.id;
+          selecionado.style.display = 'block';
+          busca.value = el.dataset.nome;
+          resultados.style.display = 'none';
+        });
+      });
+    }
+    resultados.style.display = 'block';
+  }, { once: false });
+
+  document.addEventListener('click', function fecharNcResultados(e) {
+    if (!busca.contains(e.target) && !resultados.contains(e.target)) {
+      resultados.style.display = 'none';
+      document.removeEventListener('click', fecharNcResultados);
+    }
+  });
+}
 
 function abrirModalNovoChamado() {
   document.getElementById('nc-categoria').value = '';
   document.getElementById('nc-descricao').value = '';
   document.getElementById('nc-anexo').value = '';
   document.getElementById('msg-novo-chamado').innerHTML = '';
-  const sel = document.getElementById('nc-usuario');
-  if (sel) sel.value = '';
   document.getElementById('modal-novo-chamado-overlay').classList.add('open');
   document.getElementById('nc-descricao').focus();
   _carregarUsuariosNc();
@@ -437,8 +463,10 @@ function fecharModalNovoChamado() {
   document.getElementById('modal-novo-chamado-overlay').classList.remove('open');
   const busca = document.getElementById('nc-usuario-busca');
   if (busca) busca.value = '';
-  const sel = document.getElementById('nc-usuario');
-  if (sel) sel.value = '';
+  const resultados = document.getElementById('nc-usuario-resultados');
+  if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
+  const selecionado = document.getElementById('nc-usuario-selecionado');
+  if (selecionado) { selecionado.style.display = 'none'; selecionado.dataset.usuarioId = ''; }
 }
 
 document.getElementById('btn-novo-chamado').addEventListener('click', abrirModalNovoChamado);
@@ -459,7 +487,7 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     fd.append('descricao', descricao);
     const categoria = document.getElementById('nc-categoria').value;
     if (categoria) fd.append('categoria', categoria);
-    const usuarioId = document.getElementById('nc-usuario')?.value;
+    const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
     if (usuarioId) fd.append('usuario_id', usuarioId);
     const anexo = document.getElementById('nc-anexo').files[0];
     if (anexo) fd.append('anexo', anexo);
