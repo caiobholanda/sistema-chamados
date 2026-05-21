@@ -570,7 +570,7 @@ async function carregarChamados(silencioso = false) {
     // Silencioso: só re-renderiza se os dados mudaram
     if (silencioso) {
       const novoHash = JSON.stringify(chamados.map(c =>
-        [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em]
+        [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em, c.mensagens_nao_lidas]
       )) + '|' + filtroBusca;
       if (novoHash === _chamadosHash) return;
       _chamadosHash = novoHash;
