@@ -109,7 +109,7 @@ router.get('/chamados', requireAdmin, (req, res) => {
       periodo_fim: req.query.periodo_fim,
       prioridade: req.query.prioridade,
     };
-    const chamados = db.listarChamadosAdmin(filtros);
+    const chamados = db.listarChamadosAdmin(filtros, req.admin.sub);
     return res.json(chamados);
   } catch (err) {
     console.error(err);
@@ -269,6 +269,7 @@ router.get('/chamados/:id/mensagens', requireAdmin, (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    db.marcarMensagensLidas(req.admin.sub, chamado.id);
     return res.json(db.listarMensagensChamado(chamado.id));
   } catch (err) {
     console.error(err);

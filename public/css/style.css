@@ -755,6 +755,7 @@ tbody tr:hover td { background: #FAF7F2; }
 .chamado-item.prioridade-media   { border-left-color: var(--cor-media); }
 .chamado-item.prioridade-baixa   { border-left-color: var(--cor-baixa); }
 .chamado-item-header { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .5rem; }
+.msg-badge-nao-lidas { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; background: #ef4444; color: #fff; font-size: .7rem; font-weight: 700; border-radius: 999px; margin-left: auto; flex-shrink: 0; line-height: 1; }
 .chamado-id {
   font-size: .68rem;
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;

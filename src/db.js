@@ -143,6 +143,14 @@ function initDb() {
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_nome_original TEXT"); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS mensagens_leitura (
+      admin_id INTEGER NOT NULL,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      lido_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (admin_id, chamado_id)
+    )
+  `); } catch {}
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS reset_tokens (
@@ -1010,6 +1018,14 @@ function cancelarChamado(id, adminId, motivo) {
   `).run(motivo || null, id);
 }
 
+function marcarMensagensLidas(adminId, chamadoId) {
+  getDb().prepare(`
+    INSERT INTO mensagens_leitura (admin_id, chamado_id, lido_em)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(admin_id, chamado_id) DO UPDATE SET lido_em = CURRENT_TIMESTAMP
+  `).run(adminId, chamadoId);
+}
+
 function listarMensagensChamado(chamadoId) {
   return getDb().prepare(
     'SELECT * FROM mensagens_chamado WHERE chamado_id = ? ORDER BY criado_em ASC'
@@ -1058,8 +1074,12 @@ function buscarHistoricoCompleto(chamadoId) {
   `).all(chamadoId);
 }
 
-function listarChamadosAdmin(filtros = {}) {
+function listarChamadosAdmin(filtros = {}, adminId = null) {
   const db = getDb();
+  const adminIdInt = (adminId && parseInt(adminId, 10) > 0) ? parseInt(adminId, 10) : null;
+  const naoLidasCol = adminIdInt
+    ? `(SELECT COUNT(*) FROM mensagens_chamado mc WHERE mc.chamado_id = c.id AND mc.autor_tipo = 'usuario' AND mc.criado_em > COALESCE((SELECT lido_em FROM mensagens_leitura WHERE admin_id = ${adminIdInt} AND chamado_id = c.id), '1970-01-01')) as mensagens_nao_lidas,`
+    : `0 as mensagens_nao_lidas,`;
   let sql = `
     SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
            c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
@@ -1067,6 +1087,7 @@ function listarChamadosAdmin(filtros = {}) {
            c.comentario_avaliacao, c.criado_em, c.atualizado_em,
            c.concluido_em, c.categoria, c.assinado_em,
            c.aberto_por_admin_id, c.cancelamento_motivo, c.cancelado_em,
+           ${naoLidasCol}
            a.nome_completo as admin_nome,
            u.setor as usuario_setor, u.ramal as usuario_ramal,
            ab.nome_completo as aberto_por_admin_nome,
@@ -1807,6 +1828,7 @@ module.exports = {
   relatorioMes,
   rankingAdminsMes,
   exportarCsvMes,
+  marcarMensagensLidas,
   listarMensagensChamado,
   criarMensagem,
   inserirMencoesEquipamentos,

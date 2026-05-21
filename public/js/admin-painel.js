@@ -650,6 +650,7 @@ function renderChamadoItem(c) {
         ${badgePrio(c.prioridade)}
         ${badgeCategoria(c.categoria)}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
+        ${c.mensagens_nao_lidas > 0 ? `<span class="msg-badge-nao-lidas">${c.mensagens_nao_lidas}</span>` : ''}
       </div>
       <div class="chamado-nome"><span style="font-weight:400">Usuário: </span>${c.nome}</div>
       <div class="chamado-desc">${c.descricao}</div>
@@ -686,6 +687,7 @@ async function abrirModal(id) {
   if (oldChatBox) oldChatBox.innerHTML = '';
   document.getElementById('modal-overlay').classList.add('open');
   document.getElementById('btn-fechar-modal').focus();
+  document.querySelector(`.chamado-item[data-id="${id}"] .msg-badge-nao-lidas`)?.remove();
 
   try {
     const r = await api(`/api/admin/chamados/${id}`);
