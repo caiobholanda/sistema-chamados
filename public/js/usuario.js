@@ -458,6 +458,17 @@ function renderPainel(usuario) {
           <div class="stat-label">Concluídos</div>
         </div>
       </div>
+      <div class="stat-pill" id="pill-cancelados-u" style="cursor:pointer" title="Ver cancelados">
+        <div class="stat-dot dot-cancelado">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-num" id="cnt-u-cancelado">0</div>
+          <div class="stat-label">Cancelados</div>
+        </div>
+      </div>
     </div>
 
     <div id="area-form-chamado" style="display:none"></div>
@@ -512,13 +523,15 @@ function renderPainel(usuario) {
     renderListaChamados(todosChamados, abaAtiva);
   });
 
-  document.getElementById('tab-cancelados-u').addEventListener('click', () => {
+  const _ativarCancelados = () => {
     abaAtiva = 'cancelados';
     document.getElementById('tab-cancelados-u').classList.add('ativo');
     document.getElementById('tab-abertos').classList.remove('ativo');
     document.getElementById('tab-encerrados').classList.remove('ativo');
     renderListaChamados(todosChamados, abaAtiva);
-  });
+  };
+  document.getElementById('tab-cancelados-u').addEventListener('click', _ativarCancelados);
+  document.getElementById('pill-cancelados-u').addEventListener('click', _ativarCancelados);
 
   async function carregarChamados(silencioso = false) {
     const lista = document.getElementById('lista-usuario');
@@ -582,6 +595,7 @@ function renderPainel(usuario) {
     el('badge-abertos-u').textContent = abertos || '';
     el('badge-encerrados-u').textContent = encerrados || '';
     if (el('badge-cancelados-u')) el('badge-cancelados-u').textContent = qtd.cancelado || '';
+    if (el('cnt-u-cancelado')) el('cnt-u-cancelado').textContent = qtd.cancelado;
 
     renderListaChamados(todosChamados, abaAtiva);
   }
@@ -618,20 +632,19 @@ function renderPainel(usuario) {
         return;
       }
       lista.innerHTML = cancelados.map(c => `
-        <div class="chamado-card" style="border-left:3px solid #fca5a5;opacity:.92">
+        <div class="chamado-card-usuario encerrado" style="border-left:3px solid #fca5a5">
           <div class="chamado-card-header">
-            <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
-            <span class="badge badge-cancelado">Cancelado</span>
-            ${c.categoria ? `<span class="badge badge-categoria" style="font-size:.7rem">${c.categoria.replace(/_/g,' ')}</span>` : ''}
-            <span class="chamado-data-rel" style="margin-left:auto">${fmtData(c.cancelado_em || c.atualizado_em)}</span>
-          </div>
-          <div class="chamado-desc" style="margin:.5rem 0">${c.descricao}</div>
-          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:.7rem 1rem;margin-top:.5rem">
-            <div style="font-size:.75rem;font-weight:600;color:#b91c1c;margin-bottom:.3rem;display:flex;align-items:center;gap:.35rem">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              Motivo do cancelamento
+            <div class="flex gap-1 flex-wrap" style="align-items:center">
+              <span style="font-family:monospace;font-size:.78rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.05);padding:.18rem .45rem;border-radius:4px">#${c.id}</span>
+              ${badgeStatus(c.status)}
             </div>
-            <div style="font-size:.85rem;color:#7f1d1d">${c.cancelamento_motivo || '<em style="color:#b91c1c;opacity:.7">Não informado.</em>'}</div>
+            <span class="text-muted" style="font-size:.76rem">${fmtData(c.criado_em)}</span>
+          </div>
+          <div class="chamado-card-setor">${c.setor}${c.ramal ? ` <span style="color:var(--text-muted);font-size:.8rem;font-weight:400">· Ramal ${c.ramal}</span>` : ''}</div>
+          <div class="chamado-card-desc">${c.descricao}</div>
+          <div class="solucao-box" style="border-left-color:#fca5a5;background:#fef2f2">
+            <strong style="color:#b91c1c">Motivo do cancelamento:</strong>
+            <span style="color:#7f1d1d">${c.cancelamento_motivo || '<em style="opacity:.7">Não informado.</em>'}</span>
           </div>
         </div>
       `).join('');
