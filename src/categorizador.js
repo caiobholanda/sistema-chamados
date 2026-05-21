@@ -150,11 +150,11 @@ const CATEGORIAS = [
   },
   {
     id: 'tv_projetor',
-    nome: 'TV / Projetor',
+    nome: 'TV',
     cor: '#7C3AED',
     palavras: [
       'televisão', 'televisor', 'tv da sala', 'smartboard', 'lousa digital',
-      'tela de projeção', 'apresentação', 'sem sinal hdmi', 'controle remoto',
+      'apresentação', 'sem sinal hdmi', 'controle remoto',
       'chromecast', 'apple tv', 'tv corporativa', 'display da sala',
     ],
   },
