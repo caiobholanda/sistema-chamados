@@ -1428,9 +1428,13 @@ function listarChamadosPorUsuario(usuario_id) {
            c.comentario_avaliacao, c.criado_em, c.atualizado_em,
            c.concluido_em, c.categoria, c.assinado_em, c.requer_acordo, c.acordo_equipamentos,
            c.cancelamento_motivo, c.cancelado_em,
-           a.nome_completo as admin_nome
+           c.aberto_por_admin_id,
+           a.nome_completo as admin_nome,
+           ab.nome_completo as aberto_por_admin_nome,
+           ab.is_master as aberto_por_admin_is_master
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
     WHERE c.usuario_id = ?
     ORDER BY c.criado_em DESC
   `).all(usuario_id);

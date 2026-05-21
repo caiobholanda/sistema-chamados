@@ -1071,6 +1071,10 @@ function renderCardChamado(c) {
         </div>
         <span class="text-muted" style="font-size:.76rem">${fmtData(c.criado_em)}</span>
       </div>
+      ${c.aberto_por_admin_id ? `<div class="badge-criado-por-admin">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        ${c.aberto_por_admin_is_master ? 'Admin Master' : 'Administrador'} <strong>${c.aberto_por_admin_nome}</strong> criou esse chamado por você
+      </div>` : ''}
       <div class="chamado-card-setor">${c.setor} <span style="color:var(--text-muted);font-family:Inter,sans-serif;font-size:.8rem;font-weight:400">· Ramal ${c.ramal}</span></div>
       <div class="chamado-card-desc">${c.descricao}</div>
       ${c.admin_nome ? `<div style="font-size:.75rem;color:var(--gold-dark);font-weight:600;margin-top:.4rem;letter-spacing:.02em">Responsável: <span style="color:var(--text-secondary);font-weight:400">${c.admin_nome}</span></div>` : ''}
