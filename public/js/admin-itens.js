@@ -367,10 +367,12 @@ function renderTabelaMicros(lista) {
           <tr>
             <th>Setor</th>
             <th>Usuário</th>
+            <th>Equipamento</th>
             <th>Hostname</th>
             <th>Processador</th>
             <th>Memória</th>
             <th>S.O.</th>
+            <th>Nobreak/Nº</th>
             <th></th>
           </tr>
         </thead>
@@ -379,10 +381,12 @@ function renderTabelaMicros(lista) {
             <tr>
               <td style="font-weight:500;white-space:nowrap">${esc(item.setor)}</td>
               <td style="color:var(--text-secondary)">${esc(item.usuario) || '—'}</td>
+              <td style="font-size:.78rem;white-space:nowrap">${esc(item.tipo_equipamento) || '—'}</td>
               <td style="font-family:monospace;font-size:.78rem;color:var(--text-secondary)">${esc(item.hostname) || '—'}</td>
               <td style="font-size:.82rem">${esc(item.processador) || '—'}</td>
               <td style="font-size:.82rem">${esc(item.memoria) || '—'}</td>
               <td style="font-size:.78rem;white-space:nowrap">${esc(item.sistema_operacional) || '—'}</td>
+              <td style="font-size:.78rem">${esc(item.nobreak) || '—'}</td>
               <td style="white-space:nowrap">
                 <button class="btn btn-secondary btn-sm" onclick="abrirModalMicros(${item.id})">Editar</button>
                 ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarMicro(${item.id}, '${esc(item.setor).replace(/'/g, "\\'")} - ${esc(item.usuario).replace(/'/g, "\\'")}')">Excluir</button>` : ''}
@@ -1088,6 +1092,22 @@ function renderFormMicros(item, isEdit) {
       </div>
       <div class="form-row-2">
         <div class="form-group">
+          <label class="form-label">Equipamento</label>
+          <select class="form-control" id="fm-tipo-equipamento">
+            <option value="">—</option>
+            <option value="NOTEBOOK" ${item.tipo_equipamento === 'NOTEBOOK' ? 'selected' : ''}>Notebook</option>
+            <option value="DESKTOP" ${item.tipo_equipamento === 'DESKTOP' ? 'selected' : ''}>Desktop</option>
+            <option value="DESKTOP MINI" ${item.tipo_equipamento === 'DESKTOP MINI' ? 'selected' : ''}>Desktop Mini</option>
+            <option value="AIO" ${item.tipo_equipamento === 'AIO' ? 'selected' : ''}>AIO</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nobreak/Nº</label>
+          <input class="form-control" id="fm-nobreak" type="text" value="${esc(item.nobreak || '')}" placeholder="Ex: SMS 700VA / Nº série">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
           <label class="form-label">Processador</label>
           <input class="form-control" id="fm-processador" type="text" value="${esc(item.processador || '')}" placeholder="Ex: I5 12500">
         </div>
@@ -1171,6 +1191,8 @@ function renderFormMicros(item, isEdit) {
     const body = {
       setor,
       usuario,
+      tipo_equipamento: document.getElementById('fm-tipo-equipamento').value,
+      nobreak: document.getElementById('fm-nobreak').value.trim(),
       processador: document.getElementById('fm-processador').value.trim(),
       memoria: document.getElementById('fm-memoria').value.trim(),
       sistema_operacional: document.getElementById('fm-so').value.trim(),

@@ -143,6 +143,8 @@ function initDb() {
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_nome_original TEXT"); } catch {}
+  try { db.exec("ALTER TABLE inventario_micros ADD COLUMN tipo_equipamento TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE inventario_micros ADD COLUMN nobreak TEXT DEFAULT ''"); } catch {}
   try { db.exec(`
     CREATE TABLE IF NOT EXISTS mensagens_leitura (
       admin_id INTEGER NOT NULL,
@@ -347,6 +349,8 @@ function initDb() {
       data_troca TEXT DEFAULT '',
       observacao TEXT DEFAULT '',
       atualizacao_win11 TEXT DEFAULT '',
+      tipo_equipamento TEXT DEFAULT '',
+      nobreak TEXT DEFAULT '',
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
       atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -767,14 +771,17 @@ function criarInventario(dados) {
   const result = getDb().prepare(`
     INSERT INTO inventario_micros
       (setor, usuario, processador, memoria, sistema_operacional, hd_ssd, office, tag,
-       entradas_monitor, modelo_monitor, status, hostname, data_troca, observacao, atualizacao_win11)
+       entradas_monitor, modelo_monitor, status, hostname, data_troca, observacao, atualizacao_win11,
+       tipo_equipamento, nobreak)
     VALUES
       (@setor, @usuario, @processador, @memoria, @sistema_operacional, @hd_ssd, @office, @tag,
-       @entradas_monitor, @modelo_monitor, @status, @hostname, @data_troca, @observacao, @atualizacao_win11)
+       @entradas_monitor, @modelo_monitor, @status, @hostname, @data_troca, @observacao, @atualizacao_win11,
+       @tipo_equipamento, @nobreak)
   `).run({
     setor: '', usuario: '', processador: '', memoria: '', sistema_operacional: '',
     hd_ssd: '', office: '', tag: '', entradas_monitor: '', modelo_monitor: '',
     status: '', hostname: '', data_troca: '', observacao: '', atualizacao_win11: '',
+    tipo_equipamento: '', nobreak: '',
     ...dados,
   });
   return result.lastInsertRowid;
@@ -784,7 +791,8 @@ function atualizarInventario(id, dados) {
   const campos = [];
   const values = [];
   const CAMPOS = ['setor','usuario','processador','memoria','sistema_operacional','hd_ssd','office','tag',
-                  'entradas_monitor','modelo_monitor','status','hostname','data_troca','observacao','atualizacao_win11'];
+                  'entradas_monitor','modelo_monitor','status','hostname','data_troca','observacao','atualizacao_win11',
+                  'tipo_equipamento','nobreak'];
   for (const campo of CAMPOS) {
     if (dados[campo] !== undefined) { campos.push(`${campo} = ?`); values.push(dados[campo]); }
   }

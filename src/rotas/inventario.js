@@ -19,7 +19,7 @@ router.get('/', requireAdmin, (req, res) => {
 // POST /api/admin/inventario
 router.post('/', requireAdmin, (req, res) => {
   try {
-    const campos = ['setor','usuario','processador','memoria','sistema_operacional','hd_ssd','office','tag','entradas_monitor','modelo_monitor','status','hostname','data_troca','observacao','atualizacao_win11'];
+    const campos = ['setor','usuario','processador','memoria','sistema_operacional','hd_ssd','office','tag','entradas_monitor','modelo_monitor','status','hostname','data_troca','observacao','atualizacao_win11','tipo_equipamento','nobreak'];
     const dados = {};
     for (const c of campos) dados[c] = san(req.body[c] || '');
     if (!dados.setor) return res.status(400).json({ erro: 'Setor obrigatório' });
@@ -33,7 +33,7 @@ router.patch('/:id', requireAdmin, (req, res) => {
   try {
     const item = db.buscarInventarioPorId(req.params.id);
     if (!item) return res.status(404).json({ erro: 'Não encontrado' });
-    const campos = ['setor','usuario','processador','memoria','sistema_operacional','hd_ssd','office','tag','entradas_monitor','modelo_monitor','status','hostname','data_troca','observacao','atualizacao_win11'];
+    const campos = ['setor','usuario','processador','memoria','sistema_operacional','hd_ssd','office','tag','entradas_monitor','modelo_monitor','status','hostname','data_troca','observacao','atualizacao_win11','tipo_equipamento','nobreak'];
     const dados = {};
     for (const c of campos) { if (req.body[c] !== undefined) dados[c] = san(req.body[c]); }
     db.atualizarInventario(req.params.id, dados);
