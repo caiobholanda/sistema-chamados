@@ -175,7 +175,7 @@ function filtrarPorStatus(status) {
   document.getElementById('tab-meus').classList.remove('ativo');
   document.getElementById('subtabs-meus').style.display = 'none';
   // Marca visualmente a pill selecionada
-  const pillMap = { 'aberto,em_andamento': 'cnt-aberto', 'em_andamento': 'cnt-andamento', 'concluido,encerrado': 'cnt-concluido' };
+  const pillMap = { 'aberto,em_andamento': 'cnt-aberto', 'em_andamento': 'cnt-andamento', 'concluido,encerrado': 'cnt-concluido', 'cancelado': 'cnt-cancelado' };
   document.querySelectorAll('#stats-strip .stat-pill').forEach(p => p.classList.remove('ativo'));
   const targetId = pillMap[status];
   if (targetId) document.getElementById(targetId)?.closest('.stat-pill')?.classList.add('ativo');
@@ -226,7 +226,6 @@ async function api(url, opts = {}) {
 document.getElementById('tab-meus').addEventListener('click', () => {
   const btn = document.getElementById('tab-meus');
   const jaAtivo = btn.classList.contains('ativo');
-  document.getElementById('tab-cancelados').classList.remove('ativo');
   if (jaAtivo) {
     btn.classList.remove('ativo');
     abaAtiva = 'abertos';
@@ -240,21 +239,6 @@ document.getElementById('tab-meus').addEventListener('click', () => {
   carregarChamados();
 });
 
-document.getElementById('tab-cancelados').addEventListener('click', () => {
-  const btn = document.getElementById('tab-cancelados');
-  const jaAtivo = btn.classList.contains('ativo');
-  document.getElementById('tab-meus').classList.remove('ativo');
-  document.getElementById('subtabs-meus').style.display = 'none';
-  if (jaAtivo) {
-    btn.classList.remove('ativo');
-    abaAtiva = 'abertos';
-  } else {
-    btn.classList.add('ativo');
-    abaAtiva = 'cancelados';
-  }
-  atualizarFiltrosDeAba();
-  carregarChamados();
-});
 
 document.querySelectorAll('.sub-tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -287,7 +271,7 @@ async function carregarEstatisticas() {
 
     if (rCancelados.ok) {
       const cancelados = await rCancelados.json();
-      document.getElementById('badge-cancelados').textContent = cancelados.length || '';
+      document.getElementById('cnt-cancelado').textContent = cancelados.length || '0';
     }
 
     document.getElementById('cnt-aberto').textContent = contagem.aberto;
@@ -330,7 +314,7 @@ document.getElementById('stats-strip').addEventListener('click', e => {
   if (!pill) return;
   const num = pill.querySelector('.stat-num');
   if (!num) return;
-  const map = { 'cnt-aberto': 'aberto,em_andamento', 'cnt-andamento': 'em_andamento', 'cnt-concluido': 'concluido,encerrado' };
+  const map = { 'cnt-aberto': 'aberto,em_andamento', 'cnt-andamento': 'em_andamento', 'cnt-concluido': 'concluido,encerrado', 'cnt-cancelado': 'cancelado' };
   const status = map[num.id];
   if (status) filtrarPorStatus(status);
 });
@@ -479,8 +463,6 @@ async function carregarChamados(silencioso = false) {
     params.set('admin_id', adminInfo.id);
     const statusDaSubAba = subAbaMeusAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
     params.set('status', statusDaSubAba.join(','));
-  } else if (abaAtiva === 'cancelados') {
-    params.set('status', STATUS_CANCELADOS.join(','));
   } else {
     if (statusFiltroAtual) {
       params.set('status', statusFiltroAtual);
@@ -522,7 +504,7 @@ async function carregarChamados(silencioso = false) {
     }
 
     if (!chamados.length) {
-      const msg = abaAtiva === 'cancelados'
+      const msg = statusFiltroAtual === 'cancelado'
         ? 'Nenhum chamado cancelado.'
         : (abaAtiva === 'abertos' || (abaAtiva === 'meus' && subAbaMeusAtiva === 'abertos'))
           ? 'Nenhum chamado em aberto no momento.'

@@ -597,6 +597,7 @@ tbody tr:hover td { background: #FAF7F2; }
 .dot-aberto    { background: #DBEAFE; color: #1D4ED8; }
 .dot-andamento { background: #EDE9FE; color: #6D28D9; }
 .dot-concluido { background: var(--success-light); color: var(--success); }
+.dot-cancelado { background: #fef2f2; color: #b91c1c; }
 .dot-encerrado { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 .stat-info { display: flex; flex-direction: column; }
 .stat-num {
