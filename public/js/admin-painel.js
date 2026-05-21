@@ -217,12 +217,12 @@ async function api(url, opts = {}) {
       setTimeout(() => abrirModal(+chamadoParam), 200);
     }
 
-    // Auto-refresh silencioso a cada 10s (não atualiza se o modal estiver aberto)
+    // Auto-refresh silencioso a cada 5s (não atualiza se o modal estiver aberto)
     setInterval(() => {
       if (chamadoAtual) return;
       carregarChamados(true);
       carregarEstatisticas();
-    }, 10000);
+    }, 5000);
   } catch {}
 })();
 
@@ -2262,6 +2262,8 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', event => {
     if (event.data && event.data.type === 'notif') {
       mostrarToast(event.data.title || 'Chamados TI', event.data.body || '');
+      // Atualiza badges imediatamente quando chega notificação push
+      if (!chamadoAtual) { carregarChamados(true); carregarEstatisticas(); }
     }
   });
 }
@@ -2269,13 +2271,19 @@ if ('serviceWorker' in navigator) {
 // Re-valida subscription a cada foco/visibilidade/reconexão
 // (Chrome Memory Saver pode suspender a aba e invalidar push em background)
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && Notification.permission === 'granted') _subscribePush();
+  if (!document.hidden) {
+    if (Notification.permission === 'granted') _subscribePush();
+    // Atualiza badges ao voltar para a aba
+    if (!chamadoAtual) { carregarChamados(true); carregarEstatisticas(); }
+  }
 });
 window.addEventListener('focus', () => {
   if (Notification.permission === 'granted') _subscribePush();
+  if (!chamadoAtual) { carregarChamados(true); carregarEstatisticas(); }
 });
 window.addEventListener('online', () => {
   if (Notification.permission === 'granted') _subscribePush();
+  if (!chamadoAtual) { carregarChamados(true); carregarEstatisticas(); }
 });
 
 // ── Wizard de Estoque na Conclusão ─────────────────────────────────────────
