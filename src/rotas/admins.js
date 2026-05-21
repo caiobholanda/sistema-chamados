@@ -128,11 +128,8 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
     }
 
     const adminCriador = db.buscarAdminPorId(req.admin.sub);
-    const nome  = adminCriador ? adminCriador.nome_completo : 'Admin';
-    const setor = 'TI';
-    const ramal = '';
 
-    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','processo_compra','outros'];
+    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','projetor','processo_compra','outros'];
     const categoriaEnviada = (req.body.categoria || '').trim();
     let categoria;
     if (categoriaEnviada && CATEGORIAS_VALIDAS.includes(categoriaEnviada)) {
@@ -142,8 +139,24 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
       categoria = cat ? cat.id : null;
     }
 
+    let usuarioId = null;
+    let nome  = adminCriador ? adminCriador.nome_completo : 'Admin';
+    let setor = 'TI';
+    let ramal = '';
+
+    const usuarioIdRaw = req.body.usuario_id ? parseInt(req.body.usuario_id, 10) : null;
+    if (usuarioIdRaw && req.admin.is_master) {
+      const usuarioPortal = db.buscarUsuarioPorId(usuarioIdRaw);
+      if (usuarioPortal && usuarioPortal.ativo) {
+        usuarioId = usuarioPortal.id;
+        nome  = usuarioPortal.nome;
+        setor = usuarioPortal.setor || 'TI';
+        ramal = usuarioPortal.ramal || '';
+      }
+    }
+
     const id = db.inserirChamado({
-      usuario_id: null,
+      usuario_id: usuarioId,
       nome, setor, ramal, descricao,
       anexo_path: null, anexo_nome_original: null,
       categoria,
@@ -482,7 +495,7 @@ router.patch('/chamados/:id/aguardar-chegar', requireAdmin, (req, res) => {
 const CATEGORIAS_VALIDAS = [
   'software','hardware','impressora','ramal','nobreak','monitor',
   'mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor',
-  'processo_compra','outros',
+  'projetor','processo_compra','outros',
 ];
 
 router.patch('/chamados/:id/categoria', requireAdmin, (req, res) => {

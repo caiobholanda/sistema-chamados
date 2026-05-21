@@ -67,7 +67,18 @@ const CATEGORIAS = [
       'monitor', 'tela', 'display', 'sem imagem', 'sem sinal', 'hdmi',
       'tela piscando', 'tela apagada', 'brilho', 'resolução', 'tela quebrada',
       'listras na tela', 'tela escura', 'monitor não liga', 'segundo monitor',
-      'segunda tela', 'projetor', 'datashow', 'apresentação projetor',
+      'segunda tela',
+    ],
+  },
+  {
+    id: 'projetor',
+    nome: 'Projetor',
+    cor: '#8B5CF6',
+    palavras: [
+      'projetor', 'datashow', 'apresentação projetor', 'projetando', 'projeção',
+      'tela de projeção', 'epson projetor', 'benq projetor', 'projetor apagado',
+      'projetor não liga', 'projetor sem imagem', 'projetor sem sinal',
+      'projetor piscando', 'lâmpada do projetor', 'projetor da sala',
     ],
   },
   {

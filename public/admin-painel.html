@@ -205,6 +205,13 @@
       <div id="msg-novo-chamado"></div>
       <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 1.25rem">Chamado será registrado em seu nome no setor de TI.</p>
       <form id="form-novo-chamado">
+        <div class="form-group" id="nc-usuario-wrap" style="display:none">
+          <label for="nc-usuario-busca">Direcionar para usuário <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <input class="form-control" type="text" id="nc-usuario-busca" placeholder="Buscar por nome, setor ou e-mail…" autocomplete="off" style="margin-bottom:.4rem">
+          <select class="form-control" id="nc-usuario">
+            <option value="">— Abrir em nome do TI —</option>
+          </select>
+        </div>
         <div class="form-group">
           <label for="nc-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
           <select class="form-control" id="nc-categoria">
@@ -222,6 +229,7 @@
             <option value="cameras">Câmeras / CFTV</option>
             <option value="email">E-mail</option>
             <option value="tv_projetor">TV / Projetor</option>
+            <option value="projetor">Projetor</option>
             <option value="processo_compra">Processo de Compra</option>
             <option value="outros">Outros</option>
           </select>
@@ -243,6 +251,6 @@
 
 <script src="/js/nav.js"></script>
 <script src="/js/historico-modal.js"></script>
-<script src="/js/admin-painel.js?v=8"></script>
+<script src="/js/admin-painel.js?v=9"></script>
 </body>
 </html>

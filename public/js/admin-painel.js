@@ -131,6 +131,7 @@ const CATEGORIAS_MAP = {
   cameras:      { nome: 'Câmeras / CFTV', cor: '#D97706', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>' },
   email:        { nome: 'E-mail',          cor: '#64748B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' },
   tv_projetor:    { nome: 'TV / Projetor',       cor: '#7C3AED', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+  projetor:       { nome: 'Projetor',            cor: '#8B5CF6', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="8" width="13" height="8" rx="2"/><circle cx="10" cy="12" r="2"/><path d="M14 10l6-3M14 14l6 3"/></svg>' },
   processo_compra:{ nome: 'Processo de Compra', cor: '#16A34A', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' },
   outros:         { nome: 'Outros',              cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>' },
 };
@@ -385,17 +386,59 @@ document.getElementById('btn-cancelar-confirmar').addEventListener('click', asyn
 });
 
 // ── Modal "Abrir chamado" ──────────────────────────────────────────────────
+let _usuariosPortalNc = null;
+
+function _renderUsuariosNcSelect(filtro) {
+  const sel = document.getElementById('nc-usuario');
+  if (!sel || !_usuariosPortalNc) return;
+  const f = (filtro || '').toLowerCase();
+  const lista = f
+    ? _usuariosPortalNc.filter(u =>
+        u.nome.toLowerCase().includes(f) ||
+        (u.email && u.email.toLowerCase().includes(f)) ||
+        (u.setor && u.setor.toLowerCase().includes(f)))
+    : _usuariosPortalNc;
+  sel.innerHTML = '<option value="">— Abrir em nome do TI —</option>' +
+    lista.map(u => `<option value="${u.id}">${u.nome}${u.setor ? ' · ' + u.setor : ''}</option>`).join('');
+}
+
+async function _carregarUsuariosNc() {
+  const wrap = document.getElementById('nc-usuario-wrap');
+  if (!wrap) return;
+  if (!adminInfo || !adminInfo.is_master) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  document.getElementById('nc-usuario-busca').value = '';
+  if (!_usuariosPortalNc) {
+    try {
+      const r = await api('/api/admin/portal-usuarios');
+      if (r.ok) _usuariosPortalNc = (await r.json()).filter(u => u.ativo);
+    } catch {}
+  }
+  _renderUsuariosNcSelect('');
+}
+
+document.getElementById('nc-usuario-busca').addEventListener('input', e => {
+  _renderUsuariosNcSelect(e.target.value);
+});
+
 function abrirModalNovoChamado() {
   document.getElementById('nc-categoria').value = '';
   document.getElementById('nc-descricao').value = '';
   document.getElementById('nc-anexo').value = '';
   document.getElementById('msg-novo-chamado').innerHTML = '';
+  const sel = document.getElementById('nc-usuario');
+  if (sel) sel.value = '';
   document.getElementById('modal-novo-chamado-overlay').classList.add('open');
   document.getElementById('nc-descricao').focus();
+  _carregarUsuariosNc();
 }
 
 function fecharModalNovoChamado() {
   document.getElementById('modal-novo-chamado-overlay').classList.remove('open');
+  const busca = document.getElementById('nc-usuario-busca');
+  if (busca) busca.value = '';
+  const sel = document.getElementById('nc-usuario');
+  if (sel) sel.value = '';
 }
 
 document.getElementById('btn-novo-chamado').addEventListener('click', abrirModalNovoChamado);
@@ -416,6 +459,8 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     fd.append('descricao', descricao);
     const categoria = document.getElementById('nc-categoria').value;
     if (categoria) fd.append('categoria', categoria);
+    const usuarioId = document.getElementById('nc-usuario')?.value;
+    if (usuarioId) fd.append('usuario_id', usuarioId);
     const anexo = document.getElementById('nc-anexo').files[0];
     if (anexo) fd.append('anexo', anexo);
 

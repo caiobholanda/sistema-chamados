@@ -1163,6 +1163,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
               <option value="cameras">Câmeras / CFTV</option>
               <option value="email">E-mail</option>
               <option value="tv_projetor">TV / Projetor</option>
+              <option value="projetor">Projetor</option>
               <option value="processo_compra">Processo de Compra</option>
               <option value="outros">Outros</option>
             </select>
