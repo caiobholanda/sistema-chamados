@@ -860,14 +860,13 @@ function renderModalBody(c) {
               <div class="mv2-transfer-block">
                 <button class="btn btn-secondary btn-sm" id="btn-transferir" style="width:100%;font-size:.8rem">Transferir responsável</button>
                 <div id="area-transferir" style="display:none;margin-top:.5rem">
-                  <div class="form-group" style="margin-bottom:.4rem">
+                  <div class="form-group" style="margin-bottom:.4rem;position:relative">
                     <label style="font-size:.8rem">Transferir para</label>
                     <input class="form-control form-control-sm" type="text" id="busca-transferir-admin"
-                      placeholder="Buscar por nome, setor ou ramal…" autocomplete="off" style="margin-bottom:.35rem">
-                    <select class="form-control form-control-sm" id="sel-transferir-admin" size="4" style="height:auto">
-                      <option value="" disabled>Digite para buscar…</option>
-                    </select>
+                      placeholder="Buscar por nome, setor ou ramal…" autocomplete="off">
+                    <div id="transferir-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:#fff;max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
                   </div>
+                  <div id="transferir-selecionado" style="display:none;font-size:.8rem;color:var(--text-secondary);margin-bottom:.4rem;padding:.3rem .5rem;background:var(--bg-card);border-radius:5px;border:1px solid var(--border)"></div>
                   <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir" style="width:100%">Confirmar transferência</button>
                 </div>
               </div>
@@ -1093,25 +1092,53 @@ function setupModalEventos(c) {
         if (r.ok) {
           const todosAdmins = await r.json();
           const admins = todosAdmins.filter(a => a.ativo && a.id !== adminInfo.id && (!c.admin_responsavel_id || a.id !== c.admin_responsavel_id));
-          const sel = document.getElementById('sel-transferir-admin');
           const busca = document.getElementById('busca-transferir-admin');
+          const resultados = document.getElementById('transferir-resultados');
+          const selecionadoEl = document.getElementById('transferir-selecionado');
           busca.value = '';
+          selecionadoEl.style.display = 'none';
+          selecionadoEl.dataset.adminId = '';
+          resultados.style.display = 'none';
           busca.focus();
 
-          function filtrarAdmins(q) {
-            const f = q.toLowerCase();
-            const filtrados = f
-              ? admins.filter(a =>
-                  a.nome_completo.toLowerCase().includes(f) ||
-                  (a.ramal && String(a.ramal).includes(f)) ||
-                  (a.setor && a.setor.toLowerCase().includes(f)))
-              : [];
-            sel.innerHTML = filtrados.length
-              ? filtrados.map(a => `<option value="${a.id}">${a.nome_completo}${a.is_master ? ' ★' : ''}</option>`).join('')
-              : '<option value="" disabled>' + (f ? 'Nenhum resultado' : 'Digite para buscar…') + '</option>';
-          }
+          busca.addEventListener('input', e => {
+            const f = e.target.value.toLowerCase();
+            selecionadoEl.style.display = 'none';
+            selecionadoEl.dataset.adminId = '';
+            if (!f) { resultados.style.display = 'none'; resultados.innerHTML = ''; return; }
+            const filtrados = admins.filter(a =>
+              a.nome_completo.toLowerCase().includes(f) ||
+              (a.ramal && String(a.ramal).includes(f)) ||
+              (a.setor && a.setor.toLowerCase().includes(f)));
+            if (!filtrados.length) {
+              resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
+            } else {
+              resultados.innerHTML = filtrados.map(a => `
+                <div class="transferir-item" data-id="${a.id}" data-nome="${a.nome_completo.replace(/"/g,'&quot;')}"
+                  style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">
+                  ${a.nome_completo}${a.is_master ? ' ★' : ''}
+                </div>`).join('');
+              resultados.querySelectorAll('.transferir-item').forEach(el => {
+                el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover, #f3f4f6)');
+                el.addEventListener('mouseleave', () => el.style.background = '');
+                el.addEventListener('click', () => {
+                  selecionadoEl.textContent = '✓ ' + el.dataset.nome;
+                  selecionadoEl.dataset.adminId = el.dataset.id;
+                  selecionadoEl.style.display = 'block';
+                  busca.value = el.dataset.nome;
+                  resultados.style.display = 'none';
+                });
+              });
+            }
+            resultados.style.display = 'block';
+          });
 
-          busca.addEventListener('input', e => filtrarAdmins(e.target.value));
+          document.addEventListener('click', function fecharResultados(e) {
+            if (!busca.contains(e.target) && !resultados.contains(e.target)) {
+              resultados.style.display = 'none';
+              document.removeEventListener('click', fecharResultados);
+            }
+          });
         }
       } else {
         area.style.display = 'none';
@@ -1122,8 +1149,8 @@ function setupModalEventos(c) {
   const btnConfTransferir = document.getElementById('btn-confirmar-transferir');
   if (btnConfTransferir) {
     btnConfTransferir.addEventListener('click', async () => {
-      const adminId = document.getElementById('sel-transferir-admin').value;
-      if (!adminId) { setMsg('<div class="alert alert-danger">Selecione um admin.</div>'); return; }
+      const adminId = document.getElementById('transferir-selecionado')?.dataset.adminId;
+      if (!adminId) { setMsg('<div class="alert alert-danger">Selecione um admin na busca.</div>'); return; }
       const r = await api(`/api/admin/chamados/${c.id}/transferir`, { method: 'PATCH', body: JSON.stringify({ admin_id: parseInt(adminId) }) });
       const d = await r.json();
       setMsg(r.ok ? `<div class="alert alert-success">${d.mensagem}</div>` : `<div class="alert alert-danger">${d.erro}</div>`);
