@@ -862,8 +862,10 @@ function renderModalBody(c) {
                 <div id="area-transferir" style="display:none;margin-top:.5rem">
                   <div class="form-group" style="margin-bottom:.4rem">
                     <label style="font-size:.8rem">Transferir para</label>
-                    <select class="form-control form-control-sm" id="sel-transferir-admin">
-                      <option value="">Selecione um admin...</option>
+                    <input class="form-control form-control-sm" type="text" id="busca-transferir-admin"
+                      placeholder="Buscar por nome, setor ou ramal…" autocomplete="off" style="margin-bottom:.35rem">
+                    <select class="form-control form-control-sm" id="sel-transferir-admin" size="4" style="height:auto">
+                      <option value="" disabled>Digite para buscar…</option>
                     </select>
                   </div>
                   <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir" style="width:100%">Confirmar transferência</button>
@@ -1089,12 +1091,27 @@ function setupModalEventos(c) {
         area.style.display = 'block';
         const r = await api('/api/admin/usuarios');
         if (r.ok) {
-          const admins = await r.json();
+          const todosAdmins = await r.json();
+          const admins = todosAdmins.filter(a => a.ativo && a.id !== adminInfo.id && (!c.admin_responsavel_id || a.id !== c.admin_responsavel_id));
           const sel = document.getElementById('sel-transferir-admin');
-          sel.innerHTML = '<option value="">Selecione um admin...</option>' +
-            admins.filter(a => a.ativo && a.id !== adminInfo.id && (!c.admin_responsavel_id || a.id !== c.admin_responsavel_id)).map(a =>
-              `<option value="${a.id}">${a.nome_completo}${a.is_master ? ' ★' : ''}</option>`
-            ).join('');
+          const busca = document.getElementById('busca-transferir-admin');
+          busca.value = '';
+          busca.focus();
+
+          function filtrarAdmins(q) {
+            const f = q.toLowerCase();
+            const filtrados = f
+              ? admins.filter(a =>
+                  a.nome_completo.toLowerCase().includes(f) ||
+                  (a.ramal && String(a.ramal).includes(f)) ||
+                  (a.setor && a.setor.toLowerCase().includes(f)))
+              : [];
+            sel.innerHTML = filtrados.length
+              ? filtrados.map(a => `<option value="${a.id}">${a.nome_completo}${a.is_master ? ' ★' : ''}</option>`).join('')
+              : '<option value="" disabled>' + (f ? 'Nenhum resultado' : 'Digite para buscar…') + '</option>';
+          }
+
+          busca.addEventListener('input', e => filtrarAdmins(e.target.value));
         }
       } else {
         area.style.display = 'none';
