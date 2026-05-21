@@ -159,6 +159,28 @@ const CATEGORIAS = [
     ],
   },
   {
+    id: 'tablet',
+    nome: 'Tablet',
+    cor: '#0284C7',
+    palavras: [
+      'tablet', 'ipad', 'galaxy tab', 'surface', 'tablet não liga',
+      'tablet travado', 'tela do tablet', 'tablet sem acesso', 'tablet quebrado',
+      'tablet corporativo', 'tablet da recepção', 'tablet de atendimento',
+    ],
+  },
+  {
+    id: 'celular',
+    nome: 'Celular',
+    cor: '#15803D',
+    palavras: [
+      'celular', 'smartphone', 'iphone', 'android', 'telefone celular',
+      'celular corporativo', 'celular da empresa', 'celular não liga',
+      'celular travado', 'celular sem sinal', 'celular quebrado',
+      'aplicativo celular', 'whatsapp', 'celular sem internet',
+      'chip', 'sim card', 'linha corporativa',
+    ],
+  },
+  {
     id: 'processo_compra',
     nome: 'Processo de Compra',
     cor: '#16A34A',

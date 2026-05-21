@@ -129,7 +129,7 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
 
     const adminCriador = db.buscarAdminPorId(req.admin.sub);
 
-    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','projetor','processo_compra','outros'];
+    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','projetor','tablet','celular','processo_compra','outros'];
     const categoriaEnviada = (req.body.categoria || '').trim();
     let categoria;
     if (categoriaEnviada && CATEGORIAS_VALIDAS.includes(categoriaEnviada)) {
@@ -495,7 +495,7 @@ router.patch('/chamados/:id/aguardar-chegar', requireAdmin, (req, res) => {
 const CATEGORIAS_VALIDAS = [
   'software','hardware','impressora','ramal','nobreak','monitor',
   'mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor',
-  'projetor','processo_compra','outros',
+  'projetor','tablet','celular','processo_compra','outros',
 ];
 
 router.patch('/chamados/:id/categoria', requireAdmin, (req, res) => {
