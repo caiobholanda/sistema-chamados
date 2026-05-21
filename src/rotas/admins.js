@@ -210,6 +210,21 @@ router.patch('/chamados/:id/reabrir', requireAdmin, (req, res) => {
   }
 });
 
+router.patch('/chamados/:id/cancelar', requireMaster, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (chamado.status === 'cancelado') return res.status(400).json({ erro: 'Chamado já está cancelado' });
+    const motivo = (req.body.motivo || '').trim();
+    if (!motivo) return res.status(400).json({ erro: 'Motivo do cancelamento é obrigatório' });
+    db.cancelarChamado(chamado.id, req.admin.sub, motivo);
+    return res.json({ mensagem: 'Chamado cancelado com sucesso' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.delete('/chamados/:id', requireMaster, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);

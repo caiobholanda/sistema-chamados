@@ -113,7 +113,8 @@ async function _atualizarChatAdmin(chamadoId) {
 const STATUS_ABERTOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
 const STATUS_ENCERRADOS = ['concluido', 'encerrado'];
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardando_compra: 'Aguardando compra', aguardando_chegar: 'Aguardando chegar', concluido: 'Concluído', encerrado: 'Encerrado' };
+const STATUS_CANCELADOS = ['cancelado'];
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardando_compra: 'Aguardando compra', aguardando_chegar: 'Aguardando chegar', concluido: 'Concluído', encerrado: 'Encerrado', cancelado: 'Cancelado' };
 const PRIO_LABELS = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
 
 const CATEGORIAS_MAP = {
@@ -225,8 +226,8 @@ async function api(url, opts = {}) {
 document.getElementById('tab-meus').addEventListener('click', () => {
   const btn = document.getElementById('tab-meus');
   const jaAtivo = btn.classList.contains('ativo');
+  document.getElementById('tab-cancelados').classList.remove('ativo');
   if (jaAtivo) {
-    // Toggle: desativar "Meus chamados" e voltar para todos
     btn.classList.remove('ativo');
     abaAtiva = 'abertos';
     document.getElementById('subtabs-meus').style.display = 'none';
@@ -234,6 +235,22 @@ document.getElementById('tab-meus').addEventListener('click', () => {
     btn.classList.add('ativo');
     abaAtiva = 'meus';
     document.getElementById('subtabs-meus').style.display = 'inline-flex';
+  }
+  atualizarFiltrosDeAba();
+  carregarChamados();
+});
+
+document.getElementById('tab-cancelados').addEventListener('click', () => {
+  const btn = document.getElementById('tab-cancelados');
+  const jaAtivo = btn.classList.contains('ativo');
+  document.getElementById('tab-meus').classList.remove('ativo');
+  document.getElementById('subtabs-meus').style.display = 'none';
+  if (jaAtivo) {
+    btn.classList.remove('ativo');
+    abaAtiva = 'abertos';
+  } else {
+    btn.classList.add('ativo');
+    abaAtiva = 'cancelados';
   }
   atualizarFiltrosDeAba();
   carregarChamados();
@@ -257,15 +274,21 @@ function atualizarFiltrosDeAba() {
 
 async function carregarEstatisticas() {
   try {
-    const [rTodos, rMeus] = await Promise.all([
+    const [rTodos, rMeus, rCancelados] = await Promise.all([
       api('/api/admin/chamados?status=aberto,em_andamento,concluido,encerrado'),
       adminInfo ? api(`/api/admin/chamados?admin_id=${adminInfo.id}&status=aberto,em_andamento,concluido,encerrado`) : Promise.resolve(null),
+      api('/api/admin/chamados?status=cancelado'),
     ]);
     if (!rTodos.ok) return;
     const todos = await rTodos.json();
 
     const contagem = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
     todos.forEach(c => { if (contagem[c.status] !== undefined) contagem[c.status]++; });
+
+    if (rCancelados.ok) {
+      const cancelados = await rCancelados.json();
+      document.getElementById('badge-cancelados').textContent = cancelados.length || '';
+    }
 
     document.getElementById('cnt-aberto').textContent = contagem.aberto;
     document.getElementById('cnt-andamento').textContent = contagem.em_andamento;
@@ -335,8 +358,45 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
 document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (document.getElementById('modal-novo-chamado-overlay').classList.contains('open')) fecharModalNovoChamado();
+    if (document.getElementById('modal-cancelar-overlay').classList.contains('open')) fecharModalCancelar();
+    else if (document.getElementById('modal-novo-chamado-overlay').classList.contains('open')) fecharModalNovoChamado();
     else fecharModal();
+  }
+});
+
+// ── Modal "Cancelar chamado" ──────────────────────────────────────────────────
+function fecharModalCancelar() {
+  document.getElementById('modal-cancelar-overlay').classList.remove('open');
+}
+
+document.getElementById('btn-fechar-cancelar').addEventListener('click', fecharModalCancelar);
+document.getElementById('btn-cancelar-voltar').addEventListener('click', fecharModalCancelar);
+
+document.getElementById('btn-cancelar-confirmar').addEventListener('click', async () => {
+  const motivo = document.getElementById('input-cancelamento-motivo').value.trim();
+  const msgEl = document.getElementById('msg-cancelar');
+  if (!motivo) { msgEl.innerHTML = '<span style="font-size:.8rem;color:#b91c1c">Informe o motivo do cancelamento.</span>'; return; }
+  const btn = document.getElementById('btn-cancelar-confirmar');
+  btn.disabled = true; btn.textContent = 'Cancelando…';
+  msgEl.innerHTML = '';
+  try {
+    const r = await api(`/api/admin/chamados/${chamadoAtual.id}/cancelar`, {
+      method: 'PATCH',
+      body: JSON.stringify({ motivo }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      fecharModalCancelar();
+      fecharModal();
+      carregarChamados();
+      carregarEstatisticas();
+    } else {
+      msgEl.innerHTML = `<span style="font-size:.8rem;color:#b91c1c">${d.erro}</span>`;
+    }
+  } catch {
+    msgEl.innerHTML = '<span style="font-size:.8rem;color:#b91c1c">Erro de conexão.</span>';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Confirmar cancelamento';
   }
 });
 
@@ -419,6 +479,8 @@ async function carregarChamados(silencioso = false) {
     params.set('admin_id', adminInfo.id);
     const statusDaSubAba = subAbaMeusAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
     params.set('status', statusDaSubAba.join(','));
+  } else if (abaAtiva === 'cancelados') {
+    params.set('status', STATUS_CANCELADOS.join(','));
   } else {
     if (statusFiltroAtual) {
       params.set('status', statusFiltroAtual);
@@ -460,9 +522,11 @@ async function carregarChamados(silencioso = false) {
     }
 
     if (!chamados.length) {
-      const msg = (abaAtiva === 'abertos' || (abaAtiva === 'meus' && subAbaMeusAtiva === 'abertos'))
-        ? 'Nenhum chamado em aberto no momento.'
-        : 'Nenhum chamado encerrado encontrado.';
+      const msg = abaAtiva === 'cancelados'
+        ? 'Nenhum chamado cancelado.'
+        : (abaAtiva === 'abertos' || (abaAtiva === 'meus' && subAbaMeusAtiva === 'abertos'))
+          ? 'Nenhum chamado em aberto no momento.'
+          : 'Nenhum chamado encerrado encontrado.';
       lista.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">
@@ -501,7 +565,7 @@ async function carregarChamados(silencioso = false) {
 
 function estaAtrasado(c) {
   if (!c.prazo) return false;
-  if (['concluido', 'encerrado'].includes(c.status)) return false;
+  if (['concluido', 'encerrado', 'cancelado'].includes(c.status)) return false;
   const iso = c.prazo.includes('T') ? c.prazo : c.prazo.replace(' ', 'T');
   return new Date(iso.endsWith('Z') ? iso : iso + 'Z') < new Date();
 }
@@ -517,7 +581,7 @@ function scorePrioridade(c) {
 
 
 function renderChamadoItem(c) {
-  const encerrado = ['concluido', 'encerrado'].includes(c.status);
+  const encerrado = ['concluido', 'encerrado', 'cancelado'].includes(c.status);
   const atrasado  = estaAtrasado(c);
   return `
     <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}"
@@ -793,20 +857,35 @@ function renderModalBody(c) {
               Histórico de ações
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
-            ${adminInfo && adminInfo.is_master ? `
+            ${adminInfo && adminInfo.is_master && c.status !== 'cancelado' ? `
             <div class="modal-danger-zone mv2-danger-compact" style="margin:0;flex-shrink:0">
               <div class="modal-danger-label">Zona de perigo</div>
-              <button class="btn btn-danger btn-sm" id="btn-deletar">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                Excluir
+              <button class="btn btn-danger btn-sm" id="btn-cancelar-chamado">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                Cancelar
               </button>
             </div>` : ''}
           </div>
         </div>
 
-        <!-- Coluna direita: chat (aberto) ou painel de conclusão (encerrado) -->
+        <!-- Coluna direita: chat (aberto) ou painel de conclusão (encerrado/cancelado) -->
         <div class="mv2-right-col">
-          ${isAberto ? `
+          ${c.status === 'cancelado' ? `
+            <div class="mv2-chat-head" style="color:#b91c1c">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              Chamado cancelado
+            </div>
+            <div class="mv2-conclusion-panel">
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">Motivo do cancelamento</div>
+                <div class="mv2-conclusion-text">${c.cancelamento_motivo || '<span style="color:var(--text-muted);font-style:italic">Não informado.</span>'}</div>
+              </div>
+              ${c.cancelado_em ? `<div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">Cancelado em</div>
+                <div style="font-size:.79rem;color:var(--text-muted)">${fmtData(c.cancelado_em)}</div>
+              </div>` : ''}
+            </div>
+          ` : isAberto ? `
             <div class="mv2-chat-head">
               <span class="mv2-chat-dot"></span>
               Conversa em tempo real
@@ -1084,13 +1163,13 @@ function setupModalEventos(c) {
     });
   }
 
-  const btnDeletar = document.getElementById('btn-deletar');
-  if (btnDeletar) {
-    btnDeletar.addEventListener('click', async () => {
-      if (!confirm(`Excluir permanentemente este chamado? Esta ação não pode ser desfeita.`)) return;
-      const r = await api(`/api/admin/chamados/${c.id}`, { method: 'DELETE' });
-      const d = await r.json();
-      if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
+  const btnCancelarChamado = document.getElementById('btn-cancelar-chamado');
+  if (btnCancelarChamado) {
+    btnCancelarChamado.addEventListener('click', () => {
+      document.getElementById('input-cancelamento-motivo').value = '';
+      document.getElementById('msg-cancelar').innerHTML = '';
+      document.getElementById('modal-cancelar-overlay').classList.add('open');
+      document.getElementById('input-cancelamento-motivo').focus();
     });
   }
 

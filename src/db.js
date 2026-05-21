@@ -137,6 +137,8 @@ function initDb() {
   try { db.exec("ALTER TABLE chamados ADD COLUMN requer_acordo INTEGER DEFAULT 0"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN acordo_equipamentos TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE equipamentos_historico ADD COLUMN chamado_id INTEGER DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN cancelamento_motivo TEXT"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN cancelado_em DATETIME"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_path TEXT"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
@@ -1000,6 +1002,14 @@ function deletarChamado(id) {
   return chamado;
 }
 
+function cancelarChamado(id, adminId, motivo) {
+  getDb().prepare(`
+    UPDATE chamados SET status = 'cancelado', cancelamento_motivo = ?,
+      cancelado_em = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(motivo || null, id);
+}
+
 function listarMensagensChamado(chamadoId) {
   return getDb().prepare(
     'SELECT * FROM mensagens_chamado WHERE chamado_id = ? ORDER BY criado_em ASC'
@@ -1056,7 +1066,7 @@ function listarChamadosAdmin(filtros = {}) {
            c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
            c.comentario_avaliacao, c.criado_em, c.atualizado_em,
            c.concluido_em, c.categoria, c.assinado_em,
-           c.aberto_por_admin_id,
+           c.aberto_por_admin_id, c.cancelamento_motivo, c.cancelado_em,
            a.nome_completo as admin_nome,
            u.setor as usuario_setor, u.ramal as usuario_ramal,
            ab.nome_completo as aberto_por_admin_nome,
@@ -1763,6 +1773,7 @@ module.exports = {
   inserirChamado,
   transferirChamado,
   deletarChamado,
+  cancelarChamado,
   buscarChamadoPorId,
   buscarHistoricoPrazos,
   buscarHistoricoCompleto,
