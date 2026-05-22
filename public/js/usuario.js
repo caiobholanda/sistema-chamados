@@ -658,7 +658,6 @@ function renderPainel(usuario) {
               <span class="badge badge-${s.status}">${statusLabel}</span>
               <span style="font-size:.72rem;color:var(--text-muted)">${fmtData(s.criado_em)}</span>
             </div>
-            <a href="/sugestao-historico.html?id=${s.id}" class="btn btn-secondary btn-sm" style="font-size:.72rem">📋 Histórico</a>
           </div>
           <div style="margin-top:.75rem;font-size:.88rem;line-height:1.6;white-space:pre-wrap">${s.texto}</div>
           ${campoExtra}
