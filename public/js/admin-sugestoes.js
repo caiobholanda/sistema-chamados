@@ -75,7 +75,7 @@ async function carregarSugestoes(silencioso = false) {
     const lista = await r.json();
 
     if (silencioso) {
-      const novoHash = JSON.stringify(lista.map(s => [s.id, s.status, s.atualizado_em, s.campo_extra]));
+      const novoHash = JSON.stringify(lista.map(s => [s.id, s.status, s.atualizado_em, s.campo_extra, s.msgs_nao_lidas, s.vista_admin]));
       if (novoHash === _listaHash) return;
       _listaHash = novoHash;
     } else {
@@ -157,6 +157,8 @@ async function abrirDetalhe(id) {
   _sugestaoAtiva = await r.json();
   renderDetalhe(_sugestaoAtiva);
   document.getElementById('modal-detalhe-overlay').classList.add('open');
+  _listaHash = null;
+  setTimeout(() => { carregarSugestoes(true); window._navBadgeSugRefresh?.(); }, 300);
   _atualizarChat(id);
   _chatInterval = setInterval(() => _atualizarChat(id), 6000);
   _statusInterval = setInterval(async () => {

@@ -102,6 +102,7 @@
       } catch {}
     }
 
+    window._navBadgeSugRefresh = _buscarContadoresSug;
     _buscarContadoresSug();
     setInterval(_buscarContadoresSug, 15000);
   });

@@ -1924,9 +1924,7 @@ function marcarMensagensLidasUsuario(sugestao_id) {
 
 function contarNaoVistaAdmin() {
   return getDb().prepare(`
-    SELECT COUNT(DISTINCT s.id) AS total FROM sugestoes s
-    WHERE s.vista_admin = 0
-       OR EXISTS (SELECT 1 FROM sugestao_mensagens WHERE sugestao_id = s.id AND autor_tipo = 'usuario' AND lida_admin = 0)
+    SELECT COUNT(*) AS total FROM sugestoes WHERE vista_admin = 0
   `).get().total;
 }
 
