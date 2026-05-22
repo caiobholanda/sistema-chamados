@@ -398,18 +398,20 @@ function renderAuth() {
   });
 }
 
-function _mostrarConfirmacaoChamado() {
-  const el = document.getElementById('msg-global');
-  if (!el) return;
-  el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:.75rem;padding:.9rem 1.1rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:1rem;animation:fadeIn .25s ease">
-      <span style="font-size:1.3rem">✓</span>
-      <div>
-        <div style="font-weight:600;font-size:.9rem;color:#166534">Chamado aberto com sucesso!</div>
-        <div style="font-size:.8rem;color:#15803d;margin-top:.1rem">Nossa equipe de TI irá atender em breve.</div>
-      </div>
-    </div>`;
-  setTimeout(() => { if (el) el.innerHTML = ''; }, 5000);
+function _mostrarToastU(titulo, corpo) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const t = document.createElement('div');
+  t.className = 'toast-notif';
+  t.style.borderLeftColor = '#22c55e';
+  t.innerHTML = `
+    <button class="toast-close" onclick="this.closest('.toast-notif').remove()">✕</button>
+    <strong>${titulo}</strong>
+    ${corpo ? `<span>${corpo}</span>` : ''}
+  `;
+  container.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 350); }, 5000);
 }
 
 function renderPainel(usuario) {
@@ -538,7 +540,7 @@ function renderPainel(usuario) {
     if (area.style.display === 'none') {
       renderFormChamado(
         usuario, area,
-        () => { area.style.display = 'none'; _mostrarConfirmacaoChamado(); document.getElementById('tab-abertos')?.click(); carregarChamados(); },
+        () => { area.style.display = 'none'; document.getElementById('tab-abertos')?.click(); carregarChamados(); _mostrarToastU('Chamado aberto com sucesso!', 'Nossa equipe de TI irá atender em breve.'); },
         () => { area.style.display = 'none'; }
       );
       area.style.display = 'block';
@@ -573,6 +575,7 @@ function renderPainel(usuario) {
       if (r.ok) {
         document.getElementById('form-sugestao').reset();
         _fecharModalSug();
+        _mostrarToastU('Sugestão enviada com sucesso!', 'Acompanhe o andamento na aba Sugestões.');
         _carregarSugestoesUsuario();
       } else {
         msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
