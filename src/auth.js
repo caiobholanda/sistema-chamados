@@ -26,7 +26,13 @@ function requireAdmin(req, res, next) {
 
 function requireMaster(req, res, next) {
   requireAdmin(req, res, () => {
-    if (!req.admin.is_master) {
+    try {
+      const db = require('./db');
+      const admin = db.buscarAdminPorId(req.admin.sub);
+      if (!admin || !admin.is_master) {
+        return res.status(403).json({ erro: 'Acesso restrito ao master' });
+      }
+    } catch {
       return res.status(403).json({ erro: 'Acesso restrito ao master' });
     }
     next();

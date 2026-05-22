@@ -403,6 +403,8 @@ document.getElementById('btn-fechar-cancelar').addEventListener('click', fecharM
 document.getElementById('btn-cancelar-voltar').addEventListener('click', fecharModalCancelar);
 
 document.getElementById('btn-cancelar-confirmar').addEventListener('click', async () => {
+  if (!chamadoAtual) return;
+  const chamadoId = chamadoAtual.id;
   const motivo = document.getElementById('input-cancelamento-motivo').value.trim();
   const msgEl = document.getElementById('msg-cancelar');
   if (!motivo) { msgEl.innerHTML = '<span style="font-size:.8rem;color:#b91c1c">Informe o motivo do cancelamento.</span>'; return; }
@@ -410,7 +412,7 @@ document.getElementById('btn-cancelar-confirmar').addEventListener('click', asyn
   btn.disabled = true; btn.textContent = 'Cancelando…';
   msgEl.innerHTML = '';
   try {
-    const r = await api(`/api/admin/chamados/${chamadoAtual.id}/cancelar`, {
+    const r = await api(`/api/admin/chamados/${chamadoId}/cancelar`, {
       method: 'PATCH',
       body: JSON.stringify({ motivo }),
     });
@@ -420,11 +422,13 @@ document.getElementById('btn-cancelar-confirmar').addEventListener('click', asyn
       fecharModal();
       carregarChamados();
       carregarEstatisticas();
+      mostrarToast('Chamado cancelado', `Chamado #${chamadoId} cancelado com sucesso.`);
     } else {
       msgEl.innerHTML = `<span style="font-size:.8rem;color:#b91c1c">${d.erro}</span>`;
     }
-  } catch {
-    msgEl.innerHTML = '<span style="font-size:.8rem;color:#b91c1c">Erro de conexão.</span>';
+  } catch (e) {
+    console.error('[cancelar]', e);
+    msgEl.innerHTML = '<span style="font-size:.8rem;color:#b91c1c">Erro de conexão. Tente novamente.</span>';
   } finally {
     btn.disabled = false; btn.textContent = 'Confirmar cancelamento';
   }
