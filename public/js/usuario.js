@@ -596,70 +596,72 @@ function renderPainel(usuario) {
     }
     el.innerHTML = lista.map(s => {
       const statusLabel = SUGH_LABELS[s.status] || s.status;
-      const campoExtra = s.campo_extra ? `<div style="margin-top:.5rem;padding:.5rem .7rem;background:var(--bg);border-radius:5px;border:1px solid var(--border);font-size:.8rem;font-style:italic;color:var(--text-secondary)">${s.campo_extra}</div>` : '';
+      const fechado = s.status === 'feita' || s.status === 'negada';
+      const campoExtraLabel = s.status === 'feita' ? 'Como foi implementado' : s.status === 'negada' ? 'Justificativa' : '';
+      const campoExtra = s.campo_extra ? `
+        <div style="margin-top:.6rem;padding:.55rem .75rem;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.25rem">${campoExtraLabel}</div>
+          <div style="font-size:.82rem;color:var(--text-secondary);font-style:italic">${s.campo_extra}</div>
+        </div>` : '';
       return `
-        <div class="card" style="margin-bottom:1rem;padding:1.25rem 1.4rem" data-sug-id="${s.id}">
+        <div class="card" style="margin-bottom:1rem;padding:1.25rem 1.4rem${fechado ? ';opacity:.8' : ''}" data-sug-id="${s.id}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;flex-wrap:wrap">
-            <div style="display:flex;gap:.5rem;align-items:center">
+            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
               <span style="font-size:.72rem;color:var(--text-muted)">#${s.id}</span>
               <span class="badge badge-${s.status}">${statusLabel}</span>
               <span style="font-size:.72rem;color:var(--text-muted)">${fmtData(s.criado_em)}</span>
             </div>
-            <button class="btn btn-secondary btn-sm btn-ver-chat-sug" data-sug-id="${s.id}" style="font-size:.75rem">
-              💬 Ver chat
-            </button>
+            <button class="btn btn-secondary btn-sm btn-ver-historico-sug" data-sug-id="${s.id}" style="font-size:.72rem">📋 Histórico</button>
           </div>
           <div style="margin-top:.75rem;font-size:.88rem;line-height:1.6;white-space:pre-wrap">${s.texto}</div>
           ${campoExtra}
-          <div class="chat-wrap" id="chat-sug-wrap-${s.id}" style="display:none;margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--border)">
-            <div class="chat-msgs" id="chat-msgs-sug-u-${s.id}" style="min-height:80px;max-height:220px;overflow-y:auto"></div>
-            <form class="chat-form" id="chat-form-sug-u-${s.id}" style="margin-top:.4rem">
-              <div style="display:flex;gap:.4rem">
-                <input class="form-control" type="text" id="chat-input-sug-u-${s.id}" placeholder="Mensagem..." maxlength="1000" style="flex:1">
-                <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-              </div>
-              <div id="chat-err-sug-u-${s.id}" style="font-size:.75rem;color:var(--danger);min-height:1rem"></div>
-            </form>
+          <div class="chat-wrap" style="margin-top:.85rem">
+            <div class="chat-header">Chat com suporte</div>
+            <div class="chat-messages" id="chat-msgs-sug-u-${s.id}">
+              <div class="chat-vazio">Carregando...</div>
+            </div>
+            <div class="chat-input-row" style="display:flex;gap:.4rem;padding:.5rem .75rem;background:#fff;border-top:1px solid var(--border)">
+              <input class="form-control" type="text" id="chat-input-sug-u-${s.id}" placeholder="Escreva uma mensagem..." maxlength="1000" style="flex:1;font-size:.85rem">
+              <button type="button" class="btn btn-primary btn-sm btn-chat-send-sug" data-sug-id="${s.id}">Enviar</button>
+            </div>
+            <div id="chat-err-sug-u-${s.id}" style="font-size:.75rem;color:var(--danger);min-height:.9rem;padding:0 .75rem"></div>
           </div>
         </div>
       `;
     }).join('');
 
     lista.forEach(s => {
-      const btnChat = el.querySelector(`.btn-ver-chat-sug[data-sug-id="${s.id}"]`);
-      const chatWrap = document.getElementById(`chat-sug-wrap-${s.id}`);
-      if (!btnChat || !chatWrap) return;
-
-      btnChat.addEventListener('click', () => {
-        const aberto = chatWrap.style.display !== 'none';
-        chatWrap.style.display = aberto ? 'none' : 'block';
-        btnChat.textContent = aberto ? '💬 Ver chat' : '✕ Fechar chat';
-        if (!aberto) {
-          _atualizarChatSugUsuario(s.id);
-          if (!_chatSugIntervals.has(s.id)) {
-            _chatSugIntervals.set(s.id, setInterval(() => _atualizarChatSugUsuario(s.id), 6000));
-          }
-        } else {
-          const iv = _chatSugIntervals.get(s.id);
-          if (iv) { clearInterval(iv); _chatSugIntervals.delete(s.id); }
-        }
-      });
-
-      const chatForm = document.getElementById(`chat-form-sug-u-${s.id}`);
       const chatInput = document.getElementById(`chat-input-sug-u-${s.id}`);
-      chatForm.addEventListener('submit', async e => {
-        e.preventDefault();
+      const sendBtn = el.querySelector(`.btn-chat-send-sug[data-sug-id="${s.id}"]`);
+      const errEl = document.getElementById(`chat-err-sug-u-${s.id}`);
+
+      async function enviarMsgSug() {
         const texto = chatInput.value.trim();
         if (!texto) return;
-        const btn = chatForm.querySelector('[type=submit]');
-        btn.disabled = true;
+        sendBtn.disabled = true;
+        errEl.textContent = '';
         try {
           const r = await apiFetch(`/api/sugestoes/${s.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
           if (r.ok) { chatInput.value = ''; _atualizarChatSugUsuario(s.id); }
-          else { document.getElementById(`chat-err-sug-u-${s.id}`).textContent = 'Erro ao enviar.'; }
-        } catch { document.getElementById(`chat-err-sug-u-${s.id}`).textContent = 'Erro de conexão.'; }
-        finally { btn.disabled = false; chatInput.focus(); }
+          else { const d = await r.json().catch(() => ({})); errEl.textContent = d.erro || 'Erro ao enviar.'; }
+        } catch { errEl.textContent = 'Erro de conexão.'; }
+        finally { sendBtn.disabled = false; chatInput.focus(); }
+      }
+
+      sendBtn.addEventListener('click', enviarMsgSug);
+      chatInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMsgSug(); }
       });
+
+      const btnHistorico = el.querySelector(`.btn-ver-historico-sug[data-sug-id="${s.id}"]`);
+      if (btnHistorico) {
+        btnHistorico.addEventListener('click', () => _abrirHistoricoSug(s.id));
+      }
+
+      _atualizarChatSugUsuario(s.id);
+      if (!_chatSugIntervals.has(s.id)) {
+        _chatSugIntervals.set(s.id, setInterval(() => _atualizarChatSugUsuario(s.id), 6000));
+      }
     });
   }
 
@@ -683,10 +685,10 @@ function renderPainel(usuario) {
       const msgs = await r.json();
       if (!msgs.length) {
         if (!box.querySelector('[data-msg-id]'))
-          box.innerHTML = '<div style="padding:.5rem;text-align:center;color:var(--text-muted);font-size:.8rem">Nenhuma mensagem ainda.</div>';
+          box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem ainda. Escreva para o suporte!</div>';
         return;
       }
-      const vazio = box.querySelector('div:not([data-msg-id])');
+      const vazio = box.querySelector('.chat-vazio');
       if (vazio) vazio.remove();
       const rendered = new Set([...box.querySelectorAll('[data-msg-id]')].map(el => +el.dataset.msgId));
       const novas = msgs.filter(m => !rendered.has(m.id));
@@ -697,6 +699,49 @@ function renderPainel(usuario) {
       while (tmp.firstChild) box.appendChild(tmp.firstChild);
       if (atFundo) box.scrollTop = box.scrollHeight;
     } catch {}
+  }
+
+  async function _abrirHistoricoSug(sugId) {
+    let overlay = document.getElementById('modal-hist-sug-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'modal-hist-sug-overlay';
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal" style="max-width:420px">
+          <div class="modal-header">
+            <h2>Histórico da Sugestão</h2>
+            <button class="modal-close" id="btn-fechar-hist-sug">&#x2715;</button>
+          </div>
+          <div class="modal-body" id="modal-hist-sug-body" style="padding:1.25rem 1.4rem;max-height:400px;overflow-y:auto"></div>
+        </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('btn-fechar-hist-sug').addEventListener('click', () => overlay.classList.remove('open'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+    }
+    try {
+      const r = await apiFetch(`/api/sugestoes/${sugId}/mensagens`);
+      const sug = _sugestoesUsuario.find(s => s.id === sugId);
+      const body = document.getElementById('modal-hist-sug-body');
+      body.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted)">Carregando...</div>';
+      overlay.classList.add('open');
+
+      const rHist = await apiFetch(`/api/sugestoes/${sugId}/historico`);
+      if (rHist.ok) {
+        const hist = await rHist.json();
+        if (!hist.length) { body.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted)">Sem histórico de alterações.</div>'; return; }
+        const LABELS = { enviada: 'Enviada', em_analise: 'Em Análise', em_producao: 'Em Produção', feita: 'Feita', negada: 'Negada' };
+        body.innerHTML = hist.map(h => `
+          <div style="padding:.6rem 0;border-bottom:1px solid var(--border)">
+            <div style="font-size:.72rem;color:var(--text-muted)">${fmtData(h.timestamp)}</div>
+            <div style="font-size:.82rem;margin-top:.2rem">
+              ${h.status_anterior ? `<span style="color:var(--text-muted)">${LABELS[h.status_anterior] || h.status_anterior}</span> → ` : ''}
+              <strong>${LABELS[h.status_novo] || h.status_novo}</strong>
+            </div>
+            ${h.campo_extra ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-top:.15rem;font-style:italic">"${h.campo_extra}"</div>` : ''}
+          </div>`).join('');
+      }
+    } catch { document.getElementById('modal-hist-sug-body').innerHTML = '<div style="color:var(--danger);font-size:.82rem">Erro ao carregar.</div>'; }
   }
 
   document.getElementById('tab-abertos').addEventListener('click', () => {

@@ -128,145 +128,183 @@ function renderDetalhe(s) {
   document.getElementById('modal-detalhe-title').innerHTML = `Sugestão #${s.id} ${badge(s.status)}`;
 
   const historico = (s.historico || []).map(h => `
-    <div style="display:flex;gap:.5rem;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid var(--border)">
-      <div style="flex:1">
-        <span style="font-size:.75rem;color:var(--text-muted)">${fmtData(h.timestamp)}</span>
-        ${h.admin_nome ? `<span style="font-size:.75rem;color:var(--text-secondary);margin-left:.4rem">por ${h.admin_nome}</span>` : ''}
-        <div style="font-size:.82rem;margin-top:.15rem">
-          ${h.status_anterior ? `<span style="color:var(--text-muted)">${STATUS_LABELS[h.status_anterior] || h.status_anterior}</span> → ` : ''}
-          <strong>${STATUS_LABELS[h.status_novo] || h.status_novo}</strong>
-        </div>
-        ${h.campo_extra ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-top:.2rem;font-style:italic">"${h.campo_extra}"</div>` : ''}
+    <div style="padding:.5rem 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:.72rem;color:var(--text-muted)">${fmtData(h.timestamp)}</span>
+      ${h.admin_nome ? `<span style="font-size:.72rem;color:var(--text-secondary);margin-left:.4rem">por ${h.admin_nome}</span>` : ''}
+      <div style="font-size:.82rem;margin-top:.15rem">
+        ${h.status_anterior ? `<span style="color:var(--text-muted)">${STATUS_LABELS[h.status_anterior] || h.status_anterior}</span> → ` : ''}
+        <strong>${STATUS_LABELS[h.status_novo] || h.status_novo}</strong>
       </div>
-    </div>
-  `).join('');
+      ${h.campo_extra ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-top:.15rem;font-style:italic">"${h.campo_extra}"</div>` : ''}
+    </div>`).join('');
 
   const campoExtra = s.campo_extra ? `
     <div style="margin-top:.75rem;padding:.75rem;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
-      <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.3rem">
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.3rem">
         ${s.status === 'feita' ? 'Como foi implementado' : 'Justificativa da negação'}
       </div>
       <div style="font-size:.85rem">${s.campo_extra}</div>
-    </div>
-  ` : '';
+    </div>` : '';
 
   el.innerHTML = `
     <div style="padding:1.25rem 1.4rem;display:flex;flex-direction:column;gap:1.25rem">
 
-      <div>
-        <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.4rem">Usuário</div>
-        <div style="font-size:.9rem">${s.usuario_nome || '<em style="color:var(--text-muted)">Sugestão interna</em>'}</div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.3rem">Usuário</div>
+          <div style="font-size:.9rem">${s.usuario_nome || '<em style="color:var(--text-muted)">Sugestão interna</em>'}</div>
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.3rem">Criado em</div>
+          <div style="font-size:.85rem">${fmtData(s.criado_em)}</div>
+        </div>
       </div>
 
       <div>
-        <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.4rem">Sugestão</div>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.4rem">Sugestão</div>
         <div style="font-size:.88rem;line-height:1.6;white-space:pre-wrap">${s.texto}</div>
         ${campoExtra}
       </div>
 
       <div>
-        <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.5rem">Alterar status</div>
-        <form id="form-status" style="display:flex;flex-direction:column;gap:.6rem">
-          <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
-            <select class="form-control" id="sel-status" style="flex:1;min-width:160px">
-              ${Object.entries(STATUS_LABELS).map(([v, l]) => `<option value="${v}"${s.status === v ? ' selected' : ''}>${l}</option>`).join('')}
-            </select>
-            <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
-          </div>
-          <div id="campo-extra-wrap" style="display:none">
-            <label id="campo-extra-label" style="font-size:.8rem;font-weight:600;margin-bottom:.25rem;display:block"></label>
-            <textarea class="form-control" id="campo-extra-input" rows="3" maxlength="1000"></textarea>
-          </div>
-          <div id="msg-status" style="min-height:1.2rem"></div>
-        </form>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.5rem">Alterar status</div>
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+          <select class="form-control" id="sel-status" style="flex:1;min-width:160px">
+            ${Object.entries(STATUS_LABELS).map(([v, l]) => `<option value="${v}"${s.status === v ? ' selected' : ''}>${l}</option>`).join('')}
+          </select>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-salvar-status">Salvar</button>
+        </div>
+        <div id="msg-status" style="min-height:1rem;font-size:.8rem;margin-top:.3rem"></div>
       </div>
 
       <div>
-        <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.5rem">Histórico de status</div>
-        <div style="max-height:180px;overflow-y:auto">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.5rem">Histórico de status</div>
+        <div style="max-height:160px;overflow-y:auto">
           ${historico || '<div style="font-size:.82rem;color:var(--text-muted)">Sem histórico</div>'}
         </div>
       </div>
 
       <div>
-        <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.5rem">Chat com usuário</div>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.5rem">Chat com usuário</div>
         <div class="chat-wrap">
-          <div class="chat-msgs" id="chat-msgs-sug-${s.id}" style="min-height:120px;max-height:260px;overflow-y:auto">
-            <div class="chat-vazio" style="padding:1rem;text-align:center;color:var(--text-muted);font-size:.82rem">Carregando...</div>
+          <div class="chat-header">Conversa</div>
+          <div class="chat-messages" id="chat-msgs-sug-${s.id}">
+            <div class="chat-vazio">Carregando...</div>
           </div>
           ${s.usuario_id ? `
-          <form class="chat-form" id="chat-form-sug-${s.id}">
-            <div style="display:flex;gap:.4rem;margin-top:.5rem">
-              <input class="form-control" type="text" id="chat-input-sug-${s.id}" placeholder="Mensagem ao usuário..." maxlength="1000" style="flex:1">
-              <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
-            </div>
-            <div id="chat-err-sug-${s.id}" style="font-size:.78rem;color:var(--danger);min-height:1rem"></div>
-          </form>
-          ` : '<div style="font-size:.8rem;color:var(--text-muted);margin-top:.4rem">Sugestão interna — sem chat disponível</div>'}
+          <div class="chat-input-row" style="display:flex;gap:.4rem;padding:.5rem .75rem;background:#fff;border-top:1px solid var(--border)">
+            <input class="form-control" type="text" id="chat-input-sug-${s.id}" placeholder="Mensagem ao usuário..." maxlength="1000" style="flex:1;font-size:.85rem">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-chat-send-sug-${s.id}">Enviar</button>
+          </div>
+          <div id="chat-err-sug-${s.id}" style="font-size:.75rem;color:var(--danger);min-height:.9rem;padding:0 .75rem"></div>
+          ` : '<div style="font-size:.8rem;color:var(--text-muted);padding:.5rem .75rem">Sugestão interna — sem chat disponível</div>'}
         </div>
       </div>
 
     </div>
   `;
 
+  // ── Status: popup para feita/negada ────────────────────────
   const selStatus = document.getElementById('sel-status');
-  const campoWrap = document.getElementById('campo-extra-wrap');
-  const campoLabel = document.getElementById('campo-extra-label');
-  const campoInput = document.getElementById('campo-extra-input');
 
-  function atualizarCampoExtra() {
-    const v = selStatus.value;
-    if (STATUS_COM_CAMPO[v]) {
-      campoWrap.style.display = 'block';
-      campoLabel.textContent = STATUS_COM_CAMPO[v];
-      if (s.status === v && s.campo_extra) campoInput.value = s.campo_extra;
-      else if (s.status !== v) campoInput.value = '';
+  document.getElementById('btn-salvar-status').addEventListener('click', () => {
+    const novoStatus = selStatus.value;
+    if (STATUS_COM_CAMPO[novoStatus]) {
+      _abrirPopupCampoExtra(s.id, novoStatus, s.campo_extra || '');
     } else {
-      campoWrap.style.display = 'none';
-      campoInput.value = '';
+      _salvarStatus(s.id, novoStatus, null);
     }
-  }
-  atualizarCampoExtra();
-  selStatus.addEventListener('change', atualizarCampoExtra);
-
-  document.getElementById('form-status').addEventListener('submit', async e => {
-    e.preventDefault();
-    const msgEl = document.getElementById('msg-status');
-    const btn = e.target.querySelector('[type=submit]');
-    btn.disabled = true;
-    const payload = { status: selStatus.value };
-    if (STATUS_COM_CAMPO[selStatus.value]) payload.campo_extra = campoInput.value.trim();
-    try {
-      const r = await apiFetch(`/api/sugestoes/admin/${s.id}/status`, { method: 'PATCH', body: JSON.stringify(payload) });
-      const d = await r.json();
-      if (r.ok) {
-        showToast('Status atualizado');
-        await carregarSugestoes();
-        await abrirDetalhe(s.id);
-      } else {
-        msgEl.innerHTML = `<span style="color:var(--danger)">${d.erro}</span>`;
-      }
-    } catch { msgEl.innerHTML = '<span style="color:var(--danger)">Erro de conexão</span>'; }
-    finally { btn.disabled = false; }
   });
 
+  // ── Chat ───────────────────────────────────────────────────
   if (s.usuario_id) {
-    const chatForm = document.getElementById(`chat-form-sug-${s.id}`);
     const chatInput = document.getElementById(`chat-input-sug-${s.id}`);
-    chatForm.addEventListener('submit', async e => {
-      e.preventDefault();
+    const sendBtn = document.getElementById(`btn-chat-send-sug-${s.id}`);
+    const errEl = document.getElementById(`chat-err-sug-${s.id}`);
+
+    async function enviarMsg() {
       const texto = chatInput.value.trim();
       if (!texto) return;
-      const btn = chatForm.querySelector('[type=submit]');
-      btn.disabled = true;
+      sendBtn.disabled = true; errEl.textContent = '';
       try {
         const r = await apiFetch(`/api/sugestoes/admin/${s.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
         if (r.ok) { chatInput.value = ''; _atualizarChat(s.id); }
-        else { document.getElementById(`chat-err-sug-${s.id}`).textContent = 'Erro ao enviar.'; }
-      } catch { document.getElementById(`chat-err-sug-${s.id}`).textContent = 'Erro de conexão.'; }
-      finally { btn.disabled = false; chatInput.focus(); }
+        else { const d = await r.json().catch(() => ({})); errEl.textContent = d.erro || 'Erro ao enviar.'; }
+      } catch { errEl.textContent = 'Erro de conexão.'; }
+      finally { sendBtn.disabled = false; chatInput.focus(); }
+    }
+
+    sendBtn.addEventListener('click', enviarMsg);
+    chatInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); enviarMsg(); }
     });
   }
+}
+
+function _abrirPopupCampoExtra(sugId, status, valorAtual) {
+  let overlay = document.getElementById('modal-campo-extra-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modal-campo-extra-overlay';
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" style="max-width:420px">
+        <div class="modal-header">
+          <h2 id="modal-ce-title"></h2>
+          <button class="modal-close" id="btn-fechar-ce">&#x2715;</button>
+        </div>
+        <div class="modal-body" style="padding:1.25rem 1.4rem">
+          <textarea class="form-control" id="ce-input" rows="5" maxlength="1000" style="width:100%;resize:vertical"></textarea>
+          <div id="ce-msg" style="min-height:1rem;font-size:.8rem;margin-top:.4rem"></div>
+          <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.75rem">
+            <button class="btn btn-secondary btn-sm" id="btn-ce-cancelar">Cancelar</button>
+            <button class="btn btn-primary btn-sm" id="btn-ce-confirmar">Confirmar</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('btn-fechar-ce').addEventListener('click', () => overlay.classList.remove('open'));
+    document.getElementById('btn-ce-cancelar').addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  }
+
+  document.getElementById('modal-ce-title').textContent = STATUS_COM_CAMPO[status];
+  const input = document.getElementById('ce-input');
+  input.value = valorAtual || '';
+  input.placeholder = status === 'feita' ? 'Descreva como foi implementado...' : 'Justifique a negação...';
+  document.getElementById('ce-msg').textContent = '';
+  overlay.classList.add('open');
+  setTimeout(() => input.focus(), 80);
+
+  const btnConf = document.getElementById('btn-ce-confirmar');
+  const novoBtn = btnConf.cloneNode(true);
+  btnConf.replaceWith(novoBtn);
+
+  novoBtn.addEventListener('click', async () => {
+    const valor = input.value.trim();
+    if (!valor) { document.getElementById('ce-msg').innerHTML = '<span style="color:var(--danger)">Campo obrigatório.</span>'; return; }
+    novoBtn.disabled = true;
+    await _salvarStatus(sugId, status, valor);
+    overlay.classList.remove('open');
+    novoBtn.disabled = false;
+  });
+}
+
+async function _salvarStatus(sugId, status, campo_extra) {
+  const msgEl = document.getElementById('msg-status');
+  const payload = { status };
+  if (campo_extra) payload.campo_extra = campo_extra;
+  try {
+    const r = await apiFetch(`/api/sugestoes/admin/${sugId}/status`, { method: 'PATCH', body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (r.ok) {
+      showToast('Status atualizado');
+      await carregarSugestoes();
+      await abrirDetalhe(sugId);
+    } else {
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--danger)">${d.erro}</span>`;
+    }
+  } catch { if (msgEl) msgEl.innerHTML = '<span style="color:var(--danger)">Erro de conexão</span>'; }
 }
 
 function _renderMsgChat(m) {
@@ -289,7 +327,7 @@ async function _atualizarChat(sugestaoId) {
 
     if (!msgs.length) {
       if (!box.querySelector('[data-msg-id]'))
-        box.innerHTML = '<div class="chat-vazio" style="padding:1rem;text-align:center;color:var(--text-muted);font-size:.82rem">Nenhuma mensagem ainda.</div>';
+        box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem ainda.</div>';
       return;
     }
 

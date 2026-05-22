@@ -1854,9 +1854,12 @@ function buscarSugestaoPorId(id) {
 }
 
 function listarSugestoesPorUsuario(usuario_id) {
-  return getDb().prepare(
-    'SELECT * FROM sugestoes WHERE usuario_id = ? ORDER BY criado_em DESC'
-  ).all(usuario_id);
+  return getDb().prepare(`
+    SELECT * FROM sugestoes WHERE usuario_id = ?
+    ORDER BY
+      CASE WHEN status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
+      criado_em DESC
+  `).all(usuario_id);
 }
 
 function listarSugestoesAdmin({ status, usuario_id } = {}) {
@@ -1864,7 +1867,9 @@ function listarSugestoesAdmin({ status, usuario_id } = {}) {
   const params = [];
   if (status) { sql += ' AND status = ?'; params.push(status); }
   if (usuario_id) { sql += ' AND usuario_id = ?'; params.push(usuario_id); }
-  sql += ' ORDER BY criado_em DESC';
+  sql += ` ORDER BY
+    CASE WHEN status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
+    criado_em DESC`;
   return getDb().prepare(sql).all(...params);
 }
 
