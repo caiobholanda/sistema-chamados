@@ -96,6 +96,7 @@ router.get('/admin', requireAdmin, (req, res) => {
     const filtros = {
       status: req.query.status || '',
       usuario_id: req.query.usuario_id ? parseInt(req.query.usuario_id, 10) : null,
+      busca: (req.query.busca || '').trim(),
     };
     return res.json(db.listarSugestoesAdmin(filtros));
   } catch (err) {

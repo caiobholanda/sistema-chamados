@@ -571,30 +571,73 @@ function renderPainel(usuario) {
   // ── Aba Sugestões ──────────────────────────────────────────
   let _sugestoesUsuario = [];
   let _chatSugIntervals = new Map();
-
-  async function _carregarSugestoesUsuario() {
-    try {
-      const r = await apiFetch('/api/sugestoes/minhas');
-      if (!r.ok) return;
-      _sugestoesUsuario = await r.json();
-      const badge = document.getElementById('badge-sugestoes-u');
-      if (badge) badge.textContent = _sugestoesUsuario.length || '';
-      if (abaAtiva === 'sugestoes') _renderSugestoesUsuario(_sugestoesUsuario);
-    } catch {}
-  }
+  let _sugFiltroStatus = '';
+  let _sugBusca = '';
+  let _sugHash = null;
+  let _sugRefreshInterval = null;
 
   const SUGH_LABELS = { enviada: 'Enviada', em_analise: 'Em Análise', em_producao: 'Em Produção', feita: 'Feita', negada: 'Negada' };
 
+  async function _carregarSugestoesUsuario(silencioso = false) {
+    try {
+      const r = await apiFetch('/api/sugestoes/minhas');
+      if (!r.ok) return;
+      const lista = await r.json();
+
+      if (silencioso) {
+        const novoHash = JSON.stringify(lista.map(s => [s.id, s.status, s.campo_extra, s.atualizado_em]));
+        if (novoHash === _sugHash) return;
+        _sugHash = novoHash;
+      } else {
+        _sugHash = null;
+      }
+
+      _sugestoesUsuario = lista;
+      const badgeEl = document.getElementById('badge-sugestoes-u');
+      if (badgeEl) {
+        const ativas = lista.filter(s => !['feita','negada'].includes(s.status)).length;
+        badgeEl.textContent = ativas || '';
+      }
+      if (abaAtiva === 'sugestoes') _renderSugestoesUsuario(_filtrarSugestoes(lista));
+    } catch {}
+  }
+
+  function _filtrarSugestoes(lista) {
+    let r = lista;
+    if (_sugFiltroStatus) r = r.filter(s => s.status === _sugFiltroStatus);
+    if (_sugBusca) { const b = _sugBusca.toLowerCase(); r = r.filter(s => s.texto.toLowerCase().includes(b)); }
+    return r;
+  }
+
   function _renderSugestoesUsuario(lista) {
     const el = document.getElementById('lista-usuario');
+    const totalAtivas = _sugestoesUsuario.filter(s => !['feita','negada'].includes(s.status)).length;
+
+    const controles = `
+      <div class="filtros-card" style="margin-bottom:.75rem">
+        <div class="filtros" style="gap:.5rem">
+          <input class="form-control" type="search" id="sug-busca-u" placeholder="Buscar nas sugestões..." style="flex:1;min-width:180px" value="${_sugBusca}">
+        </div>
+        <div class="tabs-bar" style="margin-top:.6rem;border-top:1px solid var(--border);padding-top:.6rem">
+          <button class="tab-btn${!_sugFiltroStatus ? ' ativo' : ''}" data-sf="">Todas <span class="tab-badge">${_sugestoesUsuario.length || ''}</span></button>
+          <button class="tab-btn${_sugFiltroStatus === 'enviada' ? ' ativo' : ''}" data-sf="enviada">Enviada</button>
+          <button class="tab-btn${_sugFiltroStatus === 'em_analise' ? ' ativo' : ''}" data-sf="em_analise">Em Análise</button>
+          <button class="tab-btn${_sugFiltroStatus === 'em_producao' ? ' ativo' : ''}" data-sf="em_producao">Em Produção</button>
+          <button class="tab-btn${_sugFiltroStatus === 'feita' ? ' ativo' : ''}" data-sf="feita">Feita</button>
+          <button class="tab-btn${_sugFiltroStatus === 'negada' ? ' ativo' : ''}" data-sf="negada">Negada</button>
+        </div>
+      </div>
+    `;
+
     if (!lista.length) {
-      el.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:.88rem">
-        Você ainda não enviou nenhuma sugestão.<br>
-        <button class="btn btn-secondary btn-sm" style="margin-top:.75rem" onclick="document.getElementById('btn-nova-sugestao-u').click()">💡 Enviar primeira sugestão</button>
+      el.innerHTML = controles + `<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:.88rem">
+        ${_sugestoesUsuario.length ? 'Nenhuma sugestão corresponde ao filtro.' : 'Você ainda não enviou nenhuma sugestão.'}<br>
+        ${!_sugestoesUsuario.length ? `<button class="btn btn-secondary btn-sm" style="margin-top:.75rem" onclick="document.getElementById('btn-nova-sugestao-u').click()">💡 Enviar primeira sugestão</button>` : ''}
       </div>`;
+      _bindControlesSug(el);
       return;
     }
-    el.innerHTML = lista.map(s => {
+    el.innerHTML = controles + lista.map(s => {
       const statusLabel = SUGH_LABELS[s.status] || s.status;
       const fechado = s.status === 'feita' || s.status === 'negada';
       const campoExtraLabel = s.status === 'feita' ? 'Como foi implementado' : s.status === 'negada' ? 'Justificativa' : '';
@@ -630,6 +673,8 @@ function renderPainel(usuario) {
       `;
     }).join('');
 
+    _bindControlesSug(el);
+
     lista.forEach(s => {
       const chatInput = document.getElementById(`chat-input-sug-u-${s.id}`);
       const sendBtn = el.querySelector(`.btn-chat-send-sug[data-sug-id="${s.id}"]`);
@@ -663,6 +708,26 @@ function renderPainel(usuario) {
         _chatSugIntervals.set(s.id, setInterval(() => _atualizarChatSugUsuario(s.id), 6000));
       }
     });
+  }
+
+  function _bindControlesSug(container) {
+    container.querySelectorAll('[data-sf]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        _sugFiltroStatus = btn.dataset.sf;
+        _renderSugestoesUsuario(_filtrarSugestoes(_sugestoesUsuario));
+      });
+    });
+    const buscaInput = container.querySelector('#sug-busca-u');
+    if (buscaInput) {
+      let _debounce;
+      buscaInput.addEventListener('input', () => {
+        clearTimeout(_debounce);
+        _debounce = setTimeout(() => {
+          _sugBusca = buscaInput.value.trim();
+          _renderSugestoesUsuario(_filtrarSugestoes(_sugestoesUsuario));
+        }, 350);
+      });
+    }
   }
 
   function _renderMsgSugUsr(m) {
@@ -744,6 +809,14 @@ function renderPainel(usuario) {
     } catch { document.getElementById('modal-hist-sug-body').innerHTML = '<div style="color:var(--danger);font-size:.82rem">Erro ao carregar.</div>'; }
   }
 
+  function _pararSugRefresh() {
+    if (_sugRefreshInterval) { clearInterval(_sugRefreshInterval); _sugRefreshInterval = null; }
+  }
+  function _iniciarSugRefresh() {
+    _pararSugRefresh();
+    _sugRefreshInterval = setInterval(() => _carregarSugestoesUsuario(true), 8000);
+  }
+
   document.getElementById('tab-abertos').addEventListener('click', () => {
     abaAtiva = 'abertos';
     document.getElementById('tab-abertos').classList.add('ativo');
@@ -751,6 +824,7 @@ function renderPainel(usuario) {
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
     document.getElementById('tab-sugestoes-u').classList.remove('ativo');
     _chatSugIntervals.forEach(iv => clearInterval(iv)); _chatSugIntervals.clear();
+    _pararSugRefresh();
     renderListaChamados(todosChamados, abaAtiva);
   });
 
@@ -761,6 +835,7 @@ function renderPainel(usuario) {
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
     document.getElementById('tab-sugestoes-u').classList.remove('ativo');
     _chatSugIntervals.forEach(iv => clearInterval(iv)); _chatSugIntervals.clear();
+    _pararSugRefresh();
     renderListaChamados(todosChamados, abaAtiva);
   });
 
@@ -771,6 +846,7 @@ function renderPainel(usuario) {
     document.getElementById('tab-encerrados').classList.remove('ativo');
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
     _carregarSugestoesUsuario();
+    _iniciarSugRefresh();
   });
 
   const _ativarCancelados = () => {
@@ -780,6 +856,7 @@ function renderPainel(usuario) {
     document.getElementById('tab-encerrados').classList.remove('ativo');
     document.getElementById('tab-sugestoes-u').classList.remove('ativo');
     _chatSugIntervals.forEach(iv => clearInterval(iv)); _chatSugIntervals.clear();
+    _pararSugRefresh();
     renderListaChamados(todosChamados, abaAtiva);
   };
   document.getElementById('tab-cancelados-u').addEventListener('click', _ativarCancelados);

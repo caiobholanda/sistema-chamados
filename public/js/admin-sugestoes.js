@@ -9,7 +9,11 @@ const STATUS_COM_CAMPO = { feita: 'Como foi implementado', negada: 'Justificativ
 
 let _sugestaoAtiva = null;
 let _chatInterval = null;
+let _statusInterval = null;
+let _listaInterval = null;
 let _todosUsuarios = [];
+let _statusFiltro = '';
+let _listaHash = null;
 
 function fmtData(d) {
   if (!d) return '—';
@@ -57,17 +61,50 @@ async function carregarUsuarios() {
   } catch {}
 }
 
-async function carregarSugestoes() {
-  const status = document.getElementById('filtro-status').value;
+async function carregarSugestoes(silencioso = false) {
+  const busca = (document.getElementById('filtro-busca')?.value || '').trim();
   const usuario_id = document.getElementById('filtro-usuario').value;
   const params = new URLSearchParams();
-  if (status) params.set('status', status);
+  if (_statusFiltro) params.set('status', _statusFiltro);
   if (usuario_id) params.set('usuario_id', usuario_id);
+  if (busca) params.set('busca', busca);
 
-  const r = await apiFetch('/api/sugestoes/admin?' + params.toString());
-  if (!r.ok) { if (r.status === 401) location.replace('/admin-login.html'); return; }
-  const lista = await r.json();
-  renderLista(lista);
+  try {
+    const r = await apiFetch('/api/sugestoes/admin?' + params.toString());
+    if (!r.ok) { if (r.status === 401) location.replace('/admin-login.html'); return; }
+    const lista = await r.json();
+
+    if (silencioso) {
+      const novoHash = JSON.stringify(lista.map(s => [s.id, s.status, s.atualizado_em, s.campo_extra]));
+      if (novoHash === _listaHash) return;
+      _listaHash = novoHash;
+    } else {
+      _listaHash = null;
+    }
+
+    _atualizarContadores(lista);
+    renderLista(lista);
+
+    // Atualiza badge do modal aberto se o status mudou
+    if (_sugestaoAtiva) {
+      const atualizado = lista.find(s => s.id === _sugestaoAtiva.id);
+      if (atualizado && (atualizado.status !== _sugestaoAtiva.status || atualizado.campo_extra !== _sugestaoAtiva.campo_extra)) {
+        _sugestaoAtiva = { ..._sugestaoAtiva, ...atualizado };
+        document.getElementById('modal-detalhe-title').innerHTML = `Sugestão #${_sugestaoAtiva.id} ${badge(_sugestaoAtiva.status)}`;
+        const selStatus = document.getElementById('sel-status');
+        if (selStatus) selStatus.value = _sugestaoAtiva.status;
+      }
+    }
+  } catch {}
+}
+
+function _atualizarContadores(lista) {
+  const tots = { '': lista.length };
+  ['enviada','em_analise','em_producao','feita','negada'].forEach(s => { tots[s] = lista.filter(x => x.status === s).length; });
+  Object.entries(tots).forEach(([s, n]) => {
+    const el = document.getElementById(`cnt-${s || 'todas'}`);
+    if (el) el.textContent = n || '';
+  });
 }
 
 function renderLista(lista) {
@@ -113,6 +150,7 @@ function renderLista(lista) {
 
 async function abrirDetalhe(id) {
   if (_chatInterval) { clearInterval(_chatInterval); _chatInterval = null; }
+  if (_statusInterval) { clearInterval(_statusInterval); _statusInterval = null; }
 
   const r = await apiFetch(`/api/sugestoes/admin/${id}`);
   if (!r.ok) return;
@@ -121,6 +159,17 @@ async function abrirDetalhe(id) {
   document.getElementById('modal-detalhe-overlay').classList.add('open');
   _atualizarChat(id);
   _chatInterval = setInterval(() => _atualizarChat(id), 6000);
+  _statusInterval = setInterval(async () => {
+    const rr = await apiFetch(`/api/sugestoes/admin/${id}`);
+    if (!rr.ok || !_sugestaoAtiva) return;
+    const novo = await rr.json();
+    if (novo.status !== _sugestaoAtiva.status || novo.campo_extra !== _sugestaoAtiva.campo_extra) {
+      _sugestaoAtiva = novo;
+      document.getElementById('modal-detalhe-title').innerHTML = `Sugestão #${novo.id} ${badge(novo.status)}`;
+      const selStatus = document.getElementById('sel-status');
+      if (selStatus) selStatus.value = novo.status;
+    }
+  }, 8000);
 }
 
 function renderDetalhe(s) {
@@ -348,6 +397,7 @@ async function _atualizarChat(sugestaoId) {
 
 function fecharDetalhe() {
   if (_chatInterval) { clearInterval(_chatInterval); _chatInterval = null; }
+  if (_statusInterval) { clearInterval(_statusInterval); _statusInterval = null; }
   _sugestaoAtiva = null;
   document.getElementById('modal-detalhe-overlay').classList.remove('open');
 }
@@ -359,13 +409,37 @@ async function init() {
   await carregarUsuarios();
   await carregarSugestoes();
 
-  document.getElementById('btn-filtrar').addEventListener('click', carregarSugestoes);
-  document.getElementById('btn-atualizar').addEventListener('click', carregarSugestoes);
-  document.getElementById('btn-limpar').addEventListener('click', () => {
-    document.getElementById('filtro-status').value = '';
-    document.getElementById('filtro-usuario').value = '';
+  // Status tabs
+  document.getElementById('status-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('[data-status]');
+    if (!btn) return;
+    _statusFiltro = btn.dataset.status;
+    document.querySelectorAll('#status-tabs .tab-btn').forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    _listaHash = null;
     carregarSugestoes();
   });
+
+  // Busca: filtrar ao digitar (debounce 350ms)
+  let _buscaTimer = null;
+  document.getElementById('filtro-busca').addEventListener('input', () => {
+    clearTimeout(_buscaTimer);
+    _buscaTimer = setTimeout(() => { _listaHash = null; carregarSugestoes(); }, 350);
+  });
+  document.getElementById('filtro-usuario').addEventListener('change', () => { _listaHash = null; carregarSugestoes(); });
+
+  document.getElementById('btn-limpar').addEventListener('click', () => {
+    document.getElementById('filtro-busca').value = '';
+    document.getElementById('filtro-usuario').value = '';
+    _statusFiltro = '';
+    document.querySelectorAll('#status-tabs .tab-btn').forEach(b => b.classList.remove('ativo'));
+    document.querySelector('#status-tabs .tab-btn').classList.add('ativo');
+    _listaHash = null;
+    carregarSugestoes();
+  });
+
+  // Polling lista em tempo real
+  _listaInterval = setInterval(() => carregarSugestoes(true), 8000);
 
   document.getElementById('btn-fechar-detalhe').addEventListener('click', fecharDetalhe);
   document.getElementById('modal-detalhe-overlay').addEventListener('click', e => {

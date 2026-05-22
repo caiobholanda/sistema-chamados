@@ -30,21 +30,20 @@
 
   <div class="filtros-card">
     <div class="filtros">
-      <select class="form-control" id="filtro-status" aria-label="Status">
-        <option value="">Todos os status</option>
-        <option value="enviada">Enviada</option>
-        <option value="em_analise">Em Análise</option>
-        <option value="em_producao">Em Produção</option>
-        <option value="feita">Feita</option>
-        <option value="negada">Negada</option>
-      </select>
-      <select class="form-control" id="filtro-usuario" aria-label="Usuário">
+      <input class="form-control" type="search" id="filtro-busca" placeholder="Buscar por usuário, texto da sugestão…" style="min-width:220px;flex:1" aria-label="Buscar sugestões">
+      <select class="form-control" id="filtro-usuario" aria-label="Usuário" style="min-width:160px">
         <option value="">Todos os usuários</option>
       </select>
-      <button class="btn btn-primary btn-sm" id="btn-filtrar">Filtrar</button>
       <button class="btn btn-secondary btn-sm" id="btn-limpar">Limpar</button>
-      <button class="btn btn-secondary btn-sm" id="btn-atualizar" title="Atualizar">&#8635;</button>
       <button class="btn btn-primary btn-sm" id="btn-nova-sugestao" style="margin-left:auto">+ Nova Sugestão</button>
+    </div>
+    <div class="tabs-bar" id="status-tabs" style="margin-top:.75rem;border-top:1px solid var(--border);padding-top:.75rem">
+      <button class="tab-btn ativo" data-status="">Todas <span class="tab-badge" id="cnt-todas"></span></button>
+      <button class="tab-btn" data-status="enviada">Enviada <span class="tab-badge" id="cnt-enviada"></span></button>
+      <button class="tab-btn" data-status="em_analise">Em Análise <span class="tab-badge" id="cnt-em_analise"></span></button>
+      <button class="tab-btn" data-status="em_producao">Em Produção <span class="tab-badge" id="cnt-em_producao"></span></button>
+      <button class="tab-btn" data-status="feita">Feita <span class="tab-badge" id="cnt-feita"></span></button>
+      <button class="tab-btn" data-status="negada">Negada <span class="tab-badge" id="cnt-negada"></span></button>
     </div>
   </div>
 

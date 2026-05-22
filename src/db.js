@@ -1862,11 +1862,12 @@ function listarSugestoesPorUsuario(usuario_id) {
   `).all(usuario_id);
 }
 
-function listarSugestoesAdmin({ status, usuario_id } = {}) {
+function listarSugestoesAdmin({ status, usuario_id, busca } = {}) {
   let sql = 'SELECT * FROM sugestoes WHERE 1=1';
   const params = [];
   if (status) { sql += ' AND status = ?'; params.push(status); }
   if (usuario_id) { sql += ' AND usuario_id = ?'; params.push(usuario_id); }
+  if (busca) { const b = `%${busca}%`; sql += ' AND (usuario_nome LIKE ? OR texto LIKE ?)'; params.push(b, b); }
   sql += ` ORDER BY
     CASE WHEN status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
     criado_em DESC`;
