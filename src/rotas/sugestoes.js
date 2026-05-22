@@ -54,7 +54,7 @@ router.get('/:id/mensagens', requireUsuario, (req, res) => {
   }
 });
 
-router.get('/:id', requireUsuario, (req, res) => {
+router.get('/:id(\\d+)', requireUsuario, (req, res) => {
   try {
     const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
     if (!s) return res.status(404).json({ erro: 'Sugestão não encontrada' });
