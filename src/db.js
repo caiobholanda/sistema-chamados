@@ -139,6 +139,7 @@ function initDb() {
   try { db.exec("ALTER TABLE equipamentos_historico ADD COLUMN chamado_id INTEGER DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN cancelamento_motivo TEXT"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN cancelado_em DATETIME"); } catch {}
+  try { db.exec("ALTER TABLE push_subscriptions ADD COLUMN app_origin TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_path TEXT"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
@@ -744,6 +745,14 @@ function seedEstoque() {
     inserirImpressoras(SEED_IMPRESSORAS);
     console.log(`[DB] Impressoras: ${SEED_IMPRESSORAS.length} registros de seed inseridos.`);
   }
+
+  // One-time: limpar subscrições sem app_origin (eram de Railway/origem desconhecida)
+  const pushClear = db.prepare("SELECT valor FROM config WHERE chave = 'push_origin_migration_v1'").get();
+  if (!pushClear) {
+    db.prepare('DELETE FROM push_subscriptions').run();
+    db.prepare("INSERT OR REPLACE INTO config (chave, valor) VALUES ('push_origin_migration_v1', '1')").run();
+    console.log('[Push] Migração: subscriptions antigas removidas. Admins devem reativar notificações.');
+  }
 }
 
 // ── Inventário de Micros ──────────────────────────────────
@@ -916,11 +925,11 @@ function deletarImpressora(id) {
   getDb().prepare('DELETE FROM impressoras WHERE id = ?').run(id);
 }
 
-function salvarPushSubscription(adminId, { endpoint, p256dh, auth, is_mobile }) {
+function salvarPushSubscription(adminId, { endpoint, p256dh, auth, is_mobile, app_origin }) {
   getDb().prepare(`
-    INSERT OR REPLACE INTO push_subscriptions (admin_id, endpoint, p256dh, auth, is_mobile)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(adminId, endpoint, p256dh, auth, is_mobile ? 1 : 0);
+    INSERT OR REPLACE INTO push_subscriptions (admin_id, endpoint, p256dh, auth, is_mobile, app_origin)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(adminId, endpoint, p256dh, auth, is_mobile ? 1 : 0, app_origin || '');
 }
 
 function removerPushSubscription(adminId, endpoint) {

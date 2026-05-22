@@ -543,7 +543,7 @@ router.post('/push/subscribe', requireAdmin, (req, res) => {
     if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
       return res.status(400).json({ erro: 'Dados de subscription inválidos' });
     }
-    db.salvarPushSubscription(req.admin.sub, { endpoint, p256dh: keys.p256dh, auth: keys.auth, is_mobile: !!is_mobile });
+    db.salvarPushSubscription(req.admin.sub, { endpoint, p256dh: keys.p256dh, auth: keys.auth, is_mobile: !!is_mobile, app_origin: req.headers.origin || '' });
     return res.json({ mensagem: 'Inscrito' });
   } catch (err) {
     console.error(err);
@@ -569,6 +569,7 @@ router.post('/push/resubscribe', requireAdmin, (req, res) => {
       p256dh: newSubscription.keys.p256dh,
       auth: newSubscription.keys.auth,
       is_mobile: !!is_mobile,
+      app_origin: req.headers.origin || '',
     });
     console.log('[Push] Re-inscrição registrada (admin', req.admin.sub, ', mobile=' + (is_mobile?1:0) + ')');
     return res.json({ mensagem: 'Re-inscrito' });

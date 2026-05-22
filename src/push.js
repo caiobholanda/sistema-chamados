@@ -50,6 +50,13 @@ function getPublicKey() {
   return _publicKey;
 }
 
+function getAppOrigin() {
+  if (process.env.APP_ORIGIN) return process.env.APP_ORIGIN;
+  if (process.env.FLY_APP_NAME) return `https://${process.env.FLY_APP_NAME}.fly.dev`;
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  return null;
+}
+
 async function _enviar(sub, payload) {
   try {
     await webpush.sendNotification(
@@ -81,7 +88,10 @@ async function _enviar(sub, payload) {
 
 async function enviarParaAdmin(adminId, titulo, corpo, url) {
   if (!initialized) init();
-  const subs = db.getDb().prepare('SELECT * FROM push_subscriptions WHERE admin_id = ?').all(adminId);
+  const origin = getAppOrigin();
+  const subs = origin
+    ? db.getDb().prepare('SELECT * FROM push_subscriptions WHERE admin_id = ? AND app_origin = ?').all(adminId, origin)
+    : db.getDb().prepare('SELECT * FROM push_subscriptions WHERE admin_id = ?').all(adminId);
   for (const sub of subs) {
     const targetUrl = sub.is_mobile ? '/mobile' : (url || '/admin-painel.html');
     await _enviar(sub, { title: titulo, body: corpo, url: targetUrl });
@@ -90,7 +100,10 @@ async function enviarParaAdmin(adminId, titulo, corpo, url) {
 
 async function enviarParaTodos(titulo, corpo, url) {
   if (!initialized) init();
-  const subs = db.getDb().prepare('SELECT * FROM push_subscriptions').all();
+  const origin = getAppOrigin();
+  const subs = origin
+    ? db.getDb().prepare('SELECT * FROM push_subscriptions WHERE app_origin = ?').all(origin)
+    : db.getDb().prepare('SELECT * FROM push_subscriptions').all();
   for (const sub of subs) {
     const targetUrl = sub.is_mobile ? '/mobile' : (url || '/admin-painel.html');
     await _enviar(sub, { title: titulo, body: corpo, url: targetUrl });
