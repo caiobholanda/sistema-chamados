@@ -1859,7 +1859,12 @@ function buscarSugestaoPorId(id) {
 function listarSugestoesPorUsuario(usuario_id) {
   return getDb().prepare(`
     SELECT s.*,
-      (SELECT COUNT(*) FROM sugestao_mensagens WHERE sugestao_id = s.id AND autor_tipo = 'admin' AND lida_usuario = 0) AS msgs_nao_lidas_usuario
+      COALESCE(
+        (SELECT json_group_array(json_object('id', m.id, 'autor_tipo', m.autor_tipo,
+          'autor_nome', m.autor_nome, 'mensagem', m.mensagem, 'criado_em', m.criado_em))
+         FROM sugestao_mensagens m WHERE m.sugestao_id = s.id ORDER BY m.criado_em ASC),
+        '[]'
+      ) AS mensagens_json
     FROM sugestoes s WHERE s.usuario_id = ?
     ORDER BY
       CASE WHEN s.status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
@@ -1868,9 +1873,13 @@ function listarSugestoesPorUsuario(usuario_id) {
 }
 
 function listarSugestoesAdmin({ status, usuario_id, busca } = {}) {
-  let sql = `SELECT s.*,
-    (SELECT COUNT(*) FROM sugestao_mensagens WHERE sugestao_id = s.id AND autor_tipo = 'usuario' AND lida_admin = 0) AS msgs_nao_lidas
-    FROM sugestoes s WHERE 1=1`;
+  let sql = `SELECT s.*, COALESCE(mc.cnt, 0) AS msgs_nao_lidas
+    FROM sugestoes s
+    LEFT JOIN (
+      SELECT sugestao_id, COUNT(*) AS cnt FROM sugestao_mensagens
+      WHERE autor_tipo = 'usuario' AND lida_admin = 0 GROUP BY sugestao_id
+    ) mc ON mc.sugestao_id = s.id
+    WHERE 1=1`;
   const params = [];
   if (status) { sql += ' AND s.status = ?'; params.push(status); }
   if (usuario_id) { sql += ' AND s.usuario_id = ?'; params.push(usuario_id); }

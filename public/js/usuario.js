@@ -570,7 +570,6 @@ function renderPainel(usuario) {
 
   // ── Aba Sugestões ──────────────────────────────────────────
   let _sugestoesUsuario = [];
-  let _chatSugIntervals = new Map();
   let _sugHash = null;
   let _sugRefreshInterval = null;
 
@@ -581,23 +580,55 @@ function renderPainel(usuario) {
       const r = await apiFetch('/api/sugestoes/minhas');
       if (!r.ok) return;
       const lista = await r.json();
+      lista.forEach(s => { s.mensagens = JSON.parse(s.mensagens_json || '[]'); });
 
       if (silencioso) {
-        const novoHash = JSON.stringify(lista.map(s => [s.id, s.status, s.campo_extra, s.atualizado_em]));
+        const novoHash = JSON.stringify(lista.map(s => [s.id, s.status, s.campo_extra, s.atualizado_em, s.mensagens.at?.(-1)?.id]));
         if (novoHash === _sugHash) return;
         _sugHash = novoHash;
-      } else {
-        _sugHash = null;
+        _sugestoesUsuario = lista;
+        const badgeEl = document.getElementById('badge-sugestoes-u');
+        if (badgeEl) { const a = lista.filter(s => !['feita','negada'].includes(s.status)).length; badgeEl.textContent = a || ''; }
+        if (abaAtiva === 'sugestoes') _atualizarSilencioso(lista);
+        return;
       }
 
+      _sugHash = null;
       _sugestoesUsuario = lista;
       const badgeEl = document.getElementById('badge-sugestoes-u');
-      if (badgeEl) {
-        const ativas = lista.filter(s => !['feita','negada'].includes(s.status)).length;
-        badgeEl.textContent = ativas || '';
-      }
+      if (badgeEl) { const a = lista.filter(s => !['feita','negada'].includes(s.status)).length; badgeEl.textContent = a || ''; }
       if (abaAtiva === 'sugestoes') _renderSugestoesUsuario(lista);
     } catch {}
+  }
+
+  function _renderChatEmBox(box, mensagens) {
+    if (!mensagens.length) {
+      if (!box.querySelector('[data-msg-id]'))
+        box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem ainda. Escreva para o suporte!</div>';
+      return;
+    }
+    const vazio = box.querySelector('.chat-vazio');
+    if (vazio) vazio.remove();
+    const rendered = new Set([...box.querySelectorAll('[data-msg-id]')].map(el => +el.dataset.msgId));
+    const novas = mensagens.filter(m => !rendered.has(m.id));
+    if (!novas.length) return;
+    const atFundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = novas.map(_renderMsgSugUsr).join('');
+    while (tmp.firstChild) box.appendChild(tmp.firstChild);
+    if (atFundo) box.scrollTop = box.scrollHeight;
+  }
+
+  function _atualizarSilencioso(lista) {
+    lista.forEach(s => {
+      const box = document.getElementById(`chat-msgs-sug-u-${s.id}`);
+      if (box) _renderChatEmBox(box, s.mensagens);
+      const card = document.querySelector(`[data-sug-id="${s.id}"]`);
+      if (card) {
+        const b = card.querySelector('.badge');
+        if (b) { b.className = `badge badge-${s.status}`; b.textContent = SUGH_LABELS[s.status] || s.status; }
+      }
+    });
   }
 
   function _renderSugestoesUsuario(lista) {
@@ -633,9 +664,7 @@ function renderPainel(usuario) {
           ${campoExtra}
           <div class="chat-wrap" style="margin-top:.85rem">
             <div class="chat-header">Chat com suporte</div>
-            <div class="chat-messages" id="chat-msgs-sug-u-${s.id}">
-              <div class="chat-vazio">Carregando...</div>
-            </div>
+            <div class="chat-messages" id="chat-msgs-sug-u-${s.id}"></div>
             <div class="chat-input-row" style="display:flex;gap:.4rem;padding:.5rem .75rem;background:#fff;border-top:1px solid var(--border)">
               <input class="form-control" type="text" id="chat-input-sug-u-${s.id}" placeholder="Escreva uma mensagem..." maxlength="1000" style="flex:1;font-size:.85rem">
               <button type="button" class="btn btn-primary btn-sm btn-chat-send-sug" data-sug-id="${s.id}">Enviar</button>
@@ -647,6 +676,9 @@ function renderPainel(usuario) {
     }).join('');
 
     lista.forEach(s => {
+      const box = document.getElementById(`chat-msgs-sug-u-${s.id}`);
+      _renderChatEmBox(box, s.mensagens);
+
       const chatInput = document.getElementById(`chat-input-sug-u-${s.id}`);
       const sendBtn = el.querySelector(`.btn-chat-send-sug[data-sug-id="${s.id}"]`);
       const errEl = document.getElementById(`chat-err-sug-u-${s.id}`);
@@ -658,7 +690,7 @@ function renderPainel(usuario) {
         errEl.textContent = '';
         try {
           const r = await apiFetch(`/api/sugestoes/${s.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
-          if (r.ok) { chatInput.value = ''; _atualizarChatSugUsuario(s.id); }
+          if (r.ok) { chatInput.value = ''; _sugHash = null; _carregarSugestoesUsuario(true); }
           else { const d = await r.json().catch(() => ({})); errEl.textContent = d.erro || 'Erro ao enviar.'; }
         } catch { errEl.textContent = 'Erro de conexão.'; }
         finally { sendBtn.disabled = false; chatInput.focus(); }
@@ -668,11 +700,6 @@ function renderPainel(usuario) {
       chatInput.addEventListener('keydown', e => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMsgSug(); }
       });
-
-      _atualizarChatSugUsuario(s.id);
-      if (!_chatSugIntervals.has(s.id)) {
-        _chatSugIntervals.set(s.id, setInterval(() => _atualizarChatSugUsuario(s.id), 6000));
-      }
     });
   }
 
@@ -684,32 +711,6 @@ function renderPainel(usuario) {
       ${texto}
       <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
     </div>`;
-  }
-
-  async function _atualizarChatSugUsuario(sugId) {
-    const box = document.getElementById(`chat-msgs-sug-u-${sugId}`);
-    if (!box) return;
-    try {
-      const r = await apiFetch(`/api/sugestoes/${sugId}/mensagens?_t=${Date.now()}`);
-      if (r.status === 401) { renderAuth(); return; }
-      if (!r.ok) return;
-      const msgs = await r.json();
-      if (!msgs.length) {
-        if (!box.querySelector('[data-msg-id]'))
-          box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem ainda. Escreva para o suporte!</div>';
-        return;
-      }
-      const vazio = box.querySelector('.chat-vazio');
-      if (vazio) vazio.remove();
-      const rendered = new Set([...box.querySelectorAll('[data-msg-id]')].map(el => +el.dataset.msgId));
-      const novas = msgs.filter(m => !rendered.has(m.id));
-      if (!novas.length) return;
-      const atFundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-      const tmp = document.createElement('div');
-      tmp.innerHTML = novas.map(_renderMsgSugUsr).join('');
-      while (tmp.firstChild) box.appendChild(tmp.firstChild);
-      if (atFundo) box.scrollTop = box.scrollHeight;
-    } catch {}
   }
 
   function _pararSugRefresh() {
@@ -726,7 +727,6 @@ function renderPainel(usuario) {
     document.getElementById('tab-encerrados').classList.remove('ativo');
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
     document.getElementById('tab-sugestoes-u').classList.remove('ativo');
-    _chatSugIntervals.forEach(iv => clearInterval(iv)); _chatSugIntervals.clear();
     _pararSugRefresh();
     renderListaChamados(todosChamados, abaAtiva);
   });
@@ -737,7 +737,6 @@ function renderPainel(usuario) {
     document.getElementById('tab-abertos').classList.remove('ativo');
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
     document.getElementById('tab-sugestoes-u').classList.remove('ativo');
-    _chatSugIntervals.forEach(iv => clearInterval(iv)); _chatSugIntervals.clear();
     _pararSugRefresh();
     renderListaChamados(todosChamados, abaAtiva);
   });
@@ -758,7 +757,6 @@ function renderPainel(usuario) {
     document.getElementById('tab-abertos').classList.remove('ativo');
     document.getElementById('tab-encerrados').classList.remove('ativo');
     document.getElementById('tab-sugestoes-u').classList.remove('ativo');
-    _chatSugIntervals.forEach(iv => clearInterval(iv)); _chatSugIntervals.clear();
     _pararSugRefresh();
     renderListaChamados(todosChamados, abaAtiva);
   };
