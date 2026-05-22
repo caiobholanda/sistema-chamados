@@ -130,10 +130,10 @@ function renderLista(lista) {
         <tbody>
           ${lista.map(s => `
             <tr class="clickable" data-id="${s.id}" style="cursor:pointer">
-              <td><strong>#${s.id}</strong></td>
+              <td><strong>#${s.id}</strong>${!s.vista_admin ? ' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e53e3e;vertical-align:middle" title="Não visualizada"></span>' : ''}</td>
               <td>${s.usuario_nome || '<em style="color:var(--text-muted)">Interno</em>'}</td>
               <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.texto.replace(/"/g,'&quot;')}">${s.texto.slice(0, 80)}${s.texto.length > 80 ? '…' : ''}</td>
-              <td>${badge(s.status)}</td>
+              <td>${badge(s.status)}${s.msgs_nao_lidas > 0 ? ` <span style="display:inline-block;background:#e53e3e;color:#fff;border-radius:50%;font-size:.62rem;font-weight:700;padding:1px 5px;margin-left:.3rem;vertical-align:middle;line-height:1.5" title="${s.msgs_nao_lidas} mensagem(ns) não lida(s)">${s.msgs_nao_lidas}</span>` : ''}</td>
               <td>${fmtData(s.criado_em)}</td>
               <td>${fmtData(s.atualizado_em)}</td>
             </tr>

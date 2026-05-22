@@ -595,8 +595,11 @@ function renderPainel(usuario) {
       _sugestoesUsuario = lista;
       const badgeEl = document.getElementById('badge-sugestoes-u');
       if (badgeEl) {
+        const naoLidas = lista.reduce((acc, s) => acc + (s.msgs_nao_lidas_usuario || 0), 0);
         const ativas = lista.filter(s => !['feita','negada'].includes(s.status)).length;
-        badgeEl.textContent = ativas || '';
+        badgeEl.textContent = naoLidas || ativas || '';
+        badgeEl.style.background = naoLidas ? '#e53e3e' : '';
+        badgeEl.style.color = naoLidas ? '#fff' : '';
       }
       if (abaAtiva === 'sugestoes') _renderSugestoesUsuario(_filtrarSugestoes(lista));
     } catch {}
@@ -652,6 +655,7 @@ function renderPainel(usuario) {
             <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
               <span style="font-size:.72rem;color:var(--text-muted)">#${s.id}</span>
               <span class="badge badge-${s.status}">${statusLabel}</span>
+              ${s.msgs_nao_lidas_usuario > 0 ? `<span style="display:inline-flex;align-items:center;gap:.2rem;background:#e53e3e;color:#fff;border-radius:10px;font-size:.68rem;font-weight:700;padding:1px 7px;line-height:1.5">💬 ${s.msgs_nao_lidas_usuario} nova${s.msgs_nao_lidas_usuario > 1 ? 's' : ''}</span>` : ''}
               <span style="font-size:.72rem;color:var(--text-muted)">${fmtData(s.criado_em)}</span>
             </div>
             <button class="btn btn-secondary btn-sm btn-ver-historico-sug" data-sug-id="${s.id}" style="font-size:.72rem">📋 Histórico</button>

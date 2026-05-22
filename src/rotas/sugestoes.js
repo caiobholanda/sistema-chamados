@@ -47,6 +47,7 @@ router.get('/:id/mensagens', requireUsuario, (req, res) => {
     const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
     if (!s) return res.status(404).json({ erro: 'Sugestão não encontrada' });
     if (s.usuario_id !== req.usuario.sub) return res.status(403).json({ erro: 'Acesso negado' });
+    db.marcarMensagensLidasUsuario(s.id);
     return res.json(db.listarMensagensSugestao(s.id));
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });
@@ -135,10 +136,19 @@ router.post('/admin', requireAdmin, (req, res) => {
   }
 });
 
+router.get('/admin/contadores', requireAdmin, (req, res) => {
+  try {
+    return res.json({ nao_vistas: db.contarNaoVistaAdmin() });
+  } catch (err) {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.get('/admin/:id', requireAdmin, (req, res) => {
   try {
     const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
     if (!s) return res.status(404).json({ erro: 'Sugestão não encontrada' });
+    db.marcarSugestaoVistaAdmin(s.id);
     const historico = db.listarHistoricoSugestao(s.id);
     return res.json({ ...s, historico });
   } catch (err) {

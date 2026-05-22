@@ -56,12 +56,12 @@
   const adminAtivo = adminDropdownPages.includes(path);
   html += `<div class="nav-dropdown" id="nav-admin-dropdown">
     <button class="nav-dropdown-trigger${adminAtivo ? ' ativo' : ''}" id="nav-admin-trigger">
-      Administração <span class="nav-dropdown-arrow">▼</span>
+      Administração <span class="nav-dropdown-arrow">▼</span><span id="nav-admin-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:50%;font-size:.65rem;font-weight:700;padding:1px 5px;margin-left:.35rem;vertical-align:middle;line-height:1.4"></span>
     </button>
     <div class="nav-dropdown-menu">
       <a href="/admin-itens.html"${path === '/admin-itens.html' ? ' class="ativo"' : ''}>Itens</a>
       <a href="/admin-contatos.html"${path === '/admin-contatos.html' ? ' class="ativo"' : ''}>Contatos</a>
-      <a href="/admin-sugestoes.html"${path === '/admin-sugestoes.html' ? ' class="ativo"' : ''}>Sugestões</a>
+      <a href="/admin-sugestoes.html"${path === '/admin-sugestoes.html' ? ' class="ativo"' : ''}>Sugestões <span id="nav-sug-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:50%;font-size:.65rem;font-weight:700;padding:1px 5px;margin-left:.25rem;vertical-align:middle;line-height:1.4"></span></a>
     </div>
   </div>`;
 
@@ -87,5 +87,22 @@
     document.addEventListener('click', function () {
       dropdown.classList.remove('open');
     });
+
+    function _atualizarBadgeSug(n) {
+      const b1 = document.getElementById('nav-admin-badge');
+      const b2 = document.getElementById('nav-sug-badge');
+      if (b1) { b1.textContent = n; b1.style.display = n ? '' : 'none'; }
+      if (b2) { b2.textContent = n; b2.style.display = n ? '' : 'none'; }
+    }
+
+    async function _buscarContadoresSug() {
+      try {
+        const r = await fetch('/api/sugestoes/admin/contadores', { credentials: 'include' });
+        if (r.ok) { const d = await r.json(); _atualizarBadgeSug(d.nao_vistas || 0); }
+      } catch {}
+    }
+
+    _buscarContadoresSug();
+    setInterval(_buscarContadoresSug, 15000);
   });
 })();

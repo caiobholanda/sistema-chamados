@@ -1839,6 +1839,9 @@ function initSugestoes() {
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+  try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN lida_admin INTEGER NOT NULL DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN lida_usuario INTEGER NOT NULL DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE sugestoes ADD COLUMN vista_admin INTEGER NOT NULL DEFAULT 0') } catch {}
 }
 
 function criarSugestao({ usuario_id, usuario_nome, texto }) {
@@ -1855,22 +1858,26 @@ function buscarSugestaoPorId(id) {
 
 function listarSugestoesPorUsuario(usuario_id) {
   return getDb().prepare(`
-    SELECT * FROM sugestoes WHERE usuario_id = ?
+    SELECT s.*,
+      (SELECT COUNT(*) FROM sugestao_mensagens WHERE sugestao_id = s.id AND autor_tipo = 'admin' AND lida_usuario = 0) AS msgs_nao_lidas_usuario
+    FROM sugestoes s WHERE s.usuario_id = ?
     ORDER BY
-      CASE WHEN status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
-      criado_em DESC
+      CASE WHEN s.status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
+      s.criado_em DESC
   `).all(usuario_id);
 }
 
 function listarSugestoesAdmin({ status, usuario_id, busca } = {}) {
-  let sql = 'SELECT * FROM sugestoes WHERE 1=1';
+  let sql = `SELECT s.*,
+    (SELECT COUNT(*) FROM sugestao_mensagens WHERE sugestao_id = s.id AND autor_tipo = 'usuario' AND lida_admin = 0) AS msgs_nao_lidas
+    FROM sugestoes s WHERE 1=1`;
   const params = [];
-  if (status) { sql += ' AND status = ?'; params.push(status); }
-  if (usuario_id) { sql += ' AND usuario_id = ?'; params.push(usuario_id); }
-  if (busca) { const b = `%${busca}%`; sql += ' AND (usuario_nome LIKE ? OR texto LIKE ?)'; params.push(b, b); }
+  if (status) { sql += ' AND s.status = ?'; params.push(status); }
+  if (usuario_id) { sql += ' AND s.usuario_id = ?'; params.push(usuario_id); }
+  if (busca) { const b = `%${busca}%`; sql += ' AND (s.usuario_nome LIKE ? OR s.texto LIKE ?)'; params.push(b, b); }
   sql += ` ORDER BY
-    CASE WHEN status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
-    criado_em DESC`;
+    CASE WHEN s.status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
+    s.criado_em DESC`;
   return getDb().prepare(sql).all(...params);
 }
 
@@ -1903,6 +1910,24 @@ function listarHistoricoSugestao(sugestao_id) {
   return getDb().prepare(
     'SELECT * FROM sugestao_status_historico WHERE sugestao_id = ? ORDER BY timestamp ASC'
   ).all(sugestao_id);
+}
+
+function marcarSugestaoVistaAdmin(id) {
+  const db = getDb();
+  db.prepare('UPDATE sugestoes SET vista_admin = 1 WHERE id = ?').run(id);
+  db.prepare("UPDATE sugestao_mensagens SET lida_admin = 1 WHERE sugestao_id = ? AND autor_tipo = 'usuario'").run(id);
+}
+
+function marcarMensagensLidasUsuario(sugestao_id) {
+  getDb().prepare("UPDATE sugestao_mensagens SET lida_usuario = 1 WHERE sugestao_id = ? AND autor_tipo = 'admin'").run(sugestao_id);
+}
+
+function contarNaoVistaAdmin() {
+  return getDb().prepare(`
+    SELECT COUNT(DISTINCT s.id) AS total FROM sugestoes s
+    WHERE s.vista_admin = 0
+       OR EXISTS (SELECT 1 FROM sugestao_mensagens WHERE sugestao_id = s.id AND autor_tipo = 'usuario' AND lida_admin = 0)
+  `).get().total;
 }
 
 module.exports = {
@@ -2010,6 +2035,9 @@ module.exports = {
   listarMensagensSugestao,
   criarMensagemSugestao,
   listarHistoricoSugestao,
+  marcarSugestaoVistaAdmin,
+  marcarMensagensLidasUsuario,
+  contarNaoVistaAdmin,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────
