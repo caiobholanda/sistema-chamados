@@ -125,6 +125,10 @@ router.get('/:id/mensagens/:msgId/chat-anexo', requireUsuario, (req, res) => {
     if (!msg || !msg.chat_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
     const filePath = path.join(UPLOADS_DIR, msg.chat_anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    const etag = `"sug-msg-${msg.id}"`;
+    if (req.headers['if-none-match'] === etag) return res.status(304).end();
+    res.setHeader('ETag', etag);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
     return res.sendFile(filePath);
   } catch (err) {
@@ -276,6 +280,10 @@ router.get('/admin/:id/mensagens/:msgId/chat-anexo', requireAdmin, (req, res) =>
     if (!msg || !msg.chat_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
     const filePath = path.join(UPLOADS_DIR, msg.chat_anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    const etag = `"sug-msg-${msg.id}"`;
+    if (req.headers['if-none-match'] === etag) return res.status(304).end();
+    res.setHeader('ETag', etag);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
     return res.sendFile(filePath);
   } catch (err) {

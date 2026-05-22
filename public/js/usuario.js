@@ -3,6 +3,7 @@ const app = document.getElementById('app');
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardando_compra: 'Aguardando compra', aguardando_chegar: 'Aguardando chegar', concluido: 'Concluído', encerrado: 'Encerrado' };
 
 let _refreshInterval = null;
+let _visibilityController = null;
 function _pararRefresh() {
   if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
 }
@@ -124,7 +125,7 @@ async function _atualizarChat(chamadoId) {
   const box = document.getElementById('chat-msgs-' + chamadoId);
   if (!box) return;
   try {
-    const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens?_t=' + Date.now());
+    const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens');
     if (r.status === 401) { _pararRefresh(); _limparChats(); renderAuth(); return; }
     if (!r.ok) return;
     const msgs = await r.json();
@@ -171,7 +172,8 @@ async function _atualizarChat(chamadoId) {
 
 function _iniciarChat(chamadoId) {
   _atualizarChat(chamadoId);
-  _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 6000));
+  if (!_chatIntervals.has(chamadoId))
+    _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 15000));
 
   const form = document.getElementById('chat-form-' + chamadoId);
   if (!form) return;
@@ -283,6 +285,7 @@ async function apiFetch(url, opts = {}) {
 
 function renderAuth() {
   _limparChats();
+  if (_visibilityController) { _visibilityController.abort(); _visibilityController = null; }
   const header = document.querySelector('header');
   if (header) header.style.display = 'none';
   document.body.classList.add('auth-mode');
@@ -807,7 +810,7 @@ function renderPainel(usuario) {
   }
   function _iniciarSugRefresh() {
     _pararSugRefresh();
-    _sugRefreshInterval = setInterval(() => _carregarSugestoesUsuario(true), 8000);
+    _sugRefreshInterval = setInterval(() => _carregarSugestoesUsuario(true), 15000);
   }
 
   document.getElementById('tab-abertos').addEventListener('click', () => {
@@ -922,7 +925,23 @@ function renderPainel(usuario) {
   carregarChamados();
   _carregarSugestoesUsuario();
   _pararRefresh();
-  _refreshInterval = setInterval(() => carregarChamados(true), 10000);
+  _refreshInterval = setInterval(() => carregarChamados(true), 15000);
+
+  if (_visibilityController) _visibilityController.abort();
+  _visibilityController = new AbortController();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      _pararRefresh();
+      _pararSugRefresh();
+      _limparChats();
+    } else {
+      _pararRefresh();
+      _limparChats();
+      carregarChamados(true);
+      _refreshInterval = setInterval(() => carregarChamados(true), 15000);
+      if (abaAtiva === 'sugestoes') _iniciarSugRefresh();
+    }
+  }, { signal: _visibilityController.signal });
 
   function _estaAtrasado(c) {
     if (!c.prazo) return false;
@@ -941,10 +960,10 @@ function renderPainel(usuario) {
   }
 
   function renderListaChamados(todos, aba) {
-    _limparChats();
     const lista = document.getElementById('lista-usuario');
 
     if (aba === 'cancelados') {
+      _limparChats();
       const cancelados = todos.filter(c => c.status === 'cancelado')
         .sort((a, b) => new Date(b.cancelado_em || b.atualizado_em || b.criado_em) - new Date(a.cancelado_em || a.atualizado_em || a.criado_em));
       if (!cancelados.length) {
@@ -986,6 +1005,7 @@ function renderPainel(usuario) {
       });
 
     if (!filtrados.length) {
+      _limparChats();
       const msg = aba === 'abertos' ? 'Nenhum chamado em aberto.' : 'Nenhum chamado encerrado ainda.';
       lista.innerHTML = `
         <div class="empty-state">
@@ -998,6 +1018,12 @@ function renderPainel(usuario) {
         </div>`;
       return;
     }
+
+    // Limpeza seletiva: só encerra intervalos de chamados que saíram do set ativo
+    const ativosIds = new Set(
+      filtrados.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status)).map(c => c.id)
+    );
+    _chatIntervals.forEach((iv, id) => { if (!ativosIds.has(id)) { clearInterval(iv); _chatIntervals.delete(id); } });
 
     // Preservar texto digitado nos chats antes de re-renderizar
     const chatState = {};
@@ -1064,9 +1090,7 @@ function renderPainel(usuario) {
       if (btn) btn.addEventListener('click', () => abrirModalTermo(c.id, c));
     });
 
-    filtrados.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status)).forEach(c => {
-      _iniciarChat(c.id);
-    });
+    filtrados.filter(c => ativosIds.has(c.id)).forEach(c => _iniciarChat(c.id));
   }
 
   async function abrirModalReabertura(chamadoId) {
