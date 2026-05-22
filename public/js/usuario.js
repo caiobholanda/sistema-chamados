@@ -398,6 +398,20 @@ function renderAuth() {
   });
 }
 
+function _mostrarConfirmacaoChamado() {
+  const el = document.getElementById('msg-global');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.75rem;padding:.9rem 1.1rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:1rem;animation:fadeIn .25s ease">
+      <span style="font-size:1.3rem">✓</span>
+      <div>
+        <div style="font-weight:600;font-size:.9rem;color:#166534">Chamado aberto com sucesso!</div>
+        <div style="font-size:.8rem;color:#15803d;margin-top:.1rem">Nossa equipe de TI irá atender em breve.</div>
+      </div>
+    </div>`;
+  setTimeout(() => { if (el) el.innerHTML = ''; }, 5000);
+}
+
 function renderPainel(usuario) {
   const header = document.querySelector('header');
   if (header) {
@@ -524,7 +538,7 @@ function renderPainel(usuario) {
     if (area.style.display === 'none') {
       renderFormChamado(
         usuario, area,
-        () => { area.style.display = 'none'; carregarChamados(); },
+        () => { area.style.display = 'none'; _mostrarConfirmacaoChamado(); carregarChamados(); },
         () => { area.style.display = 'none'; }
       );
       area.style.display = 'block';
@@ -557,9 +571,8 @@ function renderPainel(usuario) {
       const r = await apiFetch('/api/sugestoes', { method: 'POST', body: JSON.stringify({ texto }) });
       const d = await r.json();
       if (r.ok) {
-        msgEl.innerHTML = '<div class="alert alert-success">Sugestão enviada com sucesso! ✓</div>';
         document.getElementById('form-sugestao').reset();
-        setTimeout(_fecharModalSug, 1800);
+        _fecharModalSug();
         _carregarSugestoesUsuario();
       } else {
         msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
