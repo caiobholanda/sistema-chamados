@@ -351,7 +351,11 @@ async function _salvarStatus(sugId, status, campo_extra) {
     if (r.ok) {
       showToast('Status atualizado');
       await carregarSugestoes();
-      await abrirDetalhe(sugId);
+      if (status === 'feita' || status === 'negada') {
+        fecharDetalhe();
+      } else {
+        await abrirDetalhe(sugId);
+      }
     } else {
       if (msgEl) msgEl.innerHTML = `<span style="color:var(--danger)">${d.erro}</span>`;
     }
