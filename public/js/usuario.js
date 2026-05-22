@@ -692,7 +692,16 @@ function renderPainel(usuario) {
           <div class="chat-wrap" style="margin-top:.85rem">
             <div class="chat-header">Chat com suporte</div>
             <div class="chat-messages" id="chat-msgs-sug-u-${s.id}"></div>
+            <div id="file-chip-sug-u-${s.id}" style="display:none;font-size:.75rem;color:var(--text-secondary);padding:.2rem .5rem .1rem;align-items:center;gap:.35rem">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              <span id="file-chip-name-sug-u-${s.id}" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+              <button type="button" class="file-chip-clear-sug" data-sug-id="${s.id}" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;color:var(--text-muted);font-size:.85rem" title="Remover arquivo">✕</button>
+            </div>
             <div class="chat-input-row" style="display:flex;gap:.4rem;padding:.5rem .75rem;background:#fff;border-top:1px solid var(--border)">
+              <input type="file" id="file-input-sug-u-${s.id}" style="display:none" accept="image/*,video/*,.pdf,.txt,.docx">
+              <button type="button" class="btn btn-secondary btn-sm btn-file-sug" data-sug-id="${s.id}" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </button>
               <input class="form-control" type="text" id="chat-input-sug-u-${s.id}" placeholder="Escreva uma mensagem..." maxlength="1000" style="flex:1;font-size:.85rem">
               <button type="button" class="btn btn-primary btn-sm btn-chat-send-sug" data-sug-id="${s.id}">Enviar</button>
             </div>
@@ -709,15 +718,36 @@ function renderPainel(usuario) {
       const chatInput = document.getElementById(`chat-input-sug-u-${s.id}`);
       const sendBtn = el.querySelector(`.btn-chat-send-sug[data-sug-id="${s.id}"]`);
       const errEl = document.getElementById(`chat-err-sug-u-${s.id}`);
+      const fileInput = document.getElementById(`file-input-sug-u-${s.id}`);
+      const fileChip = document.getElementById(`file-chip-sug-u-${s.id}`);
+      const fileChipName = document.getElementById(`file-chip-name-sug-u-${s.id}`);
+      const btnFile = el.querySelector(`.btn-file-sug[data-sug-id="${s.id}"]`);
+      const btnClear = el.querySelector(`.file-chip-clear-sug[data-sug-id="${s.id}"]`);
+
+      let selectedFile = null;
+      function setFile(f) { selectedFile = f; fileChipName.textContent = f.name; fileChip.style.display = 'flex'; }
+      function clearFile() { selectedFile = null; fileInput.value = ''; fileChip.style.display = 'none'; }
+
+      btnFile.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => { if (fileInput.files.length) setFile(fileInput.files[0]); else clearFile(); });
+      btnClear.addEventListener('click', clearFile);
 
       async function enviarMsgSug() {
         const texto = chatInput.value.trim();
-        if (!texto) return;
+        if (!texto && !selectedFile) return;
         sendBtn.disabled = true;
         errEl.textContent = '';
         try {
-          const r = await apiFetch(`/api/sugestoes/${s.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
-          if (r.ok) { chatInput.value = ''; _sugHash = null; _carregarSugestoesUsuario(true); }
+          let r;
+          if (selectedFile) {
+            const fd = new FormData();
+            if (texto) fd.append('mensagem', texto);
+            fd.append('chat_anexo', selectedFile, selectedFile.name || 'arquivo');
+            r = await fetch(`/api/sugestoes/${s.id}/mensagens`, { method: 'POST', credentials: 'same-origin', body: fd });
+          } else {
+            r = await apiFetch(`/api/sugestoes/${s.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+          }
+          if (r.ok) { chatInput.value = ''; clearFile(); _sugHash = null; _carregarSugestoesUsuario(true); }
           else { const d = await r.json().catch(() => ({})); errEl.textContent = d.erro || 'Erro ao enviar.'; }
         } catch { errEl.textContent = 'Erro de conexão.'; }
         finally { sendBtn.disabled = false; chatInput.focus(); }
@@ -733,9 +763,10 @@ function renderPainel(usuario) {
   function _renderMsgSugUsr(m) {
     const mine = m.autor_tipo === 'usuario';
     const texto = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+    const anexoHtml = m.chat_anexo_nome_original ? _chatAnexoHtmlUsr(`/api/sugestoes/${m.sugestao_id}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original) : '';
     return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
       <div class="chat-msg-author">${m.autor_nome}</div>
-      ${texto}
+      ${texto}${anexoHtml}
       <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
     </div>`;
   }

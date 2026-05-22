@@ -1842,6 +1842,8 @@ function initSugestoes() {
   try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN lida_admin INTEGER NOT NULL DEFAULT 0') } catch {}
   try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN lida_usuario INTEGER NOT NULL DEFAULT 0') } catch {}
   try { db.exec('ALTER TABLE sugestoes ADD COLUMN vista_admin INTEGER NOT NULL DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN chat_anexo_path TEXT') } catch {}
+  try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN chat_anexo_nome_original TEXT') } catch {}
 }
 
 function criarSugestao({ usuario_id, usuario_nome, texto }) {
@@ -1861,7 +1863,8 @@ function listarSugestoesPorUsuario(usuario_id) {
     SELECT s.*,
       COALESCE(
         (SELECT json_group_array(json_object('id', m.id, 'autor_tipo', m.autor_tipo,
-          'autor_nome', m.autor_nome, 'mensagem', m.mensagem, 'criado_em', m.criado_em))
+          'autor_nome', m.autor_nome, 'mensagem', m.mensagem, 'criado_em', m.criado_em,
+          'sugestao_id', m.sugestao_id, 'chat_anexo_nome_original', m.chat_anexo_nome_original))
          FROM sugestao_mensagens m WHERE m.sugestao_id = s.id ORDER BY m.criado_em ASC),
         '[]'
       ) AS mensagens_json
@@ -1907,11 +1910,11 @@ function listarMensagensSugestao(sugestao_id) {
   ).all(sugestao_id);
 }
 
-function criarMensagemSugestao({ sugestao_id, autor_tipo, autor_id, autor_nome, mensagem }) {
+function criarMensagemSugestao({ sugestao_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original }) {
   const db = getDb();
   const r = db.prepare(
-    'INSERT INTO sugestao_mensagens (sugestao_id, autor_tipo, autor_id, autor_nome, mensagem) VALUES (?, ?, ?, ?, ?)'
-  ).run(sugestao_id, autor_tipo, autor_id || null, autor_nome, mensagem);
+    'INSERT INTO sugestao_mensagens (sugestao_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(sugestao_id, autor_tipo, autor_id || null, autor_nome, mensagem || '', chat_anexo_path || null, chat_anexo_nome_original || null);
   return r.lastInsertRowid;
 }
 

@@ -1,8 +1,11 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const db = require('../db');
 const { requireAdmin, requireUsuario } = require('../auth');
 const push = require('../push');
+const { uploadMiddleware, UPLOADS_DIR } = require('../upload');
 
 const STATUS_VALIDOS = ['enviada', 'em_analise', 'em_producao', 'feita', 'negada'];
 const STATUS_COM_CAMPO = ['feita', 'negada'];
@@ -76,26 +79,54 @@ router.get('/:id/historico', requireUsuario, (req, res) => {
   }
 });
 
-router.post('/:id/mensagens', requireUsuario, (req, res) => {
+router.post('/:id/mensagens', uploadMiddleware('chat_anexo'), requireUsuario, (req, res) => {
   try {
     const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
-    if (!s) return res.status(404).json({ erro: 'Sugestão não encontrada' });
-    if (s.usuario_id !== req.usuario.sub) return res.status(403).json({ erro: 'Acesso negado' });
+    if (!s) { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} return res.status(404).json({ erro: 'Sugestão não encontrada' }); }
+    if (s.usuario_id !== req.usuario.sub) { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} return res.status(403).json({ erro: 'Acesso negado' }); }
 
     const mensagem = sanitizar(req.body.mensagem || '');
-    if (!mensagem) return res.status(400).json({ erro: 'Mensagem vazia' });
-    if (mensagem.length > 1000) return res.status(400).json({ erro: 'Mensagem muito longa (máx. 1000 caracteres)' });
+    if (!mensagem && !req.file) return res.status(400).json({ erro: 'Envie uma mensagem ou um arquivo' });
+    if (mensagem.length > 1000) { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} return res.status(400).json({ erro: 'Mensagem muito longa (máx. 1000 caracteres)' }); }
 
     const usuario = db.buscarUsuarioPorId(req.usuario.sub);
-    db.criarMensagemSugestao({
-      sugestao_id: s.id,
-      autor_tipo: 'usuario',
-      autor_id: usuario.id,
-      autor_nome: usuario.nome,
-      mensagem,
-    });
-    push.enviarParaTodos('💬 Mensagem em sugestão', `${usuario.nome}: ${mensagem.slice(0, 80)}`).catch(() => {});
+    let chat_anexo_path = null, chat_anexo_nome_original = null;
+    if (req.file) {
+      const MIME_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp', 'image/heic': '.heic', 'image/avif': '.avif' };
+      let nomeOrig = req.file.originalname || '';
+      let ext = path.extname(nomeOrig).toLowerCase();
+      if (!ext && req.file.mimetype) ext = MIME_EXT[req.file.mimetype] || '';
+      if (!nomeOrig || !path.extname(nomeOrig)) nomeOrig = `imagem${ext || ''}`;
+      const base = path.basename(nomeOrig, ext).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100) || 'arquivo';
+      const tmpNome = `sugusr_${Date.now()}__${base}${ext}`;
+      fs.renameSync(req.file.path, path.join(UPLOADS_DIR, tmpNome));
+      const msgId = db.criarMensagemSugestao({ sugestao_id: s.id, autor_tipo: 'usuario', autor_id: usuario.id, autor_nome: usuario.nome, mensagem, chat_anexo_path: tmpNome, chat_anexo_nome_original: nomeOrig });
+      const novoNome = `sugusr_${msgId}__${base}${ext}`;
+      fs.renameSync(path.join(UPLOADS_DIR, tmpNome), path.join(UPLOADS_DIR, novoNome));
+      db.getDb().prepare('UPDATE sugestao_mensagens SET chat_anexo_path = ? WHERE id = ?').run(novoNome, msgId);
+    } else {
+      db.criarMensagemSugestao({ sugestao_id: s.id, autor_tipo: 'usuario', autor_id: usuario.id, autor_nome: usuario.nome, mensagem });
+    }
+    const notifMsg = mensagem || `[Arquivo: ${req.file ? req.file.originalname : ''}]`;
+    push.enviarParaTodos('💬 Mensagem em sugestão', `${usuario.nome}: ${notifMsg.slice(0, 80)}`).catch(() => {});
     return res.status(201).json({ mensagem: 'Mensagem enviada' });
+  } catch (err) {
+    console.error(err);
+    if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.get('/:id/mensagens/:msgId/chat-anexo', requireUsuario, (req, res) => {
+  try {
+    const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
+    if (!s || s.usuario_id !== req.usuario.sub) return res.status(403).json({ erro: 'Acesso negado' });
+    const msg = db.getDb().prepare('SELECT * FROM sugestao_mensagens WHERE id = ? AND sugestao_id = ?').get(req.params.msgId, s.id);
+    if (!msg || !msg.chat_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
+    const filePath = path.join(UPLOADS_DIR, msg.chat_anexo_path);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
+    return res.sendFile(filePath);
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });
   }
@@ -204,23 +235,49 @@ router.get('/admin/:id/mensagens', requireAdmin, (req, res) => {
   }
 });
 
-router.post('/admin/:id/mensagens', requireAdmin, (req, res) => {
+router.post('/admin/:id/mensagens', uploadMiddleware('chat_anexo'), requireAdmin, (req, res) => {
+  try {
+    const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
+    if (!s) { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} return res.status(404).json({ erro: 'Sugestão não encontrada' }); }
+
+    const mensagem = sanitizar(req.body.mensagem || '');
+    if (!mensagem && !req.file) return res.status(400).json({ erro: 'Envie uma mensagem ou um arquivo' });
+    if (mensagem.length > 1000) { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} return res.status(400).json({ erro: 'Mensagem muito longa' }); }
+
+    if (req.file) {
+      const MIME_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp', 'image/heic': '.heic', 'image/avif': '.avif' };
+      let nomeOrig = req.file.originalname || '';
+      let ext = path.extname(nomeOrig).toLowerCase();
+      if (!ext && req.file.mimetype) ext = MIME_EXT[req.file.mimetype] || '';
+      if (!nomeOrig || !path.extname(nomeOrig)) nomeOrig = `imagem${ext || ''}`;
+      const base = path.basename(nomeOrig, ext).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100) || 'arquivo';
+      const tmpNome = `sugadm_${Date.now()}__${base}${ext}`;
+      fs.renameSync(req.file.path, path.join(UPLOADS_DIR, tmpNome));
+      const msgId = db.criarMensagemSugestao({ sugestao_id: s.id, autor_tipo: 'admin', autor_id: req.admin.sub, autor_nome: req.admin.nome, mensagem, chat_anexo_path: tmpNome, chat_anexo_nome_original: nomeOrig });
+      const novoNome = `sugadm_${msgId}__${base}${ext}`;
+      fs.renameSync(path.join(UPLOADS_DIR, tmpNome), path.join(UPLOADS_DIR, novoNome));
+      db.getDb().prepare('UPDATE sugestao_mensagens SET chat_anexo_path = ? WHERE id = ?').run(novoNome, msgId);
+    } else {
+      db.criarMensagemSugestao({ sugestao_id: s.id, autor_tipo: 'admin', autor_id: req.admin.sub, autor_nome: req.admin.nome, mensagem });
+    }
+    return res.status(201).json({ mensagem: 'Mensagem enviada' });
+  } catch (err) {
+    console.error(err);
+    if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.get('/admin/:id/mensagens/:msgId/chat-anexo', requireAdmin, (req, res) => {
   try {
     const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
     if (!s) return res.status(404).json({ erro: 'Sugestão não encontrada' });
-
-    const mensagem = sanitizar(req.body.mensagem || '');
-    if (!mensagem) return res.status(400).json({ erro: 'Mensagem vazia' });
-    if (mensagem.length > 1000) return res.status(400).json({ erro: 'Mensagem muito longa' });
-
-    db.criarMensagemSugestao({
-      sugestao_id: s.id,
-      autor_tipo: 'admin',
-      autor_id: req.admin.sub,
-      autor_nome: req.admin.nome,
-      mensagem,
-    });
-    return res.status(201).json({ mensagem: 'Mensagem enviada' });
+    const msg = db.getDb().prepare('SELECT * FROM sugestao_mensagens WHERE id = ? AND sugestao_id = ?').get(req.params.msgId, s.id);
+    if (!msg || !msg.chat_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
+    const filePath = path.join(UPLOADS_DIR, msg.chat_anexo_path);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
+    return res.sendFile(filePath);
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });
   }

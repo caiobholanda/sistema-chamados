@@ -26,6 +26,44 @@ function badge(status) {
   return `<span class="badge badge-${status}">${STATUS_LABELS[status] || status}</span>`;
 }
 
+// ── Lightbox ──────────────────────────────────────────────────
+let _lbxEl = null;
+let _lbxZoom = 1;
+function _lbxResetZoom() { _lbxZoom = 1; if (_lbxEl) _lbxEl.querySelector('#lbx-img').style.transform = ''; }
+function _abrirLightbox(src, nome) {
+  if (!_lbxEl) {
+    _lbxEl = document.createElement('div');
+    _lbxEl.id = 'lbx';
+    _lbxEl.innerHTML = '<button id="lbx-close" aria-label="Fechar">✕</button><img id="lbx-img" alt=""><div id="lbx-nome"></div>';
+    document.body.appendChild(_lbxEl);
+    _lbxEl.addEventListener('click', e => { if (e.target === _lbxEl || e.target.id === 'lbx-close') { _lbxEl.classList.remove('lbx-open'); _lbxResetZoom(); } });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && _lbxEl) { _lbxEl.classList.remove('lbx-open'); _lbxResetZoom(); } });
+    _lbxEl.addEventListener('wheel', e => {
+      if (!_lbxEl.classList.contains('lbx-open')) return;
+      e.preventDefault();
+      _lbxZoom = Math.min(5, Math.max(0.3, _lbxZoom + (e.deltaY > 0 ? -0.15 : 0.15)));
+      _lbxEl.querySelector('#lbx-img').style.transform = `scale(${_lbxZoom})`;
+    }, { passive: false });
+  }
+  _lbxResetZoom();
+  _lbxEl.querySelector('#lbx-img').src = src;
+  _lbxEl.querySelector('#lbx-nome').textContent = nome || '';
+  _lbxEl.classList.add('lbx-open');
+}
+document.addEventListener('click', e => { const img = e.target.closest('.lbx-img'); if (img) _abrirLightbox(img.src, img.alt); });
+
+const _IMGS_EXT = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
+function _chatAnexoHtmlSug(url, nome) {
+  if (!nome) return '';
+  const ext = nome.split('.').pop().toLowerCase();
+  const vids = ['mp4','webm','mov','avi','mkv','wmv'];
+  if (_IMGS_EXT.includes(ext))
+    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}" loading="lazy">`;
+  if (vids.includes(ext))
+    return `<video class="chat-msg-video" src="${url}" controls preload="metadata"></video>`;
+  return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
+}
+
 function showToast(msg, tipo = 'success') {
   const c = document.getElementById('toast-container');
   if (!c) return;
@@ -243,7 +281,16 @@ function renderDetalhe(s) {
             <div class="chat-vazio">Carregando...</div>
           </div>
           ${s.usuario_id ? `
+          <div id="file-chip-sug-${s.id}" style="display:none;font-size:.75rem;color:var(--text-secondary);padding:.2rem .5rem .1rem;align-items:center;gap:.35rem">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            <span id="file-chip-name-sug-${s.id}" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+            <button type="button" id="file-chip-clear-sug-${s.id}" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;color:var(--text-muted);font-size:.85rem" title="Remover arquivo">✕</button>
+          </div>
           <div class="chat-input-row" style="display:flex;gap:.4rem;padding:.5rem .75rem;background:#fff;border-top:1px solid var(--border)">
+            <input type="file" id="file-input-sug-${s.id}" style="display:none" accept="image/*,video/*,.pdf,.txt,.docx">
+            <button type="button" id="btn-file-sug-${s.id}" class="btn btn-secondary btn-sm" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
             <input class="form-control" type="text" id="chat-input-sug-${s.id}" placeholder="Mensagem ao usuário..." maxlength="1000" style="flex:1;font-size:.85rem">
             <button type="button" class="btn btn-primary btn-sm" id="btn-chat-send-sug-${s.id}">Enviar</button>
           </div>
@@ -272,14 +319,35 @@ function renderDetalhe(s) {
     const chatInput = document.getElementById(`chat-input-sug-${s.id}`);
     const sendBtn = document.getElementById(`btn-chat-send-sug-${s.id}`);
     const errEl = document.getElementById(`chat-err-sug-${s.id}`);
+    const fileInput = document.getElementById(`file-input-sug-${s.id}`);
+    const fileChip = document.getElementById(`file-chip-sug-${s.id}`);
+    const fileChipName = document.getElementById(`file-chip-name-sug-${s.id}`);
+    const fileChipClear = document.getElementById(`file-chip-clear-sug-${s.id}`);
+    const btnFile = document.getElementById(`btn-file-sug-${s.id}`);
+
+    let selectedFile = null;
+    function setFile(f) { selectedFile = f; fileChipName.textContent = f.name; fileChip.style.display = 'flex'; }
+    function clearFile() { selectedFile = null; fileInput.value = ''; fileChip.style.display = 'none'; }
+
+    btnFile.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => { if (fileInput.files.length) setFile(fileInput.files[0]); else clearFile(); });
+    fileChipClear.addEventListener('click', clearFile);
 
     async function enviarMsg() {
       const texto = chatInput.value.trim();
-      if (!texto) return;
+      if (!texto && !selectedFile) return;
       sendBtn.disabled = true; errEl.textContent = '';
       try {
-        const r = await apiFetch(`/api/sugestoes/admin/${s.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
-        if (r.ok) { chatInput.value = ''; _atualizarChat(s.id); }
+        let r;
+        if (selectedFile) {
+          const fd = new FormData();
+          if (texto) fd.append('mensagem', texto);
+          fd.append('chat_anexo', selectedFile, selectedFile.name || 'arquivo');
+          r = await fetch(`/api/sugestoes/admin/${s.id}/mensagens`, { method: 'POST', credentials: 'same-origin', body: fd });
+        } else {
+          r = await apiFetch(`/api/sugestoes/admin/${s.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+        }
+        if (r.ok) { chatInput.value = ''; clearFile(); _atualizarChat(s.id); }
         else { const d = await r.json().catch(() => ({})); errEl.textContent = d.erro || 'Erro ao enviar.'; }
       } catch { errEl.textContent = 'Erro de conexão.'; }
       finally { sendBtn.disabled = false; chatInput.focus(); }
@@ -365,9 +433,10 @@ async function _salvarStatus(sugId, status, campo_extra) {
 function _renderMsgChat(m) {
   const mine = m.autor_tipo === 'admin';
   const texto = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+  const anexoHtml = m.chat_anexo_nome_original ? _chatAnexoHtmlSug(`/api/sugestoes/admin/${m.sugestao_id}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original) : '';
   return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
     <div class="chat-msg-author">${m.autor_nome}</div>
-    ${texto}
+    ${texto}${anexoHtml}
     <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
   </div>`;
 }
