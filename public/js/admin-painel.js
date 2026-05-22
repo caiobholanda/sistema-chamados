@@ -695,7 +695,7 @@ function renderChamadoItem(c) {
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
         ${c.mensagens_nao_lidas > 0 ? `<span class="msg-badge-nao-lidas">${c.mensagens_nao_lidas}</span>` : ''}
       </div>
-      <div class="chamado-nome">${c.usuario_id ? `<span style="font-weight:400">Usuário: </span>` : ''}${c.nome}</div>
+      ${c.usuario_id ? `<div class="chamado-nome"><span style="font-weight:400">Usuário: </span>${c.nome}</div>` : ''}
       <div class="chamado-desc">${c.descricao}</div>
       <div class="chamado-item-footer">
         <span class="chamado-footer-meta">
