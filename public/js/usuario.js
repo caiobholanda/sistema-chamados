@@ -421,7 +421,10 @@ function renderPainel(usuario) {
           <span><strong style="color:var(--text-secondary)">Ramal:</strong> ${usuario.ramal || '—'}</span>
         </div>
       </div>
-      <button class="btn btn-primary" id="btn-novo-chamado" style="font-size:.95rem;padding:.55rem 1.3rem;font-weight:700;box-shadow:0 2px 8px rgba(180,140,60,.25)">+ Abrir chamado</button>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+        <button class="btn btn-primary" id="btn-novo-chamado" style="font-size:.95rem;padding:.55rem 1.3rem;font-weight:700;box-shadow:0 2px 8px rgba(180,140,60,.25)">+ Abrir chamado</button>
+        <button class="btn btn-secondary" id="btn-nova-sugestao-u" style="font-size:.95rem;padding:.55rem 1.3rem">💡 Mandar uma Sugestão</button>
+      </div>
     </div>
 
     <div class="stats-strip" id="stats-strip-u">
@@ -477,9 +480,32 @@ function renderPainel(usuario) {
       <button class="tab-btn ativo" id="tab-abertos">Em Aberto <span class="tab-badge" id="badge-abertos-u"></span></button>
       <button class="tab-btn" id="tab-encerrados">Concluídos <span class="tab-badge" id="badge-encerrados-u"></span></button>
       <button class="tab-btn" id="tab-cancelados-u">Cancelados <span class="tab-badge" id="badge-cancelados-u"></span></button>
+      <button class="tab-btn" id="tab-sugestoes-u">Minhas Sugestões <span class="tab-badge" id="badge-sugestoes-u"></span></button>
     </div>
 
     <div id="lista-usuario"><div class="loading"><div class="spinner"></div></div></div>
+
+    <!-- Modal enviar sugestão -->
+    <div class="modal-overlay" id="modal-sugestao-overlay" role="dialog" aria-modal="true">
+      <div class="modal" style="max-width:480px">
+        <div class="modal-header">
+          <h2>Enviar Sugestão</h2>
+          <button class="modal-close" id="btn-fechar-sugestao">&#x2715;</button>
+        </div>
+        <div class="modal-body" style="padding:1.5rem">
+          <div id="msg-sugestao"></div>
+          <form id="form-sugestao">
+            <div class="form-group">
+              <label for="sug-texto">Sua sugestão <span class="req">*</span></label>
+              <textarea class="form-control" id="sug-texto" rows="5" maxlength="2000"
+                placeholder="Descreva sua sugestão de melhoria ou modificação para o sistema..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.5rem" id="btn-enviar-sugestao">Enviar</button>
+            <button type="button" class="btn btn-secondary" style="width:100%;margin-top:.4rem" id="btn-cancelar-sugestao">Cancelar</button>
+          </form>
+        </div>
+      </div>
+    </div>
   `;
 
   let abaAtiva = 'abertos';
@@ -507,11 +533,179 @@ function renderPainel(usuario) {
     }
   });
 
+  // ── Modal Sugestão ──────────────────────────────────────────
+  document.getElementById('btn-nova-sugestao-u').addEventListener('click', () => {
+    document.getElementById('msg-sugestao').innerHTML = '';
+    document.getElementById('form-sugestao').reset();
+    document.getElementById('modal-sugestao-overlay').classList.add('open');
+  });
+  const _fecharModalSug = () => document.getElementById('modal-sugestao-overlay').classList.remove('open');
+  document.getElementById('btn-fechar-sugestao').addEventListener('click', _fecharModalSug);
+  document.getElementById('btn-cancelar-sugestao').addEventListener('click', _fecharModalSug);
+  document.getElementById('modal-sugestao-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-sugestao-overlay')) _fecharModalSug();
+  });
+
+  document.getElementById('form-sugestao').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msgEl = document.getElementById('msg-sugestao');
+    const btn = document.getElementById('btn-enviar-sugestao');
+    const texto = document.getElementById('sug-texto').value.trim();
+    if (!texto) return;
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    try {
+      const r = await apiFetch('/api/sugestoes', { method: 'POST', body: JSON.stringify({ texto }) });
+      const d = await r.json();
+      if (r.ok) {
+        msgEl.innerHTML = '<div class="alert alert-success">Sugestão enviada com sucesso! ✓</div>';
+        document.getElementById('form-sugestao').reset();
+        setTimeout(_fecharModalSug, 1800);
+        _carregarSugestoesUsuario();
+      } else {
+        msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
+      }
+    } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
+    finally { btn.disabled = false; btn.textContent = 'Enviar'; }
+  });
+
+  // ── Aba Sugestões ──────────────────────────────────────────
+  let _sugestoesUsuario = [];
+  let _chatSugIntervals = new Map();
+
+  async function _carregarSugestoesUsuario() {
+    try {
+      const r = await apiFetch('/api/sugestoes/minhas');
+      if (!r.ok) return;
+      _sugestoesUsuario = await r.json();
+      const badge = document.getElementById('badge-sugestoes-u');
+      if (badge) badge.textContent = _sugestoesUsuario.length || '';
+      if (abaAtiva === 'sugestoes') _renderSugestoesUsuario(_sugestoesUsuario);
+    } catch {}
+  }
+
+  const SUGH_LABELS = { enviada: 'Enviada', em_analise: 'Em Análise', em_producao: 'Em Produção', feita: 'Feita', negada: 'Negada' };
+
+  function _renderSugestoesUsuario(lista) {
+    const el = document.getElementById('lista-usuario');
+    if (!lista.length) {
+      el.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:.88rem">
+        Você ainda não enviou nenhuma sugestão.<br>
+        <button class="btn btn-secondary btn-sm" style="margin-top:.75rem" onclick="document.getElementById('btn-nova-sugestao-u').click()">💡 Enviar primeira sugestão</button>
+      </div>`;
+      return;
+    }
+    el.innerHTML = lista.map(s => {
+      const statusLabel = SUGH_LABELS[s.status] || s.status;
+      const campoExtra = s.campo_extra ? `<div style="margin-top:.5rem;padding:.5rem .7rem;background:var(--bg);border-radius:5px;border:1px solid var(--border);font-size:.8rem;font-style:italic;color:var(--text-secondary)">${s.campo_extra}</div>` : '';
+      return `
+        <div class="card" style="margin-bottom:1rem;padding:1.25rem 1.4rem" data-sug-id="${s.id}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;flex-wrap:wrap">
+            <div style="display:flex;gap:.5rem;align-items:center">
+              <span style="font-size:.72rem;color:var(--text-muted)">#${s.id}</span>
+              <span class="badge badge-${s.status}">${statusLabel}</span>
+              <span style="font-size:.72rem;color:var(--text-muted)">${fmtData(s.criado_em)}</span>
+            </div>
+            <button class="btn btn-secondary btn-sm btn-ver-chat-sug" data-sug-id="${s.id}" style="font-size:.75rem">
+              💬 Ver chat
+            </button>
+          </div>
+          <div style="margin-top:.75rem;font-size:.88rem;line-height:1.6;white-space:pre-wrap">${s.texto}</div>
+          ${campoExtra}
+          <div class="chat-wrap" id="chat-sug-wrap-${s.id}" style="display:none;margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--border)">
+            <div class="chat-msgs" id="chat-msgs-sug-u-${s.id}" style="min-height:80px;max-height:220px;overflow-y:auto"></div>
+            <form class="chat-form" id="chat-form-sug-u-${s.id}" style="margin-top:.4rem">
+              <div style="display:flex;gap:.4rem">
+                <input class="form-control" type="text" id="chat-input-sug-u-${s.id}" placeholder="Mensagem..." maxlength="1000" style="flex:1">
+                <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+              </div>
+              <div id="chat-err-sug-u-${s.id}" style="font-size:.75rem;color:var(--danger);min-height:1rem"></div>
+            </form>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    lista.forEach(s => {
+      const btnChat = el.querySelector(`.btn-ver-chat-sug[data-sug-id="${s.id}"]`);
+      const chatWrap = document.getElementById(`chat-sug-wrap-${s.id}`);
+      if (!btnChat || !chatWrap) return;
+
+      btnChat.addEventListener('click', () => {
+        const aberto = chatWrap.style.display !== 'none';
+        chatWrap.style.display = aberto ? 'none' : 'block';
+        btnChat.textContent = aberto ? '💬 Ver chat' : '✕ Fechar chat';
+        if (!aberto) {
+          _atualizarChatSugUsuario(s.id);
+          if (!_chatSugIntervals.has(s.id)) {
+            _chatSugIntervals.set(s.id, setInterval(() => _atualizarChatSugUsuario(s.id), 6000));
+          }
+        } else {
+          const iv = _chatSugIntervals.get(s.id);
+          if (iv) { clearInterval(iv); _chatSugIntervals.delete(s.id); }
+        }
+      });
+
+      const chatForm = document.getElementById(`chat-form-sug-u-${s.id}`);
+      const chatInput = document.getElementById(`chat-input-sug-u-${s.id}`);
+      chatForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const texto = chatInput.value.trim();
+        if (!texto) return;
+        const btn = chatForm.querySelector('[type=submit]');
+        btn.disabled = true;
+        try {
+          const r = await apiFetch(`/api/sugestoes/${s.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+          if (r.ok) { chatInput.value = ''; _atualizarChatSugUsuario(s.id); }
+          else { document.getElementById(`chat-err-sug-u-${s.id}`).textContent = 'Erro ao enviar.'; }
+        } catch { document.getElementById(`chat-err-sug-u-${s.id}`).textContent = 'Erro de conexão.'; }
+        finally { btn.disabled = false; chatInput.focus(); }
+      });
+    });
+  }
+
+  function _renderMsgSugUsr(m) {
+    const mine = m.autor_tipo === 'usuario';
+    const texto = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+    return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
+      <div class="chat-msg-author">${m.autor_nome}</div>
+      ${texto}
+      <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
+    </div>`;
+  }
+
+  async function _atualizarChatSugUsuario(sugId) {
+    const box = document.getElementById(`chat-msgs-sug-u-${sugId}`);
+    if (!box) return;
+    try {
+      const r = await apiFetch(`/api/sugestoes/${sugId}/mensagens?_t=${Date.now()}`);
+      if (r.status === 401) { renderAuth(); return; }
+      if (!r.ok) return;
+      const msgs = await r.json();
+      if (!msgs.length) {
+        if (!box.querySelector('[data-msg-id]'))
+          box.innerHTML = '<div style="padding:.5rem;text-align:center;color:var(--text-muted);font-size:.8rem">Nenhuma mensagem ainda.</div>';
+        return;
+      }
+      const vazio = box.querySelector('div:not([data-msg-id])');
+      if (vazio) vazio.remove();
+      const rendered = new Set([...box.querySelectorAll('[data-msg-id]')].map(el => +el.dataset.msgId));
+      const novas = msgs.filter(m => !rendered.has(m.id));
+      if (!novas.length) return;
+      const atFundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = novas.map(_renderMsgSugUsr).join('');
+      while (tmp.firstChild) box.appendChild(tmp.firstChild);
+      if (atFundo) box.scrollTop = box.scrollHeight;
+    } catch {}
+  }
+
   document.getElementById('tab-abertos').addEventListener('click', () => {
     abaAtiva = 'abertos';
     document.getElementById('tab-abertos').classList.add('ativo');
     document.getElementById('tab-encerrados').classList.remove('ativo');
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
+    document.getElementById('tab-sugestoes-u').classList.remove('ativo');
+    _chatSugIntervals.forEach(iv => clearInterval(iv)); _chatSugIntervals.clear();
     renderListaChamados(todosChamados, abaAtiva);
   });
 
@@ -520,7 +714,18 @@ function renderPainel(usuario) {
     document.getElementById('tab-encerrados').classList.add('ativo');
     document.getElementById('tab-abertos').classList.remove('ativo');
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
+    document.getElementById('tab-sugestoes-u').classList.remove('ativo');
+    _chatSugIntervals.forEach(iv => clearInterval(iv)); _chatSugIntervals.clear();
     renderListaChamados(todosChamados, abaAtiva);
+  });
+
+  document.getElementById('tab-sugestoes-u').addEventListener('click', () => {
+    abaAtiva = 'sugestoes';
+    document.getElementById('tab-sugestoes-u').classList.add('ativo');
+    document.getElementById('tab-abertos').classList.remove('ativo');
+    document.getElementById('tab-encerrados').classList.remove('ativo');
+    document.getElementById('tab-cancelados-u').classList.remove('ativo');
+    _carregarSugestoesUsuario();
   });
 
   const _ativarCancelados = () => {
@@ -528,6 +733,8 @@ function renderPainel(usuario) {
     document.getElementById('tab-cancelados-u').classList.add('ativo');
     document.getElementById('tab-abertos').classList.remove('ativo');
     document.getElementById('tab-encerrados').classList.remove('ativo');
+    document.getElementById('tab-sugestoes-u').classList.remove('ativo');
+    _chatSugIntervals.forEach(iv => clearInterval(iv)); _chatSugIntervals.clear();
     renderListaChamados(todosChamados, abaAtiva);
   };
   document.getElementById('tab-cancelados-u').addEventListener('click', _ativarCancelados);
@@ -597,10 +804,11 @@ function renderPainel(usuario) {
     if (el('badge-cancelados-u')) el('badge-cancelados-u').textContent = qtd.cancelado || '';
     if (el('cnt-u-cancelado')) el('cnt-u-cancelado').textContent = qtd.cancelado;
 
-    renderListaChamados(todosChamados, abaAtiva);
+    if (abaAtiva !== 'sugestoes') renderListaChamados(todosChamados, abaAtiva);
   }
 
   carregarChamados();
+  _carregarSugestoesUsuario();
   _pararRefresh();
   _refreshInterval = setInterval(() => carregarChamados(true), 10000);
 

@@ -420,6 +420,11 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
 .badge-cancelado           { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
 .badge-aguardando_compra   { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
 .badge-aguardando_chegar   { background: #CFFAFE; color: #155E75; border: 1px solid #67E8F9; }
+.badge-enviada      { background: #DBEAFE; color: #1D4ED8; border: 1px solid #93c5fd; }
+.badge-em_analise   { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+.badge-em_producao  { background: #FFEDD5; color: #C2410C; border: 1px solid #fdba74; }
+.badge-feita        { background: #DCFCE7; color: #15803D; border: 1px solid #86efac; }
+.badge-negada       { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
 
 .badge-categoria {
   display: inline-flex;

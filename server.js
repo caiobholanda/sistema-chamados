@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
-const { initDb, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo } = require('./src/db');
+const { initDb, initSugestoes, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo } = require('./src/db');
 const push = require('./src/push');
 
 const app = express();
@@ -47,6 +47,7 @@ app.get('/admin-inventario.html', (req, res) => servirHtmlComVersao(res, 'admin-
 app.get('/admin-estoque.html', (req, res) => servirHtmlComVersao(res, 'admin-estoque.html'));
 app.get('/admin-login.html', (req, res) => servirHtmlComVersao(res, 'admin-login.html'));
 app.get('/admin-contatos.html', (req, res) => servirHtmlComVersao(res, 'admin-contatos.html'));
+app.get('/admin-sugestoes.html', (req, res) => servirHtmlComVersao(res, 'admin-sugestoes.html'));
 app.get('/redefinir-senha.html', (req, res) => servirHtmlComVersao(res, 'redefinir-senha.html'));
 app.get('/mobile', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
 app.get('/mobile.html', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
@@ -73,6 +74,7 @@ app.use('/api/admin/itens', require('./src/rotas/itens'));
 app.use('/api/admin/inventario', require('./src/rotas/inventario'));
 app.use('/api/admin/estoque', require('./src/rotas/estoque'));
 app.use('/api/admin/contatos', require('./src/rotas/contatos'));
+app.use('/api/sugestoes', require('./src/rotas/sugestoes'));
 app.use('/api/admin', require('./src/rotas/admins'));
 
 app.get('*', (req, res) => {
@@ -150,6 +152,7 @@ async function checarPrazos() {
 
 async function main() {
   initDb();
+  initSugestoes();
   await criarAdminMasterSeNecessario();
   await recuperarSenhasPlain();
   push.init();

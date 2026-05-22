@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sugestões — Gran Marquise TI</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+  <div class="header-brand">
+    <img class="header-logo-img" src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise">
+    <div class="header-brand-text">
+      <div class="header-brand-name">Gran Marquise</div>
+      <div class="header-brand-sub">Suporte de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <nav></nav>
+</header>
+
+<div id="toast-container"></div>
+<main class="wide">
+  <div id="msg-global"></div>
+
+  <div class="page-header">
+    <div class="page-title">Sugestões</div>
+    <div class="page-subtitle">Gerencie as sugestões de melhoria enviadas pelos usuários</div>
+  </div>
+
+  <div class="filtros-card">
+    <div class="filtros">
+      <select class="form-control" id="filtro-status" aria-label="Status">
+        <option value="">Todos os status</option>
+        <option value="enviada">Enviada</option>
+        <option value="em_analise">Em Análise</option>
+        <option value="em_producao">Em Produção</option>
+        <option value="feita">Feita</option>
+        <option value="negada">Negada</option>
+      </select>
+      <select class="form-control" id="filtro-usuario" aria-label="Usuário">
+        <option value="">Todos os usuários</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="btn-filtrar">Filtrar</button>
+      <button class="btn btn-secondary btn-sm" id="btn-limpar">Limpar</button>
+      <button class="btn btn-secondary btn-sm" id="btn-atualizar" title="Atualizar">&#8635;</button>
+      <button class="btn btn-primary btn-sm" id="btn-nova-sugestao" style="margin-left:auto">+ Nova Sugestão</button>
+    </div>
+  </div>
+
+  <div id="lista-sugestoes"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+
+<!-- Modal detalhe -->
+<div class="modal-overlay" id="modal-detalhe-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h2 id="modal-detalhe-title">Sugestão</h2>
+      <button class="modal-close" id="btn-fechar-detalhe">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modal-detalhe-body"></div>
+  </div>
+</div>
+
+<!-- Modal nova sugestão -->
+<div class="modal-overlay" id="modal-nova-overlay" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2>Nova Sugestão</h2>
+      <button class="modal-close" id="btn-fechar-nova">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem">
+      <div id="msg-nova-sugestao"></div>
+      <form id="form-nova-sugestao">
+        <div class="form-group">
+          <label for="ns-usuario">Vincular a usuário <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <select class="form-control" id="ns-usuario">
+            <option value="">Sugestão interna (sem usuário)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="ns-texto">Sugestão <span class="req">*</span></label>
+          <textarea class="form-control" id="ns-texto" rows="5" maxlength="2000" placeholder="Descreva a sugestão de melhoria..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="ns-status">Status inicial</label>
+          <select class="form-control" id="ns-status">
+            <option value="enviada">Enviada</option>
+            <option value="em_analise">Em Análise</option>
+            <option value="em_producao">Em Produção</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.5rem">Criar Sugestão</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/nav.js"></script>
+<script src="/js/admin-sugestoes.js"></script>
+</body>
+</html>

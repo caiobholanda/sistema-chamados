@@ -1804,6 +1804,101 @@ function sincronizarPessoas(contato_id, pessoas) {
   inserir(pessoas || []);
 }
 
+// ── Sugestões ──────────────────────────────────────────────
+
+function initSugestoes() {
+  const db = getDb();
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sugestoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER REFERENCES usuarios(id),
+      usuario_nome TEXT NOT NULL,
+      texto TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'enviada',
+      campo_extra TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME
+    );
+    CREATE TABLE IF NOT EXISTS sugestao_mensagens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sugestao_id INTEGER NOT NULL REFERENCES sugestoes(id) ON DELETE CASCADE,
+      autor_tipo TEXT NOT NULL CHECK(autor_tipo IN ('usuario','admin')),
+      autor_id INTEGER,
+      autor_nome TEXT NOT NULL,
+      mensagem TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS sugestao_status_historico (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sugestao_id INTEGER NOT NULL REFERENCES sugestoes(id) ON DELETE CASCADE,
+      admin_id INTEGER REFERENCES admins(id),
+      admin_nome TEXT,
+      status_anterior TEXT,
+      status_novo TEXT NOT NULL,
+      campo_extra TEXT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+}
+
+function criarSugestao({ usuario_id, usuario_nome, texto }) {
+  const db = getDb();
+  const r = db.prepare(
+    'INSERT INTO sugestoes (usuario_id, usuario_nome, texto) VALUES (?, ?, ?)'
+  ).run(usuario_id || null, usuario_nome, texto);
+  return r.lastInsertRowid;
+}
+
+function buscarSugestaoPorId(id) {
+  return getDb().prepare('SELECT * FROM sugestoes WHERE id = ?').get(id);
+}
+
+function listarSugestoesPorUsuario(usuario_id) {
+  return getDb().prepare(
+    'SELECT * FROM sugestoes WHERE usuario_id = ? ORDER BY criado_em DESC'
+  ).all(usuario_id);
+}
+
+function listarSugestoesAdmin({ status, usuario_id } = {}) {
+  let sql = 'SELECT * FROM sugestoes WHERE 1=1';
+  const params = [];
+  if (status) { sql += ' AND status = ?'; params.push(status); }
+  if (usuario_id) { sql += ' AND usuario_id = ?'; params.push(usuario_id); }
+  sql += ' ORDER BY criado_em DESC';
+  return getDb().prepare(sql).all(...params);
+}
+
+function atualizarStatusSugestao(id, status, campo_extra, admin_id, admin_nome) {
+  const db = getDb();
+  const atual = db.prepare('SELECT status FROM sugestoes WHERE id = ?').get(id);
+  db.prepare(
+    'UPDATE sugestoes SET status = ?, campo_extra = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?'
+  ).run(status, campo_extra || null, id);
+  db.prepare(
+    'INSERT INTO sugestao_status_historico (sugestao_id, admin_id, admin_nome, status_anterior, status_novo, campo_extra) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id, admin_id || null, admin_nome || null, atual ? atual.status : null, status, campo_extra || null);
+}
+
+function listarMensagensSugestao(sugestao_id) {
+  return getDb().prepare(
+    'SELECT * FROM sugestao_mensagens WHERE sugestao_id = ? ORDER BY criado_em ASC'
+  ).all(sugestao_id);
+}
+
+function criarMensagemSugestao({ sugestao_id, autor_tipo, autor_id, autor_nome, mensagem }) {
+  const db = getDb();
+  const r = db.prepare(
+    'INSERT INTO sugestao_mensagens (sugestao_id, autor_tipo, autor_id, autor_nome, mensagem) VALUES (?, ?, ?, ?, ?)'
+  ).run(sugestao_id, autor_tipo, autor_id || null, autor_nome, mensagem);
+  return r.lastInsertRowid;
+}
+
+function listarHistoricoSugestao(sugestao_id) {
+  return getDb().prepare(
+    'SELECT * FROM sugestao_status_historico WHERE sugestao_id = ? ORDER BY timestamp ASC'
+  ).all(sugestao_id);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -1900,6 +1995,15 @@ module.exports = {
   atualizarContato,
   deletarContato,
   sincronizarPessoas,
+  initSugestoes,
+  criarSugestao,
+  buscarSugestaoPorId,
+  listarSugestoesPorUsuario,
+  listarSugestoesAdmin,
+  atualizarStatusSugestao,
+  listarMensagensSugestao,
+  criarMensagemSugestao,
+  listarHistoricoSugestao,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────
