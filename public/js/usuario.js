@@ -575,8 +575,8 @@ function renderPainel(usuario) {
       if (r.ok) {
         document.getElementById('form-sugestao').reset();
         _fecharModalSug();
-        _mostrarToastU('Sugestão enviada com sucesso!', 'Acompanhe o andamento na aba Sugestões.');
         _carregarSugestoesUsuario();
+        setTimeout(() => _mostrarToastU('Sugestão enviada com sucesso!', 'Acompanhe o andamento na aba Sugestões.'), 150);
       } else {
         msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
       }
