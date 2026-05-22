@@ -571,8 +571,6 @@ function renderPainel(usuario) {
   // ── Aba Sugestões ──────────────────────────────────────────
   let _sugestoesUsuario = [];
   let _chatSugIntervals = new Map();
-  let _sugFiltroStatus = '';
-  let _sugBusca = '';
   let _sugHash = null;
   let _sugRefreshInterval = null;
 
@@ -595,52 +593,24 @@ function renderPainel(usuario) {
       _sugestoesUsuario = lista;
       const badgeEl = document.getElementById('badge-sugestoes-u');
       if (badgeEl) {
-        const naoLidas = lista.reduce((acc, s) => acc + (s.msgs_nao_lidas_usuario || 0), 0);
         const ativas = lista.filter(s => !['feita','negada'].includes(s.status)).length;
-        badgeEl.textContent = naoLidas || ativas || '';
-        badgeEl.style.background = naoLidas ? '#e53e3e' : '';
-        badgeEl.style.color = naoLidas ? '#fff' : '';
+        badgeEl.textContent = ativas || '';
       }
-      if (abaAtiva === 'sugestoes') _renderSugestoesUsuario(_filtrarSugestoes(lista));
+      if (abaAtiva === 'sugestoes') _renderSugestoesUsuario(lista);
     } catch {}
-  }
-
-  function _filtrarSugestoes(lista) {
-    let r = lista;
-    if (_sugFiltroStatus) r = r.filter(s => s.status === _sugFiltroStatus);
-    if (_sugBusca) { const b = _sugBusca.toLowerCase(); r = r.filter(s => s.texto.toLowerCase().includes(b)); }
-    return r;
   }
 
   function _renderSugestoesUsuario(lista) {
     const el = document.getElementById('lista-usuario');
-    const totalAtivas = _sugestoesUsuario.filter(s => !['feita','negada'].includes(s.status)).length;
-
-    const controles = `
-      <div class="filtros-card" style="margin-bottom:.75rem">
-        <div class="filtros" style="gap:.5rem">
-          <input class="form-control" type="search" id="sug-busca-u" placeholder="Buscar nas sugestões..." style="flex:1;min-width:180px" value="${_sugBusca}">
-        </div>
-        <div class="tabs-bar" style="margin-top:.6rem;border-top:1px solid var(--border);padding-top:.6rem">
-          <button class="tab-btn${!_sugFiltroStatus ? ' ativo' : ''}" data-sf="">Todas <span class="tab-badge">${_sugestoesUsuario.length || ''}</span></button>
-          <button class="tab-btn${_sugFiltroStatus === 'enviada' ? ' ativo' : ''}" data-sf="enviada">Enviada</button>
-          <button class="tab-btn${_sugFiltroStatus === 'em_analise' ? ' ativo' : ''}" data-sf="em_analise">Em Análise</button>
-          <button class="tab-btn${_sugFiltroStatus === 'em_producao' ? ' ativo' : ''}" data-sf="em_producao">Em Produção</button>
-          <button class="tab-btn${_sugFiltroStatus === 'feita' ? ' ativo' : ''}" data-sf="feita">Feita</button>
-          <button class="tab-btn${_sugFiltroStatus === 'negada' ? ' ativo' : ''}" data-sf="negada">Negada</button>
-        </div>
-      </div>
-    `;
 
     if (!lista.length) {
-      el.innerHTML = controles + `<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:.88rem">
-        ${_sugestoesUsuario.length ? 'Nenhuma sugestão corresponde ao filtro.' : 'Você ainda não enviou nenhuma sugestão.'}<br>
-        ${!_sugestoesUsuario.length ? `<button class="btn btn-secondary btn-sm" style="margin-top:.75rem" onclick="document.getElementById('btn-nova-sugestao-u').click()">💡 Enviar primeira sugestão</button>` : ''}
+      el.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:.88rem">
+        Você ainda não enviou nenhuma sugestão.<br>
+        <button class="btn btn-secondary btn-sm" style="margin-top:.75rem" onclick="document.getElementById('btn-nova-sugestao-u').click()">💡 Enviar primeira sugestão</button>
       </div>`;
-      _bindControlesSug(el);
       return;
     }
-    el.innerHTML = controles + lista.map(s => {
+    el.innerHTML = lista.map(s => {
       const statusLabel = SUGH_LABELS[s.status] || s.status;
       const fechado = s.status === 'feita' || s.status === 'negada';
       const campoExtraLabel = s.status === 'feita' ? 'Como foi implementado' : s.status === 'negada' ? 'Justificativa' : '';
@@ -655,10 +625,9 @@ function renderPainel(usuario) {
             <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
               <span style="font-size:.72rem;color:var(--text-muted)">#${s.id}</span>
               <span class="badge badge-${s.status}">${statusLabel}</span>
-              ${s.msgs_nao_lidas_usuario > 0 ? `<span style="display:inline-flex;align-items:center;gap:.2rem;background:#e53e3e;color:#fff;border-radius:10px;font-size:.68rem;font-weight:700;padding:1px 7px;line-height:1.5">💬 ${s.msgs_nao_lidas_usuario} nova${s.msgs_nao_lidas_usuario > 1 ? 's' : ''}</span>` : ''}
               <span style="font-size:.72rem;color:var(--text-muted)">${fmtData(s.criado_em)}</span>
             </div>
-            <button class="btn btn-secondary btn-sm btn-ver-historico-sug" data-sug-id="${s.id}" style="font-size:.72rem">📋 Histórico</button>
+            <a href="/sugestao-historico.html?id=${s.id}" class="btn btn-secondary btn-sm" style="font-size:.72rem">📋 Histórico</a>
           </div>
           <div style="margin-top:.75rem;font-size:.88rem;line-height:1.6;white-space:pre-wrap">${s.texto}</div>
           ${campoExtra}
@@ -676,8 +645,6 @@ function renderPainel(usuario) {
         </div>
       `;
     }).join('');
-
-    _bindControlesSug(el);
 
     lista.forEach(s => {
       const chatInput = document.getElementById(`chat-input-sug-u-${s.id}`);
@@ -702,36 +669,11 @@ function renderPainel(usuario) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMsgSug(); }
       });
 
-      const btnHistorico = el.querySelector(`.btn-ver-historico-sug[data-sug-id="${s.id}"]`);
-      if (btnHistorico) {
-        btnHistorico.addEventListener('click', () => _abrirHistoricoSug(s.id));
-      }
-
       _atualizarChatSugUsuario(s.id);
       if (!_chatSugIntervals.has(s.id)) {
         _chatSugIntervals.set(s.id, setInterval(() => _atualizarChatSugUsuario(s.id), 6000));
       }
     });
-  }
-
-  function _bindControlesSug(container) {
-    container.querySelectorAll('[data-sf]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        _sugFiltroStatus = btn.dataset.sf;
-        _renderSugestoesUsuario(_filtrarSugestoes(_sugestoesUsuario));
-      });
-    });
-    const buscaInput = container.querySelector('#sug-busca-u');
-    if (buscaInput) {
-      let _debounce;
-      buscaInput.addEventListener('input', () => {
-        clearTimeout(_debounce);
-        _debounce = setTimeout(() => {
-          _sugBusca = buscaInput.value.trim();
-          _renderSugestoesUsuario(_filtrarSugestoes(_sugestoesUsuario));
-        }, 350);
-      });
-    }
   }
 
   function _renderMsgSugUsr(m) {
@@ -768,49 +710,6 @@ function renderPainel(usuario) {
       while (tmp.firstChild) box.appendChild(tmp.firstChild);
       if (atFundo) box.scrollTop = box.scrollHeight;
     } catch {}
-  }
-
-  async function _abrirHistoricoSug(sugId) {
-    let overlay = document.getElementById('modal-hist-sug-overlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'modal-hist-sug-overlay';
-      overlay.className = 'modal-overlay';
-      overlay.innerHTML = `
-        <div class="modal" style="max-width:420px">
-          <div class="modal-header">
-            <h2>Histórico da Sugestão</h2>
-            <button class="modal-close" id="btn-fechar-hist-sug">&#x2715;</button>
-          </div>
-          <div class="modal-body" id="modal-hist-sug-body" style="padding:1.25rem 1.4rem;max-height:400px;overflow-y:auto"></div>
-        </div>`;
-      document.body.appendChild(overlay);
-      document.getElementById('btn-fechar-hist-sug').addEventListener('click', () => overlay.classList.remove('open'));
-      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
-    }
-    try {
-      const r = await apiFetch(`/api/sugestoes/${sugId}/mensagens`);
-      const sug = _sugestoesUsuario.find(s => s.id === sugId);
-      const body = document.getElementById('modal-hist-sug-body');
-      body.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted)">Carregando...</div>';
-      overlay.classList.add('open');
-
-      const rHist = await apiFetch(`/api/sugestoes/${sugId}/historico`);
-      if (rHist.ok) {
-        const hist = await rHist.json();
-        if (!hist.length) { body.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted)">Sem histórico de alterações.</div>'; return; }
-        const LABELS = { enviada: 'Enviada', em_analise: 'Em Análise', em_producao: 'Em Produção', feita: 'Feita', negada: 'Negada' };
-        body.innerHTML = hist.map(h => `
-          <div style="padding:.6rem 0;border-bottom:1px solid var(--border)">
-            <div style="font-size:.72rem;color:var(--text-muted)">${fmtData(h.timestamp)}</div>
-            <div style="font-size:.82rem;margin-top:.2rem">
-              ${h.status_anterior ? `<span style="color:var(--text-muted)">${LABELS[h.status_anterior] || h.status_anterior}</span> → ` : ''}
-              <strong>${LABELS[h.status_novo] || h.status_novo}</strong>
-            </div>
-            ${h.campo_extra ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-top:.15rem;font-style:italic">"${h.campo_extra}"</div>` : ''}
-          </div>`).join('');
-      }
-    } catch { document.getElementById('modal-hist-sug-body').innerHTML = '<div style="color:var(--danger);font-size:.82rem">Erro ao carregar.</div>'; }
   }
 
   function _pararSugRefresh() {

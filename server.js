@@ -48,6 +48,7 @@ app.get('/admin-estoque.html', (req, res) => servirHtmlComVersao(res, 'admin-est
 app.get('/admin-login.html', (req, res) => servirHtmlComVersao(res, 'admin-login.html'));
 app.get('/admin-contatos.html', (req, res) => servirHtmlComVersao(res, 'admin-contatos.html'));
 app.get('/admin-sugestoes.html', (req, res) => servirHtmlComVersao(res, 'admin-sugestoes.html'));
+app.get('/sugestao-historico.html', (req, res) => servirHtmlComVersao(res, 'sugestao-historico.html'));
 app.get('/redefinir-senha.html', (req, res) => servirHtmlComVersao(res, 'redefinir-senha.html'));
 app.get('/mobile', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
 app.get('/mobile.html', (req, res) => servirHtmlComVersao(res, 'mobile.html'));

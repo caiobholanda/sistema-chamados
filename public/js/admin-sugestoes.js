@@ -408,6 +408,11 @@ async function init() {
   const admin = await checarAuth();
   if (!admin) return;
 
+  if (admin.is_master) {
+    const wrap = document.getElementById('nav-usuarios-wrap');
+    if (wrap) wrap.innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
+  }
+
   await carregarUsuarios();
   await carregarSugestoes();
 

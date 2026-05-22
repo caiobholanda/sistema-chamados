@@ -54,6 +54,17 @@ router.get('/:id/mensagens', requireUsuario, (req, res) => {
   }
 });
 
+router.get('/:id', requireUsuario, (req, res) => {
+  try {
+    const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
+    if (!s) return res.status(404).json({ erro: 'Sugestão não encontrada' });
+    if (s.usuario_id !== req.usuario.sub) return res.status(403).json({ erro: 'Acesso negado' });
+    return res.json(s);
+  } catch (err) {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.get('/:id/historico', requireUsuario, (req, res) => {
   try {
     const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
