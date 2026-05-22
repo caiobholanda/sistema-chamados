@@ -7,6 +7,7 @@ const db = require('../db');
 const { requireUsuario } = require('../auth');
 const push = require('../push');
 const { enviarResetSenha } = require('../email');
+const sse = require('../sse');
 
 function sanitizar(str) {
   if (typeof str !== 'string') return str;
@@ -246,6 +247,24 @@ router.post('/redefinir-senha', async (req, res) => {
     console.error('[redefinir-senha]', err);
     return res.status(500).json({ erro: 'Erro interno' });
   }
+});
+
+// GET /api/usuarios/stream — SSE para notificações em tempo real
+router.get('/stream', requireUsuario, (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const userId = req.usuario.sub;
+  sse.subscribe(userId, res);
+
+  const hb = setInterval(() => { try { res.write(':hb\n\n'); } catch {} }, 25000);
+
+  req.on('close', () => {
+    clearInterval(hb);
+    sse.unsubscribe(userId, res);
+  });
 });
 
 module.exports = router;

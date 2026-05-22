@@ -4,6 +4,7 @@ const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardan
 
 let _refreshInterval = null;
 let _visibilityController = null;
+let _sseSource = null;
 function _pararRefresh() {
   if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
 }
@@ -173,7 +174,7 @@ async function _atualizarChat(chamadoId) {
 function _iniciarChat(chamadoId) {
   _atualizarChat(chamadoId);
   if (!_chatIntervals.has(chamadoId))
-    _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 15000));
+    _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 5000));
 
   const form = document.getElementById('chat-form-' + chamadoId);
   if (!form) return;
@@ -286,6 +287,7 @@ async function apiFetch(url, opts = {}) {
 function renderAuth() {
   _limparChats();
   if (_visibilityController) { _visibilityController.abort(); _visibilityController = null; }
+  if (_sseSource) { _sseSource.close(); _sseSource = null; }
   const header = document.querySelector('header');
   if (header) header.style.display = 'none';
   document.body.classList.add('auth-mode');
@@ -577,6 +579,7 @@ function renderPainel(usuario) {
   document.getElementById('btn-logout-usuario').addEventListener('click', async () => {
     _pararRefresh();
     _limparChats();
+    if (_sseSource) { _sseSource.close(); _sseSource = null; }
     await apiFetch('/api/usuarios/logout', { method: 'POST' });
     renderAuth();
   });
@@ -810,7 +813,7 @@ function renderPainel(usuario) {
   }
   function _iniciarSugRefresh() {
     _pararSugRefresh();
-    _sugRefreshInterval = setInterval(() => _carregarSugestoesUsuario(true), 15000);
+    _sugRefreshInterval = setInterval(() => _carregarSugestoesUsuario(true), 5000);
   }
 
   document.getElementById('tab-abertos').addEventListener('click', () => {
@@ -925,7 +928,18 @@ function renderPainel(usuario) {
   carregarChamados();
   _carregarSugestoesUsuario();
   _pararRefresh();
-  _refreshInterval = setInterval(() => carregarChamados(true), 15000);
+  _refreshInterval = setInterval(() => carregarChamados(true), 5000);
+
+  // SSE — notificações instantâneas do servidor
+  if (_sseSource) { _sseSource.close(); _sseSource = null; }
+  _sseSource = new EventSource('/api/usuarios/stream');
+  _sseSource.addEventListener('mensagem:new', e => {
+    const { chamado_id } = JSON.parse(e.data);
+    _atualizarChat(chamado_id);
+  });
+  _sseSource.addEventListener('sugestao:updated', () => {
+    _carregarSugestoesUsuario(true);
+  });
 
   if (_visibilityController) _visibilityController.abort();
   _visibilityController = new AbortController();
@@ -938,7 +952,7 @@ function renderPainel(usuario) {
       _pararRefresh();
       _limparChats();
       carregarChamados(true);
-      _refreshInterval = setInterval(() => carregarChamados(true), 15000);
+      _refreshInterval = setInterval(() => carregarChamados(true), 5000);
       if (abaAtiva === 'sugestoes') _iniciarSugRefresh();
     }
   }, { signal: _visibilityController.signal });

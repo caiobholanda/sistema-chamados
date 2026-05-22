@@ -8,6 +8,7 @@ const db = require('../db');
 const { requireAdmin, requireMaster } = require('../auth');
 const push = require('../push');
 const { upload, uploadMiddleware, renomearAnexoComId } = require('../upload');
+const sse = require('../sse');
 
 const STATUS_VALIDOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar', 'concluido', 'encerrado'];
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
@@ -332,6 +333,7 @@ router.post('/chamados/:id/mensagens', requireAdmin, uploadMiddleware('chat_anex
       const novoCaminho = path.join(UPLOADS_DIR, novoNome);
       fs.renameSync(tmpPath, novoCaminho);
       db.getDb().prepare('UPDATE mensagens_chamado SET chat_anexo_path = ? WHERE id = ?').run(novoNome, msgId);
+      if (chamado.usuario_id) sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id });
       return res.status(201).json({ mensagem: 'Mensagem enviada' });
     }
     db.criarMensagem({
@@ -339,6 +341,7 @@ router.post('/chamados/:id/mensagens', requireAdmin, uploadMiddleware('chat_anex
       autor_id: req.admin.sub, autor_nome: admin ? admin.nome_completo : 'Suporte',
       mensagem,
     });
+    if (chamado.usuario_id) sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id });
     return res.status(201).json({ mensagem: 'Mensagem enviada' });
   } catch (err) {
     console.error(err);

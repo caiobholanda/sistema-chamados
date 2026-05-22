@@ -6,6 +6,7 @@ const db = require('../db');
 const { requireAdmin, requireUsuario } = require('../auth');
 const push = require('../push');
 const { uploadMiddleware, UPLOADS_DIR } = require('../upload');
+const sse = require('../sse');
 
 const STATUS_VALIDOS = ['enviada', 'em_analise', 'em_producao', 'feita', 'negada'];
 const STATUS_COM_CAMPO = ['feita', 'negada'];
@@ -264,6 +265,7 @@ router.post('/admin/:id/mensagens', uploadMiddleware('chat_anexo'), requireAdmin
     } else {
       db.criarMensagemSugestao({ sugestao_id: s.id, autor_tipo: 'admin', autor_id: req.admin.sub, autor_nome: req.admin.nome, mensagem });
     }
+    if (s.usuario_id) sse.notify(s.usuario_id, 'sugestao:updated', { sugestao_id: s.id });
     return res.status(201).json({ mensagem: 'Mensagem enviada' });
   } catch (err) {
     console.error(err);
