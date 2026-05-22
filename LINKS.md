@@ -1,7 +1,7 @@
 # Links do Sistema de Chamados — Gran Marquise
 
 ## Acesso online (qualquer máquina, sem instalar nada)
-https://web-production-83b4ae.up.railway.app
+https://sistema-chamados-granmarquise.fly.dev
 
 ## Repositório no GitHub
 https://github.com/caiobholanda/sistema-chamados

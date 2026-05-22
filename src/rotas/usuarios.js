@@ -179,7 +179,7 @@ router.post('/esqueci-senha', async (req, res) => {
     const email = (req.body.email || '').trim().toLowerCase();
     if (!email) return res.status(400).json({ erro: 'E-mail obrigatório' });
 
-    const base = process.env.APP_URL || `https://web-production-83b4ae.up.railway.app`;
+    const base = process.env.APP_URL || `https://sistema-chamados-granmarquise.fly.dev`;
     const expires_at = new Date(Date.now() + 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
 
     const usuario = db.buscarUsuarioPorEmail(email);

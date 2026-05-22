@@ -6,7 +6,7 @@ Sistema interno de suporte de TI do Hotel Gran Marquise (Fortaleza). Usuários d
 
 - **Stack:** Node.js + Express + better-sqlite3 + JWT (sem framework frontend)
 - **Banco:** SQLite em `data/chamados.db`
-- **Site em produção:** https://web-production-83b4ae.up.railway.app
+- **Site em produção:** https://sistema-chamados-granmarquise.fly.dev
 - **Repositório:** https://github.com/caiobholanda/sistema-chamados
 
 ## Estrutura de arquivos
@@ -30,7 +30,7 @@ public/
 data/
   chamados.db        — banco SQLite (não commitado, gerado na primeira execução)
 .github/workflows/
-  deploy.yml         — CI/CD: push em main → railway up → deploy automático
+  fly-deploy.yml     — CI/CD: push em main → flyctl deploy → deploy automático
 ```
 
 ## Regras de negócio importantes
@@ -43,7 +43,7 @@ data/
 
 ## Deploy automático
 
-Qualquer `git push origin main` dispara o GitHub Actions (`.github/workflows/deploy.yml`) que executa `railway up` via Railway CLI. O secret `RAILWAY_TOKEN` está configurado no GitHub.
+Qualquer `git push origin main` dispara o GitHub Actions (`.github/workflows/fly-deploy.yml`) que executa `flyctl deploy` via Fly.io CLI. O secret `FLY_API_TOKEN` está configurado no GitHub.
 
 ## Mudanças recentes (sessão 05/05/2026)
 
@@ -76,11 +76,9 @@ Qualquer `git push origin main` dispara o GitHub Actions (`.github/workflows/dep
 - Agora também aceita `{ nome, email, senha }` para edição completa do perfil
 - Arquivo: `src/rotas/admins.js`
 
-### 6. Fix do pipeline de deploy
-- O token Railway antigo havia expirado → deploy falhava com "Not Authorized"
-- Reescrito o `deploy.yml` para usar `railway up --service <id> --detach` em vez da mutation GraphQL `environmentTriggersDeploy`
-- Adicionado trigger `workflow_dispatch` para poder disparar manualmente
-- Arquivo: `.github/workflows/deploy.yml`
+### 6. Migração Railway → Fly.io
+- Deploy migrado para Fly.io (`sistema-chamados-granmarquise.fly.dev`)
+- Pipeline: `.github/workflows/fly-deploy.yml` com `FLY_API_TOKEN` no GitHub
 
 ## Como rodar localmente
 

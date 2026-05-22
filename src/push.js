@@ -14,7 +14,7 @@ function getVapidKeys() {
     const keys = JSON.parse(row.valor);
     console.log('='.repeat(72));
     console.log('[Push] VAPID keys carregadas do banco. Para nunca perder notificações,');
-    console.log('[Push] defina estas variáveis de ambiente permanentes no Railway:');
+    console.log('[Push] defina estas variáveis de ambiente permanentes no Fly.io:');
     console.log('[Push]   VAPID_PUBLIC_KEY=' + keys.publicKey);
     console.log('[Push]   VAPID_PRIVATE_KEY=' + keys.privateKey);
     console.log('[Push]   VAPID_EMAIL=ti@granmarquise.com.br');
@@ -24,7 +24,7 @@ function getVapidKeys() {
   const keys = webpush.generateVAPIDKeys();
   d.prepare("INSERT OR REPLACE INTO config (chave, valor) VALUES ('vapid_keys', ?)").run(JSON.stringify(keys));
   console.log('='.repeat(72));
-  console.log('[Push] NOVAS VAPID keys geradas! COPIE PARA O RAILWAY IMEDIATAMENTE:');
+  console.log('[Push] NOVAS VAPID keys geradas! COPIE PARA O FLY.IO IMEDIATAMENTE:');
   console.log('[Push]   VAPID_PUBLIC_KEY=' + keys.publicKey);
   console.log('[Push]   VAPID_PRIVATE_KEY=' + keys.privateKey);
   console.log('[Push]   VAPID_EMAIL=ti@granmarquise.com.br');
@@ -53,7 +53,6 @@ function getPublicKey() {
 function getAppOrigin() {
   if (process.env.APP_ORIGIN) return process.env.APP_ORIGIN;
   if (process.env.FLY_APP_NAME) return `https://${process.env.FLY_APP_NAME}.fly.dev`;
-  if (process.env.RAILWAY_PUBLIC_DOMAIN) return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
   return null;
 }
 
