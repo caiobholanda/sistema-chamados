@@ -31,6 +31,11 @@ function _limparChats() {
 
 // ── Lightbox ──────────────────────────────────────────────────
 let _lbxEl = null;
+let _lbxZoom = 1;
+function _lbxResetZoom() {
+  _lbxZoom = 1;
+  if (_lbxEl) _lbxEl.querySelector('#lbx-img').style.transform = '';
+}
 function _abrirLightbox(src, nome) {
   if (!_lbxEl) {
     _lbxEl = document.createElement('div');
@@ -38,12 +43,19 @@ function _abrirLightbox(src, nome) {
     _lbxEl.innerHTML = '<button id="lbx-close" aria-label="Fechar">✕</button><img id="lbx-img" alt=""><div id="lbx-nome"></div>';
     document.body.appendChild(_lbxEl);
     _lbxEl.addEventListener('click', e => {
-      if (e.target === _lbxEl || e.target.id === 'lbx-close') _lbxEl.classList.remove('lbx-open');
+      if (e.target === _lbxEl || e.target.id === 'lbx-close') { _lbxEl.classList.remove('lbx-open'); _lbxResetZoom(); }
     });
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && _lbxEl) _lbxEl.classList.remove('lbx-open');
+      if (e.key === 'Escape' && _lbxEl) { _lbxEl.classList.remove('lbx-open'); _lbxResetZoom(); }
     });
+    _lbxEl.addEventListener('wheel', e => {
+      if (!_lbxEl.classList.contains('lbx-open')) return;
+      e.preventDefault();
+      _lbxZoom = Math.min(5, Math.max(0.3, _lbxZoom + (e.deltaY > 0 ? -0.15 : 0.15)));
+      _lbxEl.querySelector('#lbx-img').style.transform = `scale(${_lbxZoom})`;
+    }, { passive: false });
   }
+  _lbxResetZoom();
   _lbxEl.querySelector('#lbx-img').src = src;
   _lbxEl.querySelector('#lbx-nome').textContent = nome || '';
   _lbxEl.classList.add('lbx-open');
