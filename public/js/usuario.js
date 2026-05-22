@@ -538,7 +538,7 @@ function renderPainel(usuario) {
     if (area.style.display === 'none') {
       renderFormChamado(
         usuario, area,
-        () => { area.style.display = 'none'; _mostrarConfirmacaoChamado(); carregarChamados(); },
+        () => { area.style.display = 'none'; _mostrarConfirmacaoChamado(); document.getElementById('tab-abertos')?.click(); carregarChamados(); },
         () => { area.style.display = 'none'; }
       );
       area.style.display = 'block';
