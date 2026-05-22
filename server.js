@@ -59,7 +59,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
   lastModified: false,
   setHeaders(res, filePath) {
     if (/\.(js|css)$/.test(filePath)) {
-      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     } else {
       res.setHeader('Cache-Control', 'public, max-age=3600');
     }
