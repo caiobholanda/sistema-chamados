@@ -307,15 +307,16 @@ function atualizarFiltrosDeAba() {
 
 async function carregarEstatisticas() {
   try {
+    const statusAtivosParam = STATUS_ABERTOS.join(',');
     const [rTodos, rMeus, rCancelados] = await Promise.all([
-      api('/api/admin/chamados?status=aberto,em_andamento,concluido,encerrado'),
-      adminInfo ? api(`/api/admin/chamados?admin_id=${adminInfo.id}&status=aberto,em_andamento,concluido,encerrado`) : Promise.resolve(null),
+      api(`/api/admin/chamados?status=${statusAtivosParam},concluido,encerrado`),
+      adminInfo ? api(`/api/admin/chamados?admin_id=${adminInfo.id}&status=${statusAtivosParam},concluido,encerrado`) : Promise.resolve(null),
       api('/api/admin/chamados?status=cancelado'),
     ]);
     if (!rTodos.ok) return;
     const todos = await rTodos.json();
 
-    const contagem = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
+    const contagem = { aberto: 0, em_andamento: 0, aguardando_compra: 0, aguardando_chegar: 0, concluido: 0, encerrado: 0 };
     todos.forEach(c => { if (contagem[c.status] !== undefined) contagem[c.status]++; });
 
     if (rCancelados.ok) {
@@ -323,12 +324,12 @@ async function carregarEstatisticas() {
       document.getElementById('cnt-cancelado').textContent = cancelados.length || '0';
     }
 
-    document.getElementById('cnt-aberto').textContent = contagem.aberto;
-    document.getElementById('cnt-andamento').textContent = contagem.em_andamento;
-    document.getElementById('cnt-concluido').textContent = contagem.concluido + contagem.encerrado;
-
-    const totalAbertos = contagem.aberto + contagem.em_andamento;
+    const totalAbertos   = STATUS_ABERTOS.reduce((s, k) => s + contagem[k], 0);
     const totalEncerrados = contagem.concluido + contagem.encerrado;
+
+    document.getElementById('cnt-aberto').textContent = totalAbertos;
+    document.getElementById('cnt-andamento').textContent = contagem.em_andamento;
+    document.getElementById('cnt-concluido').textContent = totalEncerrados;
     document.getElementById('badge-abertos').textContent = totalAbertos || '';
     document.getElementById('badge-encerrados').textContent = totalEncerrados || '';
 
