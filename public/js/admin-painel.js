@@ -181,6 +181,9 @@ const CATEGORIAS_MAP = {
   outros:         { nome: 'Outros',              cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>' },
 };
 
+const CATS_PRIMARIAS = new Set(['software', 'hardware', 'cameras', 'email', 'processo_compra']);
+const CATS_HARDWARE_SUB = ['impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','tv_projetor','projetor','tablet','celular','outros'];
+
 function badgeCategoria(cat) {
   if (!cat || !CATEGORIAS_MAP[cat]) return '';
   const { nome, cor, icone } = CATEGORIAS_MAP[cat];
@@ -764,6 +767,9 @@ function renderModalBody(c) {
     : '';
 
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
+  const isHardwareSub = !!(c.categoria && !CATS_PRIMARIAS.has(c.categoria));
+  const primCatSel    = isHardwareSub ? 'hardware' : (c.categoria || '');
+  const subCatSel     = isHardwareSub ? c.categoria : '';
 
   document.getElementById('modal-title').innerHTML = `${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
 
@@ -871,12 +877,23 @@ function renderModalBody(c) {
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Configurações
               </div>
-              <div class="mv2-ctrl-row">
-                <span class="mv2-ctrl-lbl">Categoria</span>
-                <select class="form-control form-control-sm" id="sel-categoria" style="flex:1">
-                  ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) => `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`).join('')}
-                </select>
-                <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria">Salvar</button>
+              <div class="mv2-ctrl-row" style="align-items:flex-start">
+                <span class="mv2-ctrl-lbl" style="padding-top:.3rem">Categoria</span>
+                <div style="flex:1;display:flex;flex-direction:column;gap:.35rem">
+                  <select class="form-control form-control-sm" id="sel-categoria">
+                    <option value="">— selecionar —</option>
+                    <option value="software" ${primCatSel === 'software' ? 'selected' : ''}>Software</option>
+                    <option value="hardware" ${primCatSel === 'hardware' ? 'selected' : ''}>Hardware</option>
+                    <option value="cameras"  ${primCatSel === 'cameras'  ? 'selected' : ''}>Câmeras / CFTV</option>
+                    <option value="email"    ${primCatSel === 'email'    ? 'selected' : ''}>E-mail</option>
+                    <option value="processo_compra" ${primCatSel === 'processo_compra' ? 'selected' : ''}>Processo de Compra</option>
+                  </select>
+                  <select class="form-control form-control-sm" id="sel-subcategoria" style="display:${isHardwareSub ? 'block' : 'none'}">
+                    <option value="">— tipo de hardware —</option>
+                    ${CATS_HARDWARE_SUB.map(id => `<option value="${id}" ${subCatSel === id ? 'selected' : ''}>${CATEGORIAS_MAP[id].nome}</option>`).join('')}
+                  </select>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
               </div>
               <div class="mv2-ctrl-row">
                 <span class="mv2-ctrl-lbl">Prioridade</span>
@@ -1102,10 +1119,23 @@ function setupModalEventos(c) {
     });
   }
 
+  const selCatEl = document.getElementById('sel-categoria');
+  const selSubEl = document.getElementById('sel-subcategoria');
+  if (selCatEl && selSubEl) {
+    selCatEl.addEventListener('change', () => {
+      const show = selCatEl.value === 'hardware';
+      selSubEl.style.display = show ? 'block' : 'none';
+      if (!show) selSubEl.value = '';
+    });
+  }
   const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
   if (btnSalvarCategoria) {
     btnSalvarCategoria.addEventListener('click', async () => {
-      const cat = document.getElementById('sel-categoria').value;
+      let cat = document.getElementById('sel-categoria').value;
+      if (cat === 'hardware') {
+        const sub = document.getElementById('sel-subcategoria').value;
+        if (sub) cat = sub;
+      }
       const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
