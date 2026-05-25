@@ -645,12 +645,6 @@ async function carregarChamados(silencioso = false) {
     chamados.sort((a, b) => {
       const prioDiff = scorePrioridade(a) - scorePrioridade(b);
       if (prioDiff !== 0) return prioDiff;
-      // mesmo nível: prazo mais próximo primeiro; sem prazo, mais recente primeiro
-      if (!a.prazo && !b.prazo) return new Date(a.criado_em) - new Date(b.criado_em);
-      if (!a.prazo) return 1;
-      if (!b.prazo) return -1;
-      const prazoDiff = new Date(a.prazo) - new Date(b.prazo);
-      if (prazoDiff !== 0) return prazoDiff;
       return new Date(a.criado_em) - new Date(b.criado_em);
     });
     lista.innerHTML = chamados.map(c => renderChamadoItem(c)).join('');
