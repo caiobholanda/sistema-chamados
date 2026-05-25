@@ -503,6 +503,8 @@ async function _carregarUsuariosNc() {
 
 function abrirModalNovoChamado() {
   document.getElementById('nc-categoria').value = '';
+  const ncSub = document.getElementById('nc-subcategoria');
+  if (ncSub) { ncSub.value = ''; ncSub.style.display = 'none'; }
   document.getElementById('nc-descricao').value = '';
   document.getElementById('nc-anexo').value = '';
   document.getElementById('msg-novo-chamado').innerHTML = '';
@@ -524,6 +526,13 @@ function fecharModalNovoChamado() {
 document.getElementById('btn-novo-chamado').addEventListener('click', abrirModalNovoChamado);
 document.getElementById('btn-fechar-novo-chamado').addEventListener('click', fecharModalNovoChamado);
 
+document.getElementById('nc-categoria').addEventListener('change', () => {
+  const sub = document.getElementById('nc-subcategoria');
+  const show = document.getElementById('nc-categoria').value === 'hardware';
+  sub.style.display = show ? 'block' : 'none';
+  if (!show) sub.value = '';
+});
+
 document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msgEl = document.getElementById('msg-novo-chamado');
@@ -537,7 +546,11 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
   try {
     const fd = new FormData();
     fd.append('descricao', descricao);
-    const categoria = document.getElementById('nc-categoria').value;
+    let categoria = document.getElementById('nc-categoria').value;
+    if (categoria === 'hardware') {
+      const sub = document.getElementById('nc-subcategoria').value;
+      if (sub) categoria = sub;
+    }
     if (categoria) fd.append('categoria', categoria);
     const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
     if (usuarioId) fd.append('usuario_id', usuarioId);
