@@ -169,8 +169,8 @@ router.post('/chamados/:id/info-adicional', requireUsuario, (req, res) => {
     db.inserirInfoAdicional({ chamado_id: chamado.id, texto, autor_tipo: 'usuario', autor_id: req.usuario.sub, autor_nome: autorNome });
     db.getDb().prepare(`
       INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
-      VALUES (?, NULL, 'info_adicional', NULL, ?)
-    `).run(chamado.id, autorNome);
+      VALUES (?, NULL, 'info_adicional', ?, ?)
+    `).run(chamado.id, autorNome, texto);
     return res.status(201).json({ mensagem: 'Informação adicionada' });
   } catch (err) {
     console.error(err);

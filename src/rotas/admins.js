@@ -392,7 +392,7 @@ router.post('/chamados/:id/info-adicional', requireAdmin, (req, res) => {
     db.getDb().prepare(`
       INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
       VALUES (?, ?, 'info_adicional', NULL, ?)
-    `).run(chamado.id, req.admin.sub, autorNome);
+    `).run(chamado.id, req.admin.sub, texto);
     return res.status(201).json({ mensagem: 'Informação adicionada' });
   } catch (err) {
     console.error(err);

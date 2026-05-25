@@ -126,6 +126,11 @@
         <div style="margin-top:.35rem;font-size:.72rem;color:#94a3b8">Nova descrição:</div>
         <div class="ht-desc-box" style="margin-top:.1rem">${h.valor_novo || ''}</div>`;
     }
+    if (h.acao === 'info_adicional') {
+      const autor = h.admin_nome || h.valor_anterior || 'Usuário';
+      return `Informação adicional adicionada por <strong>${autor}</strong>
+        <div class="ht-desc-box" style="margin-top:.35rem;white-space:pre-wrap">${h.valor_novo || ''}</div>`;
+    }
     if (h.acao === 'acordo_assinado') {
       const usuarioNome = h.valor_anterior || '';
       const dados = (() => { try { return JSON.parse(h.valor_novo || '{}'); } catch { return {}; } })();
