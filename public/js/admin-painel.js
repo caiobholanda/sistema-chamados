@@ -853,6 +853,27 @@ function renderModalBody(c) {
           <div class="mv2-section">
             <span class="mv2-field-label">Descrição do problema</span>
             <div class="mv2-desc">${c.descricao}</div>
+
+            ${c.infos_adicionais && c.infos_adicionais.length > 0 ? c.infos_adicionais.map(info => `
+              <div style="margin-top:.6rem;padding:.55rem .7rem;background:var(--bg-alt,#f5f5f5);border-left:3px solid var(--gold,#b8963e);border-radius:0 4px 4px 0">
+                <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.25rem">
+                  <strong style="color:var(--text)">${info.autor_nome}</strong> &mdash; ${fmtData(info.criado_em)}
+                </div>
+                <div style="font-size:.83rem;white-space:pre-wrap">${info.texto}</div>
+              </div>
+            `).join('') : ''}
+
+            <div id="mv2-add-info-area" style="margin-top:.55rem">
+              <button class="btn btn-secondary btn-sm" id="btn-add-info" style="font-size:.77rem;padding:.28rem .7rem">+ Adicionar mais informações</button>
+              <div id="mv2-add-info-form" style="display:none;margin-top:.45rem">
+                <textarea class="form-control" id="ta-info-adicional" rows="3" maxlength="2000" placeholder="Descreva informações adicionais sobre este chamado…" style="font-size:.82rem;resize:vertical"></textarea>
+                <div style="display:flex;gap:.4rem;margin-top:.35rem">
+                  <button class="btn btn-primary btn-sm" id="btn-salvar-info">Salvar</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-cancelar-info">Cancelar</button>
+                </div>
+                <div id="msg-info-adicional" style="margin-top:.3rem"></div>
+              </div>
+            </div>
           </div>
 
           ${c.anexo_nome_original ? (
@@ -1102,6 +1123,38 @@ function renderModalBody(c) {
 function setupModalEventos(c) {
   const msg = () => document.getElementById('msg-modal');
   const setMsg = (html) => { msg().innerHTML = html; };
+
+  const btnAddInfo = document.getElementById('btn-add-info');
+  const addInfoForm = document.getElementById('mv2-add-info-form');
+  if (btnAddInfo && addInfoForm) {
+    btnAddInfo.addEventListener('click', () => {
+      addInfoForm.style.display = 'block';
+      btnAddInfo.style.display = 'none';
+      document.getElementById('ta-info-adicional').focus();
+    });
+    document.getElementById('btn-cancelar-info').addEventListener('click', () => {
+      addInfoForm.style.display = 'none';
+      btnAddInfo.style.display = '';
+      document.getElementById('ta-info-adicional').value = '';
+      document.getElementById('msg-info-adicional').innerHTML = '';
+    });
+    document.getElementById('btn-salvar-info').addEventListener('click', async () => {
+      const texto = document.getElementById('ta-info-adicional').value.trim();
+      const msgEl = document.getElementById('msg-info-adicional');
+      if (!texto || texto.length < 3) { msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Texto muito curto.</span>'; return; }
+      const btnSalvar = document.getElementById('btn-salvar-info');
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = 'Salvando…';
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/info-adicional`, { method: 'POST', body: JSON.stringify({ texto }) });
+        const d = await r.json();
+        if (r.ok) { setTimeout(() => abrirModal(c.id), 300); }
+        else { msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${d.erro}</span>`; }
+      } catch { msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>'; }
+      btnSalvar.disabled = false;
+      btnSalvar.textContent = 'Salvar';
+    });
+  }
 
   const btnEnviarAdminAnexo = document.getElementById('btn-enviar-admin-anexo');
   if (btnEnviarAdminAnexo) {

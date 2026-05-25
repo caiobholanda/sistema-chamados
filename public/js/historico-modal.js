@@ -26,6 +26,7 @@
     admin_anexo_removido:   'Arquivo removido pelo suporte',
     acordo_requerido:       'Acordo de responsabilidade exigido',
     acordo_desativado:      'Exigência de acordo removida',
+    info_adicional:         'Informação adicional adicionada',
   };
 
   const STATUS_LABEL = {
@@ -57,6 +58,7 @@
     if (acao === 'descricao_alterada') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
     if (acao === 'acordo_assinado') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg>';
     if (acao === 'acordo_resetado') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>';
+    if (acao === 'info_adicional') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
     return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>';
   }
 
@@ -79,6 +81,7 @@
     if (acao === 'descricao_alterada')     return '#0ea5e9';
     if (acao === 'acordo_assinado')        return '#15803d';
     if (acao === 'acordo_resetado')        return '#f59e0b';
+    if (acao === 'info_adicional')         return '#0891b2';
     return '#64748b';
   }
 

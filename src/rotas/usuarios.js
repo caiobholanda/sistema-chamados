@@ -154,6 +154,30 @@ router.post('/chamados/:id/aceitar-termo', requireUsuario, (req, res) => {
   }
 });
 
+// POST /api/usuarios/chamados/:id/info-adicional
+router.post('/chamados/:id/info-adicional', requireUsuario, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (Number(chamado.usuario_id) !== Number(req.usuario.sub))
+      return res.status(403).json({ erro: 'Sem permissão' });
+    const texto = sanitizar(req.body.texto || '');
+    if (!texto || texto.length < 3) return res.status(400).json({ erro: 'Texto muito curto (mín. 3 caracteres)' });
+    if (texto.length > 2000) return res.status(400).json({ erro: 'Texto muito longo (máx. 2000 caracteres)' });
+    const usuario = db.buscarUsuarioPorId(req.usuario.sub);
+    const autorNome = usuario ? usuario.nome : 'Usuário';
+    db.inserirInfoAdicional({ chamado_id: chamado.id, texto, autor_tipo: 'usuario', autor_id: req.usuario.sub, autor_nome: autorNome });
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, NULL, 'info_adicional', NULL, ?)
+    `).run(chamado.id, autorNome);
+    return res.status(201).json({ mensagem: 'Informação adicionada' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 // GET /api/usuarios/chamados/:id/termo-aceite
 router.get('/chamados/:id/termo-aceite', requireUsuario, (req, res) => {
   try {

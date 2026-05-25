@@ -140,6 +140,17 @@ function initDb() {
   try { db.exec("ALTER TABLE chamados ADD COLUMN cancelamento_motivo TEXT"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN cancelado_em DATETIME"); } catch {}
   try { db.exec("ALTER TABLE push_subscriptions ADD COLUMN app_origin TEXT DEFAULT ''"); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS chamado_infos_adicionais (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      texto TEXT NOT NULL,
+      autor_tipo TEXT NOT NULL,
+      autor_id INTEGER,
+      autor_nome TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_path TEXT"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
@@ -1949,6 +1960,19 @@ function contarNaoVistaAdmin() {
   `).get().total;
 }
 
+function inserirInfoAdicional({ chamado_id, texto, autor_tipo, autor_id, autor_nome }) {
+  return getDb().prepare(`
+    INSERT INTO chamado_infos_adicionais (chamado_id, texto, autor_tipo, autor_id, autor_nome)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(chamado_id, texto, autor_tipo, autor_id, autor_nome).lastInsertRowid;
+}
+
+function listarInfosAdicionais(chamadoId) {
+  return getDb().prepare(
+    'SELECT * FROM chamado_infos_adicionais WHERE chamado_id = ? ORDER BY criado_em ASC'
+  ).all(chamadoId);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -2057,6 +2081,8 @@ module.exports = {
   marcarSugestaoVistaAdmin,
   marcarMensagensLidasUsuario,
   contarNaoVistaAdmin,
+  inserirInfoAdicional,
+  listarInfosAdicionais,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────

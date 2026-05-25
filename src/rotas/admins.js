@@ -371,7 +371,29 @@ router.get('/chamados/:id', requireAdmin, (req, res) => {
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
     const historico = db.buscarHistoricoCompleto(chamado.id);
     const assinaturasHistorico = db.listarAssinaturasHistorico(chamado.id);
-    return res.json({ ...chamado, historico, assinaturasHistorico });
+    const infos_adicionais = db.listarInfosAdicionais(chamado.id);
+    return res.json({ ...chamado, historico, assinaturasHistorico, infos_adicionais });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.post('/chamados/:id/info-adicional', requireAdmin, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    const texto = sanitizarTexto(req.body.texto || '');
+    if (!texto || texto.length < 3) return res.status(400).json({ erro: 'Texto muito curto (mín. 3 caracteres)' });
+    if (texto.length > 2000) return res.status(400).json({ erro: 'Texto muito longo (máx. 2000 caracteres)' });
+    const admin = db.buscarAdminPorId(req.admin.sub);
+    const autorNome = admin ? admin.nome_completo : 'Suporte';
+    db.inserirInfoAdicional({ chamado_id: chamado.id, texto, autor_tipo: 'admin', autor_id: req.admin.sub, autor_nome: autorNome });
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'info_adicional', NULL, ?)
+    `).run(chamado.id, req.admin.sub, autorNome);
+    return res.status(201).json({ mensagem: 'Informação adicionada' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });
