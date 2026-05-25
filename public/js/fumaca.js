@@ -4,6 +4,7 @@
 
   const FUMACA_EMAILS = [
     'estagioadmin@granmarquise.com.br',
+    'suporte.ti@granmarquise.com.br',
   ];
 
   // ── CSS ────────────────────────────────────────────────────────────────────
