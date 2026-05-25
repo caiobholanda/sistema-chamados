@@ -45,41 +45,6 @@ data/
 
 Qualquer `git push origin main` dispara o GitHub Actions (`.github/workflows/fly-deploy.yml`) que executa `flyctl deploy` via Fly.io CLI. O secret `FLY_API_TOKEN` está configurado no GitHub.
 
-## Mudanças recentes (sessão 05/05/2026)
-
-### 1. Sub-tabs em "Meus Chamados" (`admin-painel`)
-- A aba "Meus chamados" ganhou dois sub-tabs: **Abertos** e **Encerrados**
-- Variável `subAbaMeusAtiva` controla o filtro de status
-- Badges mostram contagens separadas
-- Arquivos: `public/admin-painel.html`, `public/js/admin-painel.js`
-
-### 2. Editar perfil de usuário do portal
-- Botão **Editar** adicionado na tabela de usuários (seção "Usuários do Portal")
-- Modal de edição com campos: nome, e-mail, senha
-- A senha atual já aparece **visível** ao abrir o modal (campo `type="text"`)
-- Botão olho (👁) para alternar visibilidade
-- Arquivos: `public/admin-usuarios.html`, `public/js/admin-usuarios.js`
-
-### 3. Senha visível ao editar admin
-- Mesmo comportamento: ao clicar em "Editar" em um admin, a senha atual aparece visível
-- Botão olho no campo de senha do modal de admin
-- Arquivos: `public/admin-usuarios.html`, `public/js/admin-usuarios.js`
-
-### 4. Coluna `senha_plain` no banco
-- Adicionada em `usuarios` e `admins` via migração (`ALTER TABLE ... ADD COLUMN`)
-- Salva o texto puro da senha ao criar ou alterar — permite exibir para o admin
-- Usuários/admins criados antes dessa mudança terão `senha_plain = NULL`; passa a ser salvo na próxima troca de senha
-- Arquivos: `src/db.js`, `src/rotas/admins.js`
-
-### 5. API PATCH `/api/admin/portal-usuarios/:id` expandida
-- Antes só aceitava `{ ativo }` (ativar/desativar)
-- Agora também aceita `{ nome, email, senha }` para edição completa do perfil
-- Arquivo: `src/rotas/admins.js`
-
-### 6. Migração Railway → Fly.io
-- Deploy migrado para Fly.io (`sistema-chamados-granmarquise.fly.dev`)
-- Pipeline: `.github/workflows/fly-deploy.yml` com `FLY_API_TOKEN` no GitHub
-
 ## Como rodar localmente
 
 ```bash
@@ -110,3 +75,12 @@ Na primeira execução, um admin master é criado automaticamente (credenciais a
 - Classes CSS relevantes: `.tabs-bar / .tab-btn`, `.sub-tabs-bar / .sub-tab-btn`, `.modal-overlay / .modal`, `.badge-*`, `.btn-*`, `.form-control`, `.input-senha-wrap / .btn-eye`
 - Todas as rotas admin exigem cookie JWT válido (`requireAdmin` ou `requireMaster`)
 - `sanitizarTexto()` aplicado em todos os inputs de texto antes de salvar
+
+## Economia de tokens
+
+- **Modelo padrão:** `claude-sonnet-4-6` (configurado em `.claude/settings.json`)
+- **`/compact` ao atingir ~60%** do contexto — não esperar 95%
+- **`/clear`** ao trocar de tarefa não relacionada; use `/rename` antes para poder retomar
+- **Modo plano** (`Shift+Tab`) antes de tarefas complexas — planejar antes de executar
+- **Leitura pontual** — referencie `src/db.js:linha` em vez de reler arquivos inteiros
+- Para investigar onde algo está implementado, use o subagente `investigador`
