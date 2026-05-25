@@ -1904,7 +1904,8 @@ function listarSugestoesAdmin({ status, usuario_id, busca } = {}) {
     ) mc ON mc.sugestao_id = s.id
     WHERE 1=1`;
   const params = [];
-  if (status) { sql += ' AND s.status = ?'; params.push(status); }
+  if (status === 'abertas') { sql += " AND s.status NOT IN ('feita','negada')"; }
+  else if (status) { sql += ' AND s.status = ?'; params.push(status); }
   if (usuario_id) { sql += ' AND s.usuario_id = ?'; params.push(usuario_id); }
   if (busca) { const b = `%${busca}%`; sql += ' AND (s.usuario_nome LIKE ? OR s.texto LIKE ?)'; params.push(b, b); }
   sql += ` ORDER BY

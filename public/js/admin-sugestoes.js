@@ -12,7 +12,7 @@ let _chatInterval = null;
 let _statusInterval = null;
 let _listaInterval = null;
 let _todosUsuarios = [];
-let _statusFiltro = '';
+let _statusFiltro = 'abertas';
 let _listaHash = null;
 
 function fmtData(d) {
@@ -173,10 +173,13 @@ async function carregarSugestoes(silencioso = false) {
 }
 
 function _atualizarContadores(lista) {
-  const tots = { '': lista.length };
+  const FECHADAS = ['feita','negada'];
+  const tots = {
+    abertas: lista.filter(x => !FECHADAS.includes(x.status)).length,
+  };
   ['enviada','em_analise','em_producao','feita','negada'].forEach(s => { tots[s] = lista.filter(x => x.status === s).length; });
   Object.entries(tots).forEach(([s, n]) => {
-    const el = document.getElementById(`cnt-${s || 'todas'}`);
+    const el = document.getElementById(`cnt-${s}`);
     if (el) el.textContent = n || '';
   });
 }
@@ -547,9 +550,9 @@ async function init() {
   document.getElementById('btn-limpar').addEventListener('click', () => {
     document.getElementById('filtro-busca').value = '';
     document.getElementById('filtro-usuario').value = '';
-    _statusFiltro = '';
+    _statusFiltro = 'abertas';
     document.querySelectorAll('#status-tabs .tab-btn').forEach(b => b.classList.remove('ativo'));
-    document.querySelector('#status-tabs .tab-btn').classList.add('ativo');
+    document.querySelector('#status-tabs [data-status="abertas"]').classList.add('ativo');
     _listaHash = null;
     carregarSugestoes();
   });
