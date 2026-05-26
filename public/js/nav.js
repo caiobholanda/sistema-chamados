@@ -75,6 +75,16 @@
   if (nav) nav.innerHTML = html;
 
   document.addEventListener('DOMContentLoaded', function () {
+    const wrap = document.getElementById('nav-usuarios-wrap');
+    if (wrap) {
+      fetch('/api/admin/me', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (info) {
+          if (info && info.is_master) wrap.innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
+        })
+        .catch(function () {});
+    }
+
     const dropdown = document.getElementById('nav-admin-dropdown');
     const trigger = document.getElementById('nav-admin-trigger');
     if (!dropdown || !trigger) return;
