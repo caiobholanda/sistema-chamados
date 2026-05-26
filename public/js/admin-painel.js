@@ -408,13 +408,36 @@ document.getElementById('btn-toggle-data-filtro').addEventListener('click', () =
   if (aberto) { _limparFiltroData(); carregarChamados(); }
 });
 
+const _LABELS_PRESET = {
+  criacao:      { hoje: 'Hoje', '7d': 'Últimos 7 dias', '30d': 'Últimos 30 dias', mes: 'Este mês' },
+  encerramento: { hoje: 'Hoje', '7d': 'Próx. 7 dias',  '30d': 'Próx. 30 dias',  mes: 'Fim do mês' },
+};
+
+function _tipoDataAtivo() {
+  return document.querySelector('.filtro-tipo-btn.ativo')?.dataset.tipo || 'criacao';
+}
+
+function _atualizarLabelsPresets(tipo) {
+  const labels = _LABELS_PRESET[tipo] || _LABELS_PRESET.criacao;
+  document.querySelectorAll('.filtro-preset-btn').forEach(b => {
+    b.textContent = labels[b.dataset.preset] || b.textContent;
+  });
+}
+
 document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (btn.classList.contains('ativo')) return;
     document.querySelectorAll('.filtro-tipo-btn').forEach(b => b.classList.remove('ativo'));
     btn.classList.add('ativo');
-    const di = document.getElementById('filtro-data-inicio')?.value;
-    const df = document.getElementById('filtro-data-fim')?.value;
-    if (di || df) carregarChamados();
+    _atualizarLabelsPresets(btn.dataset.tipo);
+    const presetAtivo = document.querySelector('.filtro-preset-btn.ativo');
+    if (presetAtivo) {
+      presetAtivo.click();
+    } else {
+      const di = document.getElementById('filtro-data-inicio')?.value;
+      const df = document.getElementById('filtro-data-fim')?.value;
+      if (di || df) carregarChamados();
+    }
   });
 });
 
@@ -437,15 +460,28 @@ document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
         return;
       }
       btn.classList.add('ativo');
+      const tipo = _tipoDataAtivo();
       const hoje = new Date();
       let inicio, fim;
-      switch (btn.dataset.preset) {
-        case 'hoje': inicio = fim = fmtDate(hoje); break;
-        case '7d':  inicio = fmtDate(addDias(hoje, -6)); fim = fmtDate(hoje); break;
-        case '30d': inicio = fmtDate(addDias(hoje, -29)); fim = fmtDate(hoje); break;
-        case 'mes': {
-          const m = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-          inicio = fmtDate(m); fim = fmtDate(hoje); break;
+      if (tipo === 'encerramento') {
+        switch (btn.dataset.preset) {
+          case 'hoje': inicio = fim = fmtDate(hoje); break;
+          case '7d':  inicio = fmtDate(hoje); fim = fmtDate(addDias(hoje, 6)); break;
+          case '30d': inicio = fmtDate(hoje); fim = fmtDate(addDias(hoje, 29)); break;
+          case 'mes': {
+            const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+            inicio = fmtDate(hoje); fim = fmtDate(ultimoDia); break;
+          }
+        }
+      } else {
+        switch (btn.dataset.preset) {
+          case 'hoje': inicio = fim = fmtDate(hoje); break;
+          case '7d':  inicio = fmtDate(addDias(hoje, -6)); fim = fmtDate(hoje); break;
+          case '30d': inicio = fmtDate(addDias(hoje, -29)); fim = fmtDate(hoje); break;
+          case 'mes': {
+            const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+            inicio = fmtDate(primeiroDia); fim = fmtDate(hoje); break;
+          }
         }
       }
       document.getElementById('filtro-data-inicio').value = inicio;
@@ -736,8 +772,7 @@ async function carregarChamados(silencioso = false) {
     if (dataInicio) params.set('data_inicio', dataInicio);
     if (dataFim) params.set('data_fim', dataFim);
     if (!statusFiltroAtual && abaAtiva !== 'meus') {
-      const todosStatus = [...STATUS_ABERTOS, ...STATUS_ENCERRADOS, 'cancelado'];
-      params.set('status', todosStatus.join(','));
+      params.set('status', STATUS_ABERTOS.join(','));
     }
   }
 

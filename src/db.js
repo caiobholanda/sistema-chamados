@@ -1170,7 +1170,7 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
   }
   if (filtros.data_inicio || filtros.data_fim) {
     const col = filtros.data_tipo === 'encerramento'
-      ? 'COALESCE(c.concluido_em, c.cancelado_em)'
+      ? 'c.prazo'
       : 'c.criado_em';
     if (filtros.data_inicio) {
       sql += ` AND ${col} >= ?`;
