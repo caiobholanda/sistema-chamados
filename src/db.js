@@ -1785,6 +1785,7 @@ function relatorioMes(mes) {
     FROM chamados
     WHERE prazo IS NOT NULL
       AND concluido_em IS NOT NULL
+      AND status != 'cancelado'
       AND concluido_em BETWEEN ? AND ?
   `).get(inicio, fim + ' 23:59:59');
 
