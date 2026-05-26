@@ -1777,6 +1777,15 @@ function relatorioMes(mes) {
     WHERE c.criado_em BETWEEN ? AND ?
   `).get(inicio, fim + ' 23:59:59');
 
+  // Contagem atual (sem filtro de mês) — igual ao painel principal
+  const totalAbertosAtual = db.prepare(`
+    SELECT COUNT(*) as t FROM chamados
+    WHERE status IN ('aberto', 'aguardando_compra', 'aguardando_chegar')
+  `).get().t;
+  const totalAndamentoAtual = db.prepare(`
+    SELECT COUNT(*) as t FROM chamados WHERE status = 'em_andamento'
+  `).get().t;
+
   // SLA = % de concluídos dentro do prazo
   const slaRow = db.prepare(`
     SELECT
@@ -1796,6 +1805,8 @@ function relatorioMes(mes) {
     abertosUltimos12, notaMedia, tendencia6m,
     top5Setores, porCategoria,
     tempoMedioRespostaSeg: tempoMedioRespostaRow?.media_seg || null,
+    totalAbertosAtual,
+    totalAndamentoAtual,
     sla: {
       totalComPrazo: slaRow?.total_com_prazo || 0,
       dentroPrazo: slaRow?.dentro_prazo || 0,
