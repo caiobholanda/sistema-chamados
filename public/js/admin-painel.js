@@ -419,7 +419,12 @@ document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
 });
 
 (() => {
-  const fmtDate = d => d.toISOString().slice(0, 10);
+  const fmtDate = d => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dia}`;
+  };
   const addDias = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
 
   document.querySelectorAll('.filtro-preset-btn').forEach(btn => {
@@ -729,8 +734,9 @@ async function carregarChamados(silencioso = false) {
     params.set('data_tipo', dataTipo);
     if (dataInicio) params.set('data_inicio', dataInicio);
     if (dataFim) params.set('data_fim', dataFim);
-    if (dataTipo === 'encerramento' && !statusFiltroAtual && abaAtiva !== 'meus') {
-      params.set('status', [...STATUS_ENCERRADOS, 'cancelado'].join(','));
+    if (!statusFiltroAtual && abaAtiva !== 'meus') {
+      const todosStatus = [...STATUS_ABERTOS, ...STATUS_ENCERRADOS, 'cancelado'];
+      params.set('status', todosStatus.join(','));
     }
   }
 
