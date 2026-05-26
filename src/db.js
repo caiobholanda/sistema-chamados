@@ -1706,26 +1706,26 @@ function relatorioMes(mes) {
   const volumeStatus = db.prepare(`
     SELECT status, COUNT(*) as total
     FROM chamados
-    WHERE criado_em BETWEEN ? AND ?
+    WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
     GROUP BY status
   `).all(inicio, fim + ' 23:59:59');
 
   const volumeStatusAnt = db.prepare(`
     SELECT status, COUNT(*) as total
     FROM chamados
-    WHERE criado_em BETWEEN ? AND ?
+    WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
     GROUP BY status
   `).all(inicioAnt, fimAnt + ' 23:59:59');
 
-  const totalMes = db.prepare(`SELECT COUNT(*) as t FROM chamados WHERE criado_em BETWEEN ? AND ?`)
+  const totalMes = db.prepare(`SELECT COUNT(*) as t FROM chamados WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'`)
     .get(inicio, fim + ' 23:59:59').t;
-  const totalMesAnt = db.prepare(`SELECT COUNT(*) as t FROM chamados WHERE criado_em BETWEEN ? AND ?`)
+  const totalMesAnt = db.prepare(`SELECT COUNT(*) as t FROM chamados WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'`)
     .get(inicioAnt, fimAnt + ' 23:59:59').t;
 
   const abertosUltimos12 = db.prepare(`
     SELECT strftime('%Y-%m', criado_em) as mes, COUNT(*) as total
     FROM chamados
-    WHERE criado_em >= date(?, '-11 months')
+    WHERE criado_em >= date(?, '-11 months') AND status != 'cancelado'
     GROUP BY mes
     ORDER BY mes ASC
   `).all(inicio);
@@ -1747,7 +1747,7 @@ function relatorioMes(mes) {
   const top5Setores = db.prepare(`
     SELECT setor, COUNT(*) as total
     FROM chamados
-    WHERE criado_em BETWEEN ? AND ?
+    WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
     GROUP BY setor
     ORDER BY total DESC
     LIMIT 5
@@ -1756,7 +1756,7 @@ function relatorioMes(mes) {
   const porCategoria = db.prepare(`
     SELECT COALESCE(categoria, 'outros') as categoria, COUNT(*) as total
     FROM chamados
-    WHERE criado_em BETWEEN ? AND ?
+    WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
     GROUP BY categoria
     ORDER BY total DESC
   `).all(inicio, fim + ' 23:59:59');
