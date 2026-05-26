@@ -924,6 +924,55 @@ router.delete('/portal-usuarios/:id', requireMaster, (req, res) => {
   }
 });
 
+router.post('/chamados/:id/anexos', requireAdmin, uploadChamadoMiddleware(), async (req, res) => {
+  const arquivos = req.arquivos || [];
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) {
+      arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
+      return res.status(404).json({ erro: 'Chamado não encontrado' });
+    }
+    if (!arquivos.length) return res.status(400).json({ erro: 'Nenhum arquivo enviado' });
+    const adminInfo = db.buscarAdminPorId(req.admin.sub);
+    const adicionados = [];
+    for (const arq of arquivos) {
+      const anexoId = db.inserirAnexoExtra({ chamado_id: chamado.id, path: 'pendente', nome_original: arq.originalname });
+      const nomeFinal = renomearAnexoExtra(chamado.id, anexoId, arq.path, arq.originalname);
+      db.getDb().prepare('UPDATE chamado_anexos SET path = ? WHERE id = ?').run(nomeFinal, anexoId);
+      adicionados.push(arq.originalname);
+    }
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'anexos_adicionados', NULL, ?)
+    `).run(chamado.id, req.admin.sub, adicionados.join(', '));
+    return res.json({ adicionados });
+  } catch (err) {
+    arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro ao salvar anexos' });
+  }
+});
+
+router.delete('/chamados/:id/anexos/:anexoId', requireAdmin, (req, res) => {
+  try {
+    const anexo = db.buscarAnexoExtra(req.params.anexoId);
+    if (!anexo || Number(anexo.chamado_id) !== Number(req.params.id))
+      return res.status(404).json({ erro: 'Anexo não encontrado' });
+    const { UPLOADS_DIR } = require('../upload');
+    const filePath = path.join(UPLOADS_DIR, anexo.path);
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
+    db.getDb().prepare('DELETE FROM chamado_anexos WHERE id = ?').run(req.params.anexoId);
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'anexo_removido', ?, NULL)
+    `).run(req.params.id, req.admin.sub, anexo.nome_original);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.post('/chamados/:id/admin-anexo', requireAdmin, uploadMiddleware('admin_anexo'), async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);

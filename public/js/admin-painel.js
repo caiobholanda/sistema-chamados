@@ -1067,10 +1067,16 @@ function renderModalBody(c) {
                   <button class="btn btn-danger btn-sm" id="btn-remover-admin-anexo" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo">✕</button>
                 </div>` : `<p style="font-size:.78rem;color:var(--text-muted);margin:0 0 .3rem">Nenhum arquivo anexado.</p>`}
             </div>
-            <div style="display:flex;align-items:center;gap:.4rem">
-              <input type="file" id="input-admin-anexo" accept="image/*,video/*,.pdf,.txt,.docx" style="font-size:.78rem;flex:1">
-              <button class="btn btn-secondary btn-sm" id="btn-enviar-admin-anexo">Anexar</button>
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+              <button type="button" class="anexo-uploader-add" id="btn-add-admin-anexo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Anexar arquivos
+              </button>
+              <input type="file" id="input-admin-anexo" multiple accept="image/*,video/*,.pdf,.txt,.docx,.log" style="display:none">
+              <button class="btn btn-primary btn-sm" id="btn-enviar-admin-anexo" style="display:none">Enviar</button>
             </div>
+            <div class="anexo-tiles" id="admin-anexo-tiles"></div>
+            <p class="form-hint" id="admin-anexo-hint" style="margin-top:.35rem">Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.</p>
             <div id="msg-admin-anexo" style="margin-top:.3rem"></div>
           </div>
 
@@ -1325,24 +1331,92 @@ function setupModalEventos(c) {
     });
   }
 
+  const btnAddAdminAnexo = document.getElementById('btn-add-admin-anexo');
+  const inputAdminAnexo = document.getElementById('input-admin-anexo');
   const btnEnviarAdminAnexo = document.getElementById('btn-enviar-admin-anexo');
+  const tilesBoxAdmin = document.getElementById('admin-anexo-tiles');
+  const hintAdmin = document.getElementById('admin-anexo-hint');
+  let _adminAnexos = [];
+
+  function _renderAdminAnexoTiles() {
+    if (!tilesBoxAdmin) return;
+    if (!_adminAnexos.length) {
+      tilesBoxAdmin.innerHTML = '';
+      if (btnEnviarAdminAnexo) btnEnviarAdminAnexo.style.display = 'none';
+      if (hintAdmin) { hintAdmin.style.color = ''; hintAdmin.textContent = 'Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.'; }
+      return;
+    }
+    tilesBoxAdmin.innerHTML = _adminAnexos.map((f, i) => {
+      const nome = f.name.replace(/"/g, '&quot;');
+      let media;
+      if (_IMGS_EXT_RE.test(f.name)) media = `<img src="${URL.createObjectURL(f)}" alt="${nome}" loading="lazy">`;
+      else if (_VID_EXT_RE.test(f.name)) media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`;
+      else media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+      return `<div class="anexo-tile">
+        <button type="button" class="anexo-tile-remove" data-idx="${i}" aria-label="Remover" title="Remover">×</button>
+        <div class="anexo-tile-media">${media}</div>
+        <div class="anexo-tile-info">
+          <span class="anexo-tile-name" title="${nome}">${nome}</span>
+          <span class="anexo-tile-size">${_fmtTamanho(f.size)}</span>
+        </div>
+      </div>`;
+    }).join('');
+    if (btnEnviarAdminAnexo) {
+      btnEnviarAdminAnexo.style.display = '';
+      btnEnviarAdminAnexo.textContent = `Enviar ${_adminAnexos.length} ${_adminAnexos.length === 1 ? 'arquivo' : 'arquivos'}`;
+    }
+    if (hintAdmin) {
+      hintAdmin.style.color = 'var(--gold-dark)';
+      hintAdmin.textContent = `✓ ${_adminAnexos.length} pronto${_adminAnexos.length === 1 ? '' : 's'} para enviar · clique em "Anexar arquivos" para adicionar mais`;
+    }
+  }
+
+  if (btnAddAdminAnexo) btnAddAdminAnexo.addEventListener('click', () => inputAdminAnexo.click());
+
+  if (inputAdminAnexo) inputAdminAnexo.addEventListener('change', function () {
+    Array.from(this.files || []).forEach(f => {
+      const dup = _adminAnexos.some(x => x.name === f.name && x.size === f.size);
+      if (!dup && _adminAnexos.length < 10) _adminAnexos.push(f);
+    });
+    this.value = '';
+    _renderAdminAnexoTiles();
+  });
+
+  if (tilesBoxAdmin) tilesBoxAdmin.addEventListener('click', (e) => {
+    const btn = e.target.closest('.anexo-tile-remove');
+    if (!btn) return;
+    _adminAnexos.splice(+btn.dataset.idx, 1);
+    _renderAdminAnexoTiles();
+  });
+
   if (btnEnviarAdminAnexo) {
     btnEnviarAdminAnexo.addEventListener('click', async () => {
-      const input = document.getElementById('input-admin-anexo');
       const msgEl = document.getElementById('msg-admin-anexo');
-      if (!input.files.length) { msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Selecione um arquivo.</span>'; return; }
+      if (!_adminAnexos.length) return;
       btnEnviarAdminAnexo.disabled = true;
+      const originalText = btnEnviarAdminAnexo.textContent;
       btnEnviarAdminAnexo.textContent = 'Enviando…';
       const fd = new FormData();
-      fd.append('admin_anexo', input.files[0]);
+      _adminAnexos.forEach(f => fd.append('anexos', f, f.name));
       try {
-        const r = await fetch(`/api/admin/chamados/${c.id}/admin-anexo`, { method: 'POST', body: fd });
+        const r = await fetch(`/api/admin/chamados/${c.id}/anexos`, { method: 'POST', body: fd });
         const d = await r.json();
-        if (r.ok) { setTimeout(() => abrirModal(c.id), 300); }
-        else { msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${d.erro}</span>`; }
-      } catch { msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>'; }
+        if (r.ok) {
+          _adminAnexos = [];
+          _renderAdminAnexoTiles();
+          if (msgEl) {
+            msgEl.innerHTML = `<span style="font-size:.76rem;color:var(--success)">✓ ${d.adicionados.length} arquivo(s) anexado(s)</span>`;
+            setTimeout(() => { msgEl.innerHTML = ''; }, 2500);
+          }
+          _carregarAnexosExtras(c.id);
+        } else if (msgEl) {
+          msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${d.erro || 'Erro ao enviar.'}</span>`;
+        }
+      } catch {
+        if (msgEl) msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>';
+      }
       btnEnviarAdminAnexo.disabled = false;
-      btnEnviarAdminAnexo.textContent = 'Anexar';
+      btnEnviarAdminAnexo.textContent = originalText;
     });
   }
 
