@@ -395,7 +395,7 @@ function rankingRows(ranking) {
     const iniciais = (a.nome_completo || '?').split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
     const semAtividade = tot === 0;
     const notaTxt = a.nota_media != null
-      ? `<span style="color:${a.nota_media >= 8 ? 'var(--success)' : a.nota_media >= 6 ? 'var(--warning)' : 'var(--danger)'};font-weight:600">${a.nota_media.toFixed(1).replace('.', ',')}</span><small style="color:var(--text-muted);font-weight:400">/10 · ${a.total_avaliacoes} aval.</small>`
+      ? `<span style="color:${a.nota_media >= 8 ? 'var(--success)' : a.nota_media >= 6 ? 'var(--warning)' : 'var(--danger)'};font-weight:600">${a.nota_media.toFixed(1).replace('.', ',')}</span><small style="color:var(--text-muted);font-weight:400">/10</small>`
       : '<span class="muted">—</span>';
     return `
       <div class="rank-row ${isVoce ? 'you' : ''}">
