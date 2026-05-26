@@ -493,14 +493,14 @@ document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
   document.getElementById('filtro-data-inicio')?.addEventListener('change', function () {
     document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
     const fim = document.getElementById('filtro-data-fim');
-    if (fim && !fim.value) fim.value = this.value;
+    if (fim && (_tipoDataAtivo() === 'encerramento' || !fim.value)) fim.value = this.value;
     carregarChamados();
   });
 
   document.getElementById('filtro-data-fim')?.addEventListener('change', function () {
     document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
     const inicio = document.getElementById('filtro-data-inicio');
-    if (inicio && !inicio.value) inicio.value = this.value;
+    if (inicio && (_tipoDataAtivo() === 'encerramento' || !inicio.value)) inicio.value = this.value;
     carregarChamados();
   });
 })();
