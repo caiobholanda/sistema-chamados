@@ -204,6 +204,7 @@ function renderConteudo(dados, ranking, mes) {
           <div>Responsável</div>
           <div style="text-align:right">Concluídos</div>
           <div style="text-align:right">Tempo médio</div>
+          <div style="text-align:right">Nota média</div>
         </div>
         ${rankingRows(ranking)}
       </div>
@@ -393,6 +394,9 @@ function rankingRows(ranking) {
     const isVoce = _adminLogadoId && Number(a.id) === Number(_adminLogadoId);
     const iniciais = (a.nome_completo || '?').split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
     const semAtividade = tot === 0;
+    const notaTxt = a.nota_media != null
+      ? `<span style="color:${a.nota_media >= 8 ? 'var(--success)' : a.nota_media >= 6 ? 'var(--warning)' : 'var(--danger)'};font-weight:600">${a.nota_media.toFixed(1).replace('.', ',')}</span><small style="color:var(--text-muted);font-weight:400">/10 · ${a.total_avaliacoes} aval.</small>`
+      : '<span class="muted">—</span>';
     return `
       <div class="rank-row ${isVoce ? 'you' : ''}">
         <div class="rank-pos"><div class="rank-medal ${medal}">${i + 1}</div></div>
@@ -403,6 +407,7 @@ function rankingRows(ranking) {
         </div>
         <div class="rank-num ${semAtividade ? 'muted' : ''}" style="text-align:right">${tot}</div>
         <div class="rank-num muted" style="text-align:right">${fmtTempo(a.tempo_medio_seg)}</div>
+        <div class="rank-num" style="text-align:right;display:flex;justify-content:flex-end;align-items:baseline;gap:.2rem">${notaTxt}</div>
       </div>`;
   }).join('');
 }

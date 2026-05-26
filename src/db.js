@@ -1823,7 +1823,21 @@ function rankingAdminsMes(mes) {
           AND l.encerrado_em IS NOT NULL
           AND l.encerrado_em BETWEEN ? AND ?
           AND l.duracao_segundos IS NOT NULL
-      ) AS tempo_medio_seg
+      ) AS tempo_medio_seg,
+      (
+        SELECT AVG(c.nota)
+        FROM chamados c
+        WHERE c.admin_responsavel_id = a.id
+          AND c.nota IS NOT NULL
+          AND c.concluido_em BETWEEN ? AND ?
+      ) AS nota_media,
+      (
+        SELECT COUNT(c.nota)
+        FROM chamados c
+        WHERE c.admin_responsavel_id = a.id
+          AND c.nota IS NOT NULL
+          AND c.concluido_em BETWEEN ? AND ?
+      ) AS total_avaliacoes
     FROM admins a
     LEFT JOIN historico_chamados h
       ON h.admin_id = a.id
@@ -1833,7 +1847,12 @@ function rankingAdminsMes(mes) {
     WHERE a.ativo = 1
     GROUP BY a.id, a.nome_completo
     ORDER BY total DESC, concluidos DESC, a.nome_completo ASC
-  `).all(inicio, fim + ' 23:59:59', inicio, fim + ' 23:59:59');
+  `).all(
+    inicio, fim + ' 23:59:59',  // tempo_medio_seg
+    inicio, fim + ' 23:59:59',  // nota_media
+    inicio, fim + ' 23:59:59',  // total_avaliacoes
+    inicio, fim + ' 23:59:59'   // historico ranking
+  );
 }
 
 function exportarCsvMes(mes) {
