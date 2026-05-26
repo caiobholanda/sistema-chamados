@@ -490,11 +490,18 @@ document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
     });
   });
 
-  ['filtro-data-inicio', 'filtro-data-fim'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', () => {
-      document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
-      carregarChamados();
-    });
+  document.getElementById('filtro-data-inicio')?.addEventListener('change', function () {
+    document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
+    const fim = document.getElementById('filtro-data-fim');
+    if (fim && !fim.value) fim.value = this.value;
+    carregarChamados();
+  });
+
+  document.getElementById('filtro-data-fim')?.addEventListener('change', function () {
+    document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
+    const inicio = document.getElementById('filtro-data-inicio');
+    if (inicio && !inicio.value) inicio.value = this.value;
+    carregarChamados();
   });
 })();
 
