@@ -1538,9 +1538,14 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
           <textarea class="form-control" id="ch-descricao" required minlength="10" maxlength="2000" placeholder="Descreva o problema com detalhes..."></textarea>
         </div>
         <div class="form-group">
-          <label for="ch-anexo">Anexos (opcional)</label>
-          <input class="form-control" type="file" id="ch-anexo" name="anexos" multiple accept="image/*,video/*,.pdf,.txt,.docx">
-          <p class="form-hint" id="ch-anexo-hint">jpg, png, pdf, txt, docx, mp4, mov, webm, avi, mkv — até 10 arquivos, máx. 200 MB cada</p>
+          <label>Anexos (opcional)</label>
+          <button type="button" class="anexo-uploader-add" id="btn-add-anexo-ch">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar arquivos
+          </button>
+          <input type="file" id="ch-anexo" multiple accept="image/*,video/*,.pdf,.txt,.docx" style="display:none">
+          <div class="anexo-tiles" id="ch-anexo-tiles"></div>
+          <p class="form-hint" id="ch-anexo-hint">Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.</p>
         </div>
         <div style="display:flex;gap:.5rem">
           <button type="submit" class="btn btn-primary" id="btn-enviar-chamado">Enviar Chamado</button>
@@ -1571,13 +1576,61 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
 
   document.getElementById('btn-cancelar-chamado').addEventListener('click', onCancel);
 
-  document.getElementById('ch-anexo').addEventListener('change', function () {
+  const _CH_HINT_DEFAULT = 'Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.';
+  const _CH_IMG_RE = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i;
+  const _CH_VID_RE = /\.(mp4|webm|mov|avi|mkv|wmv)$/i;
+  let _chArquivos = [];
+
+  const _fmtTam = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(0) + ' KB' : (b/1048576).toFixed(1) + ' MB';
+
+  function _renderChTiles() {
+    const box = document.getElementById('ch-anexo-tiles');
     const hint = document.getElementById('ch-anexo-hint');
-    const n = this.files?.length || 0;
-    if (!hint) return;
-    if (n === 0) hint.textContent = 'jpg, png, pdf, txt, docx, mp4, mov, webm, avi, mkv — até 10 arquivos, máx. 200 MB cada';
-    else if (n === 1) hint.textContent = `✓ 1 arquivo: ${this.files[0].name}`;
-    else hint.textContent = `✓ ${n} arquivos selecionados`;
+    if (!box) return;
+    if (!_chArquivos.length) {
+      box.innerHTML = '';
+      if (hint) { hint.textContent = _CH_HINT_DEFAULT; hint.style.color = ''; }
+      return;
+    }
+    box.innerHTML = _chArquivos.map((f, i) => {
+      const nome = f.name.replace(/"/g, '&quot;');
+      let media;
+      if (_CH_IMG_RE.test(f.name)) media = `<img src="${URL.createObjectURL(f)}" alt="${nome}" loading="lazy">`;
+      else if (_CH_VID_RE.test(f.name)) media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`;
+      else media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+      return `<div class="anexo-tile">
+        <button type="button" class="anexo-tile-remove" data-idx="${i}" aria-label="Remover" title="Remover">×</button>
+        <div class="anexo-tile-media">${media}</div>
+        <div class="anexo-tile-info">
+          <span class="anexo-tile-name" title="${nome}">${nome}</span>
+          <span class="anexo-tile-size">${_fmtTam(f.size)}</span>
+        </div>
+      </div>`;
+    }).join('');
+    if (hint) {
+      hint.style.color = 'var(--gold-dark)';
+      hint.textContent = `✓ ${_chArquivos.length} ${_chArquivos.length === 1 ? 'arquivo selecionado' : 'arquivos selecionados'} · clique em "Adicionar arquivos" para incluir mais`;
+    }
+  }
+
+  document.getElementById('btn-add-anexo-ch').addEventListener('click', () => {
+    document.getElementById('ch-anexo').click();
+  });
+
+  document.getElementById('ch-anexo').addEventListener('change', function () {
+    Array.from(this.files || []).forEach(f => {
+      const dup = _chArquivos.some(x => x.name === f.name && x.size === f.size);
+      if (!dup && _chArquivos.length < 10) _chArquivos.push(f);
+    });
+    this.value = '';
+    _renderChTiles();
+  });
+
+  document.getElementById('ch-anexo-tiles').addEventListener('click', (e) => {
+    const btn = e.target.closest('.anexo-tile-remove');
+    if (!btn) return;
+    _chArquivos.splice(+btn.dataset.idx, 1);
+    _renderChTiles();
   });
 
   document.getElementById('form-chamado-usuario').addEventListener('submit', async (e) => {
@@ -1605,9 +1658,8 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       fd.append('descricao', document.getElementById('ch-descricao').value);
       const categoria = document.getElementById('ch-categoria').value;
       if (categoria) fd.append('categoria', categoria);
-      const arquivos = Array.from(document.getElementById('ch-anexo').files || []);
-      if (arquivos.length > 10) { msg.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>'; return; }
-      arquivos.forEach(f => fd.append('anexos', f, f.name));
+      if (_chArquivos.length > 10) { msg.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>'; return; }
+      _chArquivos.forEach(f => fd.append('anexos', f, f.name));
 
       const r = await fetch('/api/chamados', { method: 'POST', body: fd });
       const d = await r.json();

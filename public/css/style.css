@@ -800,6 +800,117 @@ tbody tr:hover td { background: #FAF7F2; }
   cursor: help;
 }
 .badge-info-extra svg { color: var(--gold-dark); flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════
+   ANEXOS — UPLOADER MULTI-ARQUIVOS
+═══════════════════════════════════════════ */
+.anexo-uploader-add {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem .9rem;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--navy);
+  background: var(--surface);
+  border: 1.5px dashed var(--gold);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.anexo-uploader-add:hover {
+  background: var(--gold-pale);
+  border-style: solid;
+  border-color: var(--gold-dark);
+}
+.anexo-uploader-add svg { color: var(--gold-dark); }
+
+.anexo-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: .5rem;
+  margin-top: .6rem;
+}
+.anexo-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  animation: tileIn .18s ease;
+}
+@keyframes tileIn {
+  from { opacity: 0; transform: scale(.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.anexo-tile-media {
+  width: 100%;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  overflow: hidden;
+}
+.anexo-tile-media img,
+.anexo-tile-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.anexo-tile-icon {
+  font-size: 1.6rem;
+  color: var(--gold-dark);
+}
+.anexo-tile-info {
+  padding: .35rem .5rem .4rem;
+  min-width: 0;
+}
+.anexo-tile-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: .72rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.anexo-tile-size {
+  display: block;
+  font-size: .66rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.anexo-tile-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(28,28,28,.78);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: .95rem;
+  line-height: 1;
+  font-weight: 700;
+  transition: background .15s, transform .1s;
+  z-index: 2;
+}
+.anexo-tile-remove:hover { background: var(--danger); transform: scale(1.1); }
+.anexo-counter {
+  font-size: .72rem;
+  color: var(--gold-dark);
+  font-weight: 600;
+  margin-top: .25rem;
+}
 .filtro-data-input {
   padding: .3rem .5rem;
   font-size: .76rem;

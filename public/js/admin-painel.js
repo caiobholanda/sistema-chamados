@@ -559,9 +559,7 @@ function abrirModalNovoChamado() {
   const ncSub = document.getElementById('nc-subcategoria');
   if (ncSub) { ncSub.value = ''; ncSub.style.display = 'none'; }
   document.getElementById('nc-descricao').value = '';
-  document.getElementById('nc-anexo').value = '';
-  const _hint = document.getElementById('nc-anexo-hint');
-  if (_hint) _hint.textContent = 'jpg, png, pdf, mp4, mov… — até 10 arquivos, máx. 200 MB cada. Use Ctrl/Shift para selecionar vários.';
+  _resetNcArquivos();
   document.getElementById('msg-novo-chamado').innerHTML = '';
   document.getElementById('nc-admin-responsavel').value = '';
   document.getElementById('nc-admin-hint').style.display = 'none';
@@ -581,6 +579,7 @@ function fecharModalNovoChamado() {
   if (selecionado) { selecionado.style.display = 'none'; selecionado.dataset.usuarioId = ''; }
   document.getElementById('nc-admin-responsavel').value = '';
   document.getElementById('nc-admin-hint').style.display = 'none';
+  _resetNcArquivos();
 }
 
 document.getElementById('btn-novo-chamado').addEventListener('click', abrirModalNovoChamado);
@@ -596,13 +595,80 @@ document.getElementById('nc-admin-responsavel').addEventListener('change', funct
   }
 });
 
-document.getElementById('nc-anexo')?.addEventListener('change', function () {
+// ── Uploader de anexos (admin "Abrir chamado") ─────────────
+let _ncArquivos = [];
+const _ANEXO_HINT_DEFAULT = 'Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.';
+const _IMGS_EXT_RE = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i;
+const _VID_EXT_RE  = /\.(mp4|webm|mov|avi|mkv|wmv)$/i;
+
+function _fmtTamanho(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function _renderNcTiles() {
+  const box = document.getElementById('nc-anexo-tiles');
   const hint = document.getElementById('nc-anexo-hint');
-  const n = this.files?.length || 0;
-  if (!hint) return;
-  if (n === 0) hint.textContent = 'jpg, png, pdf, mp4, mov… — até 10 arquivos, máx. 200 MB cada. Use Ctrl/Shift para selecionar vários.';
-  else if (n === 1) hint.textContent = `✓ 1 arquivo selecionado: ${this.files[0].name}`;
-  else hint.textContent = `✓ ${n} arquivos selecionados`;
+  if (!box) return;
+
+  if (!_ncArquivos.length) {
+    box.innerHTML = '';
+    if (hint) { hint.textContent = _ANEXO_HINT_DEFAULT; hint.style.color = ''; }
+    return;
+  }
+
+  box.innerHTML = _ncArquivos.map((f, i) => {
+    const nome = f.name.replace(/"/g, '&quot;');
+    let media;
+    if (_IMGS_EXT_RE.test(f.name)) {
+      media = `<img src="${URL.createObjectURL(f)}" alt="${nome}" loading="lazy">`;
+    } else if (_VID_EXT_RE.test(f.name)) {
+      media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`;
+    } else {
+      media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+    }
+    return `<div class="anexo-tile">
+      <button type="button" class="anexo-tile-remove" data-idx="${i}" aria-label="Remover ${nome}" title="Remover">×</button>
+      <div class="anexo-tile-media">${media}</div>
+      <div class="anexo-tile-info">
+        <span class="anexo-tile-name" title="${nome}">${nome}</span>
+        <span class="anexo-tile-size">${_fmtTamanho(f.size)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (hint) {
+    hint.style.color = 'var(--gold-dark)';
+    hint.textContent = `✓ ${_ncArquivos.length} ${_ncArquivos.length === 1 ? 'arquivo selecionado' : 'arquivos selecionados'} · clique em "Adicionar arquivos" para incluir mais`;
+  }
+}
+
+function _resetNcArquivos() {
+  _ncArquivos = [];
+  const inp = document.getElementById('nc-anexo');
+  if (inp) inp.value = '';
+  _renderNcTiles();
+}
+
+document.getElementById('btn-add-anexo-nc')?.addEventListener('click', () => {
+  document.getElementById('nc-anexo')?.click();
+});
+
+document.getElementById('nc-anexo')?.addEventListener('change', function () {
+  Array.from(this.files || []).forEach(f => {
+    const dup = _ncArquivos.some(x => x.name === f.name && x.size === f.size);
+    if (!dup && _ncArquivos.length < 10) _ncArquivos.push(f);
+  });
+  this.value = '';
+  _renderNcTiles();
+});
+
+document.getElementById('nc-anexo-tiles')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.anexo-tile-remove');
+  if (!btn) return;
+  _ncArquivos.splice(+btn.dataset.idx, 1);
+  _renderNcTiles();
 });
 
 document.getElementById('nc-categoria').addEventListener('change', () => {
@@ -635,9 +701,8 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     if (usuarioId) fd.append('usuario_id', usuarioId);
     const adminResponsavelId = document.getElementById('nc-admin-responsavel').value;
     if (adminResponsavelId) fd.append('admin_responsavel_id', adminResponsavelId);
-    const arquivos = Array.from(document.getElementById('nc-anexo').files || []);
-    if (arquivos.length > 10) { msgEl.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>'; btn.disabled = false; btn.textContent = 'Abrir chamado'; return; }
-    arquivos.forEach(f => fd.append('anexos', f, f.name));
+    if (_ncArquivos.length > 10) { msgEl.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>'; btn.disabled = false; btn.textContent = 'Abrir chamado'; return; }
+    _ncArquivos.forEach(f => fd.append('anexos', f, f.name));
 
     const r = await fetch('/api/admin/chamados', { method: 'POST', body: fd });
     const d = await r.json();
