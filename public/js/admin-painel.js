@@ -375,6 +375,7 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('filtro-admin').value = '';
   const fb = document.getElementById('filtro-busca');
   if (fb) fb.value = '';
+  _limparFiltroData();
   carregarChamados();
 });
 
@@ -388,6 +389,79 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
     t = setTimeout(() => carregarChamados(), 200);
   });
 })();
+
+// ── Filtro por data ───────────────────────────────────────────
+function _limparFiltroData() {
+  const di = document.getElementById('filtro-data-inicio');
+  const df = document.getElementById('filtro-data-fim');
+  if (di) di.value = '';
+  if (df) df.value = '';
+  document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
+}
+
+document.getElementById('btn-toggle-data-filtro').addEventListener('click', () => {
+  const row = document.getElementById('filtro-data-row');
+  const btn = document.getElementById('btn-toggle-data-filtro');
+  const aberto = row.style.display !== 'none';
+  row.style.display = aberto ? 'none' : 'flex';
+  btn.classList.toggle('btn-data-ativo', !aberto);
+  if (aberto) { _limparFiltroData(); carregarChamados(); }
+});
+
+document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filtro-tipo-btn').forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    const di = document.getElementById('filtro-data-inicio')?.value;
+    const df = document.getElementById('filtro-data-fim')?.value;
+    if (di || df) carregarChamados();
+  });
+});
+
+(() => {
+  const fmtDate = d => d.toISOString().slice(0, 10);
+  const addDias = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+
+  document.querySelectorAll('.filtro-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const eraAtivo = btn.classList.contains('ativo');
+      document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
+      if (eraAtivo) {
+        _limparFiltroData();
+        carregarChamados();
+        return;
+      }
+      btn.classList.add('ativo');
+      const hoje = new Date();
+      let inicio, fim;
+      switch (btn.dataset.preset) {
+        case 'hoje': inicio = fim = fmtDate(hoje); break;
+        case '7d':  inicio = fmtDate(addDias(hoje, -6)); fim = fmtDate(hoje); break;
+        case '30d': inicio = fmtDate(addDias(hoje, -29)); fim = fmtDate(hoje); break;
+        case 'mes': {
+          const m = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+          inicio = fmtDate(m); fim = fmtDate(hoje); break;
+        }
+      }
+      document.getElementById('filtro-data-inicio').value = inicio;
+      document.getElementById('filtro-data-fim').value = fim;
+      carregarChamados();
+    });
+  });
+
+  ['filtro-data-inicio', 'filtro-data-fim'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
+      carregarChamados();
+    });
+  });
+})();
+
+document.getElementById('btn-limpar-data')?.addEventListener('click', () => {
+  _limparFiltroData();
+  carregarChamados();
+});
+// ── fim filtro por data ───────────────────────────────────────
 
 document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
 document.addEventListener('keydown', e => {
@@ -612,6 +686,15 @@ async function carregarChamados(silencioso = false) {
   }
 
   if (setor) params.set('setor', setor);
+
+  const dataInicio = document.getElementById('filtro-data-inicio')?.value;
+  const dataFim = document.getElementById('filtro-data-fim')?.value;
+  if (dataInicio || dataFim) {
+    const dataTipo = document.querySelector('.filtro-tipo-btn.ativo')?.dataset.tipo || 'criacao';
+    params.set('data_tipo', dataTipo);
+    if (dataInicio) params.set('data_inicio', dataInicio);
+    if (dataFim) params.set('data_fim', dataFim);
+  }
 
   try {
     const r = await api('/api/admin/chamados?' + params);

@@ -1167,6 +1167,17 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
     sql += ' AND c.criado_em <= ?';
     params.push(filtros.periodo_fim + ' 23:59:59');
   }
+  if (filtros.data_inicio || filtros.data_fim) {
+    const col = filtros.data_tipo === 'encerramento' ? 'c.concluido_em' : 'c.criado_em';
+    if (filtros.data_inicio) {
+      sql += ` AND ${col} >= ?`;
+      params.push(filtros.data_inicio);
+    }
+    if (filtros.data_fim) {
+      sql += ` AND ${col} <= ?`;
+      params.push(filtros.data_fim + ' 23:59:59');
+    }
+  }
 
   sql += `
     ORDER BY
