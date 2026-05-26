@@ -577,6 +577,22 @@ async function _carregarUsuariosNc() {
   });
 }
 
+function _popularAdminsNc() {
+  const sel = document.getElementById('nc-admin-responsavel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Minha responsabilidade</option>';
+  const fonte = document.getElementById('filtro-admin');
+  if (!fonte) return;
+  Array.from(fonte.options).forEach(opt => {
+    if (!opt.value) return;
+    const novo = new Option(
+      adminInfo && String(opt.value) === String(adminInfo.id) ? opt.text + ' (você)' : opt.text,
+      opt.value
+    );
+    sel.appendChild(novo);
+  });
+}
+
 function abrirModalNovoChamado() {
   document.getElementById('nc-categoria').value = '';
   const ncSub = document.getElementById('nc-subcategoria');
@@ -584,6 +600,9 @@ function abrirModalNovoChamado() {
   document.getElementById('nc-descricao').value = '';
   document.getElementById('nc-anexo').value = '';
   document.getElementById('msg-novo-chamado').innerHTML = '';
+  document.getElementById('nc-admin-responsavel').value = '';
+  document.getElementById('nc-admin-hint').style.display = 'none';
+  _popularAdminsNc();
   document.getElementById('modal-novo-chamado-overlay').classList.add('open');
   document.getElementById('nc-descricao').focus();
   _carregarUsuariosNc();
@@ -597,10 +616,23 @@ function fecharModalNovoChamado() {
   if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
   const selecionado = document.getElementById('nc-usuario-selecionado');
   if (selecionado) { selecionado.style.display = 'none'; selecionado.dataset.usuarioId = ''; }
+  document.getElementById('nc-admin-responsavel').value = '';
+  document.getElementById('nc-admin-hint').style.display = 'none';
 }
 
 document.getElementById('btn-novo-chamado').addEventListener('click', abrirModalNovoChamado);
 document.getElementById('btn-fechar-novo-chamado').addEventListener('click', fecharModalNovoChamado);
+
+document.getElementById('nc-admin-responsavel').addEventListener('change', function () {
+  const hint = document.getElementById('nc-admin-hint');
+  if (this.value) {
+    const nome = this.options[this.selectedIndex].text.replace(' (você)', '');
+    hint.textContent = `Você cria o chamado — ${nome} será o responsável atribuído.`;
+    hint.style.display = '';
+  } else {
+    hint.style.display = 'none';
+  }
+});
 
 document.getElementById('nc-categoria').addEventListener('change', () => {
   const sub = document.getElementById('nc-subcategoria');
@@ -630,6 +662,8 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     if (categoria) fd.append('categoria', categoria);
     const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
     if (usuarioId) fd.append('usuario_id', usuarioId);
+    const adminResponsavelId = document.getElementById('nc-admin-responsavel').value;
+    if (adminResponsavelId) fd.append('admin_responsavel_id', adminResponsavelId);
     const anexo = document.getElementById('nc-anexo').files[0];
     if (anexo) fd.append('anexo', anexo);
 

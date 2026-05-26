@@ -163,14 +163,28 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
       }
     }
 
+    let adminResponsavelId = req.admin.sub;
+    const adminResponsavelRaw = req.body.admin_responsavel_id ? parseInt(req.body.admin_responsavel_id, 10) : null;
+    if (adminResponsavelRaw && adminResponsavelRaw !== req.admin.sub) {
+      const adminAlvo = db.buscarAdminPorId(adminResponsavelRaw);
+      if (adminAlvo && adminAlvo.ativo) adminResponsavelId = adminAlvo.id;
+    }
+
     const id = db.inserirChamado({
       usuario_id: usuarioId,
       nome, setor, ramal, descricao,
       anexo_path: null, anexo_nome_original: null,
       categoria,
       aberto_por_admin_id: req.admin.sub,
-      admin_responsavel_id: req.admin.sub,
+      admin_responsavel_id: adminResponsavelId,
     });
+
+    if (adminResponsavelId !== req.admin.sub) {
+      db.getDb().prepare(`
+        INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+        VALUES (?, ?, 'atribuido', ?, ?)
+      `).run(id, req.admin.sub, adminCriador.nome_completo, db.buscarAdminPorId(adminResponsavelId).nome_completo);
+    }
 
     if (usuarioId) {
       db.getDb().prepare(`
