@@ -563,6 +563,8 @@ function abrirModalNovoChamado() {
   if (ncSub) { ncSub.value = ''; ncSub.style.display = 'none'; }
   document.getElementById('nc-descricao').value = '';
   document.getElementById('nc-anexo').value = '';
+  const _hint = document.getElementById('nc-anexo-hint');
+  if (_hint) _hint.textContent = 'jpg, png, pdf, mp4, mov… — até 10 arquivos, máx. 200 MB cada. Use Ctrl/Shift para selecionar vários.';
   document.getElementById('msg-novo-chamado').innerHTML = '';
   document.getElementById('nc-admin-responsavel').value = '';
   document.getElementById('nc-admin-hint').style.display = 'none';
@@ -598,6 +600,15 @@ document.getElementById('nc-admin-responsavel').addEventListener('change', funct
   }
 });
 
+document.getElementById('nc-anexo')?.addEventListener('change', function () {
+  const hint = document.getElementById('nc-anexo-hint');
+  const n = this.files?.length || 0;
+  if (!hint) return;
+  if (n === 0) hint.textContent = 'jpg, png, pdf, mp4, mov… — até 10 arquivos, máx. 200 MB cada. Use Ctrl/Shift para selecionar vários.';
+  else if (n === 1) hint.textContent = `✓ 1 arquivo selecionado: ${this.files[0].name}`;
+  else hint.textContent = `✓ ${n} arquivos selecionados`;
+});
+
 document.getElementById('nc-categoria').addEventListener('change', () => {
   const sub = document.getElementById('nc-subcategoria');
   const show = document.getElementById('nc-categoria').value === 'hardware';
@@ -628,8 +639,9 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     if (usuarioId) fd.append('usuario_id', usuarioId);
     const adminResponsavelId = document.getElementById('nc-admin-responsavel').value;
     if (adminResponsavelId) fd.append('admin_responsavel_id', adminResponsavelId);
-    const anexo = document.getElementById('nc-anexo').files[0];
-    if (anexo) fd.append('anexo', anexo);
+    const arquivos = Array.from(document.getElementById('nc-anexo').files || []);
+    if (arquivos.length > 10) { msgEl.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>'; btn.disabled = false; btn.textContent = 'Abrir chamado'; return; }
+    arquivos.forEach(f => fd.append('anexos', f, f.name));
 
     const r = await fetch('/api/admin/chamados', { method: 'POST', body: fd });
     const d = await r.json();
@@ -828,6 +840,25 @@ async function abrirModal(id) {
     if (!r.ok) { document.getElementById('modal-body').innerHTML = '<div class="alert alert-danger">Erro ao carregar.</div>'; return; }
     chamadoAtual = await r.json();
     renderModalBody(chamadoAtual);
+    _carregarAnexosExtras(chamadoAtual.id);
+  } catch {}
+}
+
+async function _carregarAnexosExtras(chamadoId) {
+  const box = document.getElementById('mv2-anexos-extras');
+  if (!box) return;
+  try {
+    const r = await api(`/api/chamados/${chamadoId}/anexos`);
+    if (!r.ok) return;
+    const lista = await r.json();
+    if (!lista.length) { box.innerHTML = ''; return; }
+    box.innerHTML = lista.map(a => {
+      const url = `/api/chamados/${chamadoId}/anexos/${a.id}`;
+      if (_isImgAnexo(a.nome_original)) {
+        return `<div class="anexo-preview-wrap"><img class="lbx-img anexo-preview-img" src="${url}" alt="${a.nome_original}"><a href="${url}" download class="anexo-preview-dl">⬇ baixar</a></div>`;
+      }
+      return `<a href="${url}" class="mv2-anexo-btn" download><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${a.nome_original}</a>`;
+    }).join('');
   } catch {}
 }
 
@@ -957,6 +988,7 @@ function renderModalBody(c) {
             ? `<div class="anexo-preview-wrap"><img class="lbx-img anexo-preview-img" src="/api/chamados/${c.id}/anexo" alt="${c.anexo_nome_original}"><a href="/api/chamados/${c.id}/anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
             : `<a href="/api/chamados/${c.id}/anexo" class="mv2-anexo-btn" download><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${c.anexo_nome_original}</a>`
           ) : ''}
+          <div id="mv2-anexos-extras" data-chamado-id="${c.id}"></div>
 
           <!-- Anexo do admin -->
           <div class="mv2-admin-anexo-section">

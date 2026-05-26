@@ -4,7 +4,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../db');
-const { upload, uploadMiddleware, renomearAnexoComId, UPLOADS_DIR } = require('../upload');
+const { upload, uploadMiddleware, uploadChamadoMiddleware, renomearAnexoComId, renomearAnexoExtra, UPLOADS_DIR } = require('../upload');
 const { classificarInteligente } = require('../categorizador');
 const { extrairEquipamentos } = require('../analisador-equipamentos');
 const push = require('../push');
@@ -32,7 +32,8 @@ function sanitizarTexto(str) {
     .trim();
 }
 
-router.post('/', upload.single('anexo'), async (req, res) => {
+router.post('/', uploadChamadoMiddleware(), async (req, res) => {
+  const arquivos = req.arquivos || [];
   try {
     let { nome, setor, ramal, descricao } = req.body;
     nome = sanitizarTexto(nome);
@@ -47,12 +48,9 @@ router.post('/', upload.single('anexo'), async (req, res) => {
     if (!descricao || descricao.length < 10 || descricao.length > 2000) erros.push('Descrição deve ter 10–2000 caracteres');
 
     if (erros.length > 0) {
-      if (req.file) fs.unlinkSync(req.file.path);
+      arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
       return res.status(400).json({ erro: erros.join('; ') });
     }
-
-    let anexo_path = null;
-    let anexo_nome_original = null;
 
     const usuario_id = getUsuarioIdFromCookie(req);
 
@@ -71,12 +69,17 @@ router.post('/', upload.single('anexo'), async (req, res) => {
       db.atualizarPrazo(id, db.prazo2DiasUteis(), null);
     }
 
-    if (req.file) {
-      const novoNome = renomearAnexoComId(id, req.file.path, req.file.originalname);
-      anexo_path = novoNome;
-      anexo_nome_original = req.file.originalname;
+    if (arquivos.length > 0) {
+      const principal = arquivos[0];
+      const novoNome = renomearAnexoComId(id, principal.path, principal.originalname);
       db.getDb().prepare('UPDATE chamados SET anexo_path = ?, anexo_nome_original = ? WHERE id = ?')
-        .run(novoNome, anexo_nome_original, id);
+        .run(novoNome, principal.originalname, id);
+      for (let i = 1; i < arquivos.length; i++) {
+        const extra = arquivos[i];
+        const anexoId = db.inserirAnexoExtra({ chamado_id: id, path: 'pendente', nome_original: extra.originalname });
+        const nomeFinal = renomearAnexoExtra(id, anexoId, extra.path, extra.originalname);
+        db.getDb().prepare('UPDATE chamado_anexos SET path = ? WHERE id = ?').run(nomeFinal, anexoId);
+      }
     }
 
     extrairEquipamentos(descricao).then(equipamentos => {
@@ -88,7 +91,7 @@ router.post('/', upload.single('anexo'), async (req, res) => {
     push.enviarParaTodos('🆕 Novo chamado aberto', `${nome} (${setor}): ${descricao.slice(0, 80)}${descricao.length > 80 ? '…' : ''}`).catch(() => {});
     return res.status(201).json({ id, mensagem: 'Chamado aberto com sucesso' });
   } catch (err) {
-    if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+    arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno ao abrir chamado' });
   }
@@ -134,6 +137,34 @@ router.get('/:id/anexo', (req, res) => {
     const nomeAnexo = chamado.anexo_nome_original || chamado.anexo_path;
     const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(nomeAnexo);
     res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(nomeAnexo)}"`);
+    return res.sendFile(filePath);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.get('/:id/anexos', (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    return res.json(db.listarAnexosExtras(chamado.id));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.get('/:id/anexos/:anexoId', (req, res) => {
+  try {
+    const anexo = db.buscarAnexoExtra(req.params.anexoId);
+    if (!anexo || Number(anexo.chamado_id) !== Number(req.params.id))
+      return res.status(404).json({ erro: 'Anexo não encontrado' });
+    const filePath = path.join(UPLOADS_DIR, anexo.path);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado no servidor' });
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(anexo.nome_original);
+    res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(anexo.nome_original)}"`);
     return res.sendFile(filePath);
   } catch (err) {
     console.error(err);

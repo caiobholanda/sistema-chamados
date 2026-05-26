@@ -152,6 +152,16 @@ function initDb() {
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS chamado_anexos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      path TEXT NOT NULL,
+      nome_original TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `); } catch {}
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_chamado_anexos_chamado ON chamado_anexos(chamado_id)`); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_path TEXT"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
@@ -2009,6 +2019,25 @@ function listarInfosAdicionais(chamadoId) {
   ).all(chamadoId);
 }
 
+function inserirAnexoExtra({ chamado_id, path, nome_original }) {
+  return getDb().prepare(`
+    INSERT INTO chamado_anexos (chamado_id, path, nome_original)
+    VALUES (?, ?, ?)
+  `).run(chamado_id, path, nome_original).lastInsertRowid;
+}
+
+function listarAnexosExtras(chamadoId) {
+  return getDb().prepare(
+    'SELECT id, path, nome_original, criado_em FROM chamado_anexos WHERE chamado_id = ? ORDER BY id ASC'
+  ).all(chamadoId);
+}
+
+function buscarAnexoExtra(anexoId) {
+  return getDb().prepare(
+    'SELECT * FROM chamado_anexos WHERE id = ?'
+  ).get(anexoId);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -2119,6 +2148,9 @@ module.exports = {
   contarNaoVistaAdmin,
   inserirInfoAdicional,
   listarInfosAdicionais,
+  inserirAnexoExtra,
+  listarAnexosExtras,
+  buscarAnexoExtra,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────

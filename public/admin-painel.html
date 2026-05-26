@@ -267,9 +267,9 @@
           <textarea class="form-control" id="nc-descricao" rows="5" maxlength="2000" placeholder="Descreva o problema em detalhes..."></textarea>
         </div>
         <div class="form-group">
-          <label for="nc-anexo">Foto / Vídeo <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-          <input class="form-control" type="file" id="nc-anexo" accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
-          <p class="form-hint">jpg, png, pdf, mp4, mov… — máx. 200 MB</p>
+          <label for="nc-anexo">Anexos <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <input class="form-control" type="file" id="nc-anexo" multiple accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv">
+          <p class="form-hint" id="nc-anexo-hint">jpg, png, pdf, mp4, mov… — até 10 arquivos, máx. 200 MB cada. Use Ctrl/Shift para selecionar vários.</p>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.5rem" id="btn-confirmar-novo-chamado">Abrir chamado</button>
       </form>
@@ -279,7 +279,7 @@
 
 <script defer src="/js/nav.js"></script>
 <script defer src="/js/historico-modal.js"></script>
-<script defer src="/js/admin-painel.js?v=17"></script>
+<script defer src="/js/admin-painel.js?v=18"></script>
 <!-- === BLOCO FUMAÇA - REMOVER COM "Tire essa parte das fumaças" === -->
 <script defer src="/js/fumaca.js"></script>
 <!-- === FIM BLOCO FUMAÇA === -->

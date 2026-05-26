@@ -7,7 +7,7 @@ const router = express.Router();
 const db = require('../db');
 const { requireAdmin, requireMaster } = require('../auth');
 const push = require('../push');
-const { upload, uploadMiddleware, renomearAnexoComId } = require('../upload');
+const { upload, uploadMiddleware, uploadChamadoMiddleware, renomearAnexoComId, renomearAnexoExtra } = require('../upload');
 const sse = require('../sse');
 
 const STATUS_VALIDOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar', 'concluido', 'encerrado'];
@@ -126,13 +126,14 @@ router.get('/chamados', requireAdmin, (req, res) => {
   }
 });
 
-router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) => {
+router.post('/chamados', requireAdmin, uploadChamadoMiddleware(), async (req, res) => {
+  const arquivos = req.arquivos || [];
   try {
     const { classificarInteligente } = require('../categorizador');
     let descricao = sanitizarTexto(req.body.descricao || '');
 
     if (!descricao || descricao.length < 5) {
-      if (req.file) fs.unlinkSync(req.file.path);
+      arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
       return res.status(400).json({ erro: 'Descrição muito curta (mín. 5 caracteres)' });
     }
 
@@ -199,10 +200,17 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
       `).run(id, req.admin.sub, adminCriador.nome_completo);
     }
 
-    if (req.file) {
-      const novoNome = renomearAnexoComId(id, req.file.path, req.file.originalname);
+    if (arquivos.length > 0) {
+      const principal = arquivos[0];
+      const novoNome = renomearAnexoComId(id, principal.path, principal.originalname);
       db.getDb().prepare('UPDATE chamados SET anexo_path = ?, anexo_nome_original = ? WHERE id = ?')
-        .run(novoNome, req.file.originalname, id);
+        .run(novoNome, principal.originalname, id);
+      for (let i = 1; i < arquivos.length; i++) {
+        const extra = arquivos[i];
+        const anexoId = db.inserirAnexoExtra({ chamado_id: id, path: 'pendente', nome_original: extra.originalname });
+        const nomeFinal = renomearAnexoExtra(id, anexoId, extra.path, extra.originalname);
+        db.getDb().prepare('UPDATE chamado_anexos SET path = ? WHERE id = ?').run(nomeFinal, anexoId);
+      }
     }
 
     if (categoria === 'impressora') {
@@ -212,7 +220,7 @@ router.post('/chamados', requireAdmin, upload.single('anexo'), async (req, res) 
     push.enviarParaTodos('🆕 Novo chamado aberto', `${nome} (${setor}): ${descricao.slice(0, 80)}${descricao.length > 80 ? '…' : ''}`).catch(() => {});
     return res.status(201).json({ id, mensagem: `Chamado #${id} aberto por ${nome}` });
   } catch (err) {
-    if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+    arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno ao abrir chamado' });
   }

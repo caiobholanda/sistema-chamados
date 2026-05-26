@@ -1538,9 +1538,9 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
           <textarea class="form-control" id="ch-descricao" required minlength="10" maxlength="2000" placeholder="Descreva o problema com detalhes..."></textarea>
         </div>
         <div class="form-group">
-          <label for="ch-anexo">Anexo (opcional)</label>
-          <input class="form-control" type="file" id="ch-anexo" name="anexo" accept="image/*,video/*,.pdf,.txt,.docx">
-          <p class="form-hint">jpg, png, pdf, txt, docx, mp4, mov, webm, avi, mkv — máx. 200 MB</p>
+          <label for="ch-anexo">Anexos (opcional)</label>
+          <input class="form-control" type="file" id="ch-anexo" name="anexos" multiple accept="image/*,video/*,.pdf,.txt,.docx">
+          <p class="form-hint" id="ch-anexo-hint">jpg, png, pdf, txt, docx, mp4, mov, webm, avi, mkv — até 10 arquivos, máx. 200 MB cada</p>
         </div>
         <div style="display:flex;gap:.5rem">
           <button type="submit" class="btn btn-primary" id="btn-enviar-chamado">Enviar Chamado</button>
@@ -1571,6 +1571,15 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
 
   document.getElementById('btn-cancelar-chamado').addEventListener('click', onCancel);
 
+  document.getElementById('ch-anexo').addEventListener('change', function () {
+    const hint = document.getElementById('ch-anexo-hint');
+    const n = this.files?.length || 0;
+    if (!hint) return;
+    if (n === 0) hint.textContent = 'jpg, png, pdf, txt, docx, mp4, mov, webm, avi, mkv — até 10 arquivos, máx. 200 MB cada';
+    else if (n === 1) hint.textContent = `✓ 1 arquivo: ${this.files[0].name}`;
+    else hint.textContent = `✓ ${n} arquivos selecionados`;
+  });
+
   document.getElementById('form-chamado-usuario').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = document.getElementById('msg-form-chamado');
@@ -1596,8 +1605,9 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       fd.append('descricao', document.getElementById('ch-descricao').value);
       const categoria = document.getElementById('ch-categoria').value;
       if (categoria) fd.append('categoria', categoria);
-      const anexo = document.getElementById('ch-anexo').files[0];
-      if (anexo) fd.append('anexo', anexo);
+      const arquivos = Array.from(document.getElementById('ch-anexo').files || []);
+      if (arquivos.length > 10) { msg.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>'; return; }
+      arquivos.forEach(f => fd.append('anexos', f, f.name));
 
       const r = await fetch('/api/chamados', { method: 'POST', body: fd });
       const d = await r.json();
