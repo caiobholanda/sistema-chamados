@@ -82,7 +82,7 @@ function mesAtual() {
 // ── Render ─────────────────────────────────────────────────
 function renderConteudo(dados, ranking, mes) {
   const { volumeStatus, totalMes, totalMesAnt, abertosUltimos12, notaMedia,
-          tendencia6m, top5Setores, porCategoria, tempoMedioRespostaSeg } = dados;
+          tendencia6m, top5Setores, porCategoria, tempoMedioRespostaSeg, sla } = dados;
 
   const cnt = (s) => (volumeStatus.find(r => r.status === s)?.total || 0);
   const aberto      = cnt('aberto') + cnt('aguardando_compra') + cnt('aguardando_chegar');
@@ -91,6 +91,7 @@ function renderConteudo(dados, ranking, mes) {
   const taxaResol   = totalMes > 0 ? concluidos / totalMes : 0;
 
   const deltaTotal = fmtDelta(totalMes, totalMesAnt);
+  const slaPct = sla.totalComPrazo > 0 ? sla.dentroPrazo / sla.totalComPrazo : null;
 
   document.getElementById('compare-info').style.display = '';
   document.getElementById('compare-mes').textContent = nomeMes(mesAnterior(mes));
@@ -138,6 +139,7 @@ function renderConteudo(dados, ranking, mes) {
     <div class="meta-strip">
       ${metaCard('Taxa de resolução', fmtPct(taxaResol, 0), `${concluidos} de ${totalMes} finalizados`, '#15803D', taxaResol)}
       ${metaCard('Tempo médio de resposta', fmtTempo(tempoMedioRespostaSeg), 'da abertura à primeira resposta', '#D4AF37', 0)}
+      ${slaPct != null ? metaCard('SLA cumprido', fmtPct(slaPct, 0), `${sla.dentroPrazo} de ${sla.totalComPrazo} concluídos dentro do prazo`, slaPct >= 0.9 ? '#15803D' : '#B45309', slaPct) : ''}
     </div>
 
     <div class="rel-section-title">Tendências <span class="right">últimos 12 meses</span></div>
