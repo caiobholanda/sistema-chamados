@@ -1830,6 +1830,7 @@ function rankingAdminsMes(mes) {
         FROM chamados c
         WHERE c.admin_responsavel_id = a.id
           AND c.nota IS NOT NULL
+          AND c.status != 'cancelado'
           AND c.concluido_em BETWEEN ? AND ?
       ) AS nota_media,
       (
@@ -1837,6 +1838,7 @@ function rankingAdminsMes(mes) {
         FROM chamados c
         WHERE c.admin_responsavel_id = a.id
           AND c.nota IS NOT NULL
+          AND c.status != 'cancelado'
           AND c.concluido_em BETWEEN ? AND ?
       ) AS total_avaliacoes
     FROM admins a
