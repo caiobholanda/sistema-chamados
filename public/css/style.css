@@ -911,6 +911,27 @@ tbody tr:hover td { background: #FAF7F2; }
   font-weight: 600;
   margin-top: .25rem;
 }
+
+.btn-trocar-usuario {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  background: var(--gold-pale);
+  border: 1px solid var(--gold);
+  color: var(--gold-dark);
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  padding: .22rem .55rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.btn-trocar-usuario:hover {
+  background: var(--gold);
+  color: var(--navy);
+  border-color: var(--gold-dark);
+}
 .filtro-data-input {
   padding: .3rem .5rem;
   font-size: .76rem;

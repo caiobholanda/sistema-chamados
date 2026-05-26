@@ -554,6 +554,110 @@ async function _popularAdminsNc() {
   } catch {}
 }
 
+async function _abrirFormTrocarUsuario(chamadoId) {
+  const wrap = document.getElementById('trocar-usuario-form-wrap');
+  if (!wrap) return;
+  if (wrap.style.display !== 'none') { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+
+  wrap.style.display = '';
+  wrap.innerHTML = `
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:.7rem .8rem;display:flex;flex-direction:column;gap:.5rem">
+      <div style="font-size:.78rem;color:var(--text-secondary);font-weight:600">Trocar para outro usuário do portal</div>
+      <div style="position:relative">
+        <input class="form-control" type="text" id="tu-busca" placeholder="Buscar por nome, setor ou e-mail…" autocomplete="off" style="font-size:.82rem">
+        <div id="tu-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:#fff;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+      </div>
+      <div id="tu-selecionado" style="display:none;font-size:.78rem;color:var(--text-secondary);padding:.35rem .55rem;background:#fff;border-radius:5px;border:1px solid var(--border)"></div>
+      <div id="tu-msg" style="min-height:.9rem;font-size:.76rem"></div>
+      <div style="display:flex;gap:.4rem;justify-content:flex-end">
+        <button type="button" class="btn btn-secondary btn-sm" id="tu-cancelar" style="font-size:.74rem">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm" id="tu-confirmar" disabled style="font-size:.74rem">Confirmar troca</button>
+      </div>
+    </div>
+  `;
+
+  const busca = document.getElementById('tu-busca');
+  const resultados = document.getElementById('tu-resultados');
+  const selecionado = document.getElementById('tu-selecionado');
+  const btnConfirmar = document.getElementById('tu-confirmar');
+  const msgEl = document.getElementById('tu-msg');
+
+  document.getElementById('tu-cancelar').addEventListener('click', () => {
+    wrap.style.display = 'none'; wrap.innerHTML = '';
+  });
+
+  if (!_usuariosPortalNc) {
+    try {
+      const r = await api('/api/admin/portal-usuarios');
+      if (r.ok) _usuariosPortalNc = await r.json();
+    } catch {}
+  }
+
+  busca.addEventListener('input', () => {
+    const q = busca.value.trim().toLowerCase();
+    if (!q || !_usuariosPortalNc) { resultados.style.display = 'none'; return; }
+    const filtrados = _usuariosPortalNc.filter(u =>
+      u.ativo && (
+        (u.nome || '').toLowerCase().includes(q) ||
+        (u.setor || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q)
+      )
+    ).slice(0, 30);
+    if (!filtrados.length) {
+      resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
+    } else {
+      resultados.innerHTML = filtrados.map(u => `
+        <div class="tu-item" data-id="${u.id}" data-nome="${(u.nome||'').replace(/"/g,'&quot;')}" data-setor="${(u.setor||'').replace(/"/g,'&quot;')}"
+          style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">
+          ${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}
+        </div>`).join('');
+      resultados.querySelectorAll('.tu-item').forEach(el => {
+        el.addEventListener('mouseenter', () => el.style.background = '#f3f4f6');
+        el.addEventListener('mouseleave', () => el.style.background = '');
+        el.addEventListener('click', () => {
+          const setor = el.dataset.setor;
+          selecionado.innerHTML = '✓ ' + el.dataset.nome + (setor ? ' · <span style="color:var(--text-muted);font-weight:400">' + setor + '</span>' : '');
+          selecionado.dataset.usuarioId = el.dataset.id;
+          selecionado.style.display = 'block';
+          busca.value = el.dataset.nome;
+          resultados.style.display = 'none';
+          btnConfirmar.disabled = false;
+        });
+      });
+    }
+    resultados.style.display = 'block';
+  });
+
+  btnConfirmar.addEventListener('click', async () => {
+    const novoId = selecionado.dataset.usuarioId;
+    if (!novoId) return;
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = 'Transferindo…';
+    try {
+      const r = await api(`/api/admin/chamados/${chamadoId}/transferir-usuario`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario_id: parseInt(novoId, 10) }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        msgEl.innerHTML = `<span style="color:var(--success)">✓ ${d.mensagem}</span>`;
+        setTimeout(() => { abrirModal(chamadoId); carregarChamados(); }, 700);
+      } else {
+        msgEl.innerHTML = `<span style="color:#b91c1c">${d.erro || 'Erro ao transferir.'}</span>`;
+        btnConfirmar.disabled = false;
+        btnConfirmar.textContent = 'Confirmar troca';
+      }
+    } catch {
+      msgEl.innerHTML = '<span style="color:#b91c1c">Erro de conexão.</span>';
+      btnConfirmar.disabled = false;
+      btnConfirmar.textContent = 'Confirmar troca';
+    }
+  });
+
+  busca.focus();
+}
+
 function abrirModalNovoChamado() {
   document.getElementById('nc-categoria').value = '';
   const ncSub = document.getElementById('nc-subcategoria');
@@ -968,12 +1072,18 @@ function renderModalBody(c) {
             ${(c.usuario_ramal || c.ramal) ? `<span class="mv2-sep">·</span><span>Ramal ${c.usuario_ramal || c.ramal}</span>` : ''}
             ${c.prioridade ? `<span class="mv2-sep">·</span><span>${PRIO_LABELS[c.prioridade]}</span>` : ''}
           </div>
-          ${c.aberto_por_admin_nome ? `<div style="margin-top:.45rem">
+          ${c.aberto_por_admin_nome ? `<div style="margin-top:.45rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center">
             <span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--navy);color:#fff;font-size:.72rem;font-weight:600;padding:.22rem .6rem;border-radius:20px;letter-spacing:.02em">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               Aberto por ${c.aberto_por_admin_nome} · ${c.aberto_por_admin_is_master ? 'Master' : 'Admin'}
             </span>
-          </div>` : ''}
+            ${adminInfo && adminInfo.is_master ? `<button type="button" id="btn-trocar-usuario" class="btn-trocar-usuario" title="Trocar o usuário deste chamado">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Trocar usuário
+            </button>` : ''}
+          </div>
+          <div id="trocar-usuario-form-wrap" style="display:none;margin-top:.5rem"></div>
+          ` : ''}
         </div>
         <div style="text-align:right;justify-self:end">
           <div style="font-family:monospace;font-size:1.05rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.02em">#${c.id}</div>
@@ -1418,6 +1528,11 @@ function setupModalEventos(c) {
       btnEnviarAdminAnexo.disabled = false;
       btnEnviarAdminAnexo.textContent = originalText;
     });
+  }
+
+  const btnTrocarUsuario = document.getElementById('btn-trocar-usuario');
+  if (btnTrocarUsuario) {
+    btnTrocarUsuario.addEventListener('click', () => _abrirFormTrocarUsuario(c.id));
   }
 
   const btnRemoverAdminAnexo = document.getElementById('btn-remover-admin-anexo');

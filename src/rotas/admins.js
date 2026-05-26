@@ -924,6 +924,36 @@ router.delete('/portal-usuarios/:id', requireMaster, (req, res) => {
   }
 });
 
+router.patch('/chamados/:id/transferir-usuario', requireMaster, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (!chamado.aberto_por_admin_id) {
+      return res.status(403).json({ erro: 'Só é possível trocar o usuário de chamados criados por admins.' });
+    }
+    const novoUsuarioId = parseInt(req.body.usuario_id, 10);
+    if (!novoUsuarioId) return res.status(400).json({ erro: 'usuario_id obrigatório' });
+    const novoUsuario = db.buscarUsuarioPorId(novoUsuarioId);
+    if (!novoUsuario || !novoUsuario.ativo) return res.status(404).json({ erro: 'Usuário não encontrado ou inativo' });
+    if (Number(chamado.usuario_id) === Number(novoUsuario.id)) {
+      return res.status(400).json({ erro: 'Este já é o usuário do chamado.' });
+    }
+    const nomeAnterior = chamado.nome || '—';
+    db.getDb().prepare(`
+      UPDATE chamados SET usuario_id = ?, nome = ?, setor = ?, ramal = ?, atualizado_em = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(novoUsuario.id, novoUsuario.nome, novoUsuario.setor || chamado.setor || 'TI', novoUsuario.ramal || '', chamado.id);
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'usuario_transferido', ?, ?)
+    `).run(chamado.id, req.admin.sub, nomeAnterior, novoUsuario.nome);
+    return res.json({ mensagem: `Chamado transferido para ${novoUsuario.nome}` });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.post('/chamados/:id/anexos', requireAdmin, uploadChamadoMiddleware(), async (req, res) => {
   const arquivos = req.arquivos || [];
   try {
