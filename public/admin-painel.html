@@ -170,18 +170,8 @@
         <button class="filtro-tipo-btn ativo" data-tipo="criacao">Criação</button>
         <button class="filtro-tipo-btn" data-tipo="encerramento">Encerramento</button>
       </div>
-      <div class="filtro-data-presets">
-        <button class="filtro-preset-btn" data-preset="hoje">Hoje</button>
-        <button class="filtro-preset-btn" data-preset="7d">7 dias</button>
-        <button class="filtro-preset-btn" data-preset="30d">30 dias</button>
-        <button class="filtro-preset-btn" data-preset="mes">Este mês</button>
-      </div>
-      <div class="filtro-data-range">
-        <label for="filtro-data-inicio">De</label>
-        <input class="filtro-data-input" type="date" id="filtro-data-inicio" aria-label="Data inicial">
-        <span class="filtro-data-sep-text">—</span>
-        <label for="filtro-data-fim">Até</label>
-        <input class="filtro-data-input" type="date" id="filtro-data-fim" aria-label="Data final">
+      <div class="filtro-data-pick">
+        <input class="filtro-data-input" type="date" id="filtro-data-dia" aria-label="Selecionar dia">
         <button class="btn btn-secondary btn-sm" id="btn-limpar-data" style="font-size:.7rem;padding:.28rem .55rem">× Limpar</button>
       </div>
     </div>
@@ -289,7 +279,7 @@
 
 <script defer src="/js/nav.js"></script>
 <script defer src="/js/historico-modal.js"></script>
-<script defer src="/js/admin-painel.js?v=14"></script>
+<script defer src="/js/admin-painel.js?v=15"></script>
 <!-- === BLOCO FUMAÇA - REMOVER COM "Tire essa parte das fumaças" === -->
 <script defer src="/js/fumaca.js"></script>
 <!-- === FIM BLOCO FUMAÇA === -->

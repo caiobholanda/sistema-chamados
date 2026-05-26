@@ -391,12 +391,13 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
 })();
 
 // ── Filtro por data ───────────────────────────────────────────
+function _tipoDataAtivo() {
+  return document.querySelector('.filtro-tipo-btn.ativo')?.dataset.tipo || 'criacao';
+}
+
 function _limparFiltroData() {
-  const di = document.getElementById('filtro-data-inicio');
-  const df = document.getElementById('filtro-data-fim');
-  if (di) di.value = '';
-  if (df) df.value = '';
-  document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
+  const dia = document.getElementById('filtro-data-dia');
+  if (dia) dia.value = '';
 }
 
 document.getElementById('btn-toggle-data-filtro').addEventListener('click', () => {
@@ -408,102 +409,16 @@ document.getElementById('btn-toggle-data-filtro').addEventListener('click', () =
   if (aberto) { _limparFiltroData(); carregarChamados(); }
 });
 
-const _LABELS_PRESET = {
-  criacao:      { hoje: 'Hoje', '7d': 'Últimos 7 dias', '30d': 'Últimos 30 dias', mes: 'Este mês' },
-  encerramento: { hoje: 'Hoje', '7d': 'Próx. 7 dias',  '30d': 'Próx. 30 dias',  mes: 'Fim do mês' },
-};
-
-function _tipoDataAtivo() {
-  return document.querySelector('.filtro-tipo-btn.ativo')?.dataset.tipo || 'criacao';
-}
-
-function _atualizarLabelsPresets(tipo) {
-  const labels = _LABELS_PRESET[tipo] || _LABELS_PRESET.criacao;
-  document.querySelectorAll('.filtro-preset-btn').forEach(b => {
-    b.textContent = labels[b.dataset.preset] || b.textContent;
-  });
-}
-
 document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.classList.contains('ativo')) return;
     document.querySelectorAll('.filtro-tipo-btn').forEach(b => b.classList.remove('ativo'));
     btn.classList.add('ativo');
-    _atualizarLabelsPresets(btn.dataset.tipo);
-    const presetAtivo = document.querySelector('.filtro-preset-btn.ativo');
-    if (presetAtivo) {
-      presetAtivo.click();
-    } else {
-      const di = document.getElementById('filtro-data-inicio')?.value;
-      const df = document.getElementById('filtro-data-fim')?.value;
-      if (di || df) carregarChamados();
-    }
+    if (document.getElementById('filtro-data-dia')?.value) carregarChamados();
   });
 });
 
-(() => {
-  const fmtDate = d => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const dia = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${dia}`;
-  };
-  const addDias = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
-
-  document.querySelectorAll('.filtro-preset-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const eraAtivo = btn.classList.contains('ativo');
-      document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
-      if (eraAtivo) {
-        _limparFiltroData();
-        carregarChamados();
-        return;
-      }
-      btn.classList.add('ativo');
-      const tipo = _tipoDataAtivo();
-      const hoje = new Date();
-      let inicio, fim;
-      if (tipo === 'encerramento') {
-        switch (btn.dataset.preset) {
-          case 'hoje': inicio = fim = fmtDate(hoje); break;
-          case '7d':  inicio = fmtDate(hoje); fim = fmtDate(addDias(hoje, 6)); break;
-          case '30d': inicio = fmtDate(hoje); fim = fmtDate(addDias(hoje, 29)); break;
-          case 'mes': {
-            const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-            inicio = fmtDate(hoje); fim = fmtDate(ultimoDia); break;
-          }
-        }
-      } else {
-        switch (btn.dataset.preset) {
-          case 'hoje': inicio = fim = fmtDate(hoje); break;
-          case '7d':  inicio = fmtDate(addDias(hoje, -6)); fim = fmtDate(hoje); break;
-          case '30d': inicio = fmtDate(addDias(hoje, -29)); fim = fmtDate(hoje); break;
-          case 'mes': {
-            const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-            inicio = fmtDate(primeiroDia); fim = fmtDate(hoje); break;
-          }
-        }
-      }
-      document.getElementById('filtro-data-inicio').value = inicio;
-      document.getElementById('filtro-data-fim').value = fim;
-      carregarChamados();
-    });
-  });
-
-  document.getElementById('filtro-data-inicio')?.addEventListener('change', function () {
-    document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
-    const fim = document.getElementById('filtro-data-fim');
-    if (fim && (_tipoDataAtivo() === 'encerramento' || !fim.value)) fim.value = this.value;
-    carregarChamados();
-  });
-
-  document.getElementById('filtro-data-fim')?.addEventListener('change', function () {
-    document.querySelectorAll('.filtro-preset-btn').forEach(b => b.classList.remove('ativo'));
-    const inicio = document.getElementById('filtro-data-inicio');
-    if (inicio && (_tipoDataAtivo() === 'encerramento' || !inicio.value)) inicio.value = this.value;
-    carregarChamados();
-  });
-})();
+document.getElementById('filtro-data-dia')?.addEventListener('change', () => carregarChamados());
 
 document.getElementById('btn-limpar-data')?.addEventListener('click', () => {
   _limparFiltroData();
@@ -771,13 +686,11 @@ async function carregarChamados(silencioso = false) {
 
   if (setor) params.set('setor', setor);
 
-  const dataInicio = document.getElementById('filtro-data-inicio')?.value;
-  const dataFim = document.getElementById('filtro-data-fim')?.value;
-  if (dataInicio || dataFim) {
-    const dataTipo = document.querySelector('.filtro-tipo-btn.ativo')?.dataset.tipo || 'criacao';
-    params.set('data_tipo', dataTipo);
-    if (dataInicio) params.set('data_inicio', dataInicio);
-    if (dataFim) params.set('data_fim', dataFim);
+  const dataDia = document.getElementById('filtro-data-dia')?.value;
+  if (dataDia) {
+    params.set('data_tipo', _tipoDataAtivo());
+    params.set('data_inicio', dataDia);
+    params.set('data_fim', dataDia);
     if (!statusFiltroAtual && abaAtiva !== 'meus') {
       params.set('status', STATUS_ABERTOS.join(','));
     }

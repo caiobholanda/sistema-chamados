@@ -776,35 +776,11 @@ tbody tr:hover td { background: #FAF7F2; }
 }
 .filtro-tipo-btn + .filtro-tipo-btn { border-left: 1.5px solid var(--border); }
 .filtro-tipo-btn.ativo { background: var(--gold); color: var(--navy); }
-.filtro-data-presets { display: flex; gap: .3rem; flex-wrap: wrap; }
-.filtro-preset-btn {
-  padding: .28rem .6rem;
-  font-size: .71rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color .13s, color .13s, background .13s;
-  white-space: nowrap;
-}
-.filtro-preset-btn:hover { border-color: var(--gold-dark); color: var(--gold-dark); }
-.filtro-preset-btn.ativo { background: var(--gold-pale); border-color: var(--gold); color: var(--gold-dark); }
-.filtro-data-range {
+.filtro-data-pick {
   display: flex;
   align-items: center;
-  gap: .4rem;
+  gap: .5rem;
   margin-left: auto;
-  flex-wrap: wrap;
-}
-.filtro-data-range label {
-  font-size: .72rem;
-  font-weight: 600;
-  letter-spacing: .03em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  white-space: nowrap;
 }
 .filtro-data-input {
   padding: .3rem .5rem;
