@@ -4368,7 +4368,7 @@ html.modal-aberto {
   /* Ranking de admins */
   .rank-grid {
     display: grid;
-    grid-template-columns: 50px minmax(180px, 1fr) 110px 130px minmax(160px, 1.4fr);
+    grid-template-columns: 60px minmax(180px, 1fr) 130px 160px;
     gap: 0;
     align-items: center;
   }
@@ -4395,7 +4395,6 @@ html.modal-aberto {
   }
   @media (max-width: 720px) {
     .rank-grid { grid-template-columns: 40px 1fr 70px 90px; }
-    .rank-head > *:last-child, .rank-row > *:last-child { display: none; }
   }
   .rank-row:last-child > * { border-bottom: none; }
   .rank-row.you > * { background: var(--gold-pale); }
@@ -4404,18 +4403,22 @@ html.modal-aberto {
     display: flex; align-items: center; justify-content: center;
   }
   .rank-medal {
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px;
+    aspect-ratio: 1 / 1;
+    border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
     font-family: var(--font-body, 'Inter', system-ui, sans-serif);
-    font-size: .75rem; font-weight: 700;
+    font-size: .82rem; font-weight: 700;
     border: 2px solid;
     font-variant-numeric: tabular-nums;
+    line-height: 1;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(20,14,6,.08);
   }
-  .rank-medal.gold   { background: #fef3c7; border-color: #f59e0b; color: #b45309; }
-  .rank-medal.silver { background: #f3f4f6; border-color: #9ca3af; color: #4b5563; }
-  .rank-medal.bronze { background: #fed7aa; border-color: #c2410c; color: #9a3412; }
-  .rank-medal.plain  { background: var(--bg); border-color: var(--border); color: var(--text-muted); border-width: 1px; }
+  .rank-medal.gold   { background: linear-gradient(145deg, #fef3c7, #fde68a); border-color: #d4a017; color: #92400e; }
+  .rank-medal.silver { background: linear-gradient(145deg, #f9fafb, #e5e7eb); border-color: #9ca3af; color: #4b5563; }
+  .rank-medal.bronze { background: linear-gradient(145deg, #fed7aa, #fdba74); border-color: #c2410c; color: #7c2d12; }
+  .rank-medal.plain  { background: var(--bg); border-color: var(--border); color: var(--text-muted); border-width: 1px; box-shadow: none; }
 
   .rank-name {
     display: flex; align-items: center; gap: .6rem;

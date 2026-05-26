@@ -204,7 +204,6 @@ function renderConteudo(dados, ranking, mes) {
           <div>Responsável</div>
           <div style="text-align:right">Concluídos</div>
           <div style="text-align:right">Tempo médio</div>
-          <div>Participação</div>
         </div>
         ${rankingRows(ranking)}
       </div>
@@ -388,10 +387,8 @@ function donutCategorias(cats, total) {
 function rankingRows(ranking) {
   if (!ranking.length) return '<div class="chart-empty" style="padding:1.5rem">Nenhum admin com atividade no período</div>';
   const ordenado = [...ranking].sort((a, b) => (b.concluidos + b.encerrados) - (a.concluidos + a.encerrados));
-  const totalConcluidos = ordenado.reduce((s, a) => s + a.concluidos + a.encerrados, 0) || 1;
   return ordenado.map((a, i) => {
     const tot = a.concluidos + a.encerrados;
-    const part = tot / totalConcluidos * 100;
     const medal = i === 0 && tot > 0 ? 'gold' : i === 1 && tot > 0 ? 'silver' : i === 2 && tot > 0 ? 'bronze' : 'plain';
     const isVoce = _adminLogadoId && Number(a.id) === Number(_adminLogadoId);
     const iniciais = (a.nome_completo || '?').split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
@@ -406,10 +403,6 @@ function rankingRows(ranking) {
         </div>
         <div class="rank-num ${semAtividade ? 'muted' : ''}" style="text-align:right">${tot}</div>
         <div class="rank-num muted" style="text-align:right">${fmtTempo(a.tempo_medio_seg)}</div>
-        <div>
-          <div class="rank-bar">${semAtividade ? '' : `<div class="rank-bar-fill" style="width:${part.toFixed(0)}%"></div>`}</div>
-          ${semAtividade ? '' : `<div style="font-size:.66rem;color:var(--text-muted);margin-top:3px">${part.toFixed(0)}% dos resolvidos</div>`}
-        </div>
       </div>`;
   }).join('');
 }
