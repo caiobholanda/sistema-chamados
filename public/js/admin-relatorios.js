@@ -1,371 +1,461 @@
-let graficos = [];
+// ── Relatórios v2 — layout profissional ────────────────────
+const MESES_LABEL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CAT_COLORS = {
+  software: '#6366F1', hardware: '#0EA5E9', impressora: '#8B5CF6',
+  ramal: '#EC4899', nobreak: '#A16207', monitor: '#0891B2', mouse: '#65A30D',
+  teclado: '#7C2D12', rede: '#059669', acesso_senha: '#BE185D',
+  cameras: '#D97706', email: '#1D4ED8', tv_projetor: '#7E22CE',
+  projetor: '#9333EA', tablet: '#0D9488', celular: '#0891B2',
+  processo_compra: '#854D0E', outros: '#6B7280',
+};
+const CAT_NOMES = {
+  software: 'Software', hardware: 'Hardware', impressora: 'Impressora',
+  ramal: 'Ramal', nobreak: 'Nobreak', monitor: 'Monitor', mouse: 'Mouse',
+  teclado: 'Teclado', rede: 'Rede / Internet', acesso_senha: 'Acesso / Senha',
+  cameras: 'Câmeras / CFTV', email: 'E-mail', tv_projetor: 'TV',
+  projetor: 'Projetor', tablet: 'Tablet', celular: 'Celular',
+  processo_compra: 'Processo de Compra', outros: 'Outros',
+};
+
+let _adminLogadoId = null;
 
 async function api(url, opts = {}) {
-  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  const res = await fetch(url, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
   if (res.status === 401) { location.replace('/admin-login.html'); throw new Error('401'); }
   return res;
 }
 
-(async () => {
-  const r = await api('/api/admin/me');
-  if (!r.ok) { location.replace('/admin-login.html'); return; }
-  const admin = await r.json();
-  if (admin.is_master) {
-    document.getElementById('nav-usuarios-wrap').innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
-  }
-  document.getElementById('sel-mes').value = new Date().toISOString().slice(0, 7);
-  await carregarRelatorio();
-})();
-
-document.getElementById('btn-logout').addEventListener('click', async () => {
-  await api('/api/admin/logout', { method: 'POST' });
-  location.replace('/admin-login.html');
-});
-document.getElementById('btn-carregar').addEventListener('click', carregarRelatorio);
-
-async function carregarRelatorio() {
-  const mes = document.getElementById('sel-mes').value;
-  if (!mes) return;
-  const conteudo = document.getElementById('conteudo');
-  conteudo.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  graficos.forEach(g => g.destroy());
-  graficos = [];
-  try {
-    const [r, rRanking] = await Promise.all([
-      api(`/api/admin/relatorios?mes=${mes}`),
-      api(`/api/admin/relatorios/ranking?mes=${mes}`),
-    ]);
-    if (!r.ok) { conteudo.innerHTML = '<div class="alert alert-danger">Erro ao carregar.</div>'; return; }
-    const ranking = rRanking.ok ? await rRanking.json() : [];
-    renderRelatorio(await r.json(), mes, ranking);
-  } catch (err) {
-    if (err.message !== '401')
-      conteudo.innerHTML = '<div class="alert alert-danger">Erro ao carregar relatório.</div>';
-  }
+function fmtTempo(seg) {
+  if (seg == null || isNaN(seg)) return '—';
+  const s = Math.max(0, Math.round(seg));
+  if (s < 60) return s + 's';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm';
+  const h = Math.floor(m / 60);
+  const mr = m % 60;
+  if (h < 24) return `${h}h ${mr > 0 ? mr + 'm' : ''}`.trim();
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
 }
 
-function cnt(arr, status) {
-  return (arr.find(i => i.status === status) || {}).total || 0;
+function fmtPct(v, casas = 1) {
+  if (v == null || isNaN(v)) return '—';
+  return (v * 100).toFixed(casas).replace('.', ',') + '%';
 }
 
-function nomeMes(mes) {
-  const [a, m] = mes.split('-');
-  const n = new Date(a, m - 1, 1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-  return n.charAt(0).toUpperCase() + n.slice(1);
-}
-
-function fmtMesAbrev(mesStr) {
-  const [a, m] = mesStr.split('-');
-  return new Date(a, m - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' });
-}
-
-const COR = {
-  gold:      '#C5A55A',
-  goldDark:  '#A88742',
-  goldPale:  'rgba(197,165,90,.15)',
-  navy:      '#0D1B2A',
-  aberto:    '#1D4ED8',
-  andamento: '#7C3AED',
-  concluido: '#15803D',
-  encerrado: '#6B7280',
-  gridLine:  '#E5DDD0',
-  textMuted: '#7A726A',
-};
-
-function renderRanking(ranking) {
-  if (!ranking || ranking.length === 0) {
-    return '<div class="relat-chart-empty">Nenhum admin cadastrado.</div>';
+function fmtDelta(atual, anterior) {
+  if (anterior == null || anterior === 0) {
+    if (atual === 0) return { txt: '— sem dados', cls: 'flat' };
+    return { txt: '▲ novo', cls: 'up' };
   }
+  const delta = (atual - anterior) / anterior;
+  if (Math.abs(delta) < 0.01) return { txt: '— sem variação', cls: 'flat' };
+  const sinal = delta > 0 ? '▲ +' : '▼ ';
+  return { txt: sinal + (delta * 100).toFixed(1).replace('.', ',') + '%', cls: delta > 0 ? 'up' : 'down' };
+}
 
-  const maxTotal = ranking[0].total || 1;
-  const comAtividade = ranking.filter(a => a.total > 0);
+function nomeMes(yyyymm) {
+  if (!yyyymm) return '';
+  const [y, m] = yyyymm.split('-');
+  return `${MESES_LABEL[parseInt(m, 10) - 1]} de ${y}`;
+}
 
-  let podioHtml = '';
-  if (comAtividade.length >= 2) {
-    const top = comAtividade.slice(0, 3);
-    const ordem  = top.length >= 3 ? [top[1], top[0], top[2]] : [top[1], top[0]];
-    const emojis = top.length >= 3 ? ['🥈', '🥇', '🥉'] : ['🥈', '🥇'];
-    const cls    = top.length >= 3 ? ['rank-2', 'rank-1', 'rank-3'] : ['rank-2', 'rank-1'];
-    podioHtml = `<div class="ranking-podio">${ordem.map((a, i) => `
-      <div class="ranking-podio-item ${cls[i]}">
-        <div class="ranking-podio-medal">${emojis[i]}</div>
-        <div class="ranking-podio-nome">${a.nome_completo}</div>
-        <div class="ranking-podio-num">${a.total}</div>
-        <div class="ranking-podio-label">resolvido${a.total !== 1 ? 's' : ''}</div>
-        <div class="ranking-podio-detalhe">${a.concluidos + (a.encerrados || 0)} concluído${(a.concluidos + (a.encerrados || 0)) !== 1 ? 's' : ''}</div>
-      </div>`).join('')}</div>`;
-  } else if (comAtividade.length === 1) {
-    const a = comAtividade[0];
-    podioHtml = `<div class="ranking-podio"><div class="ranking-podio-item rank-1">
-      <div class="ranking-podio-medal">🥇</div>
-      <div class="ranking-podio-nome">${a.nome_completo}</div>
-      <div class="ranking-podio-num">${a.total}</div>
-      <div class="ranking-podio-label">resolvido${a.total !== 1 ? 's' : ''}</div>
-      <div class="ranking-podio-detalhe">${a.concluidos} concluído${a.concluidos !== 1 ? 's' : ''} · ${a.encerrados} encerrado${a.encerrados !== 1 ? 's' : ''}</div>
-    </div></div>`;
-  }
+function mesAnterior(yyyymm) {
+  const [y, m] = yyyymm.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1, 1));
+  d.setUTCMonth(d.getUTCMonth() - 1);
+  return d.toISOString().slice(0, 7);
+}
 
-  const linhas = ranking.map((a, idx) => {
-    const pos = idx + 1;
-    const pct = maxTotal > 0 ? Math.round((a.total / maxTotal) * 100) : 0;
-    const medalha = pos <= 3 && a.total > 0 ? ['🥇', '🥈', '🥉'][pos - 1] : pos;
-    return `<tr class="${a.total === 0 ? 'ranking-zero' : ''}">
-      <td><span class="ranking-pos">${medalha}</span></td>
-      <td><strong>${a.nome_completo}</strong></td>
-      <td style="color:var(--success);font-weight:600">${a.concluidos + (a.encerrados || 0)}</td>
-      <td><strong>${a.total}</strong></td>
-      <td><div class="ranking-bar-wrap"><div class="ranking-bar" style="width:${pct}%"></div></div></td>
-    </tr>`;
-  }).join('');
+function mesProximo(yyyymm) {
+  const [y, m] = yyyymm.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1, 1));
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  return d.toISOString().slice(0, 7);
+}
 
-  return `${podioHtml}
-    <div class="ranking-table-wrap">
-      <table class="ranking-table">
-        <thead><tr>
-          <th>#</th><th>Responsável</th>
-          <th>Concluídos</th><th>Total</th>
-          <th style="width:100px"></th>
-        </tr></thead>
-        <tbody>${linhas}</tbody>
-      </table>
+function mesAtual() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// ── Render ─────────────────────────────────────────────────
+function renderConteudo(dados, ranking, mes) {
+  const { volumeStatus, totalMes, totalMesAnt, abertosUltimos12, notaMedia,
+          tendencia6m, top5Setores, porCategoria, tempoMedioRespostaSeg, sla } = dados;
+
+  const cnt = (s) => (volumeStatus.find(r => r.status === s)?.total || 0);
+  const aberto      = cnt('aberto') + cnt('aguardando_compra') + cnt('aguardando_chegar');
+  const andamento   = cnt('em_andamento');
+  const concluidos  = cnt('concluido') + cnt('encerrado');
+  const taxaResol   = totalMes > 0 ? concluidos / totalMes : 0;
+
+  const deltaTotal       = fmtDelta(totalMes, totalMesAnt);
+  const slaPct           = sla.totalComPrazo > 0 ? sla.dentroPrazo / sla.totalComPrazo : null;
+
+  document.getElementById('compare-info').style.display = '';
+  document.getElementById('compare-mes').textContent = nomeMes(mesAnterior(mes));
+  document.getElementById('page-subtitle').textContent = `Indicadores de desempenho do suporte de TI · ${nomeMes(mes)}`;
+
+  const sparkPath = sparklinePath(abertosUltimos12);
+
+  document.getElementById('conteudo').innerHTML = `
+    <div class="rel-hero">
+      <div class="kpi kpi-primary">
+        <div class="kpi-key"><span class="kpi-dot"></span> Total de chamados</div>
+        <div class="kpi-val">${totalMes}</div>
+        <div class="kpi-sub">registrados · vs. ${totalMesAnt} no mês anterior</div>
+        <span class="kpi-delta ${deltaTotal.cls}">${deltaTotal.txt}</span>
+        <svg class="kpi-spark" viewBox="0 0 240 56" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="sparkGold" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#D4AF37" stop-opacity=".45"/>
+              <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          ${sparkPath ? `
+            <path d="${sparkPath.area}" fill="url(#sparkGold)"/>
+            <path d="${sparkPath.line}" fill="none" stroke="#D4AF37" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+          ` : ''}
+        </svg>
+      </div>
+      <div class="kpi">
+        <div class="kpi-key"><span class="kpi-dot" style="background:#1D4ED8"></span> Em aberto</div>
+        <div class="kpi-val" style="color:#1D4ED8">${aberto}</div>
+        <div class="kpi-sub">aguardando atendimento</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-key"><span class="kpi-dot" style="background:#7C3AED"></span> Em andamento</div>
+        <div class="kpi-val" style="color:#7C3AED">${andamento}</div>
+        <div class="kpi-sub">sendo atendidos agora</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-key"><span class="kpi-dot" style="background:#15803D"></span> Concluídos</div>
+        <div class="kpi-val" style="color:#15803D">${concluidos}</div>
+        <div class="kpi-sub">resolvidos no período</div>
+      </div>
+    </div>
+
+    <div class="meta-strip">
+      ${metaCard('Taxa de resolução', fmtPct(taxaResol, 0), `${concluidos} de ${totalMes} finalizados`, '#15803D', taxaResol)}
+      ${metaCard('Tempo médio de resposta', fmtTempo(tempoMedioRespostaSeg), 'primeira mensagem após abertura', '#D4AF37', tempoMedioRespostaSeg ? Math.min(1, 8*3600 / Math.max(tempoMedioRespostaSeg, 1)) : 0)}
+      ${metaCard('SLA cumprido', slaPct != null ? fmtPct(slaPct, 0) : '—', `${sla.dentroPrazo} de ${sla.totalComPrazo} dentro do prazo · meta 90%`, slaPct >= 0.9 ? '#15803D' : '#B45309', slaPct || 0)}
+    </div>
+
+    <div class="rel-section-title">Tendências <span class="right">últimos 12 meses</span></div>
+    <div class="rel-row r-2">
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title-block">
+            <div class="chart-title">Volume de chamados</div>
+            <div class="chart-sub">${abertosUltimos12.length} meses · destaque no mês atual</div>
+          </div>
+          <span class="chart-pill ${deltaTotal.cls === 'up' ? 'warn' : 'ok'}">${deltaTotal.txt} vs. mês anterior</span>
+        </div>
+        ${barChartSvg(abertosUltimos12, mes)}
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title-block">
+            <div class="chart-title">Satisfação dos usuários</div>
+            <div class="chart-sub">Nota média (1–10) nos últimos 6 meses</div>
+          </div>
+          ${notaMedia.media ? `<span class="chart-pill ${notaMedia.media >= 8 ? 'ok' : 'warn'}">${notaMedia.media.toFixed(1).replace('.', ',')} no mês</span>` : ''}
+        </div>
+        ${lineChartSvg(tendencia6m, mes)}
+        <div class="chart-legend">
+          <span class="leg"><span class="leg-swatch" style="background:#15803D"></span> Nota média</span>
+          <span class="leg" style="margin-left:auto;color:var(--text-secondary)">
+            <strong style="color:var(--text)">${notaMedia.total || 0}</strong> &nbsp;avaliações recebidas no período
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="rel-section-title">Distribuição <span class="right">por origem e tipo</span></div>
+    <div class="rel-row r-3">
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title-block">
+            <div class="chart-title">Setores com mais chamados</div>
+            <div class="chart-sub">Top 5 origens — onde a demanda é maior</div>
+          </div>
+        </div>
+        ${setoresList(top5Setores)}
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title-block">
+            <div class="chart-title">Por categoria</div>
+            <div class="chart-sub">Tipo de problema do mês</div>
+          </div>
+        </div>
+        ${donutCategorias(porCategoria, totalMes)}
+      </div>
+    </div>
+
+    <div class="rel-section-title">Ranking de atendimento <span class="right">admins que mais resolveram no mês</span></div>
+    <div class="chart-card" style="padding: 0">
+      <div class="rank-grid">
+        <div class="rank-head">
+          <div>#</div>
+          <div>Responsável</div>
+          <div style="text-align:right">Concluídos</div>
+          <div style="text-align:right">Tempo médio</div>
+          <div>Participação</div>
+        </div>
+        ${rankingRows(ranking)}
+      </div>
+    </div>
+  `;
+}
+
+function metaCard(key, num, sub, cor, ringPct) {
+  const dash = 138.23;
+  const off = dash - dash * Math.min(1, Math.max(0, ringPct || 0));
+  return `
+    <div class="meta">
+      <div>
+        <div class="meta-key">${key}</div>
+        <div class="meta-num">${num}</div>
+        <div class="meta-sub">${sub}</div>
+      </div>
+      <svg class="meta-ring" viewBox="0 0 52 52" aria-hidden="true">
+        <circle cx="26" cy="26" r="22" fill="none" stroke="#E5DDD0" stroke-width="5"/>
+        <circle cx="26" cy="26" r="22" fill="none" stroke="${cor}" stroke-width="5"
+                stroke-dasharray="${dash}" stroke-dashoffset="${off.toFixed(2)}"
+                stroke-linecap="round" transform="rotate(-90 26 26)"/>
+      </svg>
     </div>`;
 }
 
-function renderRelatorio(d, mes, ranking) {
-  const aberto    = cnt(d.volumeStatus, 'aberto');
-  const andamento = cnt(d.volumeStatus, 'em_andamento');
-  const concluido  = cnt(d.volumeStatus, 'concluido') + cnt(d.volumeStatus, 'encerrado');
-  const total      = aberto + andamento + concluido;
-  const resolvidos = concluido;
-  const taxaResolucao = total > 0 ? Math.round((resolvidos / total) * 100) : 0;
-  const notaMedia = d.notaMedia && d.notaMedia.media ? +d.notaMedia.media.toFixed(1) : null;
-  const totalAval  = d.notaMedia ? d.notaMedia.total : 0;
-  const semDados   = total === 0 && d.abertosUltimos12.length === 0;
+function sparklinePath(serie) {
+  if (!serie || serie.length < 2) return null;
+  const vals = serie.map(s => s.total);
+  const max = Math.max(...vals, 1);
+  const w = 240, h = 50;
+  const stepX = w / (serie.length - 1);
+  const pts = vals.map((v, i) => [i * stepX, h - (v / max) * (h - 8) - 4]);
+  const line = 'M' + pts.map(p => p.map(n => n.toFixed(1)).join(',')).join(' L');
+  const area = line + ` L${w.toFixed(1)},56 L0,56 Z`;
+  return { line, area };
+}
 
-  const conteudo = document.getElementById('conteudo');
+function barChartSvg(serie, mesAtivo) {
+  if (!serie.length) return '<div class="chart-empty">Sem dados</div>';
+  const vals = serie.map(s => s.total);
+  const max = Math.max(...vals, 4);
+  const yStep = max <= 5 ? 1 : max <= 20 ? 5 : max <= 50 ? 10 : max <= 100 ? 25 : 50;
+  const yMax = Math.ceil(max / yStep) * yStep;
+  const w = 600, h = 240;
+  const chartH = 170, chartTop = 40, chartLeft = 40, chartRight = 590;
+  const cw = chartRight - chartLeft;
+  const barW = Math.min(36, (cw / serie.length) * 0.7);
+  const slot = cw / serie.length;
+  const bars = serie.map((s, i) => {
+    const isActive = s.mes === mesAtivo;
+    const isLastHalf = i >= serie.length / 2;
+    const fill = isActive ? 'url(#barGold)' : isLastHalf ? '#C4A96E' : '#E8D4A8';
+    const barH = (s.total / yMax) * chartH;
+    const x = chartLeft + i * slot + (slot - barW) / 2;
+    const y = chartTop + chartH - barH;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="${fill}" rx="2"/>${
+      isActive ? `<text x="${(x + barW/2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#1C1C1C" font-family="Inter, sans-serif">${s.total}</text>` : ''
+    }`;
+  }).join('');
+  const xLabels = serie.map((s, i) => {
+    const [, mm] = s.mes.split('-');
+    const label = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][parseInt(mm,10)-1];
+    const x = chartLeft + i * slot + slot/2;
+    const active = s.mes === mesAtivo;
+    return `<text x="${x.toFixed(1)}" y="226" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="${active ? '#1C1C1C' : '#7A726A'}" font-weight="${active ? '700' : '400'}">${label}</text>`;
+  }).join('');
+  return `
+    <svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="barGold" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#D4AF37"/>
+          <stop offset="100%" stop-color="#B8960C"/>
+        </linearGradient>
+      </defs>
+      <g stroke="#E5DDD0" stroke-dasharray="2 4">
+        ${[0, 0.25, 0.5, 0.75, 1].map(p => `<line x1="${chartLeft}" y1="${(chartTop + p * chartH).toFixed(1)}" x2="${chartRight}" y2="${(chartTop + p * chartH).toFixed(1)}"/>`).join('')}
+      </g>
+      <g fill="#7A726A" font-size="10" font-family="Inter, sans-serif" text-anchor="end">
+        ${[0, 0.25, 0.5, 0.75, 1].map(p => `<text x="32" y="${(chartTop + p * chartH + 4).toFixed(1)}">${Math.round(yMax - p * yMax)}</text>`).join('')}
+      </g>
+      ${bars}
+      ${xLabels}
+    </svg>`;
+}
 
-  if (semDados) {
-    conteudo.innerHTML = `
-      <div class="relat-empty">
-        <div class="relat-empty-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
-          </svg>
+function lineChartSvg(serie, mesAtivo) {
+  if (!serie.length) return '<div class="chart-empty">Nenhuma avaliação no período</div>';
+  const w = 600, h = 240;
+  const chartH = 170, chartTop = 30, chartLeft = 40, chartRight = 580;
+  const cw = chartRight - chartLeft;
+  const stepX = serie.length > 1 ? cw / (serie.length - 1) : 0;
+  const pts = serie.map((s, i) => {
+    const x = chartLeft + (serie.length === 1 ? cw / 2 : i * stepX);
+    const y = chartTop + chartH - (s.media / 10) * chartH;
+    return [x, y, s];
+  });
+  const lineD = 'M' + pts.map(([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L');
+  const areaD = lineD + ` L${pts[pts.length-1][0].toFixed(1)},${(chartTop + chartH).toFixed(1)} L${pts[0][0].toFixed(1)},${(chartTop + chartH).toFixed(1)} Z`;
+  const markers = pts.map(([x,y,s]) => {
+    const active = s.mes === mesAtivo;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${active ? 5 : 4}" fill="${active ? '#15803D' : '#fff'}" stroke="#15803D" stroke-width="2"/>`;
+  }).join('');
+  const xLabels = pts.map(([x,_y,s]) => {
+    const [, mm] = s.mes.split('-');
+    const label = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][parseInt(mm,10)-1];
+    const active = s.mes === mesAtivo;
+    return `<text x="${x.toFixed(1)}" y="226" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="${active ? '#1C1C1C' : '#7A726A'}" font-weight="${active ? '700' : '400'}">${label}</text>`;
+  }).join('');
+  const last = pts[pts.length - 1];
+  return `
+    <svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="satFill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#15803D" stop-opacity=".24"/>
+          <stop offset="100%" stop-color="#15803D" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <g stroke="#E5DDD0" stroke-dasharray="2 4">
+        ${[0, 0.25, 0.5, 0.75, 1].map(p => `<line x1="${chartLeft}" y1="${(chartTop + p * chartH).toFixed(1)}" x2="${chartRight}" y2="${(chartTop + p * chartH).toFixed(1)}"/>`).join('')}
+      </g>
+      <g fill="#7A726A" font-size="10" font-family="Inter, sans-serif" text-anchor="end">
+        ${[10, 8, 6, 4, 2].map((n, i) => `<text x="32" y="${(chartTop + (i / 4) * chartH + 4).toFixed(1)}">${n}</text>`).join('')}
+      </g>
+      <path d="${areaD}" fill="url(#satFill)"/>
+      <path d="${lineD}" fill="none" stroke="#15803D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      ${markers}
+      <rect x="${(last[0] - 25).toFixed(1)}" y="${(last[1] - 22).toFixed(1)}" width="50" height="20" rx="2" fill="#15803D"/>
+      <text x="${last[0].toFixed(1)}" y="${(last[1] - 8).toFixed(1)}" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Inter, sans-serif">${last[2].media.toFixed(1).replace('.', ',')}</text>
+      ${xLabels}
+    </svg>`;
+}
+
+function setoresList(setores) {
+  if (!setores.length) return '<div class="chart-empty">Sem dados no período</div>';
+  const maxT = Math.max(...setores.map(s => s.total), 1);
+  return '<div class="sector-list">' + setores.map((s, i) => `
+    <div class="sector-row ${i === 0 ? 'top' : ''}">
+      <div class="sector-rank">${i + 1}</div>
+      <div class="sector-body">
+        <div class="sector-name">${s.setor}</div>
+        <div class="sector-bar"><div class="sector-fill" style="width:${(s.total / maxT * 100).toFixed(0)}%"></div></div>
+      </div>
+      <div class="sector-count">${s.total}${i === 0 ? ' <small>chamados</small>' : ''}</div>
+    </div>
+  `).join('') + '</div>';
+}
+
+function donutCategorias(cats, total) {
+  if (!cats.length || total === 0) return '<div class="chart-empty">Sem dados</div>';
+  const r = 58;
+  const C = 2 * Math.PI * r;
+  let offset = 0;
+  const segs = cats.map(c => {
+    const len = (c.total / total) * C;
+    const seg = `<circle cx="80" cy="80" r="${r}" stroke="${CAT_COLORS[c.categoria] || CAT_COLORS.outros}" stroke-dasharray="${len.toFixed(1)} ${(C - len).toFixed(1)}" stroke-dashoffset="${(-offset).toFixed(1)}"/>`;
+    offset += len;
+    return seg;
+  }).join('');
+  const legend = cats.map(c => {
+    const pct = ((c.total / total) * 100).toFixed(0);
+    return `<div class="leg">
+      <span class="leg-sw" style="background:${CAT_COLORS[c.categoria] || CAT_COLORS.outros}"></span>
+      <span class="leg-name">${CAT_NOMES[c.categoria] || c.categoria}</span>
+      <span class="leg-count">${c.total}</span>
+      <span class="leg-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+  return `
+    <div class="donut-wrap">
+      <svg viewBox="0 0 160 160" aria-label="Distribuição por categoria">
+        <g fill="none" stroke-width="22"><circle cx="80" cy="80" r="${r}" stroke="#E5DDD0"/></g>
+        <g fill="none" stroke-width="22" transform="rotate(-90 80 80)">${segs}</g>
+        <text x="80" y="74" font-size="10" fill="#7A726A" letter-spacing="1" text-anchor="middle">TOTAL</text>
+        <text x="80" y="100" font-size="26" text-anchor="middle" font-weight="700">${total}</text>
+      </svg>
+      <div class="donut-legend">${legend}</div>
+    </div>`;
+}
+
+function rankingRows(ranking) {
+  if (!ranking.length) return '<div class="chart-empty" style="padding:1.5rem">Nenhum admin com atividade no período</div>';
+  const ordenado = [...ranking].sort((a, b) => (b.concluidos + b.encerrados) - (a.concluidos + a.encerrados));
+  const totalConcluidos = ordenado.reduce((s, a) => s + a.concluidos + a.encerrados, 0) || 1;
+  return ordenado.map((a, i) => {
+    const tot = a.concluidos + a.encerrados;
+    const part = tot / totalConcluidos * 100;
+    const medal = i === 0 && tot > 0 ? 'gold' : i === 1 && tot > 0 ? 'silver' : i === 2 && tot > 0 ? 'bronze' : 'plain';
+    const isVoce = _adminLogadoId && Number(a.id) === Number(_adminLogadoId);
+    const iniciais = (a.nome_completo || '?').split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    const semAtividade = tot === 0;
+    return `
+      <div class="rank-row ${isVoce ? 'you' : ''}">
+        <div class="rank-pos"><div class="rank-medal ${medal}">${i + 1}</div></div>
+        <div class="rank-name">
+          <div class="rank-avatar" ${semAtividade ? 'style="background:var(--bg);color:var(--text-muted);border-color:var(--border)"' : ''}>${iniciais}</div>
+          <span ${semAtividade ? 'style="color:var(--text-muted)"' : ''}>${a.nome_completo}</span>
+          ${isVoce ? '<span class="rank-you-tag">Você</span>' : ''}
         </div>
-        <div class="relat-empty-title">Nenhum dado encontrado</div>
-        <div class="relat-empty-sub">Não há chamados registrados em <strong>${nomeMes(mes)}</strong>.<br>Selecione outro período ou aguarde novos chamados.</div>
+        <div class="rank-num ${semAtividade ? 'muted' : ''}" style="text-align:right">${tot}</div>
+        <div class="rank-num muted" style="text-align:right">${fmtTempo(a.tempo_medio_seg)}</div>
+        <div>
+          <div class="rank-bar">${semAtividade ? '' : `<div class="rank-bar-fill" style="width:${part.toFixed(0)}%"></div>`}</div>
+          ${semAtividade ? '' : `<div style="font-size:.66rem;color:var(--text-muted);margin-top:3px">${part.toFixed(0)}% dos resolvidos</div>`}
+        </div>
       </div>`;
-    return;
-  }
+  }).join('');
+}
 
-  conteudo.innerHTML = `
-    <div class="relat-periodo">
-      <div class="relat-periodo-label">Período analisado</div>
-      <div class="relat-periodo-mes">${nomeMes(mes)}</div>
-    </div>
-
-    <div class="relat-section-title">Visão Geral do Mês</div>
-    <div class="relat-kpis">
-      <div class="relat-kpi relat-kpi-primary">
-        <div class="relat-kpi-value">${total}</div>
-        <div class="relat-kpi-label">Total de chamados</div>
-        <div class="relat-kpi-desc">registrados no período</div>
-      </div>
-      <div class="relat-kpi">
-        <div class="relat-kpi-value" style="color:var(--cor-aberto)">${aberto}</div>
-        <div class="relat-kpi-label">Em aberto</div>
-        <div class="relat-kpi-desc">aguardando atendimento</div>
-      </div>
-      <div class="relat-kpi">
-        <div class="relat-kpi-value" style="color:var(--cor-andamento)">${andamento}</div>
-        <div class="relat-kpi-label">Em andamento</div>
-        <div class="relat-kpi-desc">sendo atendidos agora</div>
-      </div>
-      <div class="relat-kpi">
-        <div class="relat-kpi-value" style="color:var(--cor-concluido)">${concluido}</div>
-        <div class="relat-kpi-label">Concluídos</div>
-        <div class="relat-kpi-desc">resolvidos com solução</div>
-      </div>
-    </div>
-
-    <div class="relat-metrics">
-      <div class="relat-metric">
-        <div class="relat-metric-circle" style="--pct:${taxaResolucao}%;--cor:${taxaResolucao >= 70 ? '#15803D' : taxaResolucao >= 40 ? '#B45309' : '#B91C1C'}">
-          <span>${taxaResolucao}%</span>
-        </div>
-        <div>
-          <div class="relat-metric-label">Taxa de resolução</div>
-          <div class="relat-metric-sub">${resolvidos} de ${total} chamados finalizados</div>
-        </div>
-      </div>
-      <div class="relat-metric">
-        <div class="relat-metric-circle" style="--pct:${notaMedia ? (notaMedia/10)*100 : 0}%;--cor:${notaMedia >= 7 ? '#15803D' : notaMedia >= 5 ? '#B45309' : '#B91C1C'}">
-          <span>${notaMedia !== null ? notaMedia : '—'}</span>
-        </div>
-        <div>
-          <div class="relat-metric-label">Nota média de satisfação</div>
-          <div class="relat-metric-sub">${totalAval} avaliação${totalAval !== 1 ? 'ões' : ''} recebida${totalAval !== 1 ? 's' : ''}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="relat-section-title">Histórico de Volume</div>
-    <div class="card relat-chart-card">
-      <div class="relat-chart-header">
-        <div>
-          <div class="relat-chart-title">Chamados abertos por mês</div>
-          <div class="relat-chart-sub">Últimos 12 meses — evolução do volume de solicitações</div>
-        </div>
-      </div>
-      <canvas id="grafico-abertos" height="160"></canvas>
-    </div>
-
-    <div class="relat-section-title">Satisfação dos Usuários</div>
-    <div class="card relat-chart-card">
-      <div class="relat-chart-header">
-        <div>
-          <div class="relat-chart-title">Nota média de atendimento</div>
-          <div class="relat-chart-sub">Últimos 6 meses — tendência da satisfação (escala 0–10)</div>
-        </div>
-        ${notaMedia !== null ? `
-        <div class="relat-chart-badge ${notaMedia >= 7 ? 'badge-ok' : notaMedia >= 5 ? 'badge-med' : 'badge-low'}">
-          ${notaMedia >= 7 ? 'Boa' : notaMedia >= 5 ? 'Regular' : 'Baixa'}
-        </div>` : ''}
-      </div>
-      ${d.tendencia6m.length === 0
-        ? `<div class="relat-chart-empty">Sem avaliações registradas no período</div>`
-        : `<canvas id="grafico-tendencia" height="160"></canvas>`
-      }
-    </div>
-
-    <div class="relat-section-title">Chamados por Setor</div>
-    <div class="card relat-chart-card">
-      <div class="relat-chart-header">
-        <div>
-          <div class="relat-chart-title">Setores com mais chamados</div>
-          <div class="relat-chart-sub">Top 5 setores no mês — identifique onde a demanda é maior</div>
-        </div>
-      </div>
-      ${d.top5Setores.length === 0
-        ? `<div class="relat-chart-empty">Nenhum dado de setor disponível</div>`
-        : `<canvas id="grafico-setores" height="${Math.max(140, d.top5Setores.length * 44)}"></canvas>`
-      }
-    </div>
-
-    <div class="relat-section-title">Ranking de Atendimento</div>
-    <div class="card relat-chart-card">
-      <div class="relat-chart-header">
-        <div>
-          <div class="relat-chart-title">Admins que mais resolveram chamados</div>
-          <div class="relat-chart-sub">Contagem de chamados concluídos no mês por responsável</div>
-        </div>
-      </div>
-      ${renderRanking(ranking)}
-    </div>
-  `;
-
-  Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
-  Chart.defaults.font.size = 12;
-  Chart.defaults.color = COR.textMuted;
-  Chart.defaults.plugins.legend.display = false;
-
-  const gridStyle = { color: COR.gridLine, drawBorder: false };
-
-  graficos.push(new Chart(document.getElementById('grafico-abertos'), {
-    type: 'bar',
-    data: {
-      labels: d.abertosUltimos12.map(i => fmtMesAbrev(i.mes)),
-      datasets: [{
-        data: d.abertosUltimos12.map(i => i.total),
-        backgroundColor: d.abertosUltimos12.map(i => i.mes === mes ? COR.gold : COR.goldPale),
-        borderRadius: 4,
-        borderSkipped: false,
-      }],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            title: (items) => nomeMes(d.abertosUltimos12[items[0].dataIndex].mes),
-            label: (item) => ` ${item.raw} chamado${item.raw !== 1 ? 's' : ''} aberto${item.raw !== 1 ? 's' : ''}`,
-          },
-        },
-      },
-      scales: {
-        x: { grid: gridStyle, ticks: { maxRotation: 0 } },
-        y: { grid: gridStyle, beginAtZero: true, ticks: { precision: 0 } },
-      },
-    },
-  }));
-
-  if (d.tendencia6m.length > 0) {
-    graficos.push(new Chart(document.getElementById('grafico-tendencia'), {
-      type: 'line',
-      data: {
-        labels: d.tendencia6m.map(i => fmtMesAbrev(i.mes)),
-        datasets: [{
-          data: d.tendencia6m.map(i => i.media ? +i.media.toFixed(1) : null),
-          borderColor: COR.gold,
-          backgroundColor: COR.goldPale,
-          tension: .4,
-          fill: true,
-          pointRadius: 6,
-          pointBackgroundColor: COR.gold,
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          spanGaps: true,
-        }],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: (item) => item.raw !== null ? ` Nota: ${item.raw}/10` : ' Sem dados',
-            },
-          },
-        },
-        scales: {
-          x: { grid: gridStyle },
-          y: {
-            grid: gridStyle,
-            min: 0, max: 10,
-            ticks: { callback: (v) => v % 2 === 0 ? v : '', stepSize: 2 },
-          },
-        },
-      },
-    }));
-  }
-
-  if (d.top5Setores.length > 0) {
-    const cores = [COR.gold, COR.goldDark, '#8B6B2E', '#6B5022', '#4A3818'];
-    graficos.push(new Chart(document.getElementById('grafico-setores'), {
-      type: 'bar',
-      data: {
-        labels: d.top5Setores.map(i => i.setor),
-        datasets: [{
-          data: d.top5Setores.map(i => i.total),
-          backgroundColor: cores,
-          borderRadius: 4,
-          borderSkipped: false,
-        }],
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: (item) => ` ${item.raw} chamado${item.raw !== 1 ? 's' : ''}`,
-            },
-          },
-        },
-        scales: {
-          x: { grid: gridStyle, beginAtZero: true, ticks: { precision: 0 } },
-          y: { grid: { display: false } },
-        },
-      },
-    }));
+// ── Carregamento ───────────────────────────────────────────
+async function carregar(mes) {
+  document.getElementById('label-mes').textContent = nomeMes(mes);
+  document.getElementById('sel-mes').value = mes;
+  document.getElementById('conteudo').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const [r1, r2] = await Promise.all([
+      api(`/api/admin/relatorios?mes=${mes}`),
+      api(`/api/admin/relatorios/ranking?mes=${mes}`),
+    ]);
+    if (_adminLogadoId == null) {
+      try { const me = await (await api('/api/admin/me')).json(); _adminLogadoId = me.id; } catch {}
+    }
+    if (!r1.ok || !r2.ok) throw new Error('falha');
+    const dados = await r1.json();
+    const ranking = await r2.json();
+    renderConteudo(dados, ranking, mes);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('conteudo').innerHTML = '<div class="alert alert-danger">Erro ao carregar relatório.</div>';
   }
 }
+
+// ── Init ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  let mes = mesAtual();
+  document.getElementById('sel-mes').max = mes;
+
+  document.getElementById('btn-mes-anterior').addEventListener('click', () => { mes = mesAnterior(mes); carregar(mes); });
+  document.getElementById('btn-mes-proximo').addEventListener('click', () => {
+    const prox = mesProximo(mes);
+    if (prox > mesAtual()) return;
+    mes = prox;
+    carregar(mes);
+  });
+  document.getElementById('btn-mes-atual').addEventListener('click', () => { mes = mesAtual(); carregar(mes); });
+  document.getElementById('sel-mes').addEventListener('change', (e) => {
+    if (e.target.value) { mes = e.target.value; carregar(mes); }
+  });
+  document.querySelector('label.picker').addEventListener('click', () => {
+    document.getElementById('sel-mes').showPicker?.();
+  });
+
+  carregar(mes);
+});

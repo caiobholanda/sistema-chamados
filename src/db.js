@@ -162,6 +162,19 @@ function initDb() {
     )
   `); } catch {}
   try { db.exec(`CREATE INDEX IF NOT EXISTS idx_chamado_anexos_chamado ON chamado_anexos(chamado_id)`); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_atendimento_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      admin_id INTEGER NOT NULL REFERENCES admins(id),
+      assumido_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      encerrado_em DATETIME,
+      duracao_segundos INTEGER,
+      motivo TEXT
+    )
+  `); } catch {}
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_aalog_admin ON admin_atendimento_log(admin_id)`); } catch {}
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_aalog_chamado ON admin_atendimento_log(chamado_id)`); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_path TEXT"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
@@ -1037,7 +1050,12 @@ function inserirChamado(dados) {
     VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria, @aberto_por_admin_id, @admin_responsavel_id)
   `);
   const result = stmt.run({ usuario_id: null, categoria: null, aberto_por_admin_id: null, admin_responsavel_id: null, ...dados });
-  return result.lastInsertRowid;
+  const id = result.lastInsertRowid;
+  if (dados.admin_responsavel_id) {
+    db.prepare(`INSERT INTO admin_atendimento_log (chamado_id, admin_id) VALUES (?, ?)`)
+      .run(id, dados.admin_responsavel_id);
+  }
+  return id;
 }
 
 function deletarChamado(id) {
@@ -1051,6 +1069,7 @@ function deletarChamado(id) {
 
 function cancelarChamado(id, adminId, motivo) {
   const db = getDb();
+  _fecharAtendimentoAberto(id, 'cancelado');
   db.prepare(`
     UPDATE chamados SET status = 'cancelado', cancelamento_motivo = ?,
       cancelado_em = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP
@@ -1266,6 +1285,27 @@ function atualizarCategoria(id, categoria, adminId) {
   `).run(id, adminId, anterior || null, categoria);
 }
 
+// ── Atendimento (log para tempo médio por admin) ──────────────
+function _fecharAtendimentoAberto(chamadoId, motivo) {
+  const db = getDb();
+  db.prepare(`
+    UPDATE admin_atendimento_log
+    SET encerrado_em = CURRENT_TIMESTAMP,
+        duracao_segundos = CAST((julianday(CURRENT_TIMESTAMP) - julianday(assumido_em)) * 86400 AS INTEGER),
+        motivo = ?
+    WHERE chamado_id = ? AND encerrado_em IS NULL
+  `).run(motivo, chamadoId);
+}
+
+function _iniciarAtendimento(chamadoId, adminId) {
+  if (!adminId) return;
+  _fecharAtendimentoAberto(chamadoId, 'transferido');
+  getDb().prepare(`
+    INSERT INTO admin_atendimento_log (chamado_id, admin_id)
+    VALUES (?, ?)
+  `).run(chamadoId, adminId);
+}
+
 function assumirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
@@ -1282,10 +1322,14 @@ function assumirChamado(id, adminId) {
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'assumido', ?, 'em_andamento')
   `).run(id, adminId, chamado.status);
+  if (Number(chamado.admin_responsavel_id) !== Number(adminId)) {
+    _iniciarAtendimento(id, adminId);
+  }
 }
 
 function concluirChamado(id, solucao, adminId, assinatura = null) {
   const db = getDb();
+  _fecharAtendimentoAberto(id, 'concluido');
   const chamado = buscarChamadoPorId(id);
   if (assinatura) {
     db.prepare(`
@@ -1314,6 +1358,7 @@ function concluirChamado(id, solucao, adminId, assinatura = null) {
 
 function encerrarChamado(id, motivo, adminId) {
   const db = getDb();
+  _fecharAtendimentoAberto(id, 'encerrado');
   const chamado = buscarChamadoPorId(id);
   db.prepare(`
     UPDATE chamados SET status = 'encerrado', solucao = ?,
@@ -1348,6 +1393,7 @@ function transferirChamado(id, adminId, novoAdminId, nomeNovoAdmin) {
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'transferido', ?, ?)
   `).run(id, adminId, adminAnterior ? adminAnterior.nome_completo : null, nomeNovoAdmin);
+  _iniciarAtendimento(id, novoAdminId);
 }
 
 function reabrirChamado(id, adminId) {
@@ -1651,6 +1697,11 @@ function relatorioMes(mes) {
   const db = getDb();
   const inicio = `${mes}-01`;
   const fim = `${mes}-31`;
+  const mesAntDate = new Date(`${mes}-01T00:00:00Z`);
+  mesAntDate.setUTCMonth(mesAntDate.getUTCMonth() - 1);
+  const mesAnt = mesAntDate.toISOString().slice(0, 7);
+  const inicioAnt = `${mesAnt}-01`;
+  const fimAnt = `${mesAnt}-31`;
 
   const volumeStatus = db.prepare(`
     SELECT status, COUNT(*) as total
@@ -1658,6 +1709,18 @@ function relatorioMes(mes) {
     WHERE criado_em BETWEEN ? AND ?
     GROUP BY status
   `).all(inicio, fim + ' 23:59:59');
+
+  const volumeStatusAnt = db.prepare(`
+    SELECT status, COUNT(*) as total
+    FROM chamados
+    WHERE criado_em BETWEEN ? AND ?
+    GROUP BY status
+  `).all(inicioAnt, fimAnt + ' 23:59:59');
+
+  const totalMes = db.prepare(`SELECT COUNT(*) as t FROM chamados WHERE criado_em BETWEEN ? AND ?`)
+    .get(inicio, fim + ' 23:59:59').t;
+  const totalMesAnt = db.prepare(`SELECT COUNT(*) as t FROM chamados WHERE criado_em BETWEEN ? AND ?`)
+    .get(inicioAnt, fimAnt + ' 23:59:59').t;
 
   const abertosUltimos12 = db.prepare(`
     SELECT strftime('%Y-%m', criado_em) as mes, COUNT(*) as total
@@ -1674,7 +1737,7 @@ function relatorioMes(mes) {
   `).get(inicio, fim + ' 23:59:59');
 
   const tendencia6m = db.prepare(`
-    SELECT strftime('%Y-%m', concluido_em) as mes, AVG(nota) as media
+    SELECT strftime('%Y-%m', concluido_em) as mes, AVG(nota) as media, COUNT(nota) as total
     FROM chamados
     WHERE concluido_em >= date(?, '-5 months') AND nota IS NOT NULL
     GROUP BY mes
@@ -1690,7 +1753,52 @@ function relatorioMes(mes) {
     LIMIT 5
   `).all(inicio, fim + ' 23:59:59');
 
-  return { volumeStatus, abertosUltimos12, notaMedia, tendencia6m, top5Setores };
+  const porCategoria = db.prepare(`
+    SELECT COALESCE(categoria, 'outros') as categoria, COUNT(*) as total
+    FROM chamados
+    WHERE criado_em BETWEEN ? AND ?
+    GROUP BY categoria
+    ORDER BY total DESC
+  `).all(inicio, fim + ' 23:59:59');
+
+  // Tempo médio de resposta = média do tempo entre criado_em e primeira mensagem do admin
+  const tempoMedioRespostaRow = db.prepare(`
+    SELECT AVG(
+      (julianday(primeira_resposta) - julianday(c.criado_em)) * 86400
+    ) AS media_seg
+    FROM chamados c
+    JOIN (
+      SELECT chamado_id, MIN(criado_em) AS primeira_resposta
+      FROM mensagens_chamado
+      WHERE autor_tipo = 'admin'
+      GROUP BY chamado_id
+    ) m ON m.chamado_id = c.id
+    WHERE c.criado_em BETWEEN ? AND ?
+  `).get(inicio, fim + ' 23:59:59');
+
+  // SLA = % de concluídos dentro do prazo
+  const slaRow = db.prepare(`
+    SELECT
+      COUNT(*) AS total_com_prazo,
+      SUM(CASE WHEN concluido_em <= prazo THEN 1 ELSE 0 END) AS dentro_prazo
+    FROM chamados
+    WHERE prazo IS NOT NULL
+      AND concluido_em IS NOT NULL
+      AND concluido_em BETWEEN ? AND ?
+  `).get(inicio, fim + ' 23:59:59');
+
+  return {
+    mes, mesAnterior: mesAnt,
+    volumeStatus, volumeStatusAnt,
+    totalMes, totalMesAnt,
+    abertosUltimos12, notaMedia, tendencia6m,
+    top5Setores, porCategoria,
+    tempoMedioRespostaSeg: tempoMedioRespostaRow?.media_seg || null,
+    sla: {
+      totalComPrazo: slaRow?.total_com_prazo || 0,
+      dentroPrazo: slaRow?.dentro_prazo || 0,
+    },
+  };
 }
 
 function rankingAdminsMes(mes) {
@@ -1698,13 +1806,22 @@ function rankingAdminsMes(mes) {
   const inicio = `${mes}-01`;
   const fim = `${mes}-31`;
 
+  // Concluídos por admin no mês + tempo médio (em segundos) com base no admin_atendimento_log
   return db.prepare(`
     SELECT
       a.id,
       a.nome_completo,
       COUNT(DISTINCT CASE WHEN h.valor_novo = 'concluido' THEN h.chamado_id END) AS concluidos,
       COUNT(DISTINCT CASE WHEN h.valor_novo = 'encerrado' THEN h.chamado_id END) AS encerrados,
-      COUNT(DISTINCT h.chamado_id) AS total
+      COUNT(DISTINCT h.chamado_id) AS total,
+      (
+        SELECT AVG(l.duracao_segundos)
+        FROM admin_atendimento_log l
+        WHERE l.admin_id = a.id
+          AND l.encerrado_em IS NOT NULL
+          AND l.encerrado_em BETWEEN ? AND ?
+          AND l.duracao_segundos IS NOT NULL
+      ) AS tempo_medio_seg
     FROM admins a
     LEFT JOIN historico_chamados h
       ON h.admin_id = a.id
@@ -1714,7 +1831,7 @@ function rankingAdminsMes(mes) {
     WHERE a.ativo = 1
     GROUP BY a.id, a.nome_completo
     ORDER BY total DESC, concluidos DESC, a.nome_completo ASC
-  `).all(inicio, fim + ' 23:59:59');
+  `).all(inicio, fim + ' 23:59:59', inicio, fim + ' 23:59:59');
 }
 
 function exportarCsvMes(mes) {
