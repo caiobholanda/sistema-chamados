@@ -4368,7 +4368,7 @@ html.modal-aberto {
   /* Ranking de admins */
   .rank-grid {
     display: grid;
-    grid-template-columns: 36px 1fr 80px 70px 110px;
+    grid-template-columns: 50px minmax(180px, 1fr) 110px 130px minmax(160px, 1.4fr);
     gap: 0;
     align-items: center;
   }
@@ -4376,21 +4376,26 @@ html.modal-aberto {
     display: contents;
   }
   .rank-head > * {
-    font-size: .6rem; font-weight: 700;
+    font-size: .62rem; font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase; letter-spacing: .09em;
-    padding: .6rem .75rem;
+    padding: .65rem 1rem;
     border-bottom: 1px solid var(--border);
     background: var(--surface-2);
+    white-space: nowrap;
   }
   .rank-row {
     display: contents;
   }
   .rank-row > * {
-    padding: .8rem .75rem;
+    padding: .85rem 1rem;
     border-bottom: 1px solid var(--border);
     font-size: .85rem;
     color: var(--text);
+  }
+  @media (max-width: 720px) {
+    .rank-grid { grid-template-columns: 40px 1fr 70px 90px; }
+    .rank-head > *:last-child, .rank-row > *:last-child { display: none; }
   }
   .rank-row:last-child > * { border-bottom: none; }
   .rank-row.you > * { background: var(--gold-pale); }
