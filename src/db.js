@@ -1168,6 +1168,25 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
     sql += ' AND c.criado_em <= ?';
     params.push(filtros.periodo_fim + ' 23:59:59');
   }
+  if (filtros.q) {
+    const q = `%${filtros.q.toLowerCase()}%`;
+    sql += ` AND (
+      CAST(c.id AS TEXT) LIKE ?
+      OR LOWER(COALESCE(c.nome, '')) LIKE ?
+      OR LOWER(COALESCE(c.descricao, '')) LIKE ?
+      OR LOWER(COALESCE(c.setor, '')) LIKE ?
+      OR LOWER(COALESCE(c.ramal, '')) LIKE ?
+      OR LOWER(COALESCE(c.solucao, '')) LIKE ?
+      OR LOWER(COALESCE(c.nota, '')) LIKE ?
+      OR LOWER(COALESCE(c.cancelamento_motivo, '')) LIKE ?
+      OR LOWER(COALESCE(u.setor, '')) LIKE ?
+      OR EXISTS (
+        SELECT 1 FROM chamado_infos_adicionais ia
+        WHERE ia.chamado_id = c.id AND LOWER(ia.texto) LIKE ?
+      )
+    )`;
+    for (let i = 0; i < 10; i++) params.push(q);
+  }
   if (filtros.data_inicio || filtros.data_fim) {
     const col = filtros.data_tipo === 'encerramento'
       ? 'c.prazo'

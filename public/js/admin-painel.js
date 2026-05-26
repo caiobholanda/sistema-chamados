@@ -696,23 +696,12 @@ async function carregarChamados(silencioso = false) {
     }
   }
 
+  const filtroBusca = (document.getElementById('filtro-busca')?.value || '').trim().replace(/^#/, '');
+  if (filtroBusca) params.set('q', filtroBusca);
+
   try {
     const r = await api('/api/admin/chamados?' + params);
     let chamados = await r.json();
-
-    // Filtro local por texto: ID, nome, descrição, setor, ramal
-    const filtroBusca = (document.getElementById('filtro-busca')?.value || '').trim().replace(/^#/, '');
-    if (filtroBusca) {
-      const q = filtroBusca.toLowerCase();
-      chamados = chamados.filter(c =>
-        String(c.id).includes(filtroBusca) ||
-        (c.nome || '').toLowerCase().includes(q) ||
-        (c.descricao || '').toLowerCase().includes(q) ||
-        (c.setor || '').toLowerCase().includes(q) ||
-        (c.usuario_setor || '').toLowerCase().includes(q) ||
-        (c.ramal || '').toLowerCase().includes(q)
-      );
-    }
 
     // Silencioso: só re-renderiza se os dados mudaram
     if (silencioso) {
