@@ -543,17 +543,14 @@ async function _carregarUsuariosNc() {
 async function _popularAdminsNc() {
   const sel = document.getElementById('nc-admin-responsavel');
   if (!sel) return;
-  sel.innerHTML = '<option value="">Minha responsabilidade</option>';
+  sel.innerHTML = '<option value="">Assumir eu mesmo</option>';
   try {
     const r = await api('/api/admin/colegas');
     if (!r.ok) return;
     const admins = await r.json();
-    admins.forEach(a => {
-      const label = adminInfo && String(a.id) === String(adminInfo.id)
-        ? a.nome_completo + ' (você)'
-        : a.nome_completo;
-      sel.appendChild(new Option(label, a.id));
-    });
+    admins
+      .filter(a => !adminInfo || String(a.id) !== String(adminInfo.id))
+      .forEach(a => sel.appendChild(new Option(a.nome_completo, a.id)));
   } catch {}
 }
 
@@ -592,8 +589,7 @@ document.getElementById('btn-fechar-novo-chamado').addEventListener('click', fec
 document.getElementById('nc-admin-responsavel').addEventListener('change', function () {
   const hint = document.getElementById('nc-admin-hint');
   if (this.value) {
-    const nome = this.options[this.selectedIndex].text.replace(' (você)', '');
-    hint.textContent = `Você cria o chamado — ${nome} será o responsável atribuído.`;
+    hint.textContent = `Você cria o chamado — ${this.options[this.selectedIndex].text} será o responsável atribuído.`;
     hint.style.display = '';
   } else {
     hint.style.display = 'none';
