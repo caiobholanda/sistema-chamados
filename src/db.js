@@ -1121,6 +1121,7 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
            c.comentario_avaliacao, c.criado_em, c.atualizado_em,
            c.concluido_em, c.categoria, c.assinado_em,
            c.aberto_por_admin_id, c.cancelamento_motivo, c.cancelado_em,
+           (SELECT COUNT(*) FROM chamado_infos_adicionais ia WHERE ia.chamado_id = c.id) as infos_adicionais_count,
            ${naoLidasCol}
            a.nome_completo as admin_nome,
            u.setor as usuario_setor, u.ramal as usuario_ramal,

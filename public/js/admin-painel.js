@@ -706,7 +706,7 @@ async function carregarChamados(silencioso = false) {
     // Silencioso: só re-renderiza se os dados mudaram
     if (silencioso) {
       const novoHash = JSON.stringify(chamados.map(c =>
-        [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em, c.mensagens_nao_lidas]
+        [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em, c.mensagens_nao_lidas, c.infos_adicionais_count]
       )) + '|' + filtroBusca;
       if (novoHash === _chamadosHash) return;
       _chamadosHash = novoHash;
@@ -780,6 +780,10 @@ function renderChamadoItem(c) {
         ${badgePrio(c.prioridade)}
         ${badgeCategoria(c.categoria)}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
+        ${c.infos_adicionais_count > 0 ? `<span class="badge-info-extra" title="${c.infos_adicionais_count} ${c.infos_adicionais_count === 1 ? 'informação adicional' : 'informações adicionais'}">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          ${c.infos_adicionais_count > 1 ? c.infos_adicionais_count + ' infos' : 'Info extra'}
+        </span>` : ''}
         ${c.mensagens_nao_lidas > 0 ? `<span class="msg-badge-nao-lidas">${c.mensagens_nao_lidas}</span>` : ''}
       </div>
       ${c.usuario_id ? `<div class="chamado-nome"><span style="font-weight:400">Usuário: </span>${c.nome}</div>` : ''}

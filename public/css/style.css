@@ -782,6 +782,24 @@ tbody tr:hover td { background: #FAF7F2; }
   gap: .5rem;
   margin-left: auto;
 }
+
+.badge-info-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .15rem .5rem;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--navy);
+  background: var(--gold-pale);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: help;
+}
+.badge-info-extra svg { color: var(--gold-dark); flex-shrink: 0; }
 .filtro-data-input {
   padding: .3rem .5rem;
   font-size: .76rem;
