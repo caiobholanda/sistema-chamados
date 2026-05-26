@@ -1806,7 +1806,10 @@ function rankingAdminsMes(mes) {
   const inicio = `${mes}-01`;
   const fim = `${mes}-31`;
 
-  // Concluídos por admin no mês + tempo médio (em segundos) com base no admin_atendimento_log
+  // Concluídos por admin no mês + tempo médio (segundos).
+  // Tempo médio = média de duas fontes combinadas:
+  //   1) admin_atendimento_log (preciso, considera transferências)
+  //   2) fallback (concluido_em - criado_em) para chamados sem log (histórico)
   return db.prepare(`
     SELECT
       a.id,
@@ -1815,12 +1818,21 @@ function rankingAdminsMes(mes) {
       COUNT(DISTINCT CASE WHEN h.valor_novo = 'encerrado' THEN h.chamado_id END) AS encerrados,
       COUNT(DISTINCT h.chamado_id) AS total,
       (
-        SELECT AVG(l.duracao_segundos)
-        FROM admin_atendimento_log l
-        WHERE l.admin_id = a.id
-          AND l.encerrado_em IS NOT NULL
-          AND l.encerrado_em BETWEEN ? AND ?
-          AND l.duracao_segundos IS NOT NULL
+        SELECT AVG(duracao) FROM (
+          SELECT l.duracao_segundos AS duracao
+          FROM admin_atendimento_log l
+          WHERE l.admin_id = a.id
+            AND l.encerrado_em IS NOT NULL
+            AND l.encerrado_em BETWEEN ? AND ?
+            AND l.duracao_segundos IS NOT NULL
+          UNION ALL
+          SELECT CAST((julianday(c.concluido_em) - julianday(c.criado_em)) * 86400 AS INTEGER) AS duracao
+          FROM chamados c
+          WHERE c.admin_responsavel_id = a.id
+            AND c.concluido_em IS NOT NULL
+            AND c.concluido_em BETWEEN ? AND ?
+            AND NOT EXISTS (SELECT 1 FROM admin_atendimento_log l2 WHERE l2.chamado_id = c.id)
+        )
       ) AS tempo_medio_seg
     FROM admins a
     LEFT JOIN historico_chamados h
@@ -1831,7 +1843,11 @@ function rankingAdminsMes(mes) {
     WHERE a.ativo = 1
     GROUP BY a.id, a.nome_completo
     ORDER BY total DESC, concluidos DESC, a.nome_completo ASC
-  `).all(inicio, fim + ' 23:59:59', inicio, fim + ' 23:59:59');
+  `).all(
+    inicio, fim + ' 23:59:59',     // logs
+    inicio, fim + ' 23:59:59',     // fallback chamados
+    inicio, fim + ' 23:59:59'      // ranking total
+  );
 }
 
 function exportarCsvMes(mes) {
