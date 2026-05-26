@@ -695,6 +695,9 @@ async function carregarChamados(silencioso = false) {
     params.set('data_tipo', dataTipo);
     if (dataInicio) params.set('data_inicio', dataInicio);
     if (dataFim) params.set('data_fim', dataFim);
+    if (dataTipo === 'encerramento' && !statusFiltroAtual && abaAtiva !== 'meus') {
+      params.set('status', [...STATUS_ENCERRADOS, 'cancelado'].join(','));
+    }
   }
 
   try {

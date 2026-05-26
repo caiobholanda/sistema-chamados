@@ -139,6 +139,7 @@ function initDb() {
   try { db.exec("ALTER TABLE equipamentos_historico ADD COLUMN chamado_id INTEGER DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN cancelamento_motivo TEXT"); } catch {}
   try { db.exec("ALTER TABLE chamados ADD COLUMN cancelado_em DATETIME"); } catch {}
+  try { db.exec("UPDATE chamados SET concluido_em = atualizado_em WHERE status = 'encerrado' AND concluido_em IS NULL AND atualizado_em IS NOT NULL"); } catch {}
   try { db.exec("ALTER TABLE push_subscriptions ADD COLUMN app_origin TEXT DEFAULT ''"); } catch {}
   try { db.exec(`
     CREATE TABLE IF NOT EXISTS chamado_infos_adicionais (
@@ -1168,7 +1169,9 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
     params.push(filtros.periodo_fim + ' 23:59:59');
   }
   if (filtros.data_inicio || filtros.data_fim) {
-    const col = filtros.data_tipo === 'encerramento' ? 'c.concluido_em' : 'c.criado_em';
+    const col = filtros.data_tipo === 'encerramento'
+      ? 'COALESCE(c.concluido_em, c.cancelado_em, c.atualizado_em)'
+      : 'c.criado_em';
     if (filtros.data_inicio) {
       sql += ` AND ${col} >= ?`;
       params.push(filtros.data_inicio);
@@ -1283,7 +1286,8 @@ function encerrarChamado(id, motivo, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
   db.prepare(`
-    UPDATE chamados SET status = 'encerrado', solucao = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+    UPDATE chamados SET status = 'encerrado', solucao = ?,
+    atualizado_em = CURRENT_TIMESTAMP, concluido_em = CURRENT_TIMESTAMP WHERE id = ?
   `).run(motivo, id);
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
