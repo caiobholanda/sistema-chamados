@@ -1072,7 +1072,8 @@ function cancelarChamado(id, adminId, motivo) {
   _fecharAtendimentoAberto(id, 'cancelado');
   db.prepare(`
     UPDATE chamados SET status = 'cancelado', cancelamento_motivo = ?,
-      cancelado_em = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP
+      cancelado_em = CURRENT_TIMESTAMP, concluido_em = NULL, nota = NULL,
+      atualizado_em = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(motivo || null, id);
   db.prepare(`
@@ -1733,13 +1734,13 @@ function relatorioMes(mes) {
   const notaMedia = db.prepare(`
     SELECT AVG(nota) as media, COUNT(nota) as total
     FROM chamados
-    WHERE concluido_em BETWEEN ? AND ? AND nota IS NOT NULL
+    WHERE concluido_em BETWEEN ? AND ? AND nota IS NOT NULL AND status != 'cancelado'
   `).get(inicio, fim + ' 23:59:59');
 
   const tendencia6m = db.prepare(`
     SELECT strftime('%Y-%m', concluido_em) as mes, AVG(nota) as media, COUNT(nota) as total
     FROM chamados
-    WHERE concluido_em >= date(?, '-5 months') AND nota IS NOT NULL
+    WHERE concluido_em >= date(?, '-5 months') AND nota IS NOT NULL AND status != 'cancelado'
     GROUP BY mes
     ORDER BY mes ASC
   `).all(inicio);
