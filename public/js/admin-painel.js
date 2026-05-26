@@ -549,7 +549,7 @@ async function _carregarUsuariosNc() {
       resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
     } else {
       resultados.innerHTML = filtrados.map(u => `
-        <div class="nc-usuario-item" data-id="${u.id}" data-nome="${u.nome.replace(/"/g,'&quot;')}"
+        <div class="nc-usuario-item" data-id="${u.id}" data-nome="${u.nome.replace(/"/g,'&quot;')}" data-setor="${(u.setor||'').replace(/"/g,'&quot;')}"
           style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">
           ${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}
         </div>`).join('');
@@ -557,7 +557,8 @@ async function _carregarUsuariosNc() {
         el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover,#f3f4f6)');
         el.addEventListener('mouseleave', () => el.style.background = '');
         el.addEventListener('click', () => {
-          selecionado.textContent = '✓ ' + el.dataset.nome;
+          const setor = el.dataset.setor;
+          selecionado.innerHTML = '✓ ' + el.dataset.nome + (setor ? ' · <span style="color:var(--text-muted);font-weight:400">' + setor + '</span>' : '');
           selecionado.dataset.usuarioId = el.dataset.id;
           selecionado.style.display = 'block';
           busca.value = el.dataset.nome;
