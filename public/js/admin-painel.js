@@ -582,20 +582,21 @@ async function _carregarUsuariosNc() {
   });
 }
 
-function _popularAdminsNc() {
+async function _popularAdminsNc() {
   const sel = document.getElementById('nc-admin-responsavel');
   if (!sel) return;
   sel.innerHTML = '<option value="">Minha responsabilidade</option>';
-  const fonte = document.getElementById('filtro-admin');
-  if (!fonte) return;
-  Array.from(fonte.options).forEach(opt => {
-    if (!opt.value) return;
-    const novo = new Option(
-      adminInfo && String(opt.value) === String(adminInfo.id) ? opt.text + ' (você)' : opt.text,
-      opt.value
-    );
-    sel.appendChild(novo);
-  });
+  try {
+    const r = await api('/api/admin/colegas');
+    if (!r.ok) return;
+    const admins = await r.json();
+    admins.forEach(a => {
+      const label = adminInfo && String(a.id) === String(adminInfo.id)
+        ? a.nome_completo + ' (você)'
+        : a.nome_completo;
+      sel.appendChild(new Option(label, a.id));
+    });
+  } catch {}
 }
 
 function abrirModalNovoChamado() {
