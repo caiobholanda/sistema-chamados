@@ -257,6 +257,36 @@
 /* sub-tab hover in dark */
 [data-theme="dark"] .sub-tab-btn:hover { background: rgba(255,255,255,.06); }
 
+/* ── Dark mode: alert text colors ── */
+[data-theme="dark"] .alert-success { color: #4ade80; border-color: rgba(74,222,128,.3); }
+[data-theme="dark"] .alert-danger  { color: #fca5a5; border-color: rgba(252,165,165,.3); }
+[data-theme="dark"] .alert-warning { color: #fcd34d; border-color: rgba(252,211,77,.3); }
+
+/* ── Dark mode: login/auth label ── */
+[data-theme="dark"] .login-card .form-group label,
+[data-theme="dark"] .auth-card .form-group label { color: var(--text-secondary); }
+
+/* ── Dark mode: password/email feedback ── */
+[data-theme="dark"] .senha-reqs li.ok { color: #4ade80; }
+[data-theme="dark"] .senha-reqs li.ok::before { color: #4ade80; }
+[data-theme="dark"] .email-dominio-dica.valido   { color: #4ade80; }
+[data-theme="dark"] .email-dominio-dica.invalido { color: #fca5a5; }
+
+/* ── Dark mode: modal solicitante name (navy → light) ── */
+[data-theme="dark"] .modal-solicitante-name { color: var(--text); }
+
+/* ── Dark mode: inventário status tags ── */
+[data-theme="dark"] .inv-em-uso { background: #1e3a5f; color: #93c5fd; }
+[data-theme="dark"] .inv-disponivel  { background: #052e16; color: #86efac; }
+[data-theme="dark"] .inv-manutencao  { background: #3d2800; color: #fcd34d; }
+[data-theme="dark"] .inv-descartado  { background: rgba(107,114,128,.15); color: var(--text-muted); }
+
+/* ── Dark mode: neutral icon (blue) inside mv2-card ── */
+[data-theme="dark"] .mv2-card-icon-neutral { background: rgba(59,130,246,.15) !important; color: #93c5fd !important; }
+
+/* ── Dark mode: btn-termo-add-row hover ── */
+[data-theme="dark"] .btn-termo-add-row:hover { background: rgba(197,165,90,.08); }
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--bg);
