@@ -1107,14 +1107,25 @@ function renderPainel(usuario) {
       if (btn) btn.addEventListener('click', () => abrirModalTermo(c.id, c));
     });
 
-    filtrados.filter(c => ativosIds.has(c.id)).forEach(c => {
-      _iniciarChat(c.id);
-      if (c.novidades_usuario > 0) {
-        apiFetch(`/api/usuarios/chamados/${c.id}/lido`, { method: 'POST' }).catch(() => {});
-        const badge = document.querySelector(`.badge-novidades-usuario[data-cid="${c.id}"]`);
-        if (badge) badge.remove();
-        c.novidades_usuario = 0;
-      }
+    filtrados.filter(c => ativosIds.has(c.id)).forEach(c => _iniciarChat(c.id));
+
+    filtrados.filter(c => c.novidades_usuario > 0).forEach(c => {
+      const card = document.querySelector(`.chamado-card-usuario[data-cid="${c.id}"]`);
+      if (!card) return;
+      let _timer = null;
+      const obs = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) {
+          _timer = setTimeout(() => {
+            apiFetch(`/api/usuarios/chamados/${c.id}/lido`, { method: 'POST' }).catch(() => {});
+            card.querySelector('.badge-novidades-usuario')?.remove();
+            c.novidades_usuario = 0;
+            obs.disconnect();
+          }, 1500);
+        } else {
+          clearTimeout(_timer);
+        }
+      }, { threshold: 0.3 });
+      obs.observe(card);
     });
   }
 
@@ -1432,7 +1443,7 @@ function renderCardChamado(c) {
   ` : '';
 
   return `
-    <div class="chamado-card-usuario${encerrado ? ' encerrado' : ''}">
+    <div class="chamado-card-usuario${encerrado ? ' encerrado' : ''}" data-cid="${c.id}">
       <div class="chamado-card-header">
         <div class="flex gap-1 flex-wrap" style="align-items:center">
           <span title="Informe este ID ao suporte para identificar seu chamado" style="font-family:monospace;font-size:.78rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.05);padding:.18rem .45rem;border-radius:4px;cursor:help">#${c.id}</span>
