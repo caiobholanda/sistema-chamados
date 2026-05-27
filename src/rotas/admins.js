@@ -32,6 +32,12 @@ function sanitizarTexto(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#x27;').trim();
 }
 
+function notificarUsuario(chamado) {
+  if (!chamado || !chamado.usuario_id) return;
+  db.incrementarNovidadesUsuario(chamado.id);
+  sse.notify(chamado.usuario_id, 'chamado:atualizado', { chamado_id: chamado.id });
+}
+
 router.post('/login', async (req, res) => {
   try {
     const { email, senha } = req.body;
@@ -364,7 +370,7 @@ router.post('/chamados/:id/mensagens', requireAdmin, uploadMiddleware('chat_anex
       const novoCaminho = path.join(UPLOADS_DIR, novoNome);
       fs.renameSync(tmpPath, novoCaminho);
       db.getDb().prepare('UPDATE mensagens_chamado SET chat_anexo_path = ? WHERE id = ?').run(novoNome, msgId);
-      if (chamado.usuario_id) sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id });
+      if (chamado.usuario_id) { sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id }); notificarUsuario(chamado); }
       return res.status(201).json({ mensagem: 'Mensagem enviada' });
     }
     db.criarMensagem({
@@ -372,7 +378,7 @@ router.post('/chamados/:id/mensagens', requireAdmin, uploadMiddleware('chat_anex
       autor_id: req.admin.sub, autor_nome: admin ? admin.nome_completo : 'Suporte',
       mensagem,
     });
-    if (chamado.usuario_id) sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id });
+    if (chamado.usuario_id) { sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id }); notificarUsuario(chamado); }
     return res.status(201).json({ mensagem: 'Mensagem enviada' });
   } catch (err) {
     console.error(err);
@@ -424,6 +430,7 @@ router.post('/chamados/:id/info-adicional', requireAdmin, (req, res) => {
       INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
       VALUES (?, ?, 'info_adicional', NULL, ?)
     `).run(chamado.id, req.admin.sub, texto);
+    notificarUsuario(chamado);
     return res.status(201).json({ mensagem: 'Informação adicionada' });
   } catch (err) {
     console.error(err);
@@ -442,6 +449,7 @@ router.patch('/chamados/:id/prioridade', requireAdmin, (req, res) => {
     }
 
     db.atualizarPrioridade(chamado.id, prioridade, req.admin.sub);
+    notificarUsuario(chamado);
     return res.json({ mensagem: 'Prioridade atualizada' });
   } catch (err) {
     console.error(err);
@@ -456,6 +464,7 @@ router.patch('/chamados/:id/prazo', requireAdmin, (req, res) => {
 
     const prazo = req.body.prazo || null;
     db.atualizarPrazo(chamado.id, prazo, req.admin.sub);
+    notificarUsuario(chamado);
     return res.json({ mensagem: 'Prazo atualizado' });
   } catch (err) {
     console.error(err);
@@ -471,6 +480,7 @@ router.patch('/chamados/:id/assumir', requireAdmin, (req, res) => {
       return res.status(400).json({ erro: `Não é possível assumir um chamado com status "${chamado.status}"` });
     }
     db.assumirChamado(chamado.id, req.admin.sub);
+    notificarUsuario(chamado);
     return res.json({ mensagem: 'Chamado assumido' });
   } catch (err) {
     console.error(err);
@@ -502,6 +512,7 @@ router.patch('/chamados/:id/concluir', requireAdmin, (req, res) => {
     }
 
     db.concluirChamado(chamado.id, solucao, req.admin.sub, assinatura);
+    notificarUsuario(chamado);
     return res.json({ mensagem: 'Chamado concluído' });
   } catch (err) {
     console.error(err);
@@ -523,6 +534,7 @@ router.patch('/chamados/:id/encerrar', requireAdmin, (req, res) => {
     }
 
     db.encerrarChamado(chamado.id, motivo, req.admin.sub);
+    notificarUsuario(chamado);
     return res.json({ mensagem: 'Chamado encerrado' });
   } catch (err) {
     console.error(err);
@@ -538,6 +550,7 @@ router.patch('/chamados/:id/aguardar-compra', requireAdmin, (req, res) => {
       return res.status(400).json({ erro: `Não é possível usar este status com o chamado atual (${chamado.status})` });
     }
     db.setStatusEspera(chamado.id, 'aguardando_compra', req.admin.sub);
+    notificarUsuario(chamado);
     return res.json({ mensagem: 'Chamado marcado como aguardando compra' });
   } catch (err) {
     console.error(err);
@@ -553,6 +566,7 @@ router.patch('/chamados/:id/aguardar-chegar', requireAdmin, (req, res) => {
       return res.status(400).json({ erro: `Não é possível usar este status com o chamado atual (${chamado.status})` });
     }
     db.setStatusEspera(chamado.id, 'aguardando_chegar', req.admin.sub);
+    notificarUsuario(chamado);
     return res.json({ mensagem: 'Chamado marcado como aguardando chegar' });
   } catch (err) {
     console.error(err);
@@ -582,6 +596,7 @@ router.patch('/chamados/:id/categoria', requireAdmin, (req, res) => {
     if (categoria === 'impressora') {
       db.atualizarPrazo(chamado.id, db.prazo2DiasUteis(), req.admin.sub);
     }
+    notificarUsuario(chamado);
     return res.json({ mensagem: 'Categoria atualizada' });
   } catch (err) {
     console.error(err);
@@ -987,6 +1002,7 @@ router.post('/chamados/:id/anexos', requireAdmin, uploadChamadoMiddleware(), asy
       INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
       VALUES (?, ?, 'anexos_adicionados', NULL, ?)
     `).run(chamado.id, req.admin.sub, adicionados.join(', '));
+    notificarUsuario(chamado);
     return res.json({ adicionados });
   } catch (err) {
     arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });

@@ -71,6 +71,17 @@ router.get('/meus-chamados', requireUsuario, (req, res) => {
   }
 });
 
+// POST /api/usuarios/chamados/:id/lido
+router.post('/chamados/:id/lido', requireUsuario, (req, res) => {
+  try {
+    db.zerarNovidadesUsuario(req.params.id, req.usuario.sub);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 // POST /api/usuarios/chamados/:id/reabrir
 router.post('/chamados/:id/reabrir', requireUsuario, (req, res) => {
   try {

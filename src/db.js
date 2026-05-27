@@ -119,6 +119,7 @@ function initDb() {
   try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN ramal TEXT'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN novidades_usuario INTEGER DEFAULT 0'); } catch {}
   // Backfill: chamados abertos por admin sem usuário associado e com ramal vazio
   try {
     db.exec(`
@@ -1668,6 +1669,7 @@ function listarChamadosPorUsuario(usuario_id) {
            c.concluido_em, c.categoria, c.assinado_em, c.requer_acordo, c.acordo_equipamentos,
            c.cancelamento_motivo, c.cancelado_em,
            c.aberto_por_admin_id,
+           COALESCE(c.novidades_usuario, 0) as novidades_usuario,
            a.nome_completo as admin_nome, a.ramal as admin_ramal,
            ab.nome_completo as aberto_por_admin_nome,
            ab.is_master as aberto_por_admin_is_master
@@ -2364,6 +2366,14 @@ function deletarEtiqueta(id) {
   getDb().prepare('DELETE FROM etiquetas WHERE id = ?').run(id);
 }
 
+function incrementarNovidadesUsuario(chamadoId) {
+  getDb().prepare('UPDATE chamados SET novidades_usuario = COALESCE(novidades_usuario,0) + 1 WHERE id = ? AND usuario_id IS NOT NULL').run(chamadoId);
+}
+
+function zerarNovidadesUsuario(chamadoId, usuarioId) {
+  getDb().prepare('UPDATE chamados SET novidades_usuario = 0 WHERE id = ? AND usuario_id = ?').run(chamadoId, usuarioId);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -2488,6 +2498,8 @@ module.exports = {
   inserirAnexoExtra,
   listarAnexosExtras,
   buscarAnexoExtra,
+  incrementarNovidadesUsuario,
+  zerarNovidadesUsuario,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────

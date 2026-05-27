@@ -881,7 +881,7 @@ function renderPainel(usuario) {
     // Silencioso: só atualiza se os dados mudaram (hash sem termo, o termo muda só por ação do usuário)
     if (silencioso) {
       const novoHash = JSON.stringify(novos.map(c =>
-        [c.id, c.status, c.admin_nome, c.nota, c.prazo, c.solucao, c.prioridade, c.atualizado_em, c.assinado_em, c.requer_acordo]
+        [c.id, c.status, c.admin_nome, c.nota, c.prazo, c.solucao, c.prioridade, c.atualizado_em, c.assinado_em, c.requer_acordo, c.novidades_usuario]
       ));
       if (novoHash === _chamadosHash) return;
       _chamadosHash = novoHash;
@@ -936,6 +936,9 @@ function renderPainel(usuario) {
   _sseSource.addEventListener('mensagem:new', e => {
     const { chamado_id } = JSON.parse(e.data);
     _atualizarChat(chamado_id);
+  });
+  _sseSource.addEventListener('chamado:atualizado', () => {
+    carregarChamados(true);
   });
   _sseSource.addEventListener('sugestao:updated', () => {
     _carregarSugestoesUsuario(true);
@@ -1104,7 +1107,15 @@ function renderPainel(usuario) {
       if (btn) btn.addEventListener('click', () => abrirModalTermo(c.id, c));
     });
 
-    filtrados.filter(c => ativosIds.has(c.id)).forEach(c => _iniciarChat(c.id));
+    filtrados.filter(c => ativosIds.has(c.id)).forEach(c => {
+      _iniciarChat(c.id);
+      if (c.novidades_usuario > 0) {
+        apiFetch(`/api/usuarios/chamados/${c.id}/lido`, { method: 'POST' }).catch(() => {});
+        const badge = document.querySelector(`.badge-novidades-usuario[data-cid="${c.id}"]`);
+        if (badge) badge.remove();
+        c.novidades_usuario = 0;
+      }
+    });
   }
 
   async function abrirModalReabertura(chamadoId) {
@@ -1426,6 +1437,7 @@ function renderCardChamado(c) {
         <div class="flex gap-1 flex-wrap" style="align-items:center">
           <span title="Informe este ID ao suporte para identificar seu chamado" style="font-family:monospace;font-size:.78rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.05);padding:.18rem .45rem;border-radius:4px;cursor:help">#${c.id}</span>
           ${badgeStatus(c.status)}
+          ${c.novidades_usuario > 0 ? `<span class="badge-novidades-usuario" data-cid="${c.id}" title="${c.novidades_usuario} atualização${c.novidades_usuario > 1 ? 'ões' : ''} nova${c.novidades_usuario > 1 ? 's' : ''}">${c.novidades_usuario} novo${c.novidades_usuario > 1 ? 's' : ''}</span>` : ''}
         </div>
         <span class="text-muted" style="font-size:.76rem">${fmtData(c.criado_em)}</span>
       </div>
