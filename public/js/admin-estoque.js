@@ -946,12 +946,12 @@ function abrirModalDocumentoAcordoEstoque(c, termo) {
     equipRows = linhas.filter(r => r.tipo || r.marca || r.modelo).map(r =>
       `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${r.quantidade||1}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.tipo||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.marca||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.modelo||''}</td></tr>`
     ).join('');
-    statusBadge = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;font-weight:700;color:#15803d">✓ Acordo assinado em ${dataFmt} · Chamado #${c.id}</div>`;
+    statusBadge = `<div style="background:var(--success-light);border:1px solid var(--success);border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;font-weight:700;color:var(--success)">✓ Acordo assinado em ${dataFmt} · Chamado #${c.id}</div>`;
     infoGrid = `<div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:.25rem .6rem;font-size:.78rem;margin-bottom:.6rem;align-items:baseline">
-      <span style="color:#64748b">Funcionário:</span><strong>${usuarioNome}</strong>
-      <span style="color:#64748b">Empresa:</span><span>Hotel Gran Marquise</span>
-      <span style="color:#64748b">Setor:</span><span>${setor}</span>
-      <span style="color:#64748b">Cargo:</span><span>${cargo}</span>
+      <span style="color:var(--text-muted)">Funcionário:</span><strong>${usuarioNome}</strong>
+      <span style="color:var(--text-muted)">Empresa:</span><span>Hotel Gran Marquise</span>
+      <span style="color:var(--text-muted)">Setor:</span><span>${setor}</span>
+      <span style="color:var(--text-muted)">Cargo:</span><span>${cargo}</span>
     </div>
     ${equipSummary ? `<p style="font-size:.78rem;font-weight:700;margin:.3rem 0"><strong>Equipamento: ${equipSummary}</strong></p>` : ''}`;
   } else {
@@ -959,8 +959,8 @@ function abrirModalDocumentoAcordoEstoque(c, termo) {
     equipRows = equipamentosAdmin.filter(r => r.tipo || r.marca || r.modelo).map(r =>
       `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${r.quantidade||1}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.tipo||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.marca||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.modelo||''}</td></tr>`
     ).join('');
-    statusBadge = `<div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.28);border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;color:#92400e">Aguardando assinatura — Chamado #${c.id}</div>`;
-    infoGrid = `<div style="font-size:.78rem;margin-bottom:.6rem;color:#64748b">Funcionário: ${c.nome || '—'}</div>`;
+    statusBadge = `<div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.28);border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;color:var(--warning)">Aguardando assinatura — Chamado #${c.id}</div>`;
+    infoGrid = `<div style="font-size:.78rem;margin-bottom:.6rem;color:var(--text-muted)">Funcionário: ${c.nome || '—'}</div>`;
   }
 
   const nomeAssinatura = termo ? termo.usuario_nome : (c.nome || '');
@@ -969,25 +969,25 @@ function abrirModalDocumentoAcordoEstoque(c, termo) {
   overlay.id = 'acordo-doc-estoque-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:#fff;max-width:600px;width:94%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.3);border:1px solid #e5ddd0;border-radius:4px">
-      <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5ddd0;display:flex;align-items:center;justify-content:space-between;background:#fff;position:sticky;top:0">
-        <div style="font-weight:700;font-size:.88rem;color:#1e3a5f">📋 Termo de Responsabilidade — Chamado #${c.id}</div>
-        <button id="btn-fechar-acordo-doc-est" style="background:none;border:none;cursor:pointer;color:#666;font-size:1.1rem;line-height:1">✕</button>
+    <div style="background:var(--surface);max-width:600px;width:94%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.3);border:1px solid var(--border);border-radius:4px">
+      <div style="padding:.9rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0">
+        <div style="font-weight:700;font-size:.88rem;color:var(--text)">📋 Termo de Responsabilidade — Chamado #${c.id}</div>
+        <button id="btn-fechar-acordo-doc-est" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;line-height:1">✕</button>
       </div>
       <div style="padding:1.1rem 1.4rem">
         ${statusBadge}
         <div style="text-align:center;margin-bottom:.8rem">
           <div style="font-weight:700;font-size:.92rem">Hotel Gran Marquise</div>
-          <div style="font-size:.75rem;color:#64748b">Termo de Responsabilidade de Equipamentos</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">Termo de Responsabilidade de Equipamentos</div>
         </div>
         ${infoGrid}
-        <p style="font-size:.78rem;color:#475569;margin:.4rem 0;border-left:2px solid #e5ddd0;padding-left:.6rem">
+        <p style="font-size:.78rem;color:var(--text-secondary);margin:.4rem 0;border-left:2px solid var(--border);padding-left:.6rem">
           estou recebendo emprestado o equipamento abaixo discriminado pelo setor de TI – Tecnologia da Informação.
           Estou ciente que o mesmo se encontra em perfeito estado de funcionamento. Em caso de quebra, roubo ou avaria
           estarei me responsabilizando pelo equipamento abaixo.
         </p>
         <table style="width:100%;border-collapse:collapse;font-size:.78rem;margin:.5rem 0;border:1px solid #c8a951">
-          <thead><tr style="background:#f8f5f0">
+          <thead><tr style="background:var(--surface-2)">
             <th style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:left;width:80px">Quantidade</th>
             <th style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:left">Tipo</th>
             <th style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:left">Marca</th>

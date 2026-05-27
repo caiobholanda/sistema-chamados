@@ -612,9 +612,9 @@ async function _abrirFormTrocarUsuario(chamadoId) {
       <div style="font-size:.78rem;color:var(--text-secondary);font-weight:600">Trocar para outro usuário do portal</div>
       <div style="position:relative">
         <input class="form-control" type="text" id="tu-busca" placeholder="Buscar por nome, setor ou e-mail…" autocomplete="off" style="font-size:.82rem">
-        <div id="tu-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:#fff;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+        <div id="tu-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:var(--surface);max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
       </div>
-      <div id="tu-selecionado" style="display:none;font-size:.78rem;color:var(--text-secondary);padding:.35rem .55rem;background:#fff;border-radius:5px;border:1px solid var(--border)"></div>
+      <div id="tu-selecionado" style="display:none;font-size:.78rem;color:var(--text-secondary);padding:.35rem .55rem;background:var(--surface);border-radius:5px;border:1px solid var(--border)"></div>
       <div id="tu-msg" style="min-height:.9rem;font-size:.76rem"></div>
       <div style="display:flex;gap:.4rem;justify-content:flex-end">
         <button type="button" class="btn btn-secondary btn-sm" id="tu-cancelar" style="font-size:.74rem">Cancelar</button>
@@ -1203,7 +1203,7 @@ function renderModalBody(c) {
             <div class="mv2-desc">${c.descricao}</div>
 
             ${c.infos_adicionais && c.infos_adicionais.length > 0 ? c.infos_adicionais.map(info => `
-              <div style="margin-top:.6rem;padding:.55rem .7rem;background:var(--bg-alt,#f5f5f5);border-left:3px solid var(--gold,#b8963e);border-radius:0 4px 4px 0">
+              <div style="margin-top:.6rem;padding:.55rem .7rem;background:var(--surface-2);border-left:3px solid var(--gold);border-radius:0 4px 4px 0">
                 <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.25rem">
                   <strong style="color:var(--text)">${info.autor_nome}</strong> &mdash; ${fmtData(info.criado_em)}
                 </div>
@@ -1349,7 +1349,7 @@ function renderModalBody(c) {
                     <label style="font-size:.8rem">Transferir para</label>
                     <input class="form-control form-control-sm" type="text" id="busca-transferir-admin"
                       placeholder="Buscar por nome, setor ou ramal…" autocomplete="off">
-                    <div id="transferir-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:#fff;max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+                    <div id="transferir-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:var(--surface);max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
                   </div>
                   <div id="transferir-selecionado" style="display:none;font-size:.8rem;color:var(--text-secondary);margin-bottom:.4rem;padding:.3rem .5rem;background:var(--bg-card);border-radius:5px;border:1px solid var(--border)"></div>
                   <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir" style="width:100%">Confirmar transferência</button>
@@ -2086,7 +2086,7 @@ function abrirModalDocumentoAcordo(c, termo) {
     const equipSummary = linhasEquip.filter(r => r.tipo || r.marca || r.modelo).map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ');
 
     conteudo = `
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;font-weight:700;color:#15803d;letter-spacing:.02em">
+      <div style="background:var(--success-light);border:1px solid var(--success);border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;font-weight:700;color:var(--success);letter-spacing:.02em">
         ✓ Acordo assinado em ${dataFmt}
       </div>
       <div class="termo-field-row">
@@ -2173,12 +2173,12 @@ function abrirModalDocumentoAcordo(c, termo) {
   overlay.id = 'acordo-doc-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
-    <div style="background:#ffffff;max-width:600px;width:94%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid #e5ddd0;border-radius:4px">
-      <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5ddd0;display:flex;align-items:center;justify-content:space-between;background:#ffffff;position:sticky;top:0">
-        <div style="font-weight:700;font-size:.88rem;color:#1e3a5f">📋 Termo de Responsabilidade de Equipamentos</div>
-        <button id="btn-fechar-acordo-doc" style="background:none;border:none;cursor:pointer;color:#666;font-size:1.1rem;line-height:1">✕</button>
+    <div style="background:var(--surface);max-width:600px;width:94%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid var(--border);border-radius:4px">
+      <div style="padding:.9rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0">
+        <div style="font-weight:700;font-size:.88rem;color:var(--text)">📋 Termo de Responsabilidade de Equipamentos</div>
+        <button id="btn-fechar-acordo-doc" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;line-height:1">✕</button>
       </div>
-      <div style="padding:1rem 1.25rem;background:#ffffff">
+      <div style="padding:1rem 1.25rem;background:var(--surface)">
         <div class="termo-doc">
           <div class="termo-doc-header">
             <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise" class="termo-logo">
