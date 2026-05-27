@@ -897,7 +897,7 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
 
               <!-- Header: ID clicável (abre popup) + badges + data -->
               <div style="display:flex;align-items:center;gap:.55rem;padding:.7rem 1rem;border-bottom:1px solid var(--border);flex-wrap:wrap">
-                <button type="button" onclick="abrirPopupChamado(${c.id})" title="Ver detalhes deste chamado" class="huc-id-link" style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:.95rem;font-weight:700;color:var(--navy);background:var(--gold-pale);border:1px solid var(--gold);padding:.22rem .55rem;border-radius:var(--radius-sm);letter-spacing:.02em;cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;transition:background .15s,transform .1s">
+                <button type="button" onclick="abrirPopupChamado(${c.id})" title="Ver detalhes deste chamado" class="huc-id-link" style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:.95rem;font-weight:700;color:var(--gold-dark);background:var(--gold-pale);border:1px solid var(--gold);padding:.22rem .55rem;border-radius:var(--radius-sm);letter-spacing:.02em;cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;transition:background .15s,transform .1s">
                   #${c.id}
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </button>

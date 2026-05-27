@@ -17,14 +17,14 @@ let _equipamentosCache = [];
 
 const STATUS_EQ = {
   disponivel: { label: 'Disponível', cor: 'var(--success)' },
-  em_uso:     { label: 'Em uso',     cor: 'var(--navy)'    },
+  em_uso:     { label: 'Em uso',     cor: '#475569'         },
   manutencao: { label: 'Manutenção', cor: '#d97706'        },
   descartado: { label: 'Descartado', cor: 'var(--danger)'  },
 };
 
 const MOV_EQ = {
   entrada:    { label: '+ Entrada',    cor: 'var(--success)' },
-  saida:      { label: '→ Saída',      cor: 'var(--navy)'    },
+  saida:      { label: '→ Saída',      cor: '#475569'         },
   retorno:    { label: '← Retorno',    cor: '#0ea5e9'        },
   manutencao: { label: '⚙ Manutenção', cor: '#d97706'        },
   descarte:   { label: '✕ Descarte',   cor: 'var(--danger)'  },
@@ -415,7 +415,7 @@ function formatAlocacoes(alocacoes) {
     map[a.setor] += a.total;
   }
   return Object.entries(map)
-    .map(([setor, total]) => `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--navy)">${esc(setor)} (${total})</span>`)
+    .map(([setor, total]) => `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--text)">${esc(setor)} (${total})</span>`)
     .join(' ');
 }
 
@@ -725,12 +725,12 @@ function renderEquipamentos(lista, reservaLegado = []) {
     return `
       <tr style="cursor:pointer" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}')">
         <td>
-          <span style="font-weight:600;color:var(--navy);text-decoration:underline;text-underline-offset:2px;cursor:pointer">
+          <span style="font-weight:600;color:var(--text);text-decoration:underline;text-underline-offset:2px;cursor:pointer">
             ${esc(nome)}
           </span>
         </td>
         <td style="color:var(--text-secondary);font-size:.82rem">${esc(g.categoria) || '—'}</td>
-        <td style="text-align:center;font-weight:700;color:var(--navy)">${g.itens.length}</td>
+        <td style="text-align:center;font-weight:700;color:var(--text)">${g.itens.length}</td>
         <td><div style="display:flex;flex-wrap:wrap;gap:.3rem">${resumo}</div></td>
         <td style="white-space:nowrap">
           <button class="btn btn-secondary btn-sm" onclick="verUnidades('${esc(nome).replace(/'/g, "\\'")}');event.stopPropagation()">Ver IDs</button>
@@ -816,7 +816,7 @@ function verUnidades(nome) {
           return `
             <div style="display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;border:1px solid var(--border);border-radius:0;background:var(--surface-1);transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow=''">
               <div style="min-width:90px">
-                <div style="font-family:monospace;font-size:.95rem;font-weight:800;color:var(--navy);letter-spacing:.03em">${esc(eq.codigo)}</div>
+                <div style="font-family:monospace;font-size:.95rem;font-weight:800;color:var(--text);letter-spacing:.03em">${esc(eq.codigo)}</div>
                 <div style="margin-top:.25rem"><span style="display:inline-block;padding:.15rem .5rem;border-radius:20px;font-size:.68rem;font-weight:700;background:${s.cor};color:#fff">${s.label}</span></div>
               </div>
               <div style="flex:1;min-width:0">
@@ -1859,7 +1859,7 @@ function eqClonarNovo(nome, categoria) {
     <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:.9rem">
       <div style="padding-bottom:.85rem;border-bottom:1px solid var(--border)">
         <div style="font-size:.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem">Equipamento</div>
-        <div style="font-weight:700;color:var(--navy)">${esc(nome)}${categoria ? `<span style="font-weight:400;color:var(--text-muted);margin-left:.5rem">· ${esc(categoria)}</span>` : ''}</div>
+        <div style="font-weight:700;color:var(--text)">${esc(nome)}${categoria ? `<span style="font-weight:400;color:var(--text-muted);margin-left:.5rem">· ${esc(categoria)}</span>` : ''}</div>
       </div>
       <form id="form-clonar" style="display:flex;flex-direction:column;gap:.9rem">
         <div class="form-group">
@@ -2020,7 +2020,7 @@ async function eqHistorico(id, codigo) {
                 <td><span style="font-size:.78rem;font-weight:600;color:${MOV_EQ[h.tipo]?.cor || 'inherit'}">${esc(MOV_EQ[h.tipo]?.label || h.tipo)}</span></td>
                 <td style="font-size:.82rem">${
                   h.setor_destino ? `<span class="itens-cat-tag" style="font-size:.72rem">→ ${esc(h.setor_destino)}</span>`
-                  : h.setor_origem ? `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--navy)">← ${esc(h.setor_origem)}</span>`
+                  : h.setor_origem ? `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--text)">← ${esc(h.setor_origem)}</span>`
                   : '<span style="color:var(--text-muted)">—</span>'
                 }</td>
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(h.admin_nome) || '—'}</td>

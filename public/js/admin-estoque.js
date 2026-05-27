@@ -6,14 +6,14 @@ let _equipamentosCache = [];
 
 const STATUS_EQ = {
   disponivel: { label: 'Disponível', cor: 'var(--success)' },
-  em_uso:     { label: 'Em uso',     cor: 'var(--navy)'    },
+  em_uso:     { label: 'Em uso',     cor: '#475569'         },
   manutencao: { label: 'Manutenção', cor: '#d97706'        },
   descartado: { label: 'Descartado', cor: 'var(--danger)'  },
 };
 
 const MOV_EQ = {
   entrada:    { label: '+ Entrada',    cor: 'var(--success)' },
-  saida:      { label: '→ Saída',      cor: 'var(--navy)'    },
+  saida:      { label: '→ Saída',      cor: '#475569'         },
   retorno:    { label: '← Retorno',    cor: '#0ea5e9'        },
   manutencao: { label: '⚙ Manutenção', cor: '#d97706'        },
   descarte:   { label: '✕ Descarte',   cor: 'var(--danger)'  },
@@ -108,7 +108,7 @@ function formatAlocacoes(alocacoes) {
     map[a.setor] += a.total;
   }
   return Object.entries(map)
-    .map(([setor, total]) => `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--navy)">${esc(setor)} (${total})</span>`)
+    .map(([setor, total]) => `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--text)">${esc(setor)} (${total})</span>`)
     .join(' ');
 }
 
@@ -538,7 +538,7 @@ async function verHistorico(itemId, nomeItem) {
                 <td style="text-align:center;font-weight:600">${m.quantidade}</td>
                 <td style="font-size:.82rem">${
                   m.setor_destino ? `<span class="itens-cat-tag" style="font-size:.72rem">${esc(m.setor_destino)}</span>`
-                  : m.setor_origem ? `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--navy)">← ${esc(m.setor_origem)}</span>`
+                  : m.setor_origem ? `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--text)">← ${esc(m.setor_origem)}</span>`
                   : '<span style="color:var(--text-muted)">—</span>'
                 }</td>
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(m.admin_nome) || '—'}</td>
@@ -606,12 +606,12 @@ function renderEquipamentos(lista) {
             return `
               <tr style="cursor:pointer" onclick="verUnidades('${esc(nome).replace(/'/g,"\\'")}')">
                 <td>
-                  <button class="btn btn-ghost btn-sm" style="font-weight:600;font-size:.92rem;padding:.2rem .4rem;text-align:left" onclick="verUnidades('${esc(nome).replace(/'/g,"\\'")}');event.stopPropagation()">
+                  <button class="btn btn-ghost btn-sm" style="font-weight:600;font-size:.92rem;padding:.2rem .4rem;text-align:left;color:var(--text)" onclick="verUnidades('${esc(nome).replace(/'/g,"\\'")}');event.stopPropagation()">
                     ${esc(nome)}
                   </button>
                 </td>
                 <td style="color:var(--text-secondary);font-size:.82rem">${esc(g.categoria) || '—'}</td>
-                <td style="text-align:center;font-weight:700;color:var(--navy)">${g.itens.length}</td>
+                <td style="text-align:center;font-weight:700;color:var(--text)">${g.itens.length}</td>
                 <td style="display:flex;flex-wrap:wrap;gap:.3rem;padding:.6rem .75rem">${resumo}</td>
               </tr>
             `;
@@ -645,7 +645,7 @@ function verUnidades(nome) {
         <tbody>
           ${unidades.map(eq => `
             <tr>
-              <td style="font-family:monospace;font-weight:700;color:var(--navy);font-size:.85rem">${esc(eq.codigo)}</td>
+              <td style="font-family:monospace;font-weight:700;color:var(--text);font-size:.85rem">${esc(eq.codigo)}</td>
               <td>${badgeStatus(eq.status)}</td>
               <td style="font-size:.82rem;color:var(--text-secondary)">${esc(eq.setor_atual) || '—'}</td>
               <td style="font-size:.78rem;color:var(--text-muted);max-width:140px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(eq.observacao)}">${esc(eq.observacao) || '—'}</div></td>
@@ -885,16 +885,16 @@ async function eqHistorico(id, codigo) {
                 <td><span style="font-size:.78rem;font-weight:600;color:${MOV_EQ[h.tipo]?.cor || 'inherit'}">${esc(MOV_EQ[h.tipo]?.label || h.tipo)}</span></td>
                 <td style="font-size:.82rem">${
                   h.setor_destino ? `<span class="itens-cat-tag" style="font-size:.72rem">→ ${esc(h.setor_destino)}</span>`
-                  : h.setor_origem ? `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--navy)">← ${esc(h.setor_origem)}</span>`
+                  : h.setor_origem ? `<span class="itens-cat-tag" style="font-size:.72rem;background:var(--gold-pale);color:var(--text)">← ${esc(h.setor_origem)}</span>`
                   : '<span style="color:var(--text-muted)">—</span>'
                 }</td>
                 <td style="font-size:.82rem;color:var(--text-secondary)">${esc(h.admin_nome) || '—'}</td>
                 <td style="font-size:.78rem">
                   ${h.chamado_id ? `
                     <div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap">
-                      <span style="font-weight:600;color:var(--navy)">#${h.chamado_id}</span>
+                      <span style="font-weight:600;color:var(--text-secondary)">#${h.chamado_id}</span>
                       <button class="btn-ver-acordo-hist" data-cid="${h.chamado_id}"
-                        style="background:none;border:1px solid var(--navy);border-radius:3px;padding:.1rem .35rem;font-size:.68rem;cursor:pointer;color:var(--navy);white-space:nowrap">
+                        style="background:none;border:1px solid var(--border-strong);border-radius:3px;padding:.1rem .35rem;font-size:.68rem;cursor:pointer;color:var(--text-secondary);white-space:nowrap">
                         Ver acordo
                       </button>
                     </div>` : '<span style="color:var(--text-muted)">—</span>'}
