@@ -82,7 +82,7 @@ function mesAtual() {
 // ── Render ─────────────────────────────────────────────────
 function renderConteudo(dados, ranking, mes) {
   const { volumeStatus, totalMes, totalMesAnt, abertosUltimos12, notaMedia,
-          tendencia6m, top5Setores, porCategoria, tempoMedioRespostaSeg, sla } = dados;
+          tendencia6m, top5Setores, porCategoria, tempoMedioRespostaSeg, sla, chamadosReabertos } = dados;
 
   const cnt = (s) => (volumeStatus.find(r => r.status === s)?.total || 0);
   const emAberto  = cnt('aberto') + cnt('aguardando_compra') + cnt('aguardando_chegar');
@@ -125,14 +125,14 @@ function renderConteudo(dados, ranking, mes) {
         <div class="kpi-sub">aguardando atendimento</div>
       </div>
       <div class="kpi">
-        <div class="kpi-key"><span class="kpi-dot" style="background:#7C3AED"></span> Em andamento</div>
-        <div class="kpi-val" style="color:#7C3AED">${andamento}</div>
-        <div class="kpi-sub">sendo atendidos agora</div>
-      </div>
-      <div class="kpi">
         <div class="kpi-key"><span class="kpi-dot" style="background:#15803D"></span> Concluídos</div>
         <div class="kpi-val" style="color:#15803D">${concluidos}</div>
         <div class="kpi-sub">resolvidos no período</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-key"><span class="kpi-dot" style="background:#D97706"></span> Reabertos</div>
+        <div class="kpi-val" style="color:#D97706">${chamadosReabertos || 0}</div>
+        <div class="kpi-sub">chamados reabertos no período</div>
       </div>
     </div>
 

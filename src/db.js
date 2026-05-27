@@ -1829,6 +1829,15 @@ function relatorioMes(mes) {
       AND concluido_em BETWEEN ? AND ?
   `).get(inicio, fim + ' 23:59:59');
 
+  const chamadosReabertos = db.prepare(`
+    SELECT COUNT(DISTINCT chamado_id) as t
+    FROM historico_chamados
+    WHERE acao = 'status_alterado'
+      AND valor_novo = 'aberto'
+      AND valor_anterior IN ('concluido', 'encerrado')
+      AND timestamp BETWEEN ? AND ?
+  `).get(inicio, fim + ' 23:59:59').t;
+
   return {
     mes, mesAnterior: mesAnt,
     volumeStatus, volumeStatusAnt,
@@ -1836,6 +1845,7 @@ function relatorioMes(mes) {
     abertosUltimos12, notaMedia, tendencia6m,
     top5Setores, porCategoria,
     tempoMedioRespostaSeg: tempoMedioRespostaRow?.media_seg || null,
+    chamadosReabertos,
     sla: {
       totalComPrazo: slaRow?.total_com_prazo || 0,
       dentroPrazo: slaRow?.dentro_prazo || 0,
