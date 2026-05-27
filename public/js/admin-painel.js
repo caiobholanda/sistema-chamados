@@ -201,7 +201,7 @@ const CATEGORIAS_MAP = {
   servico:        { nome: 'Serviço',                    cor: '#0F766E', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>' },
 };
 
-const CATS_PRIMARIAS = new Set(['software', 'hardware', 'cameras', 'email', 'processo_compra', 'servico']);
+const CATS_PRIMARIAS = new Set(['software', 'hardware', 'cameras', 'email', 'processo_compra']);
 const CATS_HARDWARE_SUB = ['impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','tv_projetor','projetor','tablet','celular','outros'];
 const CATS_SOFTWARE_SUB = ['thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
 
@@ -1237,7 +1237,6 @@ function renderModalBody(c) {
                     <option value="cameras"  ${primCatSel === 'cameras'  ? 'selected' : ''}>Câmeras / CFTV</option>
                     <option value="email"    ${primCatSel === 'email'    ? 'selected' : ''}>E-mail</option>
                     <option value="processo_compra" ${primCatSel === 'processo_compra' ? 'selected' : ''}>Processo de Compra</option>
-                    <option value="servico"  ${primCatSel === 'servico'  ? 'selected' : ''}>Serviço</option>
                   </select>
                   <select class="form-control form-control-sm" id="sel-subcategoria" style="display:${isHardwareSub ? 'block' : 'none'}">
                     <option value="">— tipo de hardware —</option>
