@@ -19,6 +19,8 @@ const CAT_NOMES = {
 
 let _adminLogadoId = null;
 
+function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+
 async function api(url, opts = {}) {
   const res = await fetch(url, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
   if (res.status === 401) { location.replace('/admin-login.html'); throw new Error('401'); }
@@ -121,12 +123,12 @@ function renderConteudo(dados, ranking, mes) {
       </div>
       <div class="kpi">
         <div class="kpi-key"><span class="kpi-dot" style="background:#1D4ED8"></span> Em aberto</div>
-        <div class="kpi-val" style="color:#1D4ED8">${emAberto}</div>
+        <div class="kpi-val" style="color:${isDark() ? '#93c5fd' : '#1D4ED8'}">${emAberto}</div>
         <div class="kpi-sub">aguardando atendimento</div>
       </div>
       <div class="kpi">
         <div class="kpi-key"><span class="kpi-dot" style="background:#15803D"></span> Concluídos</div>
-        <div class="kpi-val" style="color:#15803D">${concluidos}</div>
+        <div class="kpi-val" style="color:${isDark() ? '#86efac' : '#15803D'}">${concluidos}</div>
         <div class="kpi-sub">resolvidos no período</div>
       </div>
       <div class="kpi">
@@ -223,7 +225,7 @@ function metaCard(key, num, sub, cor, ringPct) {
         <div class="meta-sub">${sub}</div>
       </div>
       <svg class="meta-ring" viewBox="0 0 52 52" aria-hidden="true">
-        <circle cx="26" cy="26" r="22" fill="none" stroke="#E5DDD0" stroke-width="5"/>
+        <circle cx="26" cy="26" r="22" fill="none" stroke="${isDark() ? '#2A3448' : '#E5DDD0'}" stroke-width="5"/>
         <circle cx="26" cy="26" r="22" fill="none" stroke="${cor}" stroke-width="5"
                 stroke-dasharray="${dash}" stroke-dashoffset="${off.toFixed(2)}"
                 stroke-linecap="round" transform="rotate(-90 26 26)"/>
@@ -262,7 +264,7 @@ function barChartSvg(serie, mesAtivo) {
     const x = chartLeft + i * slot + (slot - barW) / 2;
     const y = chartTop + chartH - barH;
     return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="${fill}" rx="2"/>${
-      isActive ? `<text x="${(x + barW/2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#1C1C1C" font-family="Inter, sans-serif">${s.total}</text>` : ''
+      isActive ? `<text x="${(x + barW/2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="${isDark() ? '#E2D9CE' : '#1C1C1C'}" font-family="Inter, sans-serif">${s.total}</text>` : ''
     }`;
   }).join('');
   const xLabels = serie.map((s, i) => {
@@ -270,8 +272,12 @@ function barChartSvg(serie, mesAtivo) {
     const label = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][parseInt(mm,10)-1];
     const x = chartLeft + i * slot + slot/2;
     const active = s.mes === mesAtivo;
-    return `<text x="${x.toFixed(1)}" y="226" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="${active ? '#1C1C1C' : '#7A726A'}" font-weight="${active ? '700' : '400'}">${label}</text>`;
+    const _tc = isDark() ? '#E2D9CE' : '#1C1C1C';
+    const _tm = isDark() ? '#6B7F96' : '#7A726A';
+    return `<text x="${x.toFixed(1)}" y="226" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="${active ? _tc : _tm}" font-weight="${active ? '700' : '400'}">${label}</text>`;
   }).join('');
+  const _grid = isDark() ? '#2A3448' : '#E5DDD0';
+  const _axis = isDark() ? '#6B7F96' : '#7A726A';
   return `
     <svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
       <defs>
@@ -280,10 +286,10 @@ function barChartSvg(serie, mesAtivo) {
           <stop offset="100%" stop-color="#B8960C"/>
         </linearGradient>
       </defs>
-      <g stroke="#E5DDD0" stroke-dasharray="2 4">
+      <g stroke="${_grid}" stroke-dasharray="2 4">
         ${[0, 0.25, 0.5, 0.75, 1].map(p => `<line x1="${chartLeft}" y1="${(chartTop + p * chartH).toFixed(1)}" x2="${chartRight}" y2="${(chartTop + p * chartH).toFixed(1)}"/>`).join('')}
       </g>
-      <g fill="#7A726A" font-size="10" font-family="Inter, sans-serif" text-anchor="end">
+      <g fill="${_axis}" font-size="10" font-family="Inter, sans-serif" text-anchor="end">
         ${[0, 0.25, 0.5, 0.75, 1].map(p => `<text x="32" y="${(chartTop + p * chartH + 4).toFixed(1)}">${Math.round(yMax - p * yMax)}</text>`).join('')}
       </g>
       ${bars}
@@ -306,14 +312,19 @@ function lineChartSvg(serie, mesAtivo) {
   const areaD = lineD + ` L${pts[pts.length-1][0].toFixed(1)},${(chartTop + chartH).toFixed(1)} L${pts[0][0].toFixed(1)},${(chartTop + chartH).toFixed(1)} Z`;
   const markers = pts.map(([x,y,s]) => {
     const active = s.mes === mesAtivo;
-    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${active ? 5 : 4}" fill="${active ? '#15803D' : '#fff'}" stroke="#15803D" stroke-width="2"/>`;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${active ? 5 : 4}" fill="${active ? '#15803D' : _markerInact}" stroke="#15803D" stroke-width="2"/>`;
   }).join('');
   const xLabels = pts.map(([x,_y,s]) => {
     const [, mm] = s.mes.split('-');
     const label = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][parseInt(mm,10)-1];
     const active = s.mes === mesAtivo;
-    return `<text x="${x.toFixed(1)}" y="226" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="${active ? '#1C1C1C' : '#7A726A'}" font-weight="${active ? '700' : '400'}">${label}</text>`;
+    const _tc2 = isDark() ? '#E2D9CE' : '#1C1C1C';
+    const _tm2 = isDark() ? '#6B7F96' : '#7A726A';
+    return `<text x="${x.toFixed(1)}" y="226" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="${active ? _tc2 : _tm2}" font-weight="${active ? '700' : '400'}">${label}</text>`;
   }).join('');
+  const _grid2 = isDark() ? '#2A3448' : '#E5DDD0';
+  const _axis2 = isDark() ? '#6B7F96' : '#7A726A';
+  const _markerInact = isDark() ? '#1A2230' : '#fff';
   const last = pts[pts.length - 1];
   return `
     <svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
@@ -323,10 +334,10 @@ function lineChartSvg(serie, mesAtivo) {
           <stop offset="100%" stop-color="#15803D" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <g stroke="#E5DDD0" stroke-dasharray="2 4">
+      <g stroke="${_grid2}" stroke-dasharray="2 4">
         ${[0, 0.25, 0.5, 0.75, 1].map(p => `<line x1="${chartLeft}" y1="${(chartTop + p * chartH).toFixed(1)}" x2="${chartRight}" y2="${(chartTop + p * chartH).toFixed(1)}"/>`).join('')}
       </g>
-      <g fill="#7A726A" font-size="10" font-family="Inter, sans-serif" text-anchor="end">
+      <g fill="${_axis2}" font-size="10" font-family="Inter, sans-serif" text-anchor="end">
         ${[10, 8, 6, 4, 2].map((n, i) => `<text x="32" y="${(chartTop + (i / 4) * chartH + 4).toFixed(1)}">${n}</text>`).join('')}
       </g>
       <path d="${areaD}" fill="url(#satFill)"/>

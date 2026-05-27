@@ -257,6 +257,15 @@
 /* sub-tab hover in dark */
 [data-theme="dark"] .sub-tab-btn:hover { background: rgba(255,255,255,.06); }
 
+/* badge-info-extra e anexo-uploader em dark (usam var(--navy) como cor de texto) */
+[data-theme="dark"] .badge-info-extra { color: var(--gold-light); }
+[data-theme="dark"] .anexo-uploader-add { color: var(--text); }
+[data-theme="dark"] .anexo-uploader-add:hover { background: rgba(197,165,90,.1); }
+
+/* Assinatura — canvas SEMPRE branco independente do tema */
+[data-theme="dark"] .assinatura-canvas-wrap { background: #fff !important; border-color: #c8baa5; }
+[data-theme="dark"] .mob-canvas-wrap { background: #fff !important; }
+
 /* ── Dark mode: alert text colors ── */
 [data-theme="dark"] .alert-success { color: #4ade80; border-color: rgba(74,222,128,.3); }
 [data-theme="dark"] .alert-danger  { color: #fca5a5; border-color: rgba(252,165,165,.3); }
