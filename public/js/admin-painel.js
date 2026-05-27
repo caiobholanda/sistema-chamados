@@ -179,10 +179,30 @@ const CATEGORIAS_MAP = {
   celular:        { nome: 'Celular',             cor: '#15803D', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>' },
   processo_compra:{ nome: 'Processo de Compra', cor: '#16A34A', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' },
   outros:         { nome: 'Outros',              cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>' },
+  thex_pos:       { nome: 'THEX POS (TOTVS)',        cor: '#E11D48', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+  thex_pms:       { nome: 'THEX PMS (TOTVS)',        cor: '#2563EB', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>' },
+  modulo_eventos: { nome: 'Módulo Eventos',           cor: '#7C3AED', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' },
+  modulo_cp:      { nome: 'Módulo Contas a Pagar',    cor: '#DC2626', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>' },
+  modulo_cr:      { nome: 'Módulo Contas a Receber',  cor: '#059669', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>' },
+  modulo_rad:     { nome: 'Módulo RAD',                cor: '#9333EA', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>' },
+  modulo_fiscal:  { nome: 'Módulo Fiscal Flex',        cor: '#B45309', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
+  modulo_contab:  { nome: 'Módulo Contabilidade',      cor: '#0369A1', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>' },
+  modulo_compras: { nome: 'Módulo Compras',             cor: '#15803D', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>' },
+  modulo_almox:   { nome: 'Módulo Almoxarifado',        cor: '#92400E', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>' },
+  modulo_caf:     { nome: 'Módulo CAF',                 cor: '#6D28D9', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>' },
+  modulo_cfinan:  { nome: 'Módulo CFINAN',              cor: '#1D4ED8', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
+  modulo_fatura:  { nome: 'Módulo Fatura',              cor: '#BE185D', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
+  app_comanda:    { nome: 'App Comanda Eletrônica',     cor: '#C2410C', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>' },
+  app_governanca: { nome: 'App Minha Governança',       cor: '#0E7490', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg>' },
+  letsbook:       { nome: 'LetsBook (PMWEB)',            cor: '#4338CA', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>' },
+  urmobo:         { nome: 'URMOBO (MDM)',                cor: '#374151', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
+  cardapio_digital:{ nome: 'Cardápio Digital',          cor: '#D97706', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>' },
+  central_ti:     { nome: 'Central de Serviços TI',     cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>' },
 };
 
 const CATS_PRIMARIAS = new Set(['software', 'hardware', 'cameras', 'email', 'processo_compra']);
 const CATS_HARDWARE_SUB = ['impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','tv_projetor','projetor','tablet','celular','outros'];
+const CATS_SOFTWARE_SUB = ['thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
 
 function badgeCategoria(cat) {
   if (!cat || !CATEGORIAS_MAP[cat]) return '';
@@ -662,6 +682,8 @@ function abrirModalNovoChamado() {
   document.getElementById('nc-categoria').value = '';
   const ncSub = document.getElementById('nc-subcategoria');
   if (ncSub) { ncSub.value = ''; ncSub.style.display = 'none'; }
+  const ncSubSw = document.getElementById('nc-subcategoria-sw');
+  if (ncSubSw) { ncSubSw.value = ''; ncSubSw.style.display = 'none'; }
   document.getElementById('nc-descricao').value = '';
   _resetNcArquivos();
   document.getElementById('msg-novo-chamado').innerHTML = '';
@@ -776,10 +798,13 @@ document.getElementById('nc-anexo-tiles')?.addEventListener('click', (e) => {
 });
 
 document.getElementById('nc-categoria').addEventListener('change', () => {
+  const val = document.getElementById('nc-categoria').value;
   const sub = document.getElementById('nc-subcategoria');
-  const show = document.getElementById('nc-categoria').value === 'hardware';
-  sub.style.display = show ? 'block' : 'none';
-  if (!show) sub.value = '';
+  const subSw = document.getElementById('nc-subcategoria-sw');
+  sub.style.display = val === 'hardware' ? 'block' : 'none';
+  if (subSw) subSw.style.display = val === 'software' ? 'block' : 'none';
+  if (val !== 'hardware') sub.value = '';
+  if (subSw && val !== 'software') subSw.value = '';
 });
 
 document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
@@ -799,6 +824,9 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     if (categoria === 'hardware') {
       const sub = document.getElementById('nc-subcategoria').value;
       if (sub) categoria = sub;
+    } else if (categoria === 'software') {
+      const subSw = document.getElementById('nc-subcategoria-sw');
+      if (subSw && subSw.value) categoria = subSw.value;
     }
     if (categoria) fd.append('categoria', categoria);
     const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
@@ -1053,9 +1081,10 @@ function renderModalBody(c) {
     : '';
 
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
-  const isHardwareSub = !!(c.categoria && !CATS_PRIMARIAS.has(c.categoria));
-  const primCatSel    = isHardwareSub ? 'hardware' : (c.categoria || '');
-  const subCatSel     = isHardwareSub ? c.categoria : '';
+  const isHardwareSub = !!(c.categoria && CATS_HARDWARE_SUB.includes(c.categoria));
+  const isSoftwareSub = !!(c.categoria && CATS_SOFTWARE_SUB.includes(c.categoria));
+  const primCatSel    = isHardwareSub ? 'hardware' : isSoftwareSub ? 'software' : (c.categoria || '');
+  const subCatSel     = (isHardwareSub || isSoftwareSub) ? c.categoria : '';
 
   document.getElementById('modal-title').innerHTML = `${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
 
@@ -1211,6 +1240,10 @@ function renderModalBody(c) {
                   <select class="form-control form-control-sm" id="sel-subcategoria" style="display:${isHardwareSub ? 'block' : 'none'}">
                     <option value="">— tipo de hardware —</option>
                     ${CATS_HARDWARE_SUB.map(id => `<option value="${id}" ${subCatSel === id ? 'selected' : ''}>${CATEGORIAS_MAP[id].nome}</option>`).join('')}
+                  </select>
+                  <select class="form-control form-control-sm" id="sel-subcategoria-sw" style="display:${isSoftwareSub ? 'block' : 'none'}">
+                    <option value="">— tipo de software —</option>
+                    ${CATS_SOFTWARE_SUB.map(id => `<option value="${id}" ${subCatSel === id ? 'selected' : ''}>${CATEGORIAS_MAP[id].nome}</option>`).join('')}
                   </select>
                 </div>
                 <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
@@ -1546,11 +1579,14 @@ function setupModalEventos(c) {
 
   const selCatEl = document.getElementById('sel-categoria');
   const selSubEl = document.getElementById('sel-subcategoria');
+  const selSubSwEl = document.getElementById('sel-subcategoria-sw');
   if (selCatEl && selSubEl) {
     selCatEl.addEventListener('change', () => {
-      const show = selCatEl.value === 'hardware';
-      selSubEl.style.display = show ? 'block' : 'none';
-      if (!show) selSubEl.value = '';
+      const val = selCatEl.value;
+      selSubEl.style.display = val === 'hardware' ? 'block' : 'none';
+      if (selSubSwEl) selSubSwEl.style.display = val === 'software' ? 'block' : 'none';
+      if (val !== 'hardware') selSubEl.value = '';
+      if (selSubSwEl && val !== 'software') selSubSwEl.value = '';
     });
   }
   const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
@@ -1560,6 +1596,9 @@ function setupModalEventos(c) {
       if (cat === 'hardware') {
         const sub = document.getElementById('sel-subcategoria').value;
         if (sub) cat = sub;
+      } else if (cat === 'software') {
+        const subSw = document.getElementById('sel-subcategoria-sw');
+        if (subSw && subSw.value) cat = subSw.value;
       }
       const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
