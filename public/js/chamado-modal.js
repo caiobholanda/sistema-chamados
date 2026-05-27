@@ -160,7 +160,7 @@ function _renderBody(c) {
               </div>
               <div>
                 <div class="mv2-card-label">Administrador responsável</div>
-                <div class="mv2-card-val">${c.admin_nome || 'Não atribuído'}</div>
+                <div class="mv2-card-val">${c.admin_nome || 'Não atribuído'}${c.admin_ramal ? `<span style="font-size:.75rem;font-weight:400;color:var(--text-muted);margin-left:.4rem">· Ramal ${c.admin_ramal}</span>` : ''}</div>
               </div>
             </div>
             <div class="mv2-card">

@@ -1435,7 +1435,7 @@ function renderCardChamado(c) {
       </div>` : ''}
       <div class="chamado-card-setor">${c.setor} <span style="color:var(--text-muted);font-family:Inter,sans-serif;font-size:.8rem;font-weight:400">· Ramal ${c.ramal}</span></div>
       <div class="chamado-card-desc">${c.descricao}</div>
-      ${c.admin_nome ? `<div style="font-size:.75rem;color:var(--gold-dark);font-weight:600;margin-top:.4rem;letter-spacing:.02em">Responsável: <span style="color:var(--text-secondary);font-weight:400">${c.admin_nome}</span></div>` : ''}
+      ${c.admin_nome ? `<div style="font-size:.75rem;color:var(--gold-dark);font-weight:600;margin-top:.4rem;letter-spacing:.02em">Responsável: <span style="color:var(--text-secondary);font-weight:400">${c.admin_nome}</span>${c.admin_ramal ? `<span style="color:var(--text-muted);font-weight:400"> · Ramal <strong style="color:var(--text-secondary);font-weight:600">${c.admin_ramal}</strong></span>` : ''}</div>` : ''}
       ${c.prazo ? `<div style="font-size:.74rem;color:var(--text-muted);margin-top:.2rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
       ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${c.solucao}</div>` : ''}
       ${termoHtml()}

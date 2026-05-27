@@ -1179,7 +1179,7 @@ function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem,
 
 function buscarChamadoPorId(id) {
   return getDb().prepare(`
-    SELECT c.*, c.servico_id, c.servico_nome, a.nome_completo as admin_nome,
+    SELECT c.*, c.servico_id, c.servico_nome, a.nome_completo as admin_nome, a.ramal as admin_ramal,
            u.setor as usuario_setor, u.ramal as usuario_ramal,
            ab.nome_completo as aberto_por_admin_nome,
            ab.is_master as aberto_por_admin_is_master
@@ -1226,7 +1226,7 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
            c.aberto_por_admin_id, c.cancelamento_motivo, c.cancelado_em,
            (SELECT COUNT(*) FROM chamado_infos_adicionais ia WHERE ia.chamado_id = c.id) as infos_adicionais_count,
            ${naoLidasCol}
-           a.nome_completo as admin_nome,
+           a.nome_completo as admin_nome, a.ramal as admin_ramal,
            u.setor as usuario_setor, u.ramal as usuario_ramal,
            ab.nome_completo as aberto_por_admin_nome,
            ab.is_master as aberto_por_admin_is_master
@@ -1656,7 +1656,7 @@ function listarChamadosPorUsuario(usuario_id) {
            c.concluido_em, c.categoria, c.assinado_em, c.requer_acordo, c.acordo_equipamentos,
            c.cancelamento_motivo, c.cancelado_em,
            c.aberto_por_admin_id,
-           a.nome_completo as admin_nome,
+           a.nome_completo as admin_nome, a.ramal as admin_ramal,
            ab.nome_completo as aberto_por_admin_nome,
            ab.is_master as aberto_por_admin_is_master
     FROM chamados c
