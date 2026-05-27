@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serviços — Gran Marquise TI</title>
+  <link rel="preconnect" href="https://letsimage.s3.amazonaws.com">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+  <div class="header-brand">
+    <img class="header-logo-img" src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise">
+    <div class="header-brand-text">
+      <div class="header-brand-name">Gran Marquise</div>
+      <div class="header-brand-sub">Suporte de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <nav></nav>
+</header>
+
+<div id="toast-container"></div>
+
+<main class="wide">
+  <div class="page-header flex-between flex-wrap gap-2">
+    <div>
+      <div class="page-title">Catálogo de Serviços</div>
+      <div class="page-subtitle">Gerencie os serviços disponíveis para abertura de chamados</div>
+    </div>
+    <button class="btn btn-primary" id="btn-novo-servico">+ Novo Serviço</button>
+  </div>
+
+  <div id="lista-servicos"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+
+<!-- Modal Serviço -->
+<div class="modal-overlay" id="modal-servico-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-servico-title">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2 id="modal-servico-title">Novo Serviço</h2>
+      <button class="modal-close" id="btn-fechar-servico" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem">
+      <form id="form-servico" novalidate>
+        <input type="hidden" id="servico-id">
+        <div class="form-group">
+          <label for="servico-nome">Nome <span class="req">*</span></label>
+          <input class="form-control" type="text" id="servico-nome" maxlength="120" placeholder="Ex: Suporte de Hardware" required>
+        </div>
+        <div class="form-group">
+          <label for="servico-descricao">Descrição <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <textarea class="form-control" id="servico-descricao" rows="3" maxlength="500" placeholder="Descreva o serviço brevemente…"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-cancelar-servico">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="btn-salvar-servico">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script defer src="/js/nav.js"></script>
+<script defer src="/js/fumaca.js"></script>
+<script defer src="/js/admin-servicos.js"></script>
+</body>
+</html>

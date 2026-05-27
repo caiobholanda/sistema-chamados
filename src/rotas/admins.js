@@ -139,7 +139,7 @@ router.post('/chamados', requireAdmin, uploadChamadoMiddleware(), async (req, re
 
     const adminCriador = db.buscarAdminPorId(req.admin.sub);
 
-    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','projetor','tablet','celular','processo_compra','outros'];
+    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','projetor','tablet','celular','processo_compra','outros','thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti','servico'];
     const categoriaEnviada = (req.body.categoria || '').trim();
     let categoria;
     if (categoriaEnviada && CATEGORIAS_VALIDAS.includes(categoriaEnviada)) {
@@ -172,6 +172,9 @@ router.post('/chamados', requireAdmin, uploadChamadoMiddleware(), async (req, re
       if (adminAlvo && adminAlvo.ativo) adminResponsavelId = adminAlvo.id;
     }
 
+    const servicoId = req.body.servico_id ? parseInt(req.body.servico_id, 10) : null;
+    const servicoNome = categoria === 'servico' && req.body.servico_nome ? req.body.servico_nome.trim() : null;
+
     const id = db.inserirChamado({
       usuario_id: usuarioId,
       nome, setor, ramal, descricao,
@@ -179,6 +182,8 @@ router.post('/chamados', requireAdmin, uploadChamadoMiddleware(), async (req, re
       categoria,
       aberto_por_admin_id: req.admin.sub,
       admin_responsavel_id: adminResponsavelId,
+      servico_id: servicoId,
+      servico_nome: servicoNome,
     });
 
     if (adminResponsavelId !== req.admin.sub) {
@@ -559,17 +564,21 @@ const CATEGORIAS_VALIDAS = [
   'software','hardware','impressora','ramal','nobreak','monitor',
   'mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor',
   'projetor','tablet','celular','processo_compra','outros',
+  'thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad',
+  'modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf',
+  'modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook',
+  'urmobo','cardapio_digital','central_ti','servico',
 ];
 
 router.patch('/chamados/:id/categoria', requireAdmin, (req, res) => {
   try {
-    const { categoria } = req.body;
+    const { categoria, servico_id, servico_nome } = req.body;
     if (!categoria || !CATEGORIAS_VALIDAS.includes(categoria)) {
       return res.status(400).json({ erro: 'Categoria inválida' });
     }
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    db.atualizarCategoria(chamado.id, categoria, req.admin.sub);
+    db.atualizarCategoria(chamado.id, categoria, req.admin.sub, servico_id || null, servico_nome || null);
     if (categoria === 'impressora') {
       db.atualizarPrazo(chamado.id, db.prazo2DiasUteis(), req.admin.sub);
     }

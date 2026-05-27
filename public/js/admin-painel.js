@@ -198,9 +198,10 @@ const CATEGORIAS_MAP = {
   urmobo:         { nome: 'URMOBO (MDM)',                cor: '#374151', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
   cardapio_digital:{ nome: 'Cardápio Digital',          cor: '#D97706', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>' },
   central_ti:     { nome: 'Central de Serviços TI',     cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>' },
+  servico:        { nome: 'Serviço',                    cor: '#0F766E', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>' },
 };
 
-const CATS_PRIMARIAS = new Set(['software', 'hardware', 'cameras', 'email', 'processo_compra']);
+const CATS_PRIMARIAS = new Set(['software', 'hardware', 'cameras', 'email', 'processo_compra', 'servico']);
 const CATS_HARDWARE_SUB = ['impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','tv_projetor','projetor','tablet','celular','outros'];
 const CATS_SOFTWARE_SUB = ['thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
 
@@ -684,6 +685,8 @@ function abrirModalNovoChamado() {
   if (ncSub) { ncSub.value = ''; ncSub.style.display = 'none'; }
   const ncSubSw = document.getElementById('nc-subcategoria-sw');
   if (ncSubSw) { ncSubSw.value = ''; ncSubSw.style.display = 'none'; }
+  const ncSubSvc = document.getElementById('nc-subcategoria-svc');
+  if (ncSubSvc) { ncSubSvc.value = ''; ncSubSvc.style.display = 'none'; }
   document.getElementById('nc-descricao').value = '';
   _resetNcArquivos();
   document.getElementById('msg-novo-chamado').innerHTML = '';
@@ -797,14 +800,28 @@ document.getElementById('nc-anexo-tiles')?.addEventListener('click', (e) => {
   _renderNcTiles();
 });
 
-document.getElementById('nc-categoria').addEventListener('change', () => {
+document.getElementById('nc-categoria').addEventListener('change', async () => {
   const val = document.getElementById('nc-categoria').value;
   const sub = document.getElementById('nc-subcategoria');
   const subSw = document.getElementById('nc-subcategoria-sw');
+  const subSvc = document.getElementById('nc-subcategoria-svc');
   sub.style.display = val === 'hardware' ? 'block' : 'none';
   if (subSw) subSw.style.display = val === 'software' ? 'block' : 'none';
+  if (subSvc) {
+    subSvc.style.display = val === 'servico' ? 'block' : 'none';
+    if (val === 'servico') {
+      subSvc.innerHTML = '<option value="">— carregando… —</option>';
+      try {
+        const rs = await fetch('/api/servicos', { credentials: 'include' });
+        const svcs = await rs.json();
+        subSvc.innerHTML = '<option value="">— selecionar serviço —</option>' +
+          svcs.map(s => `<option value="${s.id}" data-nome="${s.nome}">${s.nome}</option>`).join('');
+      } catch { subSvc.innerHTML = '<option value="">— erro ao carregar —</option>'; }
+    }
+  }
   if (val !== 'hardware') sub.value = '';
   if (subSw && val !== 'software') subSw.value = '';
+  if (subSvc && val !== 'servico') subSvc.value = '';
 });
 
 document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
@@ -827,6 +844,13 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     } else if (categoria === 'software') {
       const subSw = document.getElementById('nc-subcategoria-sw');
       if (subSw && subSw.value) categoria = subSw.value;
+    } else if (categoria === 'servico') {
+      const subSvc = document.getElementById('nc-subcategoria-svc');
+      if (subSvc && subSvc.value) {
+        fd.append('servico_id', subSvc.value);
+        const opt = subSvc.options[subSvc.selectedIndex];
+        if (opt) fd.append('servico_nome', opt.dataset.nome || opt.text);
+      }
     }
     if (categoria) fd.append('categoria', categoria);
     const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
@@ -1083,6 +1107,7 @@ function renderModalBody(c) {
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
   const isHardwareSub = !!(c.categoria && CATS_HARDWARE_SUB.includes(c.categoria));
   const isSoftwareSub = !!(c.categoria && CATS_SOFTWARE_SUB.includes(c.categoria));
+  const isServico     = c.categoria === 'servico';
   const primCatSel    = isHardwareSub ? 'hardware' : isSoftwareSub ? 'software' : (c.categoria || '');
   const subCatSel     = (isHardwareSub || isSoftwareSub) ? c.categoria : '';
 
@@ -1236,6 +1261,7 @@ function renderModalBody(c) {
                     <option value="cameras"  ${primCatSel === 'cameras'  ? 'selected' : ''}>Câmeras / CFTV</option>
                     <option value="email"    ${primCatSel === 'email'    ? 'selected' : ''}>E-mail</option>
                     <option value="processo_compra" ${primCatSel === 'processo_compra' ? 'selected' : ''}>Processo de Compra</option>
+                    <option value="servico"  ${primCatSel === 'servico'  ? 'selected' : ''}>Serviço</option>
                   </select>
                   <select class="form-control form-control-sm" id="sel-subcategoria" style="display:${isHardwareSub ? 'block' : 'none'}">
                     <option value="">— tipo de hardware —</option>
@@ -1244,6 +1270,10 @@ function renderModalBody(c) {
                   <select class="form-control form-control-sm" id="sel-subcategoria-sw" style="display:${isSoftwareSub ? 'block' : 'none'}">
                     <option value="">— tipo de software —</option>
                     ${CATS_SOFTWARE_SUB.map(id => `<option value="${id}" ${subCatSel === id ? 'selected' : ''}>${CATEGORIAS_MAP[id].nome}</option>`).join('')}
+                  </select>
+                  <select class="form-control form-control-sm" id="sel-subcategoria-svc" style="display:${isServico ? 'block' : 'none'}">
+                    <option value="">— carregando serviços… —</option>
+                    ${isServico && c.servico_id ? `<option value="${c.servico_id}" selected>${c.servico_nome || 'Serviço #' + c.servico_id}</option>` : ''}
                   </select>
                 </div>
                 <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
@@ -1580,27 +1610,48 @@ function setupModalEventos(c) {
   const selCatEl = document.getElementById('sel-categoria');
   const selSubEl = document.getElementById('sel-subcategoria');
   const selSubSwEl = document.getElementById('sel-subcategoria-sw');
+  const selSubSvcEl = document.getElementById('sel-subcategoria-svc');
   if (selCatEl && selSubEl) {
-    selCatEl.addEventListener('change', () => {
+    selCatEl.addEventListener('change', async () => {
       const val = selCatEl.value;
       selSubEl.style.display = val === 'hardware' ? 'block' : 'none';
       if (selSubSwEl) selSubSwEl.style.display = val === 'software' ? 'block' : 'none';
+      if (selSubSvcEl) {
+        selSubSvcEl.style.display = val === 'servico' ? 'block' : 'none';
+        if (val === 'servico') {
+          selSubSvcEl.innerHTML = '<option value="">— carregando… —</option>';
+          try {
+            const rs = await api('/api/servicos');
+            const svcs = await rs.json();
+            selSubSvcEl.innerHTML = '<option value="">— selecionar serviço —</option>' +
+              svcs.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
+          } catch { selSubSvcEl.innerHTML = '<option value="">— erro ao carregar —</option>'; }
+        }
+      }
       if (val !== 'hardware') selSubEl.value = '';
       if (selSubSwEl && val !== 'software') selSubSwEl.value = '';
+      if (selSubSvcEl && val !== 'servico') selSubSvcEl.value = '';
     });
   }
   const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
   if (btnSalvarCategoria) {
     btnSalvarCategoria.addEventListener('click', async () => {
       let cat = document.getElementById('sel-categoria').value;
+      let servicoId = null, servicoNome = null;
       if (cat === 'hardware') {
         const sub = document.getElementById('sel-subcategoria').value;
         if (sub) cat = sub;
       } else if (cat === 'software') {
         const subSw = document.getElementById('sel-subcategoria-sw');
         if (subSw && subSw.value) cat = subSw.value;
+      } else if (cat === 'servico') {
+        const subSvc = document.getElementById('sel-subcategoria-svc');
+        if (subSvc && subSvc.value) {
+          servicoId = +subSvc.value;
+          servicoNome = subSvc.options[subSvc.selectedIndex]?.text || null;
+        }
       }
-      const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
+      const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat, servico_id: servicoId, servico_nome: servicoNome }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);

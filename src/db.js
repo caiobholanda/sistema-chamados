@@ -179,6 +179,17 @@ function initDb() {
   try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
   try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_nome_original TEXT"); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS servicos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      descricao TEXT,
+      ativo INTEGER DEFAULT 1,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN servico_id INTEGER'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN servico_nome TEXT'); } catch {}
   try { db.exec("ALTER TABLE inventario_micros ADD COLUMN tipo_equipamento TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE inventario_micros ADD COLUMN nobreak TEXT DEFAULT ''"); } catch {}
   try { db.exec(`
@@ -1046,10 +1057,10 @@ async function criarAdminMasterSeNecessario() {
 function inserirChamado(dados) {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original, categoria, aberto_por_admin_id, admin_responsavel_id)
-    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria, @aberto_por_admin_id, @admin_responsavel_id)
+    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original, categoria, aberto_por_admin_id, admin_responsavel_id, servico_id, servico_nome)
+    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria, @aberto_por_admin_id, @admin_responsavel_id, @servico_id, @servico_nome)
   `);
-  const result = stmt.run({ usuario_id: null, categoria: null, aberto_por_admin_id: null, admin_responsavel_id: null, ...dados });
+  const result = stmt.run({ usuario_id: null, categoria: null, aberto_por_admin_id: null, admin_responsavel_id: null, servico_id: null, servico_nome: null, ...dados });
   const id = result.lastInsertRowid;
   if (dados.admin_responsavel_id) {
     db.prepare(`INSERT INTO admin_atendimento_log (chamado_id, admin_id) VALUES (?, ?)`)
@@ -1106,7 +1117,7 @@ function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem,
 
 function buscarChamadoPorId(id) {
   return getDb().prepare(`
-    SELECT c.*, a.nome_completo as admin_nome,
+    SELECT c.*, c.servico_id, c.servico_nome, a.nome_completo as admin_nome,
            u.setor as usuario_setor, u.ramal as usuario_ramal,
            ab.nome_completo as aberto_por_admin_nome,
            ab.is_master as aberto_por_admin_is_master
@@ -1149,7 +1160,7 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
            c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
            c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
            c.comentario_avaliacao, c.criado_em, c.atualizado_em,
-           c.concluido_em, c.categoria, c.assinado_em,
+           c.concluido_em, c.categoria, c.servico_id, c.servico_nome, c.assinado_em,
            c.aberto_por_admin_id, c.cancelamento_motivo, c.cancelado_em,
            (SELECT COUNT(*) FROM chamado_infos_adicionais ia WHERE ia.chamado_id = c.id) as infos_adicionais_count,
            ${naoLidasCol}
@@ -1275,15 +1286,44 @@ function atualizarPrazo(id, prazo, adminId) {
   `).run(id, adminId, anterior || null, prazo);
 }
 
-function atualizarCategoria(id, categoria, adminId) {
+function atualizarCategoria(id, categoria, adminId, servicoId = null, servicoNome = null) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
   const anterior = chamado.categoria;
-  db.prepare(`UPDATE chamados SET categoria = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(categoria, id);
+  const sId = categoria === 'servico' ? (servicoId || null) : null;
+  const sNome = categoria === 'servico' ? (servicoNome || null) : null;
+  db.prepare(`UPDATE chamados SET categoria = ?, servico_id = ?, servico_nome = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(categoria, sId, sNome, id);
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'categoria_alterada', ?, ?)
   `).run(id, adminId, anterior || null, categoria);
+}
+
+function listarServicos() {
+  return getDb().prepare('SELECT * FROM servicos WHERE ativo = 1 ORDER BY nome ASC').all();
+}
+
+function listarServicosAdmin() {
+  return getDb().prepare('SELECT * FROM servicos ORDER BY nome ASC').all();
+}
+
+function criarServico({ nome, descricao }) {
+  return getDb().prepare('INSERT INTO servicos (nome, descricao) VALUES (?, ?)').run(nome, descricao || null).lastInsertRowid;
+}
+
+function atualizarServico(id, campos) {
+  const sets = [];
+  const vals = [];
+  if (campos.nome !== undefined) { sets.push('nome = ?'); vals.push(campos.nome); }
+  if (campos.descricao !== undefined) { sets.push('descricao = ?'); vals.push(campos.descricao || null); }
+  if (campos.ativo !== undefined) { sets.push('ativo = ?'); vals.push(campos.ativo ? 1 : 0); }
+  if (!sets.length) return;
+  vals.push(id);
+  getDb().prepare(`UPDATE servicos SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+}
+
+function deletarServico(id) {
+  getDb().prepare('UPDATE servicos SET ativo = 0 WHERE id = ?').run(id);
 }
 
 // ── Atendimento (log para tempo médio por admin) ──────────────
@@ -2276,6 +2316,11 @@ module.exports = {
   atualizarContato,
   deletarContato,
   sincronizarPessoas,
+  listarServicos,
+  listarServicosAdmin,
+  criarServico,
+  atualizarServico,
+  deletarServico,
   initSugestoes,
   criarSugestao,
   buscarSugestaoPorId,
