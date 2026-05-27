@@ -74,16 +74,30 @@
     return et ? et.nome : slug;
   }
 
+  function etiquetasFiltradas() {
+    const q = (document.getElementById('filtro-etiquetas')?.value || '').toLowerCase().trim();
+    if (!q) return etiquetas;
+    return etiquetas.filter(e => {
+      const pNome = nomePai(e.parent_slug).toLowerCase();
+      return e.nome.toLowerCase().includes(q)
+        || (e.descricao || '').toLowerCase().includes(q)
+        || (e.slug || '').toLowerCase().includes(q)
+        || pNome.includes(q);
+    });
+  }
+
   function renderizar() {
     const el = document.getElementById('lista-etiquetas');
-    if (!etiquetas.length) {
+    const lista = etiquetasFiltradas();
+
+    if (!lista.length) {
       el.innerHTML = '<div class="empty-state">Nenhuma etiqueta encontrada.</div>';
       return;
     }
 
-    const primarias = etiquetas.filter(e => !e.parent_slug);
+    const primarias = lista.filter(e => !e.parent_slug);
     const subPorParent = {};
-    etiquetas.filter(e => e.parent_slug).forEach(e => {
+    lista.filter(e => e.parent_slug).forEach(e => {
       if (!subPorParent[e.parent_slug]) subPorParent[e.parent_slug] = [];
       subPorParent[e.parent_slug].push(e);
     });
@@ -105,9 +119,9 @@
       html += '</div>';
     }
 
-    // Subs cujo pai não está na lista (não deveria acontecer, mas por segurança)
+    // Subs cujo pai não está na lista filtrada
     const slugsPrim = new Set(primarias.map(e => e.slug));
-    const orfaos = etiquetas.filter(e => e.parent_slug && !slugsPrim.has(e.parent_slug));
+    const orfaos = lista.filter(e => e.parent_slug && !slugsPrim.has(e.parent_slug));
     if (orfaos.length) {
       html += '<div class="etiqueta-group">';
       for (const s of orfaos) html += renderRow(s, nomePai(s.parent_slug));
@@ -286,6 +300,7 @@
     if (!ok) return;
     await carregar();
 
+    document.getElementById('filtro-etiquetas').addEventListener('input', () => renderizar());
     document.getElementById('btn-nova-etiqueta').addEventListener('click', () => abrirModal('Nova Etiqueta'));
     document.getElementById('btn-salvar-etiqueta').addEventListener('click', salvar);
     document.getElementById('btn-cancelar-etiqueta').addEventListener('click', fecharModal);
