@@ -952,7 +952,7 @@ async function carregarChamados(silencioso = false) {
     // Silencioso: só re-renderiza se os dados mudaram
     if (silencioso) {
       const novoHash = JSON.stringify(chamados.map(c =>
-        [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em, c.mensagens_nao_lidas, c.infos_adicionais_count]
+        [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em, c.mensagens_nao_lidas, c.infos_adicionais_count, c.novidades_admin]
       )) + '|' + filtroBusca;
       if (novoHash === _chamadosHash) return;
       _chamadosHash = novoHash;
@@ -1030,6 +1030,10 @@ function renderChamadoItem(c) {
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           ${c.infos_adicionais_count > 1 ? c.infos_adicionais_count + ' infos' : 'Info extra'}
         </span>` : ''}
+        ${c.novidades_admin > 0 ? `<span class="badge-novidades-admin" title="${c.novidades_admin} atualização${c.novidades_admin > 1 ? 'ões' : ''} de características">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Atualizado
+        </span>` : ''}
         ${c.mensagens_nao_lidas > 0 ? `<span class="msg-badge-nao-lidas">${c.mensagens_nao_lidas}</span>` : ''}
       </div>
       ${c.usuario_id ? `<div class="chamado-nome"><span style="font-weight:400">Usuário: </span>${c.nome}</div>` : ''}
@@ -1068,6 +1072,7 @@ async function abrirModal(id) {
   document.getElementById('modal-overlay').classList.add('open');
   document.getElementById('btn-fechar-modal').focus();
   document.querySelector(`.chamado-item[data-id="${id}"] .msg-badge-nao-lidas`)?.remove();
+  document.querySelector(`.chamado-item[data-id="${id}"] .badge-novidades-admin`)?.remove();
 
   try {
     const r = await api(`/api/admin/chamados/${id}`);
