@@ -119,6 +119,18 @@ function initDb() {
   try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN ramal TEXT'); } catch {}
+  // Backfill: chamados abertos por admin sem usuário associado e com ramal vazio
+  try {
+    db.exec(`
+      UPDATE chamados SET ramal = (
+        SELECT a.ramal FROM admins a WHERE a.id = chamados.aberto_por_admin_id
+      )
+      WHERE usuario_id IS NULL
+        AND aberto_por_admin_id IS NOT NULL
+        AND (ramal IS NULL OR ramal = '')
+        AND EXISTS (SELECT 1 FROM admins a WHERE a.id = chamados.aberto_por_admin_id AND a.ramal IS NOT NULL AND a.ramal != '')
+    `);
+  } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN ramal TEXT'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN setor TEXT'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN assinatura TEXT'); } catch {}

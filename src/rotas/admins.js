@@ -152,7 +152,7 @@ router.post('/chamados', requireAdmin, uploadChamadoMiddleware(), async (req, re
     let usuarioId = null;
     let nome  = adminCriador ? adminCriador.nome_completo : 'Admin';
     let setor = 'TI';
-    let ramal = '';
+    let ramal = adminCriador ? (adminCriador.ramal || '') : '';
 
     const usuarioIdRaw = req.body.usuario_id ? parseInt(req.body.usuario_id, 10) : null;
     if (usuarioIdRaw && req.admin.is_master) {
