@@ -25,10 +25,15 @@
     const c = document.getElementById('toast-container');
     if (!c) return;
     const el = document.createElement('div');
-    el.className = `toast toast-${tipo}`;
-    el.textContent = msg;
+    el.className = `toast-notif toast-${tipo}`;
+    const icon = tipo === 'sucesso' ? '✓' : '✕';
+    el.innerHTML = `<span><span class="toast-icon">${icon}</span>${esc(msg)}</span>`;
     c.appendChild(el);
-    setTimeout(() => el.remove(), 3500);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+    setTimeout(() => {
+      el.classList.add('hide');
+      setTimeout(() => el.remove(), 320);
+    }, 3200);
   }
 
   async function api(url, opts = {}) {
@@ -149,7 +154,6 @@
         </div>
         <div class="et-card-actions">
           <button class="btn btn-sm btn-secondary btn-editar-et" data-id="${e.id}">Editar</button>
-          <button class="btn btn-sm ${e.ativo ? 'btn-ghost' : 'btn-primary'} btn-toggle-et" data-id="${e.id}" data-ativo="${e.ativo?1:0}">${e.ativo ? 'Desativar' : 'Ativar'}</button>
           <button class="btn btn-sm btn-danger btn-del-et" data-id="${e.id}">✕</button>
         </div>
       </div>`;
@@ -157,7 +161,6 @@
 
   function bindAcoes() {
     document.querySelectorAll('.btn-editar-et').forEach(b => b.addEventListener('click', () => abrirEdicao(+b.dataset.id)));
-    document.querySelectorAll('.btn-toggle-et').forEach(b => b.addEventListener('click', () => toggleAtivo(+b.dataset.id, +b.dataset.ativo)));
     document.querySelectorAll('.btn-del-et').forEach(b => b.addEventListener('click', () => confirmarDelete(+b.dataset.id)));
   }
 
@@ -264,14 +267,6 @@
     const e = etiquetas.find(x => x.id === id);
     if (!e) return;
     abrirModal('Editar Etiqueta', e);
-  }
-
-  async function toggleAtivo(id, ativoAtual) {
-    try {
-      await api(`/api/etiquetas/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: ativoAtual ? 0 : 1 }) });
-      toast(ativoAtual ? 'Etiqueta desativada.' : 'Etiqueta ativada.');
-      await carregar();
-    } catch (e) { toast(e.message, 'erro'); }
   }
 
   function confirmarDelete(id) {
