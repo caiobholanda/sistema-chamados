@@ -198,11 +198,55 @@ function initDb() {
       descricao TEXT,
       parent_slug TEXT,
       cor TEXT DEFAULT '#6B7280',
+      sistema INTEGER DEFAULT 0,
       ativo INTEGER DEFAULT 1,
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
       atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `); } catch {}
+  try { db.exec("ALTER TABLE etiquetas ADD COLUMN sistema INTEGER DEFAULT 0"); } catch {}
+  // Seed das categorias do sistema (INSERT OR IGNORE garante idempotência)
+  const _seedEtiquetas = [
+    { slug: 'software',        nome: 'Software',                cor: '#6366F1', parent_slug: null },
+    { slug: 'hardware',        nome: 'Hardware',                cor: '#0EA5E9', parent_slug: null },
+    { slug: 'cameras',         nome: 'Câmeras / CFTV',          cor: '#06B6D4', parent_slug: null },
+    { slug: 'email',           nome: 'E-mail',                  cor: '#F43F5E', parent_slug: null },
+    { slug: 'processo_compra', nome: 'Processo de Compra',      cor: '#F97316', parent_slug: null },
+    { slug: 'impressora',      nome: 'Impressora',              cor: '#8B5CF6', parent_slug: 'hardware' },
+    { slug: 'ramal',           nome: 'Ramal / Telefone',        cor: '#EC4899', parent_slug: 'hardware' },
+    { slug: 'nobreak',         nome: 'Nobreak',                 cor: '#F59E0B', parent_slug: 'hardware' },
+    { slug: 'monitor',         nome: 'Monitor',                 cor: '#10B981', parent_slug: 'hardware' },
+    { slug: 'mouse',           nome: 'Mouse',                   cor: '#6B7280', parent_slug: 'hardware' },
+    { slug: 'teclado',         nome: 'Teclado',                 cor: '#6B7280', parent_slug: 'hardware' },
+    { slug: 'rede',            nome: 'Rede / Internet',         cor: '#3B82F6', parent_slug: 'hardware' },
+    { slug: 'acesso_senha',    nome: 'Acesso / Senha',          cor: '#EF4444', parent_slug: 'hardware' },
+    { slug: 'tv_projetor',     nome: 'TV',                      cor: '#8B5CF6', parent_slug: 'hardware' },
+    { slug: 'projetor',        nome: 'Projetor',                cor: '#7C3AED', parent_slug: 'hardware' },
+    { slug: 'tablet',          nome: 'Tablet',                  cor: '#0EA5E9', parent_slug: 'hardware' },
+    { slug: 'celular',         nome: 'Celular',                 cor: '#06B6D4', parent_slug: 'hardware' },
+    { slug: 'outros',          nome: 'Outros',                  cor: '#6B7280', parent_slug: 'hardware' },
+    { slug: 'thex_pos',        nome: 'THEX POS (TOTVS)',        cor: '#DC2626', parent_slug: 'software' },
+    { slug: 'thex_pms',        nome: 'THEX PMS (TOTVS)',        cor: '#B91C1C', parent_slug: 'software' },
+    { slug: 'modulo_eventos',  nome: 'Módulo Eventos',          cor: '#7C3AED', parent_slug: 'software' },
+    { slug: 'modulo_cp',       nome: 'Módulo Contas a Pagar',   cor: '#DB2777', parent_slug: 'software' },
+    { slug: 'modulo_cr',       nome: 'Módulo Contas a Receber', cor: '#0891B2', parent_slug: 'software' },
+    { slug: 'modulo_rad',      nome: 'Módulo RAD',              cor: '#9333EA', parent_slug: 'software' },
+    { slug: 'modulo_fiscal',   nome: 'Módulo Fiscal Flex',      cor: '#B45309', parent_slug: 'software' },
+    { slug: 'modulo_contab',   nome: 'Módulo Contabilidade',    cor: '#0369A1', parent_slug: 'software' },
+    { slug: 'modulo_compras',  nome: 'Módulo Compras',          cor: '#15803D', parent_slug: 'software' },
+    { slug: 'modulo_almox',    nome: 'Módulo Almoxarifado',     cor: '#92400E', parent_slug: 'software' },
+    { slug: 'modulo_caf',      nome: 'Módulo CAF',              cor: '#6D28D9', parent_slug: 'software' },
+    { slug: 'modulo_cfinan',   nome: 'Módulo CFINAN',           cor: '#1D4ED8', parent_slug: 'software' },
+    { slug: 'modulo_fatura',   nome: 'Módulo Fatura',           cor: '#0F766E', parent_slug: 'software' },
+    { slug: 'app_comanda',     nome: 'App Comanda Eletrônica',  cor: '#BE123C', parent_slug: 'software' },
+    { slug: 'app_governanca',  nome: 'App Minha Governança',    cor: '#0E7490', parent_slug: 'software' },
+    { slug: 'letsbook',        nome: 'LetsBook (PMWEB)',        cor: '#7C3AED', parent_slug: 'software' },
+    { slug: 'urmobo',          nome: 'URMOBO (MDM)',            cor: '#374151', parent_slug: 'software' },
+    { slug: 'cardapio_digital',nome: 'Cardápio Digital',        cor: '#D97706', parent_slug: 'software' },
+    { slug: 'central_ti',      nome: 'Central de Serviços TI',  cor: '#6B7280', parent_slug: 'software' },
+  ];
+  const _stmtSeed = db.prepare('INSERT OR IGNORE INTO etiquetas (slug, nome, cor, parent_slug, sistema) VALUES (?, ?, ?, ?, 1)');
+  for (const e of _seedEtiquetas) { try { _stmtSeed.run(e.slug, e.nome, e.cor, e.parent_slug); } catch {} }
   try { db.exec("ALTER TABLE inventario_micros ADD COLUMN tipo_equipamento TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE inventario_micros ADD COLUMN nobreak TEXT DEFAULT ''"); } catch {}
   try { db.exec(`
