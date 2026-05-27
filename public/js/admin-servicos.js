@@ -140,7 +140,8 @@
         <div class="et-card-accent" style="background:${esc(cor)}"></div>
         <div class="et-card-body">
           <div class="et-card-top">
-            <span class="et-card-nome" style="color:${esc(cor)}">${esc(e.nome)}</span>
+            <span style="width:9px;height:9px;border-radius:50%;background:${esc(cor)};flex-shrink:0;display:inline-block"></span>
+            <span class="et-card-nome">${esc(e.nome)}</span>
             ${parentNome ? `<span class="et-card-sub-badge">↳ ${esc(parentNome)}</span>` : ''}
             ${!e.ativo ? '<span class="et-card-inativo-badge">Inativa</span>' : ''}
           </div>
