@@ -685,8 +685,6 @@ function abrirModalNovoChamado() {
   if (ncSub) { ncSub.value = ''; ncSub.style.display = 'none'; }
   const ncSubSw = document.getElementById('nc-subcategoria-sw');
   if (ncSubSw) { ncSubSw.value = ''; ncSubSw.style.display = 'none'; }
-  const ncSubSvc = document.getElementById('nc-subcategoria-svc');
-  if (ncSubSvc) { ncSubSvc.value = ''; ncSubSvc.style.display = 'none'; }
   document.getElementById('nc-descricao').value = '';
   _resetNcArquivos();
   document.getElementById('msg-novo-chamado').innerHTML = '';
@@ -800,28 +798,14 @@ document.getElementById('nc-anexo-tiles')?.addEventListener('click', (e) => {
   _renderNcTiles();
 });
 
-document.getElementById('nc-categoria').addEventListener('change', async () => {
+document.getElementById('nc-categoria').addEventListener('change', () => {
   const val = document.getElementById('nc-categoria').value;
   const sub = document.getElementById('nc-subcategoria');
   const subSw = document.getElementById('nc-subcategoria-sw');
-  const subSvc = document.getElementById('nc-subcategoria-svc');
   sub.style.display = val === 'hardware' ? 'block' : 'none';
   if (subSw) subSw.style.display = val === 'software' ? 'block' : 'none';
-  if (subSvc) {
-    subSvc.style.display = val === 'servico' ? 'block' : 'none';
-    if (val === 'servico') {
-      subSvc.innerHTML = '<option value="">— carregando… —</option>';
-      try {
-        const rs = await fetch('/api/servicos', { credentials: 'include' });
-        const svcs = await rs.json();
-        subSvc.innerHTML = '<option value="">— selecionar serviço —</option>' +
-          svcs.map(s => `<option value="${s.id}" data-nome="${s.nome}">${s.nome}</option>`).join('');
-      } catch { subSvc.innerHTML = '<option value="">— erro ao carregar —</option>'; }
-    }
-  }
   if (val !== 'hardware') sub.value = '';
   if (subSw && val !== 'software') subSw.value = '';
-  if (subSvc && val !== 'servico') subSvc.value = '';
 });
 
 document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
@@ -844,13 +828,6 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     } else if (categoria === 'software') {
       const subSw = document.getElementById('nc-subcategoria-sw');
       if (subSw && subSw.value) categoria = subSw.value;
-    } else if (categoria === 'servico') {
-      const subSvc = document.getElementById('nc-subcategoria-svc');
-      if (subSvc && subSvc.value) {
-        fd.append('servico_id', subSvc.value);
-        const opt = subSvc.options[subSvc.selectedIndex];
-        if (opt) fd.append('servico_nome', opt.dataset.nome || opt.text);
-      }
     }
     if (categoria) fd.append('categoria', categoria);
     const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
@@ -1107,7 +1084,6 @@ function renderModalBody(c) {
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
   const isHardwareSub = !!(c.categoria && CATS_HARDWARE_SUB.includes(c.categoria));
   const isSoftwareSub = !!(c.categoria && CATS_SOFTWARE_SUB.includes(c.categoria));
-  const isServico     = c.categoria === 'servico';
   const primCatSel    = isHardwareSub ? 'hardware' : isSoftwareSub ? 'software' : (c.categoria || '');
   const subCatSel     = (isHardwareSub || isSoftwareSub) ? c.categoria : '';
 
@@ -1270,10 +1246,6 @@ function renderModalBody(c) {
                   <select class="form-control form-control-sm" id="sel-subcategoria-sw" style="display:${isSoftwareSub ? 'block' : 'none'}">
                     <option value="">— tipo de software —</option>
                     ${CATS_SOFTWARE_SUB.map(id => `<option value="${id}" ${subCatSel === id ? 'selected' : ''}>${CATEGORIAS_MAP[id].nome}</option>`).join('')}
-                  </select>
-                  <select class="form-control form-control-sm" id="sel-subcategoria-svc" style="display:${isServico ? 'block' : 'none'}">
-                    <option value="">— carregando serviços… —</option>
-                    ${isServico && c.servico_id ? `<option value="${c.servico_id}" selected>${c.servico_nome || 'Serviço #' + c.servico_id}</option>` : ''}
                   </select>
                 </div>
                 <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
@@ -1610,48 +1582,27 @@ function setupModalEventos(c) {
   const selCatEl = document.getElementById('sel-categoria');
   const selSubEl = document.getElementById('sel-subcategoria');
   const selSubSwEl = document.getElementById('sel-subcategoria-sw');
-  const selSubSvcEl = document.getElementById('sel-subcategoria-svc');
   if (selCatEl && selSubEl) {
-    selCatEl.addEventListener('change', async () => {
+    selCatEl.addEventListener('change', () => {
       const val = selCatEl.value;
       selSubEl.style.display = val === 'hardware' ? 'block' : 'none';
       if (selSubSwEl) selSubSwEl.style.display = val === 'software' ? 'block' : 'none';
-      if (selSubSvcEl) {
-        selSubSvcEl.style.display = val === 'servico' ? 'block' : 'none';
-        if (val === 'servico') {
-          selSubSvcEl.innerHTML = '<option value="">— carregando… —</option>';
-          try {
-            const rs = await api('/api/servicos');
-            const svcs = await rs.json();
-            selSubSvcEl.innerHTML = '<option value="">— selecionar serviço —</option>' +
-              svcs.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
-          } catch { selSubSvcEl.innerHTML = '<option value="">— erro ao carregar —</option>'; }
-        }
-      }
       if (val !== 'hardware') selSubEl.value = '';
       if (selSubSwEl && val !== 'software') selSubSwEl.value = '';
-      if (selSubSvcEl && val !== 'servico') selSubSvcEl.value = '';
     });
   }
   const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
   if (btnSalvarCategoria) {
     btnSalvarCategoria.addEventListener('click', async () => {
       let cat = document.getElementById('sel-categoria').value;
-      let servicoId = null, servicoNome = null;
       if (cat === 'hardware') {
         const sub = document.getElementById('sel-subcategoria').value;
         if (sub) cat = sub;
       } else if (cat === 'software') {
         const subSw = document.getElementById('sel-subcategoria-sw');
         if (subSw && subSw.value) cat = subSw.value;
-      } else if (cat === 'servico') {
-        const subSvc = document.getElementById('sel-subcategoria-svc');
-        if (subSvc && subSvc.value) {
-          servicoId = +subSvc.value;
-          servicoNome = subSvc.options[subSvc.selectedIndex]?.text || null;
-        }
       }
-      const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat, servico_id: servicoId, servico_nome: servicoNome }) });
+      const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
