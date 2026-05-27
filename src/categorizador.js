@@ -451,18 +451,52 @@ function classificar(descricao) {
 const _idsValidos = CATEGORIAS.filter(c => c.id !== 'outros').map(c => c.id);
 const _nomesValidos = CATEGORIAS.filter(c => c.id !== 'outros').map(c => `${c.id} (${c.nome})`).join(', ');
 
+function _carregarEtiquetasDinamicas() {
+  try {
+    return require('./db').listarEtiquetas();
+  } catch { return []; }
+}
+
 async function classificarInteligente(descricao) {
-  // 1. Tenta por keywords
+  // 1. Tenta por keywords estáticos
   const porKeyword = classificar(descricao);
   if (porKeyword) return porKeyword;
 
-  // 2. Fallback: IA
+  // 2. Etiquetas dinâmicas: matching por palavras da descrição
+  const dinamicas = _carregarEtiquetasDinamicas();
+  if (dinamicas.length) {
+    const texto = normalizar(descricao || '');
+    const stop = new Set(['para','com','que','não','mais','como','uma','num','nos','das','dos','pelo','pela','esse','esta','esta','isso','isto','seu','sua','ser','ter','foi','tem','ele','ela','eles','elas']);
+    let melhorScore = 0, melhor = null;
+    for (const et of dinamicas) {
+      if (!et.descricao) continue;
+      const palavras = normalizar(et.descricao).split(/\s+/).filter(w => w.length >= 4 && !stop.has(w));
+      let score = 0;
+      for (const p of palavras) { if (texto.includes(p)) score += Math.max(1, Math.floor(p.length / 4)); }
+      if (score > melhorScore) { melhorScore = score; melhor = et; }
+    }
+    if (melhor && melhorScore >= 2) return { id: melhor.slug, nome: melhor.nome, cor: melhor.cor };
+  }
+
+  // 3. Fallback: IA com categorias estáticas + dinâmicas
   try {
     const Anthropic = require('@anthropic-ai/sdk');
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return CATEGORIAS.find(c => c.id === 'outros');
 
     const ai = new Anthropic({ apiKey });
+
+    let opcoesIA = _nomesValidos;
+    const idsExtras = [];
+    if (dinamicas.length) {
+      const extras = dinamicas.map(e => {
+        idsExtras.push(e.slug);
+        const desc = e.descricao ? ': ' + e.descricao.slice(0, 100) : '';
+        return `${e.slug} (${e.nome}${desc})`;
+      }).join(', ');
+      opcoesIA += ', ' + extras;
+    }
+
     const msg = await ai.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 30,
@@ -470,7 +504,7 @@ async function classificarInteligente(descricao) {
         role: 'user',
         content: `Classifique este chamado de suporte de TI em UMA das categorias abaixo. Responda APENAS com o id da categoria, sem explicação.
 
-Categorias disponíveis: ${_nomesValidos}
+Categorias disponíveis: ${opcoesIA}
 
 Chamado: "${descricao.replace(/"/g, "'").slice(0, 500)}"
 
@@ -478,13 +512,17 @@ Resposta (apenas o id):`,
       }],
     });
 
-    const id = msg.content[0]?.text?.trim().toLowerCase().replace(/[^a-z_]/g, '');
+    const id = msg.content[0]?.text?.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
     if (_idsValidos.includes(id)) return CATEGORIAS.find(c => c.id === id);
+    if (idsExtras.includes(id)) {
+      const et = dinamicas.find(e => e.slug === id);
+      if (et) return { id: et.slug, nome: et.nome, cor: et.cor };
+    }
   } catch (err) {
     console.error('[categorizador-ia] erro:', err.message);
   }
 
-  // 3. Último recurso: outros
+  // 4. Último recurso: outros
   return CATEGORIAS.find(c => c.id === 'outros');
 }
 

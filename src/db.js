@@ -190,6 +190,19 @@ function initDb() {
   `); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN servico_id INTEGER'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN servico_nome TEXT'); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS etiquetas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT UNIQUE NOT NULL,
+      nome TEXT NOT NULL,
+      descricao TEXT,
+      parent_slug TEXT,
+      cor TEXT DEFAULT '#6B7280',
+      ativo INTEGER DEFAULT 1,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `); } catch {}
   try { db.exec("ALTER TABLE inventario_micros ADD COLUMN tipo_equipamento TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE inventario_micros ADD COLUMN nobreak TEXT DEFAULT ''"); } catch {}
   try { db.exec(`
@@ -2230,6 +2243,65 @@ function buscarAnexoExtra(anexoId) {
   ).get(anexoId);
 }
 
+// ── Etiquetas dinâmicas ──────────────────────────────────────
+
+function _gerarSlugUnicoEtiqueta(nome) {
+  const db = getDb();
+  let base = (nome || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').trim()
+    .replace(/\s+/g, '_').slice(0, 50) || 'etiqueta';
+  let slug = base, n = 2;
+  while (db.prepare('SELECT id FROM etiquetas WHERE slug = ?').get(slug)) slug = `${base}_${n++}`;
+  return slug;
+}
+
+function listarEtiquetas() {
+  return getDb().prepare(`
+    SELECT * FROM etiquetas WHERE ativo = 1
+    ORDER BY (parent_slug IS NULL) DESC, parent_slug, nome
+  `).all();
+}
+
+function listarEtiquetasAdmin() {
+  return getDb().prepare(`
+    SELECT * FROM etiquetas
+    ORDER BY (parent_slug IS NULL) DESC, parent_slug, nome
+  `).all();
+}
+
+function buscarEtiquetaPorSlug(slug) {
+  return getDb().prepare('SELECT * FROM etiquetas WHERE slug = ?').get(slug);
+}
+
+function criarEtiqueta({ nome, descricao, parent_slug, cor }) {
+  const db = getDb();
+  const slug = _gerarSlugUnicoEtiqueta(nome);
+  const r = db.prepare(
+    'INSERT INTO etiquetas (slug, nome, descricao, parent_slug, cor) VALUES (?, ?, ?, ?, ?)'
+  ).run(slug, nome.trim(), descricao || null, parent_slug || null, cor || '#6B7280');
+  return { id: r.lastInsertRowid, slug };
+}
+
+function atualizarEtiqueta(id, campos) {
+  const db = getDb();
+  const sets = [], vals = [];
+  if (campos.nome !== undefined) { sets.push('nome = ?'); vals.push(campos.nome.trim()); }
+  if (campos.descricao !== undefined) { sets.push('descricao = ?'); vals.push(campos.descricao || null); }
+  if (campos.parent_slug !== undefined) { sets.push('parent_slug = ?'); vals.push(campos.parent_slug || null); }
+  if (campos.cor !== undefined) { sets.push('cor = ?'); vals.push(campos.cor); }
+  if (campos.ativo !== undefined) { sets.push('ativo = ?'); vals.push(campos.ativo ? 1 : 0); }
+  if (!sets.length) return;
+  sets.push('atualizado_em = CURRENT_TIMESTAMP');
+  vals.push(id);
+  db.prepare(`UPDATE etiquetas SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+}
+
+function deletarEtiqueta(id) {
+  getDb().prepare('DELETE FROM etiquetas WHERE id = ?').run(id);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -2331,6 +2403,12 @@ module.exports = {
   criarServico,
   atualizarServico,
   deletarServico,
+  listarEtiquetas,
+  listarEtiquetasAdmin,
+  buscarEtiquetaPorSlug,
+  criarEtiqueta,
+  atualizarEtiqueta,
+  deletarEtiqueta,
   initSugestoes,
   criarSugestao,
   buscarSugestaoPorId,

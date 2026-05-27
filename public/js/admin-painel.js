@@ -205,6 +205,32 @@ const CATS_PRIMARIAS = new Set(['software', 'hardware', 'cameras', 'email', 'pro
 const CATS_HARDWARE_SUB = ['impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','tv_projetor','projetor','tablet','celular','outros'];
 const CATS_SOFTWARE_SUB = ['thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
 
+let _etiquetasDin = [];
+let _etiquetasByParent = {};
+
+async function _carregarEtiquetasDinamicas() {
+  try {
+    const data = await fetch('/api/etiquetas', { credentials: 'include' }).then(r => r.ok ? r.json() : []);
+    _etiquetasDin = Array.isArray(data) ? data : [];
+    _etiquetasByParent = {};
+    for (const e of _etiquetasDin) {
+      CATEGORIAS_MAP[e.slug] = { nome: e.nome, cor: e.cor || '#6B7280', icone: '' };
+      const p = e.parent_slug || '';
+      if (!_etiquetasByParent[p]) _etiquetasByParent[p] = [];
+      _etiquetasByParent[p].push(e);
+    }
+    const ncCat = document.getElementById('nc-categoria');
+    if (ncCat) {
+      ncCat.querySelectorAll('[data-din]').forEach(o => o.remove());
+      for (const e of (_etiquetasByParent[''] || [])) {
+        const o = document.createElement('option');
+        o.value = e.slug; o.textContent = e.nome; o.dataset.din = '1';
+        ncCat.appendChild(o);
+      }
+    }
+  } catch {}
+}
+
 function badgeCategoria(cat) {
   if (!cat || !CATEGORIAS_MAP[cat]) return '';
   const { nome, cor, icone } = CATEGORIAS_MAP[cat];
@@ -802,11 +828,22 @@ document.getElementById('nc-categoria').addEventListener('change', () => {
   const val = document.getElementById('nc-categoria').value;
   const sub = document.getElementById('nc-subcategoria');
   const subSw = document.getElementById('nc-subcategoria-sw');
+  const subCustom = document.getElementById('nc-subcategoria-custom');
   sub.style.display = val === 'hardware' ? 'block' : 'none';
   if (subSw) subSw.style.display = val === 'software' ? 'block' : 'none';
   if (val !== 'hardware') sub.value = '';
   if (subSw && val !== 'software') subSw.value = '';
+  if (subCustom) {
+    const subs = _etiquetasByParent[val] || [];
+    if (subs.length) {
+      subCustom.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`;
+      subCustom.style.display = 'block';
+    } else {
+      subCustom.style.display = 'none'; subCustom.innerHTML = '';
+    }
+  }
 });
+_carregarEtiquetasDinamicas();
 
 document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -828,6 +865,9 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     } else if (categoria === 'software') {
       const subSw = document.getElementById('nc-subcategoria-sw');
       if (subSw && subSw.value) categoria = subSw.value;
+    } else {
+      const subCustom = document.getElementById('nc-subcategoria-custom');
+      if (subCustom && subCustom.style.display !== 'none' && subCustom.value) categoria = subCustom.value;
     }
     if (categoria) fd.append('categoria', categoria);
     const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
@@ -1246,6 +1286,7 @@ function renderModalBody(c) {
                     <option value="">— tipo de software —</option>
                     ${CATS_SOFTWARE_SUB.map(id => `<option value="${id}" ${subCatSel === id ? 'selected' : ''}>${CATEGORIAS_MAP[id].nome}</option>`).join('')}
                   </select>
+                  <select class="form-control form-control-sm" id="sel-subcategoria-custom" style="display:none"></select>
                 </div>
                 <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
               </div>
@@ -1581,13 +1622,49 @@ function setupModalEventos(c) {
   const selCatEl = document.getElementById('sel-categoria');
   const selSubEl = document.getElementById('sel-subcategoria');
   const selSubSwEl = document.getElementById('sel-subcategoria-sw');
+  const selSubCustomEl = document.getElementById('sel-subcategoria-custom');
+
+  // Detect if current category is a dynamic sub
+  const isDynSub = !!(c.categoria && !CATS_PRIMARIAS.has(c.categoria) &&
+    !CATS_HARDWARE_SUB.includes(c.categoria) && !CATS_SOFTWARE_SUB.includes(c.categoria) &&
+    _etiquetasDin.find(e => e.slug === c.categoria && e.parent_slug));
+  const dynSubEt = isDynSub ? _etiquetasDin.find(e => e.slug === c.categoria) : null;
+
+  function _refreshSelSubCustom(parentVal) {
+    if (!selSubCustomEl) return;
+    const subs = _etiquetasByParent[parentVal] || [];
+    if (subs.length) {
+      selSubCustomEl.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}"${e.slug === c.categoria ? ' selected' : ''}>${e.nome}</option>`).join('')}`;
+      selSubCustomEl.style.display = 'block';
+    } else {
+      selSubCustomEl.style.display = 'none'; selSubCustomEl.innerHTML = '';
+    }
+  }
+
   if (selCatEl && selSubEl) {
+    // Inject dynamic primary etiquetas
+    selCatEl.querySelectorAll('[data-din]').forEach(o => o.remove());
+    for (const e of (_etiquetasByParent[''] || [])) {
+      const o = document.createElement('option');
+      o.value = e.slug; o.textContent = e.nome; o.dataset.din = '1';
+      if (isDynSub ? e.slug === dynSubEt?.parent_slug : e.slug === c.categoria) o.selected = true;
+      selCatEl.appendChild(o);
+    }
+    // If ticket is a dynamic sub, fix sel-categoria to show the parent
+    if (isDynSub && dynSubEt?.parent_slug) {
+      selCatEl.value = dynSubEt.parent_slug;
+      _refreshSelSubCustom(dynSubEt.parent_slug);
+    } else if (selCatEl.value) {
+      _refreshSelSubCustom(selCatEl.value);
+    }
+
     selCatEl.addEventListener('change', () => {
       const val = selCatEl.value;
       selSubEl.style.display = val === 'hardware' ? 'block' : 'none';
       if (selSubSwEl) selSubSwEl.style.display = val === 'software' ? 'block' : 'none';
       if (val !== 'hardware') selSubEl.value = '';
       if (selSubSwEl && val !== 'software') selSubSwEl.value = '';
+      _refreshSelSubCustom(val);
     });
   }
   const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
@@ -1600,6 +1677,9 @@ function setupModalEventos(c) {
       } else if (cat === 'software') {
         const subSw = document.getElementById('sel-subcategoria-sw');
         if (subSw && subSw.value) cat = subSw.value;
+      } else {
+        const subCustom = document.getElementById('sel-subcategoria-custom');
+        if (subCustom && subCustom.style.display !== 'none' && subCustom.value) cat = subCustom.value;
       }
       const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();

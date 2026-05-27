@@ -573,7 +573,7 @@ const CATEGORIAS_VALIDAS = [
 router.patch('/chamados/:id/categoria', requireAdmin, (req, res) => {
   try {
     const { categoria, servico_id, servico_nome } = req.body;
-    if (!categoria || !CATEGORIAS_VALIDAS.includes(categoria)) {
+    if (!categoria || (!CATEGORIAS_VALIDAS.includes(categoria) && !db.buscarEtiquetaPorSlug(categoria))) {
       return res.status(400).json({ erro: 'Categoria inválida' });
     }
     const chamado = db.buscarChamadoPorId(req.params.id);

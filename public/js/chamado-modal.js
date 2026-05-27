@@ -562,4 +562,14 @@ window.fecharChamadoModal = function() {
   if (typeof window._cmOnClose === 'function') window._cmOnClose();
 };
 
+// Load dynamic etiquetas and merge into CATEGORIAS_MAP
+fetch('/api/etiquetas', { credentials: 'include' })
+  .then(r => r.ok ? r.json() : [])
+  .then(lista => {
+    (lista || []).forEach(e => {
+      CATEGORIAS_MAP[e.slug] = { nome: e.nome, cor: e.cor || '#6B7280', icone: '' };
+    });
+  })
+  .catch(() => {});
+
 })();

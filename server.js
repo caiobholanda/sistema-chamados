@@ -78,6 +78,7 @@ app.use('/api/admin/estoque', require('./src/rotas/estoque'));
 app.use('/api/admin/contatos', require('./src/rotas/contatos'));
 app.use('/api/sugestoes', require('./src/rotas/sugestoes'));
 app.use('/api/servicos', require('./src/rotas/servicos'));
+app.use('/api/etiquetas', require('./src/rotas/etiquetas'));
 app.use('/api/admin', require('./src/rotas/admins'));
 
 app.get('*', (req, res) => {
