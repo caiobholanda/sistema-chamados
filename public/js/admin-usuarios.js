@@ -260,6 +260,7 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
   const body = {
     nome_completo: document.getElementById('f-nome').value.trim(),
     email: document.getElementById('f-email').value.trim().toLowerCase(),
+    ramal: document.getElementById('f-ramal-admin').value.trim() || null,
     is_master: document.getElementById('f-master').checked,
   };
 
@@ -294,6 +295,7 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
       if (a) {
         a.nome_completo = body.nome_completo;
         a.email = body.email;
+        a.ramal = body.ramal;
         a.is_master = body.is_master ? 1 : 0;
         if (body.senha) a.senha_plain = body.senha;
       }
@@ -348,7 +350,7 @@ function renderAdmins() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Tipo</th>${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
+            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Ramal</th><th style="text-align:center">Tipo</th>${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
           </tr></thead>
           <tbody>
             ${filtrados.map(a => `
@@ -356,6 +358,7 @@ function renderAdmins() {
                 <td style="text-align:center"><code>${a.usuario}</code></td>
                 <td style="text-align:center">${a.nome_completo}</td>
                 <td style="text-align:center;font-size:.82rem">${a.email || '<span class="text-muted">—</span>'}</td>
+                <td style="text-align:center;font-size:.85rem">${a.ramal ? `<code>${a.ramal}</code>` : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="text-align:center">${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
                 ${senhaCell(a.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
@@ -389,6 +392,7 @@ async function abrirModalAdmin(id) {
   document.getElementById('f-senha').type = 'password';
   document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   document.getElementById('f-email').value = '';
+  document.getElementById('f-ramal-admin').value = '';
   document.getElementById('f-master').checked = false;
   document.getElementById('f-master').disabled = false;
   document.getElementById('f-master').title = '';
@@ -400,6 +404,7 @@ async function abrirModalAdmin(id) {
     if (admin) {
       document.getElementById('f-nome').value = admin.nome_completo;
       document.getElementById('f-email').value = admin.email || '';
+      document.getElementById('f-ramal-admin').value = admin.ramal || '';
       document.getElementById('f-master').checked = !!admin.is_master;
       const eSiMesmo = id === meAdmin.id;
       document.getElementById('f-master').disabled = eSiMesmo;

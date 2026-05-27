@@ -118,6 +118,7 @@ function initDb() {
   try { db.exec('ALTER TABLE chamados ADD COLUMN categoria TEXT'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
+  try { db.exec('ALTER TABLE admins ADD COLUMN ramal TEXT'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN ramal TEXT'); } catch {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN setor TEXT'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN assinatura TEXT'); } catch {}
@@ -1681,14 +1682,14 @@ function buscarAdminPorEmail(email) {
 }
 
 function listarAdmins() {
-  return getDb().prepare('SELECT id, usuario, nome_completo, email, is_master, ativo, senha_plain, criado_em FROM admins ORDER BY criado_em ASC').all();
+  return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, is_master, ativo, senha_plain, criado_em FROM admins ORDER BY criado_em ASC').all();
 }
 
 function criarAdmin(dados) {
   const result = getDb().prepare(`
-    INSERT INTO admins (usuario, nome_completo, email, senha_hash, senha_plain, is_master)
-    VALUES (@usuario, @nome_completo, @email, @senha_hash, @senha_plain, @is_master)
-  `).run({ senha_plain: null, ...dados });
+    INSERT INTO admins (usuario, nome_completo, email, ramal, senha_hash, senha_plain, is_master)
+    VALUES (@usuario, @nome_completo, @email, @ramal, @senha_hash, @senha_plain, @is_master)
+  `).run({ senha_plain: null, ramal: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -1697,6 +1698,7 @@ function atualizarAdmin(id, dados) {
   const values = [];
   if (dados.nome_completo !== undefined) { campos.push('nome_completo = ?'); values.push(dados.nome_completo); }
   if (dados.email !== undefined) { campos.push('email = ?'); values.push(dados.email); }
+  if (dados.ramal !== undefined) { campos.push('ramal = ?'); values.push(dados.ramal); }
   if (dados.senha_hash !== undefined) { campos.push('senha_hash = ?'); values.push(dados.senha_hash); }
   if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
   if (dados.ativo !== undefined) { campos.push('ativo = ?'); values.push(dados.ativo); }

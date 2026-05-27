@@ -719,10 +719,11 @@ router.get('/portal-usuarios/:id/chamados', requireAdmin, (req, res) => {
 
 router.post('/usuarios', requireMaster, async (req, res) => {
   try {
-    let { nome_completo, email, senha, is_master } = req.body;
+    let { nome_completo, email, senha, is_master, ramal } = req.body;
     nome_completo = sanitizarTexto(nome_completo || '');
     email = (email || '').trim().toLowerCase();
     senha = (senha || '').trim();
+    ramal = sanitizarTexto(ramal || '');
 
     if (!nome_completo || nome_completo.length < 2) return res.status(400).json({ erro: 'Nome completo obrigatório' });
     if (!email || !email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
@@ -741,6 +742,7 @@ router.post('/usuarios', requireMaster, async (req, res) => {
       usuario,
       nome_completo,
       email,
+      ramal: ramal || null,
       senha_hash,
       senha_plain: senha,
       is_master: is_master ? 1 : 0,
@@ -762,6 +764,7 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
 
     const dados = {};
     if (req.body.nome_completo !== undefined) dados.nome_completo = sanitizarTexto(req.body.nome_completo);
+    if (req.body.ramal !== undefined) dados.ramal = sanitizarTexto(req.body.ramal || '') || null;
     if (req.body.email !== undefined) {
       const email = (req.body.email || '').trim().toLowerCase();
       if (email && !email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
