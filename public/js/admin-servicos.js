@@ -102,30 +102,30 @@
       subPorParent[e.parent_slug].push(e);
     });
 
-    let html = '<div class="etiqueta-tree">';
+    let html = '<div class="et-grid">';
 
     for (const p of primarias) {
       const subs = subPorParent[p.slug] || [];
-      html += '<div class="etiqueta-group">';
-      if (subs.length) {
-        html += `<div class="etiqueta-group-header">
-          <span class="etiqueta-dot" style="background:${esc(p.cor||'#6B7280')};width:8px;height:8px"></span>
-          ${esc(p.nome)}
-          <span style="margin-left:auto;font-size:.7rem;color:var(--text-muted)">${subs.length} sub-etiqueta${subs.length>1?'s':''}</span>
-        </div>`;
-      }
-      html += renderRow(p);
-      for (const s of subs) html += renderRow(s, p.nome);
-      html += '</div>';
+      const total = 1 + subs.length;
+      html += '<div>';
+      html += `<div class="et-section-label">
+        <span style="width:8px;height:8px;border-radius:50%;background:${esc(p.cor||'#6B7280')};display:inline-block;flex-shrink:0"></span>
+        ${esc(p.nome)}
+        <span>${total} etiqueta${total>1?'s':''}</span>
+      </div>`;
+      html += '<div class="et-cards">';
+      html += renderCard(p);
+      for (const s of subs) html += renderCard(s, p.nome);
+      html += '</div></div>';
     }
 
     // Subs cujo pai não está na lista filtrada
     const slugsPrim = new Set(primarias.map(e => e.slug));
     const orfaos = lista.filter(e => e.parent_slug && !slugsPrim.has(e.parent_slug));
     if (orfaos.length) {
-      html += '<div class="etiqueta-group">';
-      for (const s of orfaos) html += renderRow(s, nomePai(s.parent_slug));
-      html += '</div>';
+      html += '<div><div class="et-section-label">Sub-etiquetas</div><div class="et-cards">';
+      for (const s of orfaos) html += renderCard(s, nomePai(s.parent_slug));
+      html += '</div></div>';
     }
 
     html += '</div>';
@@ -133,20 +133,20 @@
     bindAcoes();
   }
 
-  function renderRow(e, parentNome) {
+  function renderCard(e, parentNome) {
     const cor = e.cor || '#6B7280';
     return `
-      <div class="etiqueta-row${e.ativo ? '' : ' etiqueta-inativo'}" data-id="${e.id}">
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:.2rem">
-          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
-            <span class="etiqueta-dot" style="background:${esc(cor)}${e.ativo?'':';opacity:.4'}"></span>
-            <span class="etiqueta-nome">${esc(e.nome)}</span>
-            ${parentNome ? `<span class="etiqueta-parent-badge">${esc(parentNome)}</span>` : ''}
-            ${!e.ativo ? '<span class="badge badge-encerrado">Inativa</span>' : ''}
+      <div class="et-card${e.ativo ? '' : ' et-card-inativo'}" data-id="${e.id}">
+        <div class="et-card-accent" style="background:${esc(cor)}"></div>
+        <div class="et-card-body">
+          <div class="et-card-top">
+            <span class="et-card-nome" style="color:${esc(cor)}">${esc(e.nome)}</span>
+            ${parentNome ? `<span class="et-card-sub-badge">↳ ${esc(parentNome)}</span>` : ''}
+            ${!e.ativo ? '<span class="et-card-inativo-badge">Inativa</span>' : ''}
           </div>
-          ${e.descricao ? `<div style="font-size:.8rem;color:var(--text-muted);padding-left:1.1rem">${esc(e.descricao)}</div>` : ''}
+          ${e.descricao ? `<div class="et-card-desc">${esc(e.descricao)}</div>` : '<div class="et-card-desc" style="font-style:italic;opacity:.5">Sem descrição</div>'}
         </div>
-        <div class="etiqueta-actions" style="flex-shrink:0;align-self:flex-start;padding-top:.1rem">
+        <div class="et-card-actions">
           <button class="btn btn-sm btn-secondary btn-editar-et" data-id="${e.id}">Editar</button>
           <button class="btn btn-sm ${e.ativo ? 'btn-ghost' : 'btn-primary'} btn-toggle-et" data-id="${e.id}" data-ativo="${e.ativo?1:0}">${e.ativo ? 'Desativar' : 'Ativar'}</button>
           <button class="btn btn-sm btn-danger btn-del-et" data-id="${e.id}">✕</button>
