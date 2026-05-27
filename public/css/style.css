@@ -258,7 +258,7 @@
 [data-theme="dark"] .sub-tab-btn:hover { background: rgba(255,255,255,.06); }
 
 /* badge-info-extra e anexo-uploader em dark (usam var(--navy) como cor de texto) */
-[data-theme="dark"] .badge-info-extra { color: var(--gold-light); }
+[data-theme="dark"] .badge-info-extra { color: var(--gold-light); background: rgba(197,165,90,.2); border-color: rgba(197,165,90,.45); }
 [data-theme="dark"] .anexo-uploader-add { color: var(--text); }
 [data-theme="dark"] .anexo-uploader-add:hover { background: rgba(197,165,90,.1); }
 
