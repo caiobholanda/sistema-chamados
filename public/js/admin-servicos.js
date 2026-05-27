@@ -1,6 +1,16 @@
 (function () {
   'use strict';
 
+  const CORES_PALETA = [
+    '#6366F1','#0EA5E9','#06B6D4','#10B981','#F59E0B','#EF4444',
+    '#EC4899','#8B5CF6','#F97316','#14B8A6','#3B82F6','#84CC16',
+    '#E11D48','#7C3AED','#0891B2','#DC2626','#D97706','#059669',
+  ];
+
+  function corAleatoria() {
+    return CORES_PALETA[Math.floor(Math.random() * CORES_PALETA.length)];
+  }
+
   let etiquetas = [];
   let editandoId = null;
   let confirmCallback = null;
@@ -32,7 +42,6 @@
     return data;
   }
 
-  /* ── Auth (master only) ── */
   async function verificarAuth() {
     try {
       const info = await api('/api/admin/me');
@@ -48,7 +57,6 @@
     }
   }
 
-  /* ── Carregar ── */
   async function carregar() {
     try {
       etiquetas = await api('/api/etiquetas/admin');
@@ -68,6 +76,10 @@
 
   function renderizar() {
     const el = document.getElementById('lista-etiquetas');
+    if (!etiquetas.length) {
+      el.innerHTML = '<div class="empty-state">Nenhuma etiqueta encontrada.</div>';
+      return;
+    }
 
     const primarias = etiquetas.filter(e => !e.parent_slug);
     const subPorParent = {};
@@ -76,41 +88,29 @@
       subPorParent[e.parent_slug].push(e);
     });
 
-    if (!primarias.length && !Object.keys(subPorParent).length) {
-      el.innerHTML = '<div class="empty-state">Nenhuma etiqueta encontrada.</div>';
-      return;
-    }
-
     let html = '<div class="etiqueta-tree">';
 
     for (const p of primarias) {
       const subs = subPorParent[p.slug] || [];
-      const totalSubs = subs.length;
-      html += `<div class="etiqueta-group">
-        <div class="etiqueta-group-header" style="justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:.5rem">
-            <span class="etiqueta-dot" style="background:${esc(p.cor || '#6B7280')};width:8px;height:8px"></span>
-            ${esc(p.nome)}
-            ${p.sistema ? '<span style="font-size:.65rem;background:var(--surface-3,#e8e8e8);color:var(--text-muted);padding:1px 6px;border-radius:8px;font-weight:600">sistema</span>' : ''}
-          </div>
-          ${totalSubs ? `<span style="font-size:.7rem;color:var(--text-muted)">${totalSubs} sub-etiqueta${totalSubs > 1 ? 's' : ''}</span>` : ''}
-        </div>
-        ${renderRow(p, null, false)}`;
-      for (const s of subs) html += renderRow(s, p.nome, true);
+      html += '<div class="etiqueta-group">';
+      if (subs.length) {
+        html += `<div class="etiqueta-group-header">
+          <span class="etiqueta-dot" style="background:${esc(p.cor||'#6B7280')};width:8px;height:8px"></span>
+          ${esc(p.nome)}
+          <span style="margin-left:auto;font-size:.7rem;color:var(--text-muted)">${subs.length} sub-etiqueta${subs.length>1?'s':''}</span>
+        </div>`;
+      }
+      html += renderRow(p);
+      for (const s of subs) html += renderRow(s, p.nome);
       html += '</div>';
     }
 
-    // Subs de pais que não estão na lista de primárias (pai é um slug externo sem entrada própria)
-    const slugsPrimarias = new Set(primarias.map(e => e.slug));
-    const paisSemEntrada = [...new Set(
-      etiquetas.filter(e => e.parent_slug && !slugsPrimarias.has(e.parent_slug)).map(e => e.parent_slug)
-    )];
-    for (const pSlug of paisSemEntrada) {
-      const subs = subPorParent[pSlug] || [];
-      if (!subs.length) continue;
-      html += `<div class="etiqueta-group" style="margin-top:.5rem">
-        <div class="etiqueta-group-header">${esc(nomePai(pSlug))}</div>`;
-      for (const s of subs) html += renderRow(s, nomePai(pSlug), true);
+    // Subs cujo pai não está na lista (não deveria acontecer, mas por segurança)
+    const slugsPrim = new Set(primarias.map(e => e.slug));
+    const orfaos = etiquetas.filter(e => e.parent_slug && !slugsPrim.has(e.parent_slug));
+    if (orfaos.length) {
+      html += '<div class="etiqueta-group">';
+      for (const s of orfaos) html += renderRow(s, nomePai(s.parent_slug));
       html += '</div>';
     }
 
@@ -119,23 +119,23 @@
     bindAcoes();
   }
 
-  function renderRow(e, parentNome, isSub) {
-    const inativo = !e.ativo;
+  function renderRow(e, parentNome) {
+    const cor = e.cor || '#6B7280';
     return `
-      <div class="etiqueta-row${inativo ? ' etiqueta-inativo' : ''}" data-id="${e.id}">
-        ${isSub ? '<div style="width:20px;flex-shrink:0"></div>' : ''}
-        <span class="etiqueta-dot" style="background:${esc(e.cor || '#6B7280')}${inativo ? ';opacity:.4' : ''}"></span>
-        <span class="etiqueta-nome">${esc(e.nome)}</span>
-        ${isSub && parentNome ? `<span class="etiqueta-parent-badge">${esc(parentNome)}</span>` : ''}
-        <span class="etiqueta-desc">${esc(e.descricao || '—')}</span>
-        ${inativo ? '<span class="badge badge-encerrado" style="flex-shrink:0">Inativa</span>' : ''}
-        ${e.sistema ? '<span style="font-size:.65rem;background:var(--surface-3,#e8e8e8);color:var(--text-muted);padding:1px 6px;border-radius:8px;font-weight:600;flex-shrink:0">sistema</span>' : ''}
-        <div class="etiqueta-actions">
+      <div class="etiqueta-row${e.ativo ? '' : ' etiqueta-inativo'}" data-id="${e.id}">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:.2rem">
+          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+            <span class="etiqueta-dot" style="background:${esc(cor)}${e.ativo?'':';opacity:.4'}"></span>
+            <span class="etiqueta-nome">${esc(e.nome)}</span>
+            ${parentNome ? `<span class="etiqueta-parent-badge">${esc(parentNome)}</span>` : ''}
+            ${!e.ativo ? '<span class="badge badge-encerrado">Inativa</span>' : ''}
+          </div>
+          ${e.descricao ? `<div style="font-size:.8rem;color:var(--text-muted);padding-left:1.1rem">${esc(e.descricao)}</div>` : ''}
+        </div>
+        <div class="etiqueta-actions" style="flex-shrink:0;align-self:flex-start;padding-top:.1rem">
           <button class="btn btn-sm btn-secondary btn-editar-et" data-id="${e.id}">Editar</button>
-          ${!e.sistema ? `
-          <button class="btn btn-sm ${e.ativo ? 'btn-ghost' : 'btn-primary'} btn-toggle-et" data-id="${e.id}" data-ativo="${e.ativo ? 1 : 0}">${e.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button class="btn btn-sm ${e.ativo ? 'btn-ghost' : 'btn-primary'} btn-toggle-et" data-id="${e.id}" data-ativo="${e.ativo?1:0}">${e.ativo ? 'Desativar' : 'Ativar'}</button>
           <button class="btn btn-sm btn-danger btn-del-et" data-id="${e.id}">✕</button>
-          ` : ''}
         </div>
       </div>`;
   }
@@ -148,22 +148,20 @@
 
   /* ── Modal ── */
   function popularParentSelect(parentAtual, eSistema) {
-    const sel = document.getElementById('et-parent');
     const wrap = document.getElementById('et-parent-wrap');
-    if (eSistema) {
-      if (wrap) wrap.style.display = 'none';
-      return;
-    }
+    const sel  = document.getElementById('et-parent');
+    // Etiquetas do sistema têm hierarquia fixa — esconde campo pai
+    if (eSistema) { if (wrap) wrap.style.display = 'none'; return; }
     if (wrap) wrap.style.display = '';
     sel.innerHTML = '<option value="">— Nenhuma (etiqueta principal) —</option>';
 
-    const primSistema = etiquetas.filter(e => !e.parent_slug && e.sistema);
-    const primCustom = etiquetas.filter(e => !e.parent_slug && !e.sistema && e.id !== editandoId);
+    const pSistema = etiquetas.filter(e => !e.parent_slug && e.sistema);
+    const pCustom  = etiquetas.filter(e => !e.parent_slug && !e.sistema && e.id !== editandoId);
 
-    if (primSistema.length) {
+    if (pSistema.length) {
       const g = document.createElement('optgroup');
       g.label = 'Categorias do sistema';
-      primSistema.forEach(e => {
+      pSistema.forEach(e => {
         const o = document.createElement('option');
         o.value = e.slug; o.textContent = e.nome;
         if (e.slug === parentAtual) o.selected = true;
@@ -171,11 +169,10 @@
       });
       sel.appendChild(g);
     }
-
-    if (primCustom.length) {
+    if (pCustom.length) {
       const g = document.createElement('optgroup');
       g.label = 'Personalizadas';
-      primCustom.forEach(e => {
+      pCustom.forEach(e => {
         const o = document.createElement('option');
         o.value = e.slug; o.textContent = e.nome;
         if (e.slug === parentAtual) o.selected = true;
@@ -188,13 +185,13 @@
   function abrirModal(titulo, dados = {}) {
     editandoId = dados.id || null;
     const eSistema = !!dados.sistema;
+    const cor = dados.cor || corAleatoria();
 
     document.getElementById('modal-etiqueta-title').textContent = titulo;
-    document.getElementById('et-id').value = dados.id || '';
-    document.getElementById('et-nome').value = dados.nome || '';
+    document.getElementById('et-id').value    = dados.id || '';
+    document.getElementById('et-nome').value  = dados.nome || '';
     document.getElementById('et-descricao').value = dados.descricao || '';
-    const cor = dados.cor || '#6B7280';
-    document.getElementById('et-cor').value = cor;
+    document.getElementById('et-cor').value   = cor;
     atualizarPreview(cor, dados.nome || 'Etiqueta');
     popularParentSelect(dados.parent_slug || '', eSistema);
     document.getElementById('modal-etiqueta-overlay').classList.add('open');
@@ -216,13 +213,13 @@
 
   /* ── Salvar ── */
   async function salvar() {
-    const nome = document.getElementById('et-nome').value.trim();
+    const nome      = document.getElementById('et-nome').value.trim();
     const descricao = document.getElementById('et-descricao').value.trim();
-    const parentWrap = document.getElementById('et-parent-wrap');
-    const parent_slug = (parentWrap && parentWrap.style.display === 'none')
+    const cor       = document.getElementById('et-cor').value;
+    const wrap      = document.getElementById('et-parent-wrap');
+    const parent_slug = (wrap && wrap.style.display === 'none')
       ? undefined
       : (document.getElementById('et-parent').value || null);
-    const cor = document.getElementById('et-cor').value;
 
     if (!nome) { toast('Nome é obrigatório.', 'erro'); document.getElementById('et-nome').focus(); return; }
 
@@ -254,7 +251,6 @@
     abrirModal('Editar Etiqueta', e);
   }
 
-  /* ── Toggle ativo ── */
   async function toggleAtivo(id, ativoAtual) {
     try {
       await api(`/api/etiquetas/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: ativoAtual ? 0 : 1 }) });
@@ -263,7 +259,6 @@
     } catch (e) { toast(e.message, 'erro'); }
   }
 
-  /* ── Delete ── */
   function confirmarDelete(id) {
     const e = etiquetas.find(x => x.id === id);
     if (!e) return;
