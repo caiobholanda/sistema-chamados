@@ -704,8 +704,17 @@ router.get('/push/check', requireAdmin, (req, res) => {
 
 router.get('/colegas', requireAdmin, (req, res) => {
   try {
-    const todos = db.listarAdmins();
-    return res.json(todos.filter(a => a.ativo && !a.is_test).map(a => ({ id: a.id, nome_completo: a.nome_completo })));
+    const todos = db.listarAdminsTransferencia();
+    return res.json(todos.filter(a => a.ativo).map(a => ({ id: a.id, nome_completo: a.nome_completo })));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.get('/transferencia-admins', requireAdmin, (req, res) => {
+  try {
+    return res.json(db.listarAdminsTransferencia().filter(a => a.ativo));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

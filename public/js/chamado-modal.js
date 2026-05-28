@@ -401,13 +401,13 @@ function _setupEventos(c) {
       const area = q('cm-area-transferir');
       if (area.style.display === 'none') {
         area.style.display = 'block';
-        const r = await _api('/api/admin/usuarios');
+        const r = await _api('/api/admin/transferencia-admins');
         if (r.ok) {
           const admins = await r.json();
           const adminInfo = window.adminInfo || {};
           const sel = q('cm-sel-transferir-admin');
           sel.innerHTML = '<option value="">Selecione um admin...</option>' +
-            admins.filter(a => a.ativo && !a.is_test && a.id !== adminInfo.id).map(a =>
+            admins.filter(a => a.id !== adminInfo.id).map(a =>
               `<option value="${a.id}">${a.nome_completo}${a.is_master ? ' ★' : ''}</option>`
             ).join('');
         }

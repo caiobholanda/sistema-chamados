@@ -1703,6 +1703,10 @@ function listarAdmins() {
   return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, is_master, ativo, senha_plain, criado_em, COALESCE(is_test,0) as is_test FROM admins ORDER BY criado_em ASC').all();
 }
 
+function listarAdminsTransferencia() {
+  return getDb().prepare("SELECT id, usuario, nome_completo, email, ramal, is_master, ativo FROM admins WHERE COALESCE(is_test,0) = 0 ORDER BY criado_em ASC").all();
+}
+
 function criarAdmin(dados) {
   const result = getDb().prepare(`
     INSERT INTO admins (usuario, nome_completo, email, ramal, senha_hash, senha_plain, is_master)
@@ -2421,6 +2425,7 @@ module.exports = {
   buscarAdminPorId,
   buscarAdminPorEmail,
   listarAdmins,
+  listarAdminsTransferencia,
   criarAdmin,
   atualizarAdmin,
   deletarAdmin,
