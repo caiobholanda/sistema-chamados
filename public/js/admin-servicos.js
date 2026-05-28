@@ -14,6 +14,7 @@
   let etiquetas = [];
   let editandoId = null;
   let confirmCallback = null;
+  let _parentCombo = null;
 
   /* ── Utils ── */
   function esc(s) {
@@ -183,45 +184,80 @@
   }
 
   /* ── Modal ── */
-  function popularParentSelect(parentAtual, eSistema) {
-    const wrap = document.getElementById('et-parent-wrap');
-    const sel  = document.getElementById('et-parent');
-    // Etiquetas do sistema têm hierarquia fixa — esconde campo pai
-    if (eSistema) { if (wrap) wrap.style.display = 'none'; return; }
-    if (wrap) wrap.style.display = '';
-    sel.innerHTML = '<option value="">— Nenhuma (etiqueta principal) —</option>';
-
-    // Inclui todas as etiquetas como possíveis pais (permite hierarquia de 3+ níveis)
-    const candidatos = etiquetas.filter(e => e.ativo && e.id !== editandoId);
-    const pSistema = candidatos.filter(e => e.sistema);
-    const pCustom  = candidatos.filter(e => !e.sistema);
-
-    if (pSistema.length) {
-      const g = document.createElement('optgroup');
-      g.label = 'Sistema';
-      pSistema.forEach(e => {
-        const o = document.createElement('option');
-        const bc = breadcrumb(e);
-        o.value = e.slug;
-        o.textContent = bc ? `${bc} › ${e.nome}` : e.nome;
-        if (e.slug === parentAtual) o.selected = true;
-        g.appendChild(o);
-      });
-      sel.appendChild(g);
+  function _criarParentCombo(wrapEl) {
+    if (!wrapEl) return null;
+    if (!document.getElementById('_et-pcomb-css')) {
+      const st = document.createElement('style');
+      st.id = '_et-pcomb-css';
+      st.textContent = '.et-pcomb-item:hover{background:var(--surface-2)}.et-pcomb-sel{background:var(--surface-2)}';
+      document.head.appendChild(st);
     }
-    if (pCustom.length) {
-      const g = document.createElement('optgroup');
-      g.label = 'Personalizadas';
-      pCustom.forEach(e => {
-        const o = document.createElement('option');
-        const bc = breadcrumb(e);
-        o.value = e.slug;
-        o.textContent = bc ? `${bc} › ${e.nome}` : e.nome;
-        if (e.slug === parentAtual) o.selected = true;
-        g.appendChild(o);
-      });
-      sel.appendChild(g);
+    wrapEl.innerHTML = `<div style="position:relative">
+      <input type="text" class="form-control" data-pcomb-inp placeholder="— Nenhuma (etiqueta principal) —" autocomplete="off">
+      <input type="hidden" id="et-parent" data-pcomb-val>
+      <div data-pcomb-dd style="display:none;position:absolute;z-index:1050;left:0;right:0;top:calc(100% + 2px);background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);max-height:220px;overflow-y:auto"></div>
+    </div>`;
+    const inp  = wrapEl.querySelector('[data-pcomb-inp]');
+    const valI = wrapEl.querySelector('[data-pcomb-val]');
+    const dd   = wrapEl.querySelector('[data-pcomb-dd]');
+
+    function _render(q) {
+      const query = (q || '').toLowerCase().trim();
+      const candidatos = etiquetas.filter(e => e.ativo && e.id !== editandoId);
+      const filtered = query
+        ? candidatos.filter(e => { const bc = breadcrumb(e); return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query); })
+        : candidatos;
+
+      const noneHtml = `<div class="et-pcomb-item${!valI.value ? ' et-pcomb-sel' : ''}" data-slug=""
+        style="padding:.42rem .75rem;cursor:pointer;font-size:.83rem;color:var(--text-muted);font-style:italic">
+        — Nenhuma (etiqueta principal) —</div>`;
+
+      dd.innerHTML = noneHtml + (filtered.length
+        ? filtered.map(e => {
+            const bc = breadcrumb(e);
+            const cor = e.cor || '#6B7280';
+            return `<div class="et-pcomb-item${e.slug === valI.value ? ' et-pcomb-sel' : ''}" data-slug="${e.slug}"
+              style="padding:.42rem .75rem;cursor:pointer;display:flex;align-items:center;gap:.45rem;font-size:.83rem">
+              <span style="width:7px;height:7px;border-radius:50%;background:${cor};flex-shrink:0"></span>
+              <span>${bc ? `<span style="color:var(--text-muted);font-size:.74rem">${bc} › </span>` : ''}<strong style="font-weight:600">${e.nome}</strong></span>
+            </div>`;
+          }).join('')
+        : (query ? '<div style="padding:.4rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma encontrada</div>' : ''));
+      dd.style.display = 'block';
     }
+
+    function _close() { dd.style.display = 'none'; }
+
+    function _pick(slug) {
+      valI.value = slug || '';
+      if (!slug) { inp.value = ''; }
+      else {
+        const et = etiquetas.find(e => e.slug === slug);
+        if (et) { const bc = breadcrumb(et); inp.value = bc ? `${bc} › ${et.nome}` : et.nome; }
+        else inp.value = slug;
+      }
+      _close();
+    }
+
+    inp.addEventListener('focus', () => _render(inp.value));
+    inp.addEventListener('input', () => { if (!inp.value.trim()) valI.value = ''; _render(inp.value); });
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape') _close();
+      if (ev.key === 'Enter') { ev.preventDefault(); const f = dd.querySelector('.et-pcomb-item'); if (f) _pick(f.dataset.slug); }
+    });
+    dd.addEventListener('mousedown', ev => {
+      const item = ev.target.closest('.et-pcomb-item');
+      if (!item) return;
+      ev.preventDefault();
+      _pick(item.dataset.slug);
+    });
+    document.addEventListener('click', ev => { if (!wrapEl.contains(ev.target)) _close(); }, true);
+
+    return {
+      getValue: () => valI.value || null,
+      setValue(slug) { _pick(slug || ''); },
+      clear() { valI.value = ''; inp.value = ''; _close(); },
+    };
   }
 
   function abrirModal(titulo, dados = {}) {
@@ -235,7 +271,13 @@
     document.getElementById('et-descricao').value = dados.descricao || '';
     document.getElementById('et-cor').value   = cor;
     atualizarPreview(cor, dados.nome || 'Etiqueta');
-    popularParentSelect(dados.parent_slug || '', eSistema);
+    const wrap = document.getElementById('et-parent-wrap');
+    if (eSistema) {
+      if (wrap) wrap.style.display = 'none';
+    } else {
+      if (wrap) wrap.style.display = '';
+      _parentCombo?.setValue(dados.parent_slug || '');
+    }
     document.getElementById('modal-etiqueta-overlay').classList.add('open');
     setTimeout(() => document.getElementById('et-nome').focus(), 50);
   }
@@ -243,6 +285,7 @@
   function fecharModal() {
     document.getElementById('modal-etiqueta-overlay').classList.remove('open');
     document.getElementById('form-etiqueta').reset();
+    _parentCombo?.clear();
     editandoId = null;
   }
 
@@ -334,6 +377,7 @@
     const ok = await verificarAuth();
     if (!ok) return;
     await carregar();
+    _parentCombo = _criarParentCombo(document.getElementById('et-parent-combo'));
 
     document.getElementById('filtro-etiquetas').addEventListener('input', () => renderizar());
     document.getElementById('btn-nova-etiqueta').addEventListener('click', () => abrirModal('Nova Etiqueta'));
