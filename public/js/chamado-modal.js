@@ -67,6 +67,23 @@ function _badgeCategoria(cat) {
   return `<span class="badge-categoria" style="--cat-cor:${cor}">${icone} ${nome}</span>`;
 }
 
+function _cmCatChain(slug) {
+  if (!slug) return [];
+  const all = typeof _etiquetasDin !== 'undefined' ? _etiquetasDin : [];
+  const e = all.find(x => x.slug === slug);
+  if (!e || !e.parent_slug) return [slug];
+  return [..._cmCatChain(e.parent_slug), slug];
+}
+
+function _cmGetCategoriaVal() {
+  const l3 = document.getElementById('cm-sel-cat-l3');
+  if (l3 && l3.style.display !== 'none' && l3.value) return l3.value;
+  const l2 = document.getElementById('cm-sel-cat-l2');
+  if (l2 && l2.style.display !== 'none' && l2.value) return l2.value;
+  const l1 = document.getElementById('cm-sel-cat-l1');
+  return (l1 && l1.value) ? l1.value : '';
+}
+
 function _badgeStatus(s) {
   return `<span class="badge badge-${s}">${STATUS_LABELS[s] || s}</span>`;
 }
@@ -131,6 +148,14 @@ function _renderBody(c) {
     ? `<div class="banner-prazo"><strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'}: de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? _fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? _fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
     : '';
 
+  const _cmChain = _cmCatChain(c.categoria);
+  const _cmL1 = _cmChain[0] || '';
+  const _cmL2 = _cmChain[1] || '';
+  const _cmL3 = _cmChain[2] || '';
+  const _cmRoots = typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[''] || []) : [];
+  const _cmL1Subs = _cmL1 ? (typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[_cmL1] || []) : []) : [];
+  const _cmL2Subs = _cmL2 ? (typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[_cmL2] || []) : []) : [];
+
   document.getElementById('cm-modal-title').innerHTML =
     `${_badgeStatus(c.status)} ${_badgeCategoria(c.categoria)}`;
 
@@ -189,13 +214,24 @@ function _renderBody(c) {
             </div>` : ''}
           </div>
 
-          <div class="mv2-cat-row">
+          <div class="mv2-cat-row" style="align-items:flex-start">
             <span class="mv2-field-label">Categoria</span>
             ${_badgeCategoria(c.categoria) || '<span class="mv2-empty-text">Não classificado</span>'}
-            <select class="form-control form-control-sm" id="cm-sel-categoria" style="flex:1;max-width:180px;margin-left:.25rem">
-              ${Object.entries(CATEGORIAS_MAP).map(([id, cat]) => `<option value="${id}" ${c.categoria === id ? 'selected' : ''}>${cat.nome}</option>`).join('')}
-            </select>
-            <button class="btn btn-secondary btn-sm" id="cm-btn-salvar-categoria">Salvar</button>
+            <div style="flex:1;display:flex;flex-direction:column;gap:.3rem;margin-left:.25rem">
+              <select class="form-control form-control-sm" id="cm-sel-cat-l1">
+                <option value="">— Não classificado —</option>
+                ${_cmRoots.map(e => `<option value="${e.slug}" ${e.slug === _cmL1 ? 'selected' : ''}>${e.nome}</option>`).join('')}
+              </select>
+              <select class="form-control form-control-sm" id="cm-sel-cat-l2" style="${_cmL1Subs.length ? '' : 'display:none'}">
+                <option value="">— subtipo —</option>
+                ${_cmL1Subs.map(e => `<option value="${e.slug}" ${e.slug === _cmL2 ? 'selected' : ''}>${e.nome}</option>`).join('')}
+              </select>
+              <select class="form-control form-control-sm" id="cm-sel-cat-l3" style="${_cmL2Subs.length ? '' : 'display:none'}">
+                <option value="">— subtipo —</option>
+                ${_cmL2Subs.map(e => `<option value="${e.slug}" ${e.slug === _cmL3 ? 'selected' : ''}>${e.nome}</option>`).join('')}
+              </select>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="cm-btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
           </div>
 
           <div class="mv2-section">
@@ -348,9 +384,31 @@ function _setupEventos(c) {
 
   const q = (id) => document.getElementById(id);
 
+  if (q('cm-sel-cat-l1')) {
+    q('cm-sel-cat-l1').addEventListener('change', () => {
+      const val = q('cm-sel-cat-l1').value;
+      const l2 = q('cm-sel-cat-l2'); const l3 = q('cm-sel-cat-l3');
+      if (l3) { l3.style.display = 'none'; l3.innerHTML = ''; }
+      const subs = val && typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[val] || []) : [];
+      if (l2) {
+        if (subs.length) { l2.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`; l2.style.display = ''; }
+        else { l2.style.display = 'none'; l2.innerHTML = ''; }
+      }
+    });
+  }
+  if (q('cm-sel-cat-l2')) {
+    q('cm-sel-cat-l2').addEventListener('change', () => {
+      const val = q('cm-sel-cat-l2').value;
+      const l3 = q('cm-sel-cat-l3');
+      if (!l3) return;
+      const subs = val && typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[val] || []) : [];
+      if (subs.length) { l3.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`; l3.style.display = ''; }
+      else { l3.style.display = 'none'; l3.innerHTML = ''; }
+    });
+  }
   if (q('cm-btn-salvar-categoria')) {
     q('cm-btn-salvar-categoria').addEventListener('click', async () => {
-      const cat = q('cm-sel-categoria').value;
+      const cat = _cmGetCategoriaVal();
       const r = await _api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
