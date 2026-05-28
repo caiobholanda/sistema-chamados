@@ -711,6 +711,8 @@ function abrirModalNovoChamado() {
   if (ncSub) { ncSub.value = ''; ncSub.style.display = 'none'; }
   const ncSubSw = document.getElementById('nc-subcategoria-sw');
   if (ncSubSw) { ncSubSw.value = ''; ncSubSw.style.display = 'none'; }
+  const ncSubCustom = document.getElementById('nc-subcategoria-custom');
+  if (ncSubCustom) { ncSubCustom.value = ''; ncSubCustom.style.display = 'none'; ncSubCustom.innerHTML = ''; }
   document.getElementById('nc-descricao').value = '';
   _resetNcArquivos();
   document.getElementById('msg-novo-chamado').innerHTML = '';
