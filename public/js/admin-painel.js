@@ -851,8 +851,7 @@ document.getElementById('nc-categoria').addEventListener('change', () => {
   }
 });
 
-document.getElementById('nc-subcategoria-custom').addEventListener('change', () => {
-  const val = document.getElementById('nc-subcategoria-custom').value;
+function _atualizarSubSubCustom(val) {
   const subSub = document.getElementById('nc-subsubcategoria-custom');
   if (!subSub) return;
   const subs = val ? (_etiquetasByParent[val] || []) : [];
@@ -862,6 +861,16 @@ document.getElementById('nc-subcategoria-custom').addEventListener('change', () 
   } else {
     subSub.style.display = 'none'; subSub.innerHTML = '';
   }
+}
+
+document.getElementById('nc-subcategoria-custom').addEventListener('change', () => {
+  _atualizarSubSubCustom(document.getElementById('nc-subcategoria-custom').value);
+});
+document.getElementById('nc-subcategoria-sw').addEventListener('change', () => {
+  _atualizarSubSubCustom(document.getElementById('nc-subcategoria-sw').value);
+});
+document.getElementById('nc-subcategoria').addEventListener('change', () => {
+  _atualizarSubSubCustom(document.getElementById('nc-subcategoria').value);
 });
 _carregarEtiquetasDinamicas();
 
@@ -879,20 +888,18 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     const fd = new FormData();
     fd.append('descricao', descricao);
     let categoria = document.getElementById('nc-categoria').value;
+    const subSubCustom = document.getElementById('nc-subsubcategoria-custom');
+    const subSubVal = subSubCustom && subSubCustom.style.display !== 'none' ? subSubCustom.value : '';
     if (categoria === 'hardware') {
       const sub = document.getElementById('nc-subcategoria').value;
-      if (sub) categoria = sub;
+      if (sub) categoria = subSubVal || sub;
     } else if (categoria === 'software') {
       const subSw = document.getElementById('nc-subcategoria-sw');
-      if (subSw && subSw.value) categoria = subSw.value;
+      if (subSw && subSw.value) categoria = subSubVal || subSw.value;
     } else {
       const subCustom = document.getElementById('nc-subcategoria-custom');
       if (subCustom && subCustom.style.display !== 'none' && subCustom.value) {
-        categoria = subCustom.value;
-        const subSubCustom = document.getElementById('nc-subsubcategoria-custom');
-        if (subSubCustom && subSubCustom.style.display !== 'none' && subSubCustom.value) {
-          categoria = subSubCustom.value;
-        }
+        categoria = subSubVal || subCustom.value;
       }
     }
     if (categoria) fd.append('categoria', categoria);
