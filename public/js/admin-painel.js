@@ -837,7 +837,7 @@ document.getElementById('nc-categoria').addEventListener('change', () => {
   if (subSw && val !== 'software') subSw.value = '';
   if (subCustom) {
     const temDropdownProprio = val === 'hardware' || val === 'software';
-    const subs = !temDropdownProprio ? (_etiquetasByParent[val] || []) : [];
+    const subs = (val && !temDropdownProprio) ? (_etiquetasByParent[val] || []) : [];
     if (subs.length) {
       subCustom.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`;
       subCustom.style.display = 'block';
