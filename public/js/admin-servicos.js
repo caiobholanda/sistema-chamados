@@ -204,9 +204,9 @@
     function _render(q) {
       const query = (q || '').toLowerCase().trim();
       const candidatos = etiquetas.filter(e => e.ativo && e.id !== editandoId);
-      const filtered = query
+      const filtered = (query
         ? candidatos.filter(e => { const bc = breadcrumb(e); return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query); })
-        : candidatos;
+        : candidatos).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
 
       dd.innerHTML = filtered.length
         ? filtered.map(e => {

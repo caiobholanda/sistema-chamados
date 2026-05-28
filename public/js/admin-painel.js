@@ -315,6 +315,7 @@ function _criarComboEtiqueta(wrapEl, cfg = {}) {
         return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query) || e.slug.includes(query);
       });
     }
+    list.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
     if (!list.length) {
       dd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
     } else {
