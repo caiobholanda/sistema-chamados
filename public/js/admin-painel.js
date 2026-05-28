@@ -711,10 +711,8 @@ function abrirModalNovoChamado() {
   if (ncSub) { ncSub.value = ''; ncSub.style.display = 'none'; }
   const ncSubSw = document.getElementById('nc-subcategoria-sw');
   if (ncSubSw) { ncSubSw.value = ''; ncSubSw.style.display = 'none'; }
-  const ncSubCustom = document.getElementById('nc-subcategoria-custom');
-  if (ncSubCustom) { ncSubCustom.value = ''; ncSubCustom.style.display = 'none'; ncSubCustom.innerHTML = ''; }
-  const ncSubSubCustom = document.getElementById('nc-subsubcategoria-custom');
-  if (ncSubSubCustom) { ncSubSubCustom.value = ''; ncSubSubCustom.style.display = 'none'; ncSubSubCustom.innerHTML = ''; }
+  const ncSubContainer = document.getElementById('nc-sub-custom-container');
+  if (ncSubContainer) ncSubContainer.innerHTML = '';
   document.getElementById('nc-descricao').value = '';
   _resetNcArquivos();
   document.getElementById('msg-novo-chamado').innerHTML = '';
@@ -828,49 +826,58 @@ document.getElementById('nc-anexo-tiles')?.addEventListener('click', (e) => {
   _renderNcTiles();
 });
 
+function _ncGetDeepestVal() {
+  const container = document.getElementById('nc-sub-custom-container');
+  if (!container) return '';
+  const selects = container.querySelectorAll('select');
+  for (let i = selects.length - 1; i >= 0; i--) {
+    if (selects[i].value) return selects[i].value;
+  }
+  return '';
+}
+
+function _ncBuildSubLevels(parentSlug) {
+  const container = document.getElementById('nc-sub-custom-container');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!parentSlug) return;
+
+  function addLevel(slug) {
+    const subs = _etiquetasByParent[slug] || [];
+    if (!subs.length) return;
+    const sel = document.createElement('select');
+    sel.className = 'form-control';
+    sel.style.marginTop = '.5rem';
+    sel.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`;
+    sel.addEventListener('change', () => {
+      // Remove todos os selects depois deste
+      let next = sel.nextElementSibling;
+      while (next) { const tmp = next.nextElementSibling; container.removeChild(next); next = tmp; }
+      if (sel.value) addLevel(sel.value);
+    });
+    container.appendChild(sel);
+  }
+
+  addLevel(parentSlug);
+}
+
 document.getElementById('nc-categoria').addEventListener('change', () => {
   const val = document.getElementById('nc-categoria').value;
   const sub = document.getElementById('nc-subcategoria');
   const subSw = document.getElementById('nc-subcategoria-sw');
-  const subCustom = document.getElementById('nc-subcategoria-custom');
   sub.style.display = val === 'hardware' ? 'block' : 'none';
   if (subSw) subSw.style.display = val === 'software' ? 'block' : 'none';
   if (val !== 'hardware') sub.value = '';
   if (subSw && val !== 'software') subSw.value = '';
-  const subSubCustom = document.getElementById('nc-subsubcategoria-custom');
-  if (subSubCustom) { subSubCustom.style.display = 'none'; subSubCustom.innerHTML = ''; }
-  if (subCustom) {
-    const temDropdownProprio = val === 'hardware' || val === 'software';
-    const subs = (val && !temDropdownProprio) ? (_etiquetasByParent[val] || []) : [];
-    if (subs.length) {
-      subCustom.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`;
-      subCustom.style.display = 'block';
-    } else {
-      subCustom.style.display = 'none'; subCustom.innerHTML = '';
-    }
-  }
+  const temDropdownProprio = val === 'hardware' || val === 'software';
+  _ncBuildSubLevels((val && !temDropdownProprio) ? val : '');
 });
 
-function _atualizarSubSubCustom(val) {
-  const subSub = document.getElementById('nc-subsubcategoria-custom');
-  if (!subSub) return;
-  const subs = val ? (_etiquetasByParent[val] || []) : [];
-  if (subs.length) {
-    subSub.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`;
-    subSub.style.display = 'block';
-  } else {
-    subSub.style.display = 'none'; subSub.innerHTML = '';
-  }
-}
-
-document.getElementById('nc-subcategoria-custom').addEventListener('change', () => {
-  _atualizarSubSubCustom(document.getElementById('nc-subcategoria-custom').value);
-});
 document.getElementById('nc-subcategoria-sw').addEventListener('change', () => {
-  _atualizarSubSubCustom(document.getElementById('nc-subcategoria-sw').value);
+  _ncBuildSubLevels(document.getElementById('nc-subcategoria-sw').value);
 });
 document.getElementById('nc-subcategoria').addEventListener('change', () => {
-  _atualizarSubSubCustom(document.getElementById('nc-subcategoria').value);
+  _ncBuildSubLevels(document.getElementById('nc-subcategoria').value);
 });
 _carregarEtiquetasDinamicas();
 
@@ -888,19 +895,15 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     const fd = new FormData();
     fd.append('descricao', descricao);
     let categoria = document.getElementById('nc-categoria').value;
-    const subSubCustom = document.getElementById('nc-subsubcategoria-custom');
-    const subSubVal = subSubCustom && subSubCustom.style.display !== 'none' ? subSubCustom.value : '';
+    const deepCustom = _ncGetDeepestVal();
     if (categoria === 'hardware') {
       const sub = document.getElementById('nc-subcategoria').value;
-      if (sub) categoria = subSubVal || sub;
+      if (sub) categoria = deepCustom || sub;
     } else if (categoria === 'software') {
       const subSw = document.getElementById('nc-subcategoria-sw');
-      if (subSw && subSw.value) categoria = subSubVal || subSw.value;
-    } else {
-      const subCustom = document.getElementById('nc-subcategoria-custom');
-      if (subCustom && subCustom.style.display !== 'none' && subCustom.value) {
-        categoria = subSubVal || subCustom.value;
-      }
+      if (subSw && subSw.value) categoria = deepCustom || subSw.value;
+    } else if (categoria) {
+      categoria = deepCustom || categoria;
     }
     if (categoria) fd.append('categoria', categoria);
     const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
