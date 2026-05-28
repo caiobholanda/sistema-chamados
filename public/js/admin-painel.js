@@ -713,6 +713,8 @@ function abrirModalNovoChamado() {
   if (ncSubSw) { ncSubSw.value = ''; ncSubSw.style.display = 'none'; }
   const ncSubCustom = document.getElementById('nc-subcategoria-custom');
   if (ncSubCustom) { ncSubCustom.value = ''; ncSubCustom.style.display = 'none'; ncSubCustom.innerHTML = ''; }
+  const ncSubSubCustom = document.getElementById('nc-subsubcategoria-custom');
+  if (ncSubSubCustom) { ncSubSubCustom.value = ''; ncSubSubCustom.style.display = 'none'; ncSubSubCustom.innerHTML = ''; }
   document.getElementById('nc-descricao').value = '';
   _resetNcArquivos();
   document.getElementById('msg-novo-chamado').innerHTML = '';
@@ -835,6 +837,8 @@ document.getElementById('nc-categoria').addEventListener('change', () => {
   if (subSw) subSw.style.display = val === 'software' ? 'block' : 'none';
   if (val !== 'hardware') sub.value = '';
   if (subSw && val !== 'software') subSw.value = '';
+  const subSubCustom = document.getElementById('nc-subsubcategoria-custom');
+  if (subSubCustom) { subSubCustom.style.display = 'none'; subSubCustom.innerHTML = ''; }
   if (subCustom) {
     const temDropdownProprio = val === 'hardware' || val === 'software';
     const subs = (val && !temDropdownProprio) ? (_etiquetasByParent[val] || []) : [];
@@ -844,6 +848,19 @@ document.getElementById('nc-categoria').addEventListener('change', () => {
     } else {
       subCustom.style.display = 'none'; subCustom.innerHTML = '';
     }
+  }
+});
+
+document.getElementById('nc-subcategoria-custom').addEventListener('change', () => {
+  const val = document.getElementById('nc-subcategoria-custom').value;
+  const subSub = document.getElementById('nc-subsubcategoria-custom');
+  if (!subSub) return;
+  const subs = val ? (_etiquetasByParent[val] || []) : [];
+  if (subs.length) {
+    subSub.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`;
+    subSub.style.display = 'block';
+  } else {
+    subSub.style.display = 'none'; subSub.innerHTML = '';
   }
 });
 _carregarEtiquetasDinamicas();
@@ -870,7 +887,13 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
       if (subSw && subSw.value) categoria = subSw.value;
     } else {
       const subCustom = document.getElementById('nc-subcategoria-custom');
-      if (subCustom && subCustom.style.display !== 'none' && subCustom.value) categoria = subCustom.value;
+      if (subCustom && subCustom.style.display !== 'none' && subCustom.value) {
+        categoria = subCustom.value;
+        const subSubCustom = document.getElementById('nc-subsubcategoria-custom');
+        if (subSubCustom && subSubCustom.style.display !== 'none' && subSubCustom.value) {
+          categoria = subSubCustom.value;
+        }
+      }
     }
     if (categoria) fd.append('categoria', categoria);
     const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;

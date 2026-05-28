@@ -79,6 +79,14 @@
     return et ? et.nome : slug;
   }
 
+  function breadcrumb(e) {
+    if (!e.parent_slug) return '';
+    const pai = etiquetas.find(x => x.slug === e.parent_slug);
+    if (!pai) return e.parent_slug;
+    const paiBC = breadcrumb(pai);
+    return paiBC ? `${paiBC} › ${pai.nome}` : pai.nome;
+  }
+
   function etiquetasFiltradas() {
     const q = (document.getElementById('filtro-etiquetas')?.value || '').toLowerCase().trim();
     if (!q) return etiquetas;
@@ -100,18 +108,28 @@
       return;
     }
 
-    const primarias = lista.filter(e => !e.parent_slug);
-    const subPorParent = {};
-    lista.filter(e => e.parent_slug).forEach(e => {
-      if (!subPorParent[e.parent_slug]) subPorParent[e.parent_slug] = [];
-      subPorParent[e.parent_slug].push(e);
+    const byParent = {};
+    lista.forEach(e => {
+      const p = e.parent_slug || '__root__';
+      if (!byParent[p]) byParent[p] = [];
+      byParent[p].push(e);
     });
 
-    let html = '<div class="et-grid">';
+    function countAll(slug) {
+      return (byParent[slug] || []).reduce((n, k) => n + 1 + countAll(k.slug), 0);
+    }
 
-    for (const p of primarias) {
-      const subs = subPorParent[p.slug] || [];
-      const total = 1 + subs.length;
+    function renderSub(slug) {
+      return (byParent[slug] || []).map(k => {
+        const bc = breadcrumb(k);
+        return renderCard(k, bc) + renderSub(k.slug);
+      }).join('');
+    }
+
+    const roots = byParent['__root__'] || [];
+    let html = '<div class="et-grid">';
+    for (const p of roots) {
+      const total = 1 + countAll(p.slug);
       html += '<div>';
       html += `<div class="et-section-label">
         <span style="width:8px;height:8px;border-radius:50%;background:${esc(p.cor||'#6B7280')};display:inline-block;flex-shrink:0"></span>
@@ -120,16 +138,16 @@
       </div>`;
       html += '<div class="et-cards">';
       html += renderCard(p);
-      for (const s of subs) html += renderCard(s, p.nome);
+      html += renderSub(p.slug);
       html += '</div></div>';
     }
 
-    // Subs cujo pai não está na lista filtrada
-    const slugsPrim = new Set(primarias.map(e => e.slug));
-    const orfaos = lista.filter(e => e.parent_slug && !slugsPrim.has(e.parent_slug));
+    // Órfãos: etiquetas cujo pai não está na lista filtrada
+    const listaSet = new Set(lista.map(e => e.slug));
+    const orfaos = lista.filter(e => e.parent_slug && !listaSet.has(e.parent_slug));
     if (orfaos.length) {
       html += '<div><div class="et-section-label">Sub-etiquetas</div><div class="et-cards">';
-      for (const s of orfaos) html += renderCard(s, nomePai(s.parent_slug));
+      for (const s of orfaos) html += renderCard(s, breadcrumb(s) || nomePai(s.parent_slug));
       html += '</div></div>';
     }
 
@@ -138,7 +156,7 @@
     bindAcoes();
   }
 
-  function renderCard(e, parentNome) {
+  function renderCard(e, ancestralNome) {
     const cor = e.cor || '#6B7280';
     return `
       <div class="et-card${e.ativo ? '' : ' et-card-inativo'}" data-id="${e.id}">
@@ -147,7 +165,7 @@
           <div class="et-card-top">
             <span style="width:9px;height:9px;border-radius:50%;background:${esc(cor)};flex-shrink:0;display:inline-block"></span>
             <span class="et-card-nome">${esc(e.nome)}</span>
-            ${parentNome ? `<span class="et-card-sub-badge">↳ ${esc(parentNome)}</span>` : ''}
+            ${ancestralNome ? `<span class="et-card-sub-badge">↳ ${esc(ancestralNome)}</span>` : ''}
             ${!e.ativo ? '<span class="et-card-inativo-badge">Inativa</span>' : ''}
           </div>
           ${e.descricao ? `<div class="et-card-desc">${esc(e.descricao)}</div>` : '<div class="et-card-desc" style="font-style:italic;opacity:.5">Sem descrição</div>'}
@@ -173,15 +191,19 @@
     if (wrap) wrap.style.display = '';
     sel.innerHTML = '<option value="">— Nenhuma (etiqueta principal) —</option>';
 
-    const pSistema = etiquetas.filter(e => !e.parent_slug && e.sistema);
-    const pCustom  = etiquetas.filter(e => !e.parent_slug && !e.sistema && e.id !== editandoId);
+    // Inclui todas as etiquetas como possíveis pais (permite hierarquia de 3+ níveis)
+    const candidatos = etiquetas.filter(e => e.ativo && e.id !== editandoId);
+    const pSistema = candidatos.filter(e => e.sistema);
+    const pCustom  = candidatos.filter(e => !e.sistema);
 
     if (pSistema.length) {
       const g = document.createElement('optgroup');
-      g.label = 'Categorias do sistema';
+      g.label = 'Sistema';
       pSistema.forEach(e => {
         const o = document.createElement('option');
-        o.value = e.slug; o.textContent = e.nome;
+        const bc = breadcrumb(e);
+        o.value = e.slug;
+        o.textContent = bc ? `${bc} › ${e.nome}` : e.nome;
         if (e.slug === parentAtual) o.selected = true;
         g.appendChild(o);
       });
@@ -192,7 +214,9 @@
       g.label = 'Personalizadas';
       pCustom.forEach(e => {
         const o = document.createElement('option');
-        o.value = e.slug; o.textContent = e.nome;
+        const bc = breadcrumb(e);
+        o.value = e.slug;
+        o.textContent = bc ? `${bc} › ${e.nome}` : e.nome;
         if (e.slug === parentAtual) o.selected = true;
         g.appendChild(o);
       });
