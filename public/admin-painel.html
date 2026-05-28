@@ -224,16 +224,9 @@
           <label for="nc-usuario-busca">Direcionar para usuário <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
           <div style="position:relative">
             <input class="form-control" type="text" id="nc-usuario-busca" placeholder="Buscar por nome, setor ou e-mail…" autocomplete="off">
-            <div id="nc-usuario-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:#fff;max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+            <div id="nc-usuario-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:var(--surface);max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
           </div>
           <div id="nc-usuario-selecionado" style="display:none;font-size:.8rem;color:var(--text-secondary);margin-top:.35rem;padding:.3rem .5rem;background:var(--bg-card);border-radius:5px;border:1px solid var(--border)"></div>
-        </div>
-        <div class="form-group">
-          <label for="nc-admin-responsavel">Atribuir para admin <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-          <select class="form-control" id="nc-admin-responsavel">
-            <option value="">Minha responsabilidade</option>
-          </select>
-          <p class="form-hint" id="nc-admin-hint" style="display:none"></p>
         </div>
         <div class="form-group">
           <label for="nc-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
@@ -284,6 +277,13 @@
             <option value="central_ti">Central de Serviços TI</option>
           </select>
           <select class="form-control" id="nc-subcategoria-custom" style="display:none;margin-top:.5rem"></select>
+        </div>
+        <div class="form-group">
+          <label for="nc-admin-responsavel">Atribuir para admin <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <select class="form-control" id="nc-admin-responsavel">
+            <option value="">Minha responsabilidade</option>
+          </select>
+          <p class="form-hint" id="nc-admin-hint" style="display:none"></p>
         </div>
         <div class="form-group">
           <label for="nc-descricao">Descrição do problema <span class="req">*</span></label>
