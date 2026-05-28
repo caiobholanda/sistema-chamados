@@ -202,39 +202,6 @@ const CATEGORIAS_MAP = {
   // Categorias primárias adicionais
   backup_restore: { nome: 'Backup/Restore',             cor: '#64748B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>' },
   seguranca_info: { nome: 'Segurança da informação',    cor: '#DC2626', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
-  // Subcategorias — Software
-  sw_instalacao:  { nome: 'Instalação de Aplicativo',  cor: '#6366F1', icone: '' },
-  sw_licenca:     { nome: 'Licença',                   cor: '#6366F1', icone: '' },
-  sw_atualizacao: { nome: 'Atualização',               cor: '#6366F1', icone: '' },
-  sw_errobug:     { nome: 'Erro/Bug',                  cor: '#6366F1', icone: '' },
-  sw_outros:      { nome: 'Outros',                    cor: '#6366F1', icone: '' },
-  // Subcategorias — Câmeras/CFTV
-  cam_offline:    { nome: 'Câmera offline',            cor: '#D97706', icone: '' },
-  cam_gravacao:   { nome: 'Gravação/Playback',         cor: '#D97706', icone: '' },
-  cam_acesso:     { nome: 'Acesso remoto',             cor: '#D97706', icone: '' },
-  cam_posicao:    { nome: 'Posicionamento',            cor: '#D97706', icone: '' },
-  cam_outros:     { nome: 'Outros',                    cor: '#D97706', icone: '' },
-  // Subcategorias — E-mail
-  mail_criar:     { nome: 'Criar conta',               cor: '#64748B', icone: '' },
-  mail_senha:     { nome: 'Redefinir senha',           cor: '#64748B', icone: '' },
-  mail_spam:      { nome: 'Spam/Phishing',             cor: '#64748B', icone: '' },
-  mail_config:    { nome: 'Configuração',              cor: '#64748B', icone: '' },
-  mail_outros:    { nome: 'Outros',                    cor: '#64748B', icone: '' },
-  // Subcategorias — Processo de Compra
-  pc_cotacao:     { nome: 'Cotação',                   cor: '#16A34A', icone: '' },
-  pc_aprovacao:   { nome: 'Aprovação',                 cor: '#16A34A', icone: '' },
-  pc_recebimento: { nome: 'Recebimento',               cor: '#16A34A', icone: '' },
-  pc_outros:      { nome: 'Outros',                    cor: '#16A34A', icone: '' },
-  // Subcategorias — Backup/Restore
-  bkp_backup:     { nome: 'Backup',                   cor: '#64748B', icone: '' },
-  bkp_restore:    { nome: 'Restore',                  cor: '#64748B', icone: '' },
-  bkp_falha:      { nome: 'Falha de rotina',          cor: '#64748B', icone: '' },
-  bkp_outros:     { nome: 'Outros',                   cor: '#64748B', icone: '' },
-  // Subcategorias — Segurança da informação
-  seg_acesso:     { nome: 'Acesso/Permissão',         cor: '#DC2626', icone: '' },
-  seg_incidente:  { nome: 'Incidente',                cor: '#DC2626', icone: '' },
-  seg_politica:   { nome: 'Política',                 cor: '#DC2626', icone: '' },
-  seg_outros:     { nome: 'Outros',                   cor: '#DC2626', icone: '' },
 };
 
 const CATS_PRIMARIAS = new Set(['software','hardware','cameras','email','processo_compra','backup_restore','seguranca_info']);
@@ -242,14 +209,9 @@ const CATS_HARDWARE_SUB = ['impressora','ramal','nobreak','monitor','mouse','tec
 const CATS_SOFTWARE_SUB = ['thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
 
 // Fonte única de verdade para a cascata categoria → subcategoria
+// Só hardware tem subcategorias estáticas; demais categorias usam etiquetas dinâmicas da API
 const SUBCATS_MAP = {
-  software:        [['sw_instalacao','Instalação de Aplicativo'],['sw_licenca','Licença'],['sw_atualizacao','Atualização'],['sw_errobug','Erro/Bug'],['sw_outros','Outros']],
-  hardware:        CATS_HARDWARE_SUB.map(id => [id, CATEGORIAS_MAP[id].nome]),
-  cameras:         [['cam_offline','Câmera offline'],['cam_gravacao','Gravação/Playback'],['cam_acesso','Acesso remoto'],['cam_posicao','Posicionamento'],['cam_outros','Outros']],
-  email:           [['mail_criar','Criar conta'],['mail_senha','Redefinir senha'],['mail_spam','Spam/Phishing'],['mail_config','Configuração'],['mail_outros','Outros']],
-  processo_compra: [['pc_cotacao','Cotação'],['pc_aprovacao','Aprovação'],['pc_recebimento','Recebimento'],['pc_outros','Outros']],
-  backup_restore:  [['bkp_backup','Backup'],['bkp_restore','Restore'],['bkp_falha','Falha de rotina'],['bkp_outros','Outros']],
-  seguranca_info:  [['seg_acesso','Acesso/Permissão'],['seg_incidente','Incidente'],['seg_politica','Política'],['seg_outros','Outros']],
+  hardware: CATS_HARDWARE_SUB.map(id => [id, CATEGORIAS_MAP[id].nome]),
 };
 // Mapa reverso: subSlug → primSlug (para pré-seleção ao abrir chamado)
 const SUB_TO_PRIM = {};
