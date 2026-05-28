@@ -199,11 +199,63 @@ const CATEGORIAS_MAP = {
   cardapio_digital:{ nome: 'Cardápio Digital',          cor: '#D97706', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>' },
   central_ti:     { nome: 'Central de Serviços TI',     cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>' },
   servico:        { nome: 'Serviço',                    cor: '#0F766E', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>' },
+  // Categorias primárias adicionais
+  backup_restore: { nome: 'Backup/Restore',             cor: '#64748B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>' },
+  seguranca_info: { nome: 'Segurança da informação',    cor: '#DC2626', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
+  // Subcategorias — Software
+  sw_instalacao:  { nome: 'Instalação de Aplicativo',  cor: '#6366F1', icone: '' },
+  sw_licenca:     { nome: 'Licença',                   cor: '#6366F1', icone: '' },
+  sw_atualizacao: { nome: 'Atualização',               cor: '#6366F1', icone: '' },
+  sw_errobug:     { nome: 'Erro/Bug',                  cor: '#6366F1', icone: '' },
+  sw_outros:      { nome: 'Outros',                    cor: '#6366F1', icone: '' },
+  // Subcategorias — Câmeras/CFTV
+  cam_offline:    { nome: 'Câmera offline',            cor: '#D97706', icone: '' },
+  cam_gravacao:   { nome: 'Gravação/Playback',         cor: '#D97706', icone: '' },
+  cam_acesso:     { nome: 'Acesso remoto',             cor: '#D97706', icone: '' },
+  cam_posicao:    { nome: 'Posicionamento',            cor: '#D97706', icone: '' },
+  cam_outros:     { nome: 'Outros',                    cor: '#D97706', icone: '' },
+  // Subcategorias — E-mail
+  mail_criar:     { nome: 'Criar conta',               cor: '#64748B', icone: '' },
+  mail_senha:     { nome: 'Redefinir senha',           cor: '#64748B', icone: '' },
+  mail_spam:      { nome: 'Spam/Phishing',             cor: '#64748B', icone: '' },
+  mail_config:    { nome: 'Configuração',              cor: '#64748B', icone: '' },
+  mail_outros:    { nome: 'Outros',                    cor: '#64748B', icone: '' },
+  // Subcategorias — Processo de Compra
+  pc_cotacao:     { nome: 'Cotação',                   cor: '#16A34A', icone: '' },
+  pc_aprovacao:   { nome: 'Aprovação',                 cor: '#16A34A', icone: '' },
+  pc_recebimento: { nome: 'Recebimento',               cor: '#16A34A', icone: '' },
+  pc_outros:      { nome: 'Outros',                    cor: '#16A34A', icone: '' },
+  // Subcategorias — Backup/Restore
+  bkp_backup:     { nome: 'Backup',                   cor: '#64748B', icone: '' },
+  bkp_restore:    { nome: 'Restore',                  cor: '#64748B', icone: '' },
+  bkp_falha:      { nome: 'Falha de rotina',          cor: '#64748B', icone: '' },
+  bkp_outros:     { nome: 'Outros',                   cor: '#64748B', icone: '' },
+  // Subcategorias — Segurança da informação
+  seg_acesso:     { nome: 'Acesso/Permissão',         cor: '#DC2626', icone: '' },
+  seg_incidente:  { nome: 'Incidente',                cor: '#DC2626', icone: '' },
+  seg_politica:   { nome: 'Política',                 cor: '#DC2626', icone: '' },
+  seg_outros:     { nome: 'Outros',                   cor: '#DC2626', icone: '' },
 };
 
-const CATS_PRIMARIAS = new Set(['software', 'hardware', 'cameras', 'email', 'processo_compra']);
+const CATS_PRIMARIAS = new Set(['software','hardware','cameras','email','processo_compra','backup_restore','seguranca_info']);
 const CATS_HARDWARE_SUB = ['impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','tv_projetor','projetor','tablet','celular','outros'];
 const CATS_SOFTWARE_SUB = ['thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
+
+// Fonte única de verdade para a cascata categoria → subcategoria
+const SUBCATS_MAP = {
+  software:        [['sw_instalacao','Instalação de Aplicativo'],['sw_licenca','Licença'],['sw_atualizacao','Atualização'],['sw_errobug','Erro/Bug'],['sw_outros','Outros']],
+  hardware:        CATS_HARDWARE_SUB.map(id => [id, CATEGORIAS_MAP[id].nome]),
+  cameras:         [['cam_offline','Câmera offline'],['cam_gravacao','Gravação/Playback'],['cam_acesso','Acesso remoto'],['cam_posicao','Posicionamento'],['cam_outros','Outros']],
+  email:           [['mail_criar','Criar conta'],['mail_senha','Redefinir senha'],['mail_spam','Spam/Phishing'],['mail_config','Configuração'],['mail_outros','Outros']],
+  processo_compra: [['pc_cotacao','Cotação'],['pc_aprovacao','Aprovação'],['pc_recebimento','Recebimento'],['pc_outros','Outros']],
+  backup_restore:  [['bkp_backup','Backup'],['bkp_restore','Restore'],['bkp_falha','Falha de rotina'],['bkp_outros','Outros']],
+  seguranca_info:  [['seg_acesso','Acesso/Permissão'],['seg_incidente','Incidente'],['seg_politica','Política'],['seg_outros','Outros']],
+};
+// Mapa reverso: subSlug → primSlug (para pré-seleção ao abrir chamado)
+const SUB_TO_PRIM = {};
+for (const [prim, subs] of Object.entries(SUBCATS_MAP)) {
+  for (const [slug] of subs) SUB_TO_PRIM[slug] = prim;
+}
 
 let _etiquetasDin = [];
 let _etiquetasByParent = {};
@@ -1177,18 +1229,10 @@ function _setupCategoriaToggle() {
   }
 
   function atualizarDisplay() {
-    const catVal = document.getElementById('sel-categoria').value;
     const subCustom = textoSelecionado('sel-subcategoria-custom');
-    const subSw     = textoSelecionado('sel-subcategoria-sw');
-    const subHw     = textoSelecionado('sel-subcategoria');
+    const sub       = textoSelecionado('sel-subcategoria');
     const cat       = textoSelecionado('sel-categoria');
-
-    let atual = '';
-    if (subCustom)                            atual = subCustom;
-    else if (catVal === 'software' && subSw)  atual = subSw;
-    else if (catVal === 'hardware' && subHw)  atual = subHw;
-    else if (cat)                             atual = cat;
-
+    const atual     = subCustom || sub || cat || '';
     if (!atual) {
       pathEl.innerHTML = '<span class="empty">— sem categoria —</span>';
     } else {
@@ -1202,7 +1246,7 @@ function _setupCategoriaToggle() {
   btnEditar.addEventListener('click', entrarEdicao);
   if (btnSalvar) btnSalvar.addEventListener('click', () => setTimeout(sairEdicao, 50));
 
-  ['sel-categoria', 'sel-subcategoria', 'sel-subcategoria-sw', 'sel-subcategoria-custom']
+  ['sel-categoria', 'sel-subcategoria', 'sel-subcategoria-custom']
     .forEach(id => { const s = document.getElementById(id); if (s) s.addEventListener('change', atualizarDisplay); });
 
   atualizarDisplay();
@@ -1224,10 +1268,20 @@ function renderModalBody(c) {
     : '';
 
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
-  const isHardwareSub = !!(c.categoria && CATS_HARDWARE_SUB.includes(c.categoria));
-  const isSoftwareSub = !!(c.categoria && CATS_SOFTWARE_SUB.includes(c.categoria));
-  const primCatSel    = isHardwareSub ? 'hardware' : isSoftwareSub ? 'software' : (c.categoria || '');
-  const subCatSel     = (isHardwareSub || isSoftwareSub) ? c.categoria : '';
+  // Resolve categoria salva → [primária, sub] para pré-selecionar os dois selects
+  function _resolveCatPair(slug) {
+    if (!slug) return ['', ''];
+    if (CATS_PRIMARIAS.has(slug)) return [slug, ''];
+    if (SUB_TO_PRIM[slug]) return [SUB_TO_PRIM[slug], slug];
+    if (CATS_SOFTWARE_SUB.includes(slug)) return ['software', ''];
+    const et = _etiquetasDin.find(e => e.slug === slug);
+    if (!et || !et.parent_slug) return [slug, ''];
+    if (SUB_TO_PRIM[et.parent_slug]) return [SUB_TO_PRIM[et.parent_slug], et.parent_slug];
+    if (CATS_PRIMARIAS.has(et.parent_slug)) return [et.parent_slug, ''];
+    const [prim] = _resolveCatPair(et.parent_slug);
+    return [prim, ''];
+  }
+  const [primCatSel, subCatSel] = _resolveCatPair(c.categoria);
 
   document.getElementById('modal-title').innerHTML = `${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
 
@@ -1374,19 +1428,17 @@ function renderModalBody(c) {
                 <div style="flex:1;display:flex;flex-direction:column;gap:.35rem">
                   <select class="form-control form-control-sm" id="sel-categoria">
                     <option value="">— selecionar —</option>
-                    <option value="software" ${primCatSel === 'software' ? 'selected' : ''}>Software</option>
-                    <option value="hardware" ${primCatSel === 'hardware' ? 'selected' : ''}>Hardware</option>
-                    <option value="cameras"  ${primCatSel === 'cameras'  ? 'selected' : ''}>Câmeras / CFTV</option>
-                    <option value="email"    ${primCatSel === 'email'    ? 'selected' : ''}>E-mail</option>
+                    <option value="software"        ${primCatSel === 'software'        ? 'selected' : ''}>Software</option>
+                    <option value="hardware"        ${primCatSel === 'hardware'        ? 'selected' : ''}>Hardware</option>
+                    <option value="cameras"         ${primCatSel === 'cameras'         ? 'selected' : ''}>Câmeras / CFTV</option>
+                    <option value="email"           ${primCatSel === 'email'           ? 'selected' : ''}>E-mail</option>
                     <option value="processo_compra" ${primCatSel === 'processo_compra' ? 'selected' : ''}>Processo de Compra</option>
+                    <option value="backup_restore"  ${primCatSel === 'backup_restore'  ? 'selected' : ''}>Backup/Restore</option>
+                    <option value="seguranca_info"  ${primCatSel === 'seguranca_info'  ? 'selected' : ''}>Segurança da informação</option>
                   </select>
-                  <select class="form-control form-control-sm" id="sel-subcategoria" style="display:${isHardwareSub ? 'block' : 'none'}">
-                    <option value="">— tipo de hardware —</option>
-                    ${CATS_HARDWARE_SUB.map(id => `<option value="${id}" ${subCatSel === id ? 'selected' : ''}>${CATEGORIAS_MAP[id].nome}</option>`).join('')}
-                  </select>
-                  <select class="form-control form-control-sm" id="sel-subcategoria-sw" style="display:${isSoftwareSub ? 'block' : 'none'}">
-                    <option value="">— tipo de software —</option>
-                    ${CATS_SOFTWARE_SUB.map(id => `<option value="${id}" ${subCatSel === id ? 'selected' : ''}>${CATEGORIAS_MAP[id].nome}</option>`).join('')}
+                  <select class="form-control form-control-sm" id="sel-subcategoria" style="display:${primCatSel && SUBCATS_MAP[primCatSel] ? 'block' : 'none'}">
+                    <option value="">— selecionar tipo —</option>
+                    ${primCatSel && SUBCATS_MAP[primCatSel] ? SUBCATS_MAP[primCatSel].map(([id, nome]) => `<option value="${id}"${subCatSel === id ? ' selected' : ''}>${nome}</option>`).join('') : ''}
                   </select>
                   <select class="form-control form-control-sm" id="sel-subcategoria-custom" style="display:none"></select>
                 </div>
@@ -1721,27 +1773,9 @@ function setupModalEventos(c) {
     });
   }
 
-  const selCatEl = document.getElementById('sel-categoria');
-  const selSubEl = document.getElementById('sel-subcategoria');
-  const selSubSwEl = document.getElementById('sel-subcategoria-sw');
+  const selCatEl      = document.getElementById('sel-categoria');
+  const selSubEl      = document.getElementById('sel-subcategoria');
   const selSubCustomEl = document.getElementById('sel-subcategoria-custom');
-
-  // Detect if current category is a dynamic sub
-  const dynSubEt = (c.categoria &&
-                    !CATS_PRIMARIAS.has(c.categoria) &&
-                    !CATS_HARDWARE_SUB.includes(c.categoria) &&
-                    !CATS_SOFTWARE_SUB.includes(c.categoria))
-    ? _etiquetasDin.find(e => e.slug === c.categoria) : null;
-
-  const isDynSub = !!(dynSubEt && dynSubEt.parent_slug);
-
-  // Resolver o "avô" quando o pai é um subtipo fixo (ex.: urmobo → software)
-  let dynGrandParent = '';
-  if (isDynSub) {
-    const p = dynSubEt.parent_slug;
-    if (CATS_HARDWARE_SUB.includes(p))      dynGrandParent = 'hardware';
-    else if (CATS_SOFTWARE_SUB.includes(p)) dynGrandParent = 'software';
-  }
 
   function _refreshSelSubCustom(parentVal) {
     if (!selSubCustomEl) return;
@@ -1754,69 +1788,75 @@ function setupModalEventos(c) {
     }
   }
 
-  if (selCatEl && selSubEl) {
-    // Inject dynamic primary etiquetas
-    selCatEl.querySelectorAll('[data-din]').forEach(o => o.remove());
-    for (const e of (_etiquetasByParent[''] || [])) {
-      const o = document.createElement('option');
-      o.value = e.slug; o.textContent = e.nome; o.dataset.din = '1';
-      if (isDynSub ? e.slug === dynSubEt?.parent_slug : e.slug === c.categoria) o.selected = true;
-      selCatEl.appendChild(o);
-    }
-    // Selecionar os 3 níveis corretamente na abertura
-    if (isDynSub) {
-      if (dynGrandParent === 'software') {
-        selCatEl.value = 'software';
-        if (selSubSwEl) { selSubSwEl.style.display = 'block'; selSubSwEl.value = dynSubEt.parent_slug; }
-        _refreshSelSubCustom(dynSubEt.parent_slug);
-      } else if (dynGrandParent === 'hardware') {
-        selCatEl.value = 'hardware';
-        if (selSubEl) { selSubEl.style.display = 'block'; selSubEl.value = dynSubEt.parent_slug; }
-        _refreshSelSubCustom(dynSubEt.parent_slug);
-      } else {
-        selCatEl.value = dynSubEt.parent_slug;
-        _refreshSelSubCustom(dynSubEt.parent_slug);
-      }
-    } else if (selCatEl.value) {
-      _refreshSelSubCustom(selCatEl.value);
-    }
-
-    selCatEl.addEventListener('change', () => {
-      const val = selCatEl.value;
-      selSubEl.style.display = val === 'hardware' ? 'block' : 'none';
-      if (selSubSwEl) selSubSwEl.style.display = val === 'software' ? 'block' : 'none';
-      if (val !== 'hardware') selSubEl.value = '';
-      if (selSubSwEl && val !== 'software') selSubSwEl.value = '';
-      let parentForCustom = val;
-      if (val === 'software' && selSubSwEl?.value) parentForCustom = selSubSwEl.value;
-      if (val === 'hardware' && selSubEl?.value)   parentForCustom = selSubEl.value;
-      _refreshSelSubCustom(parentForCustom);
-    });
-    if (selSubSwEl) {
-      selSubSwEl.addEventListener('change', () => {
-        _refreshSelSubCustom(selSubSwEl.value || 'software');
-      });
-    }
-    if (selSubEl) {
-      selSubEl.addEventListener('change', () => {
-        _refreshSelSubCustom(selSubEl.value || 'hardware');
-      });
+  function _populateSub(primVal, preselSub) {
+    if (!selSubEl) return;
+    const subs = SUBCATS_MAP[primVal] || [];
+    if (subs.length) {
+      selSubEl.innerHTML = `<option value="">— selecionar tipo —</option>`
+        + subs.map(([id, nome]) => `<option value="${id}"${id === preselSub ? ' selected' : ''}>${nome}</option>`).join('');
+      selSubEl.style.display = 'block';
+    } else {
+      selSubEl.innerHTML = ''; selSubEl.style.display = 'none';
     }
   }
+
+  if (selCatEl && selSubEl) {
+    // Pré-popular na abertura
+    _populateSub(primCatSel, subCatSel);
+    if (subCatSel) _refreshSelSubCustom(subCatSel);
+    else if (primCatSel) _refreshSelSubCustom(primCatSel);
+
+    selCatEl.addEventListener('change', () => {
+      _populateSub(selCatEl.value, '');
+      if (selSubCustomEl) { selSubCustomEl.style.display = 'none'; selSubCustomEl.innerHTML = ''; }
+    });
+    selSubEl.addEventListener('change', () => {
+      _refreshSelSubCustom(selSubEl.value);
+    });
+  }
+
+  // --- Validação e save ---
   const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
   if (btnSalvarCategoria) {
-    btnSalvarCategoria.addEventListener('click', async () => {
-      let cat = document.getElementById('sel-categoria').value;
-      const subCustom = document.getElementById('sel-subcategoria-custom');
-      if (subCustom && subCustom.style.display !== 'none' && subCustom.value) {
-        cat = subCustom.value;
-      } else if (cat === 'hardware') {
-        const sub = document.getElementById('sel-subcategoria').value;
-        if (sub) cat = sub;
-      } else if (cat === 'software') {
-        const subSw = document.getElementById('sel-subcategoria-sw');
-        if (subSw && subSw.value) cat = subSw.value;
+    function _catErrMostrar(msg, destacarSub) {
+      if (selCatEl) selCatEl.classList.toggle('is-invalid', !destacarSub);
+      if (selSubEl) selSubEl.classList.toggle('is-invalid', !!destacarSub);
+      let e = document.getElementById('cat-err-msg');
+      if (!e) {
+        e = document.createElement('div');
+        e.id = 'cat-err-msg';
+        e.style.cssText = 'color:var(--danger,#ef4444);font-size:.8rem;margin-top:.25rem';
+        selSubCustomEl?.parentElement?.appendChild(e);
       }
+      e.textContent = msg;
+    }
+    function _catErrLimpar() {
+      if (selCatEl) selCatEl.classList.remove('is-invalid');
+      if (selSubEl) selSubEl.classList.remove('is-invalid');
+      const e = document.getElementById('cat-err-msg'); if (e) e.remove();
+    }
+    [selCatEl, selSubEl, selSubCustomEl].forEach(el => {
+      if (el) el.addEventListener('change', _catErrLimpar);
+    });
+
+    btnSalvarCategoria.addEventListener('click', async () => {
+      _catErrLimpar();
+      const catVal    = selCatEl?.value || '';
+      const subVis    = selSubEl?.style.display !== 'none';
+      const subVal    = subVis ? (selSubEl?.value || '') : '';
+      const subCusVis = selSubCustomEl?.style.display !== 'none';
+      const subCusVal = subCusVis ? (selSubCustomEl?.value || '') : '';
+
+      if (!catVal) {
+        _catErrMostrar('O chamado não pode ficar sem etiqueta. Selecione uma categoria.', false);
+        return;
+      }
+      if (subVis && !subVal) {
+        _catErrMostrar('O chamado não pode ficar sem etiqueta. Selecione um tipo.', true);
+        return;
+      }
+
+      const cat = subCusVal || subVal || catVal;
       const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
