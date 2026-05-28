@@ -296,8 +296,23 @@
   function confirmarDelete(id) {
     const e = etiquetas.find(x => x.id === id);
     if (!e) return;
-    document.getElementById('confirm-msg').textContent =
-      `Excluir permanentemente "${e.nome}"? Chamados com essa etiqueta não serão afetados.`;
+    const filhos = etiquetas.filter(x => x.parent_slug === e.slug);
+    const msgEl = document.getElementById('confirm-msg');
+
+    if (filhos.length === 0) {
+      msgEl.textContent = `Excluir permanentemente "${e.nome}"? Chamados com essa etiqueta não serão afetados.`;
+    } else {
+      const nomesFilhos = filhos.map(f => `"${esc(f.nome)}"`).join(', ');
+      const destino = e.parent_slug
+        ? `passarão a ser sub-etiquetas de "${esc(nomePai(e.parent_slug))}"`
+        : `passarão a ser etiquetas principais`;
+      msgEl.innerHTML = `
+        <strong>A etiqueta "${esc(e.nome)}" possui ${filhos.length === 1 ? 'uma sub-etiqueta' : `${filhos.length} sub-etiquetas`}:</strong>
+        ${nomesFilhos}.<br><br>
+        Ao excluir, elas ${destino} automaticamente. Chamados existentes não serão afetados.<br><br>
+        <strong>Deseja confirmar a exclusão?</strong>`;
+    }
+
     confirmCallback = async () => {
       try {
         await api(`/api/etiquetas/${id}`, { method: 'DELETE' });

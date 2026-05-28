@@ -2371,7 +2371,14 @@ function atualizarEtiqueta(id, campos) {
 }
 
 function deletarEtiqueta(id) {
-  getDb().prepare('DELETE FROM etiquetas WHERE id = ?').run(id);
+  const db = getDb();
+  const alvo = db.prepare('SELECT slug, parent_slug FROM etiquetas WHERE id = ?').get(id);
+  if (!alvo) return;
+  const novoPai = alvo.parent_slug || null;
+  db.transaction(() => {
+    db.prepare('UPDATE etiquetas SET parent_slug = ? WHERE parent_slug = ?').run(novoPai, alvo.slug);
+    db.prepare('DELETE FROM etiquetas WHERE id = ?').run(id);
+  })();
 }
 
 function incrementarNovidadesUsuario(chamadoId) {
