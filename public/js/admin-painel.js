@@ -3,6 +3,8 @@ let chamadoAtual = null;
 let abaAtiva = 'abertos';
 let subAbaMeusAtiva = 'abertos';
 let statusFiltroAtual = '';
+let _ncCombo = null;
+let _selCombo = null;
 let _chatAdminIv = null;
 let _chamadosHash = null;
 let _termoPollingIv = null;
@@ -270,6 +272,102 @@ function _sincronizarSubSelects(cat, preselSub) {
   addLevel(rootSlug, 0);
 }
 
+function _criarComboEtiqueta(wrapEl, cfg = {}) {
+  if (!wrapEl) return null;
+  if (!document.getElementById('_et-combo-css')) {
+    const st = document.createElement('style');
+    st.id = '_et-combo-css';
+    st.textContent = '.et-combo-item:hover{background:var(--surface-2)}.et-combo-sel{background:var(--surface-2)}';
+    document.head.appendChild(st);
+  }
+  const cls = cfg.sm ? 'form-control form-control-sm' : 'form-control';
+  wrapEl.innerHTML = `<div style="position:relative">
+    <input type="text" class="${cls}" data-combo-inp placeholder="${cfg.placeholder || 'Selecionar etiqueta…'}" autocomplete="off">
+    <input type="hidden" data-combo-val>
+    <div data-combo-dd style="display:none;position:absolute;z-index:1050;left:0;right:0;top:calc(100% + 2px);background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);max-height:220px;overflow-y:auto"></div>
+  </div>`;
+  const inp  = wrapEl.querySelector('[data-combo-inp]');
+  const valI = wrapEl.querySelector('[data-combo-val]');
+  const dd   = wrapEl.querySelector('[data-combo-dd]');
+
+  function _bc(et) {
+    const parts = [];
+    let cur = et;
+    while (cur?.parent_slug) {
+      const p = _etiquetasDin.find(x => x.slug === cur.parent_slug);
+      if (!p) break;
+      parts.unshift(p.nome);
+      cur = p;
+    }
+    return parts.join(' › ');
+  }
+
+  function _render(q) {
+    if (!_etiquetasDin.length) {
+      dd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Carregando etiquetas…</div>';
+      dd.style.display = 'block'; return;
+    }
+    const query = (q || '').toLowerCase().trim();
+    let list = _etiquetasDin.filter(e => e.ativo !== 0);
+    if (query) {
+      list = list.filter(e => {
+        const bc = _bc(e);
+        return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query) || e.slug.includes(query);
+      });
+    }
+    if (!list.length) {
+      dd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
+    } else {
+      dd.innerHTML = list.map(e => {
+        const bc = _bc(e);
+        const cor = e.cor || '#6B7280';
+        const sel = e.slug === valI.value;
+        return `<div class="et-combo-item${sel ? ' et-combo-sel' : ''}" data-slug="${e.slug}"
+          style="padding:.42rem .75rem;cursor:pointer;display:flex;align-items:center;gap:.45rem;font-size:.83rem">
+          <span style="width:7px;height:7px;border-radius:50%;background:${cor};flex-shrink:0"></span>
+          <span>${bc ? `<span style="color:var(--text-muted);font-size:.74rem">${bc} › </span>` : ''}<strong style="font-weight:600">${e.nome}</strong></span>
+        </div>`;
+      }).join('');
+    }
+    dd.style.display = 'block';
+  }
+
+  function _close() { dd.style.display = 'none'; }
+
+  function _pick(slug) {
+    const et = slug ? _etiquetasDin.find(e => e.slug === slug) : null;
+    valI.value = slug || '';
+    if (et) { const bc = _bc(et); inp.value = bc ? `${bc} › ${et.nome}` : et.nome; }
+    else inp.value = '';
+    _close();
+    cfg.onChange?.(slug, et);
+  }
+
+  inp.addEventListener('focus', () => _render(inp.value));
+  inp.addEventListener('input', () => {
+    if (!inp.value.trim()) { valI.value = ''; cfg.onChange?.('', null); }
+    _render(inp.value);
+  });
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') _close();
+    if (ev.key === 'Enter') { ev.preventDefault(); const f = dd.querySelector('.et-combo-item'); if (f) _pick(f.dataset.slug); }
+  });
+  dd.addEventListener('mousedown', ev => {
+    const item = ev.target.closest('.et-combo-item');
+    if (!item) return;
+    ev.preventDefault();
+    _pick(item.dataset.slug);
+  });
+  document.addEventListener('click', ev => { if (!wrapEl.contains(ev.target)) _close(); }, true);
+
+  return {
+    getValue: () => valI.value,
+    setValue(slug) { _pick(slug); },
+    clear() { valI.value = ''; inp.value = ''; _close(); },
+    get inputEl() { return inp; },
+  };
+}
+
 async function _carregarEtiquetasDinamicas() {
   try {
     const data = await fetch('/api/etiquetas', { credentials: 'include' }).then(r => r.ok ? r.json() : []);
@@ -280,17 +378,6 @@ async function _carregarEtiquetasDinamicas() {
       const p = e.parent_slug || '';
       if (!_etiquetasByParent[p]) _etiquetasByParent[p] = [];
       _etiquetasByParent[p].push(e);
-    }
-    const ncCat = document.getElementById('nc-categoria');
-    if (ncCat) {
-      ncCat.querySelectorAll('[data-din]').forEach(o => o.remove());
-      const existentes = new Set(Array.from(ncCat.options).map(o => o.value));
-      for (const e of (_etiquetasByParent[''] || [])) {
-        if (existentes.has(e.slug)) continue;
-        const o = document.createElement('option');
-        o.value = e.slug; o.textContent = e.nome; o.dataset.din = '1';
-        ncCat.appendChild(o);
-      }
     }
   } catch {}
 }
@@ -771,9 +858,7 @@ async function _abrirFormTrocarUsuario(chamadoId) {
 }
 
 function abrirModalNovoChamado() {
-  document.getElementById('nc-categoria').value = '';
-  const ncSubContainer = document.getElementById('nc-sub-custom-container');
-  if (ncSubContainer) ncSubContainer.innerHTML = '';
+  _ncCombo?.clear();
   document.getElementById('nc-descricao').value = '';
   _resetNcArquivos();
   document.getElementById('msg-novo-chamado').innerHTML = '';
@@ -887,44 +972,7 @@ document.getElementById('nc-anexo-tiles')?.addEventListener('click', (e) => {
   _renderNcTiles();
 });
 
-function _ncGetDeepestVal() {
-  const container = document.getElementById('nc-sub-custom-container');
-  if (!container) return '';
-  const selects = container.querySelectorAll('select');
-  for (let i = selects.length - 1; i >= 0; i--) {
-    if (selects[i].value) return selects[i].value;
-  }
-  return '';
-}
-
-function _ncBuildSubLevels(parentSlug) {
-  const container = document.getElementById('nc-sub-custom-container');
-  if (!container) return;
-  container.innerHTML = '';
-  if (!parentSlug) return;
-
-  const rootSlug = SLUG_CAT_MAP[parentSlug] || parentSlug;
-
-  function addLevel(slug) {
-    const subs = (_etiquetasByParent[slug] || []).filter(e => e.ativo !== 0);
-    if (!subs.length) return;
-    const sel = document.createElement('select');
-    sel.className = 'form-control sub-cat-sel';
-    sel.innerHTML = `<option value="">— selecionar tipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`;
-    sel.addEventListener('change', () => {
-      let next = sel.nextElementSibling;
-      while (next) { const tmp = next.nextElementSibling; container.removeChild(next); next = tmp; }
-      if (sel.value) addLevel(sel.value);
-    });
-    container.appendChild(sel);
-  }
-
-  addLevel(rootSlug);
-}
-
-document.getElementById('nc-categoria').addEventListener('change', () => {
-  _ncBuildSubLevels(document.getElementById('nc-categoria').value);
-});
+_ncCombo = _criarComboEtiqueta(document.getElementById('nc-cat-combo'), { placeholder: '— selecionar etiqueta —' });
 _carregarEtiquetasDinamicas();
 
 document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
@@ -934,8 +982,7 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
 
   if (!descricao || descricao.length < 5) { msgEl.innerHTML = '<div class="alert alert-danger">Descreva o problema (mínimo 5 caracteres).</div>'; return; }
 
-  const _ncCatBase = document.getElementById('nc-categoria').value;
-  const categoria = _ncGetDeepestVal() || _ncCatBase;
+  const categoria = _ncCombo?.getValue() || '';
   if (!categoria) { msgEl.innerHTML = '<div class="alert alert-danger">Selecione uma etiqueta para o chamado.</div>'; return; }
 
   const btn = document.getElementById('btn-confirmar-novo-chamado');
@@ -1202,14 +1249,14 @@ async function fecharModal() {
 }
 
 function _setupCategoriaToggle() {
-  const sel = document.getElementById('sel-categoria');
-  if (!sel) return;
-  const row = sel.closest('.mv2-ctrl-row');
+  const comboWrap = document.getElementById('sel-cat-combo');
+  if (!comboWrap) return;
+  const row = comboWrap.closest('.mv2-ctrl-row');
   if (!row || row.dataset.toggleReady) return;
   row.dataset.toggleReady = '1';
   row.classList.add('mv2-cat-row');
 
-  const editWrap = sel.parentElement;
+  const editWrap = comboWrap.parentElement;
   editWrap.classList.add('mv2-cat-edit');
   const btnSalvar = document.getElementById('btn-salvar-categoria');
 
@@ -1223,42 +1270,21 @@ function _setupCategoriaToggle() {
   const pathEl = display.querySelector('#cat-path-text');
   const btnEditar = display.querySelector('#btn-editar-categoria');
 
-  function textoSelecionado(id) {
-    const s = document.getElementById(id);
-    if (!s) return '';
-    const opt = s.options[s.selectedIndex];
-    return (opt && s.value) ? opt.textContent.trim() : '';
-  }
-
   function atualizarDisplay() {
-    const container = document.getElementById('sub-custom-container');
-    let deepestText = '';
-    if (container) {
-      const sels = container.querySelectorAll('select.sub-cat-sel');
-      for (const s of sels) {
-        const opt = s.options[s.selectedIndex];
-        if (opt && s.value) deepestText = opt.textContent.trim();
-      }
-    }
-    const cat = textoSelecionado('sel-categoria');
-    const atual = deepestText || cat || '';
-    if (!atual) {
+    const slug = _selCombo?.getValue() || '';
+    if (!slug) {
       pathEl.innerHTML = '<span class="empty">— sem categoria —</span>';
     } else {
-      pathEl.textContent = atual;
+      const et = _etiquetasDin.find(e => e.slug === slug);
+      pathEl.textContent = et ? et.nome : slug;
     }
   }
 
-  function entrarEdicao() { row.classList.add('is-editing'); }
+  function entrarEdicao() { row.classList.add('is-editing'); _selCombo?.inputEl.focus(); }
   function sairEdicao()   { row.classList.remove('is-editing'); atualizarDisplay(); }
 
   btnEditar.addEventListener('click', entrarEdicao);
   if (btnSalvar) btnSalvar.addEventListener('click', () => setTimeout(sairEdicao, 50));
-
-  const selCatEl2 = document.getElementById('sel-categoria');
-  if (selCatEl2) selCatEl2.addEventListener('change', atualizarDisplay);
-  const subCont2 = document.getElementById('sub-custom-container');
-  if (subCont2) subCont2.addEventListener('change', atualizarDisplay);
 
   atualizarDisplay();
 }
@@ -1279,8 +1305,6 @@ function renderModalBody(c) {
     : '';
 
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
-  const [primCatSel, subCatSel] = _resolveCatPair(c.categoria);
-
   document.getElementById('modal-title').innerHTML = `${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
 
   document.getElementById('modal-body').innerHTML = `
@@ -1423,18 +1447,8 @@ function renderModalBody(c) {
               </div>
               <div class="mv2-ctrl-row" style="align-items:flex-start">
                 <span class="mv2-ctrl-lbl" style="padding-top:.3rem">Categoria</span>
-                <div style="flex:1;display:flex;flex-direction:column;gap:.35rem">
-                  <select class="form-control form-control-sm" id="sel-categoria">
-                    <option value="">— selecionar —</option>
-                    <option value="software"        ${primCatSel === 'software'        ? 'selected' : ''}>Software</option>
-                    <option value="hardware"        ${primCatSel === 'hardware'        ? 'selected' : ''}>Hardware</option>
-                    <option value="cameras"         ${primCatSel === 'cameras'         ? 'selected' : ''}>Câmeras / CFTV</option>
-                    <option value="email"           ${primCatSel === 'email'           ? 'selected' : ''}>E-mail</option>
-                    <option value="processo_compra" ${primCatSel === 'processo_compra' ? 'selected' : ''}>Processo de Compra</option>
-                    <option value="backup_restore"  ${primCatSel === 'backup_restore'  ? 'selected' : ''}>Backup/Restore</option>
-                    <option value="seguranca_info"  ${primCatSel === 'seguranca_info'  ? 'selected' : ''}>Segurança da informação</option>
-                  </select>
-                  <div id="sub-custom-container" style="display:flex;flex-direction:column;gap:.35rem"></div>
+                <div style="flex:1">
+                  <div id="sel-cat-combo"></div>
                 </div>
                 <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
               </div>
@@ -1629,8 +1643,6 @@ function renderModalBody(c) {
 }
 
 function setupModalEventos(c) {
-  // Bug raiz: primCatSel/subCatSel eram definidos só em renderModalBody — recalcular aqui
-  const [primCatSel, subCatSel] = _resolveCatPair(c.categoria);
 
   const msg = () => document.getElementById('msg-modal');
   const setMsg = (html) => { msg().innerHTML = html; };
@@ -1770,64 +1782,34 @@ function setupModalEventos(c) {
     });
   }
 
-  const selCatEl       = document.getElementById('sel-categoria');
-  const subContainer   = document.getElementById('sub-custom-container');
-
-  function _getDeepestSubVal() {
-    if (!subContainer) return '';
-    const sels = subContainer.querySelectorAll('select.sub-cat-sel');
-    let val = '';
-    for (const s of sels) { if (s.value) val = s.value; }
-    return val;
-  }
-
-  if (selCatEl) {
-    _sincronizarSubSelects(primCatSel, subCatSel);
-    selCatEl.addEventListener('change', () => _sincronizarSubSelects(selCatEl.value));
-  }
+  _selCombo = _criarComboEtiqueta(document.getElementById('sel-cat-combo'), { sm: true, placeholder: '— selecionar etiqueta —' });
+  if (_selCombo && c.categoria) _selCombo.setValue(c.categoria);
 
   // --- Validação e save ---
   const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
   if (btnSalvarCategoria) {
-    function _catErrMostrar(msg, destacarSub) {
-      if (selCatEl) selCatEl.classList.toggle('is-invalid', !destacarSub);
-      if (destacarSub && subContainer) {
-        const last = subContainer.querySelector('select.sub-cat-sel:last-child');
-        if (last) last.classList.add('is-invalid');
-      }
+    function _catErrMostrar(msg) {
+      const inp = document.getElementById('sel-cat-combo')?.querySelector('[data-combo-inp]');
+      if (inp) inp.classList.add('is-invalid');
       let e = document.getElementById('cat-err-msg');
       if (!e) {
         e = document.createElement('div');
         e.id = 'cat-err-msg';
         e.style.cssText = 'color:var(--danger,#ef4444);font-size:.8rem;margin-top:.25rem';
-        (subContainer || selCatEl?.parentElement)?.appendChild(e);
+        document.getElementById('sel-cat-combo')?.appendChild(e);
       }
       e.textContent = msg;
     }
     function _catErrLimpar() {
-      if (selCatEl) selCatEl.classList.remove('is-invalid');
-      subContainer?.querySelectorAll('select.sub-cat-sel').forEach(s => s.classList.remove('is-invalid'));
+      document.getElementById('sel-cat-combo')?.querySelector('[data-combo-inp]')?.classList.remove('is-invalid');
       const e = document.getElementById('cat-err-msg'); if (e) e.remove();
     }
-    selCatEl?.addEventListener('change', _catErrLimpar);
-    subContainer?.addEventListener('change', _catErrLimpar);
+    _selCombo?.inputEl.addEventListener('input', _catErrLimpar);
 
     btnSalvarCategoria.addEventListener('click', async () => {
       _catErrLimpar();
-      const catVal    = selCatEl?.value || '';
-      const hasSubs   = (subContainer?.querySelectorAll('select.sub-cat-sel').length || 0) > 0;
-      const subCusVal = _getDeepestSubVal();
-
-      if (!catVal) {
-        _catErrMostrar('O chamado não pode ficar sem etiqueta. Selecione uma categoria.', false);
-        return;
-      }
-      if (hasSubs && !subCusVal) {
-        _catErrMostrar('O chamado não pode ficar sem etiqueta. Selecione um tipo.', true);
-        return;
-      }
-
-      const cat = subCusVal || catVal;
+      const cat = _selCombo?.getValue() || '';
+      if (!cat) { _catErrMostrar('Selecione uma etiqueta para o chamado.'); return; }
       const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
