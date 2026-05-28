@@ -193,7 +193,7 @@
       document.head.appendChild(st);
     }
     wrapEl.innerHTML = `<div style="position:relative">
-      <input type="text" class="form-control" data-pcomb-inp placeholder="— Nenhuma (etiqueta principal) —" autocomplete="off">
+      <input type="text" class="form-control" data-pcomb-inp placeholder="Buscar etiqueta pai…" autocomplete="off">
       <input type="hidden" id="et-parent" data-pcomb-val>
       <div data-pcomb-dd style="display:none;position:absolute;z-index:1050;left:0;right:0;top:calc(100% + 2px);background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);max-height:220px;overflow-y:auto"></div>
     </div>`;
@@ -208,11 +208,7 @@
         ? candidatos.filter(e => { const bc = breadcrumb(e); return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query); })
         : candidatos;
 
-      const noneHtml = `<div class="et-pcomb-item${!valI.value ? ' et-pcomb-sel' : ''}" data-slug=""
-        style="padding:.42rem .75rem;cursor:pointer;font-size:.83rem;color:var(--text-muted);font-style:italic">
-        — Nenhuma (etiqueta principal) —</div>`;
-
-      dd.innerHTML = noneHtml + (filtered.length
+      dd.innerHTML = filtered.length
         ? filtered.map(e => {
             const bc = breadcrumb(e);
             const cor = e.cor || '#6B7280';
@@ -222,8 +218,8 @@
               <span>${bc ? `<span style="color:var(--text-muted);font-size:.74rem">${bc} › </span>` : ''}<strong style="font-weight:600">${e.nome}</strong></span>
             </div>`;
           }).join('')
-        : (query ? '<div style="padding:.4rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma encontrada</div>' : ''));
-      dd.style.display = 'block';
+        : '<div style="padding:.4rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
+      dd.style.display = filtered.length || query ? 'block' : 'none';
     }
 
     function _close() { dd.style.display = 'none'; }
