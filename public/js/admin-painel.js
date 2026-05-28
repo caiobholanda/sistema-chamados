@@ -1,3 +1,53 @@
+const SETORES = [
+  'Banquetes','Bar Rooftop','Comercial / Vendas','Compras / Almoxarifado','Concierge',
+  'Confeitaria / Padaria','Controladoria','Cozinha','Estacionamento','Eventos e Convenções',
+  'Financeiro','Fitness Center','Gerência Geral','Governança','Jurídico','Lavanderia',
+  'Lobby Bar','Manutenção','Marketing','Mensageria / Portaria','Nutrição','Piscina',
+  'Play Gran','Recepção','Recursos Humanos','Reservas','Restaurante Mangostin',
+  'Restaurante Mucuripe','Revenue Management','Room Service','Rouparia','Segurança',
+  "Spa by L'Occitane",'Tecnologia da Informação','Transportes'
+];
+
+function _addSetorDropdown(inp, onSelect) {
+  if (!inp) return;
+  const wrap = inp.parentElement;
+  if (!document.getElementById('_setor-dd-css')) {
+    const s = document.createElement('style');
+    s.id = '_setor-dd-css';
+    s.textContent = [
+      '._setor-dd{position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:1050;',
+      'background:var(--surface);border:1px solid var(--border-focus,#94a3b8);',
+      'border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);}',
+      '._setor-dd-item{padding:.4rem .75rem;cursor:pointer;font-size:.83rem;color:var(--text);}',
+      '._setor-dd-item:hover,._setor-dd-item.active{background:var(--surface-2);}'
+    ].join('');
+    document.head.appendChild(s);
+  }
+  const dd = document.createElement('div');
+  dd.className = '_setor-dd';
+  dd.style.display = 'none';
+  wrap.appendChild(dd);
+
+  function _render(q) {
+    const list = q ? SETORES.filter(s => s.toLowerCase().includes(q.toLowerCase())) : SETORES;
+    if (!list.length) { dd.style.display = 'none'; return; }
+    dd.innerHTML = list.map(s => `<div class="_setor-dd-item">${s.replace(/&/g,'&amp;')}</div>`).join('');
+    dd.querySelectorAll('._setor-dd-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        inp.value = el.textContent;
+        dd.style.display = 'none';
+        if (onSelect) onSelect();
+      });
+    });
+    dd.style.display = '';
+  }
+
+  inp.addEventListener('focus', () => _render(inp.value));
+  inp.addEventListener('input', () => _render(inp.value));
+  inp.addEventListener('blur', () => setTimeout(() => { dd.style.display = 'none'; }, 150));
+}
+
 let adminInfo = null;
 let chamadoAtual = null;
 let abaAtiva = 'abertos';
@@ -3231,4 +3281,5 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
 }
 
 iniciarPush();
+_addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
 

@@ -103,56 +103,9 @@
   <div class="filtros-card">
     <div class="filtros">
       <input class="form-control" type="search" id="filtro-busca" aria-label="Buscar chamados" placeholder="Buscar por ID, nome, descrição, setor, etiqueta…" style="min-width:220px;flex:1">
-      <select class="form-control" id="filtro-setor" aria-label="Setor">
-        <option value="">Todos os setores</option>
-        <optgroup label="Hospedagem">
-          <option>Recepção</option>
-          <option>Concierge</option>
-          <option>Governança</option>
-          <option>Reservas</option>
-          <option>Mensageria / Portaria</option>
-        </optgroup>
-        <optgroup label="Alimentos &amp; Bebidas">
-          <option>Restaurante Mucuripe</option>
-          <option>Restaurante Mangostin</option>
-          <option>Bar Rooftop</option>
-          <option>Lobby Bar</option>
-          <option>Room Service</option>
-          <option>Cozinha</option>
-          <option>Confeitaria / Padaria</option>
-          <option>Nutrição</option>
-          <option>Banquetes</option>
-        </optgroup>
-        <optgroup label="Eventos">
-          <option>Eventos e Convenções</option>
-        </optgroup>
-        <optgroup label="Bem-estar &amp; Lazer">
-          <option>Spa by L'Occitane</option>
-          <option>Fitness Center</option>
-          <option>Piscina</option>
-          <option>Play Gran</option>
-        </optgroup>
-        <optgroup label="Administrativo">
-          <option>Gerência Geral</option>
-          <option>Recursos Humanos</option>
-          <option>Financeiro</option>
-          <option>Controladoria</option>
-          <option>Compras / Almoxarifado</option>
-          <option>Comercial / Vendas</option>
-          <option>Marketing</option>
-          <option>Revenue Management</option>
-          <option>Tecnologia da Informação</option>
-          <option>Jurídico</option>
-        </optgroup>
-        <optgroup label="Operacional">
-          <option>Manutenção</option>
-          <option>Segurança</option>
-          <option>Lavanderia</option>
-          <option>Rouparia</option>
-          <option>Estacionamento</option>
-          <option>Transportes</option>
-        </optgroup>
-      </select>
+      <div style="position:relative;flex:1;min-width:120px">
+        <input class="form-control" type="text" id="filtro-setor" placeholder="Todos os setores" autocomplete="off" aria-label="Setor">
+      </div>
       <select class="form-control" id="filtro-admin" aria-label="Responsável">
         <option value="">Todos os responsáveis</option>
       </select>
