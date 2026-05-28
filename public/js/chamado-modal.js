@@ -76,12 +76,13 @@ function _cmCatChain(slug) {
 }
 
 function _cmGetCategoriaVal() {
-  const l3 = document.getElementById('cm-sel-cat-l3');
-  if (l3 && l3.style.display !== 'none' && l3.value) return l3.value;
-  const l2 = document.getElementById('cm-sel-cat-l2');
-  if (l2 && l2.style.display !== 'none' && l2.value) return l2.value;
-  const l1 = document.getElementById('cm-sel-cat-l1');
-  return (l1 && l1.value) ? l1.value : '';
+  const container = document.getElementById('cm-cat-selects-container');
+  if (!container) return '';
+  const selects = container.querySelectorAll('select');
+  for (let i = selects.length - 1; i >= 0; i--) {
+    if (selects[i].value) return selects[i].value;
+  }
+  return '';
 }
 
 function _badgeStatus(s) {
@@ -155,9 +156,9 @@ function _renderBody(c) {
   const _cmRoots = typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[''] || []) : [];
   const _cmL1Subs = _cmL1 ? (typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[_cmL1] || []) : []) : [];
   const _cmL2Subs = _cmL2 ? (typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[_cmL2] || []) : []) : [];
-  const _cmLeafNome = (_cmL3 ? (_cmL2Subs.find(e => e.slug === _cmL3)?.nome || '') : '')
-    || (_cmL2 ? (_cmL1Subs.find(e => e.slug === _cmL2)?.nome || '') : '')
-    || (_cmL1 ? (_cmRoots.find(e => e.slug === _cmL1)?.nome || '') : '');
+  const _cmLeafSlug = _cmChain[_cmChain.length - 1] || '';
+  const _cmLeafEt   = _cmLeafSlug && typeof _etiquetasDin !== 'undefined' ? _etiquetasDin.find(e => e.slug === _cmLeafSlug) : null;
+  const _cmLeafNome = _cmLeafEt ? _cmLeafEt.nome : '';
 
   document.getElementById('cm-modal-title').innerHTML =
     `${_badgeStatus(c.status)} ${_badgeCategoria(c.categoria)}`;
@@ -223,19 +224,8 @@ function _renderBody(c) {
               <div class="mv2-cat-path" id="cm-cat-path-text">${_cmLeafNome || '<span class=\\'empty\\'>— sem categoria —</span>'}</div>
               <button type="button" class="btn btn-secondary btn-sm" id="cm-btn-editar-categoria">Alterar</button>
             </div>
-            <div class="mv2-cat-edit" style="flex:1;display:flex;flex-direction:column;gap:.3rem">
-              <select class="form-control form-control-sm" id="cm-sel-cat-l1">
-                <option value="">— Não classificado —</option>
-                ${_cmRoots.map(e => `<option value="${e.slug}" ${e.slug === _cmL1 ? 'selected' : ''}>${e.nome}</option>`).join('')}
-              </select>
-              <select class="form-control form-control-sm" id="cm-sel-cat-l2" style="${_cmL1Subs.length ? '' : 'display:none'}">
-                <option value="">— subtipo —</option>
-                ${_cmL1Subs.map(e => `<option value="${e.slug}" ${e.slug === _cmL2 ? 'selected' : ''}>${e.nome}</option>`).join('')}
-              </select>
-              <select class="form-control form-control-sm" id="cm-sel-cat-l3" style="${_cmL2Subs.length ? '' : 'display:none'}">
-                <option value="">— subtipo —</option>
-                ${_cmL2Subs.map(e => `<option value="${e.slug}" ${e.slug === _cmL3 ? 'selected' : ''}>${e.nome}</option>`).join('')}
-              </select>
+            <div class="mv2-cat-edit" style="flex:1">
+              <div id="cm-cat-selects-container" style="display:flex;flex-direction:column;gap:.3rem"></div>
             </div>
             <button class="btn btn-secondary btn-sm" id="cm-btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
           </div>
@@ -383,6 +373,7 @@ function _renderBody(c) {
 }
 
 function _setupEventos(c) {
+  const _cmChain = _cmCatChain(c.categoria);
   const setMsg = (html) => {
     const el = document.getElementById('cm-msg-modal');
     if (el) el.innerHTML = html;
@@ -390,31 +381,32 @@ function _setupEventos(c) {
 
   const q = (id) => document.getElementById(id);
 
-  if (q('cm-sel-cat-l1')) {
-    q('cm-sel-cat-l1').addEventListener('change', () => {
-      const val = q('cm-sel-cat-l1').value;
-      const l2 = q('cm-sel-cat-l2'); const l3 = q('cm-sel-cat-l3');
-      if (l3) { l3.style.display = 'none'; l3.innerHTML = ''; }
-      const subs = val && typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[val] || []) : [];
-      if (l2) {
-        if (subs.length) { l2.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`; l2.style.display = ''; }
-        else { l2.style.display = 'none'; l2.innerHTML = ''; }
-      }
-    });
-  }
-  if (q('cm-sel-cat-l2')) {
-    q('cm-sel-cat-l2').addEventListener('change', () => {
-      const val = q('cm-sel-cat-l2').value;
-      const l3 = q('cm-sel-cat-l3');
-      if (!l3) return;
-      const subs = val && typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[val] || []) : [];
-      if (subs.length) { l3.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`; l3.style.display = ''; }
-      else { l3.style.display = 'none'; l3.innerHTML = ''; }
-    });
-  }
-  const cmCatRow = q('cm-sel-cat-l1')?.closest('.mv2-cat-row');
+  const cmCatContainer = q('cm-cat-selects-container');
+  const cmCatRow = cmCatContainer?.closest('.mv2-cat-row');
   if (q('cm-btn-editar-categoria')) {
     q('cm-btn-editar-categoria').addEventListener('click', () => cmCatRow?.classList.add('is-editing'));
+  }
+  if (cmCatContainer) {
+    (function _cmBuildCascade(container, chain) {
+      container.innerHTML = '';
+      function addLevel(parentSlug, depth) {
+        const subs = typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[parentSlug] || []) : [];
+        if (!subs.length) return;
+        const preVal = chain[depth] || '';
+        const sel = document.createElement('select');
+        sel.className = 'form-control form-control-sm';
+        sel.innerHTML = `<option value="">${depth === 0 ? '— Não classificado —' : '— subtipo —'}</option>`
+          + subs.map(e => `<option value="${e.slug}"${e.slug === preVal ? ' selected' : ''}>${e.nome}</option>`).join('');
+        sel.addEventListener('change', () => {
+          let next = sel.nextElementSibling;
+          while (next) { const tmp = next.nextElementSibling; container.removeChild(next); next = tmp; }
+          if (sel.value) addLevel(sel.value, depth + 1);
+        });
+        container.appendChild(sel);
+        if (preVal) addLevel(preVal, depth + 1);
+      }
+      addLevel('', 0);
+    })(cmCatContainer, _cmChain);
   }
   if (q('cm-btn-salvar-categoria')) {
     q('cm-btn-salvar-categoria').addEventListener('click', async () => {
