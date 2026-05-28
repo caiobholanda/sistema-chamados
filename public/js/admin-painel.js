@@ -655,11 +655,11 @@ async function _abrirFormTrocarUsuario(chamadoId) {
     } else {
       resultados.innerHTML = filtrados.map(u => `
         <div class="tu-item" data-id="${u.id}" data-nome="${(u.nome||'').replace(/"/g,'&quot;')}" data-setor="${(u.setor||'').replace(/"/g,'&quot;')}"
-          style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">
+          style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;color:var(--text);border-bottom:1px solid var(--border)">
           ${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}
         </div>`).join('');
       resultados.querySelectorAll('.tu-item').forEach(el => {
-        el.addEventListener('mouseenter', () => el.style.background = '#f3f4f6');
+        el.addEventListener('mouseenter', () => el.style.background = 'var(--surface-2)');
         el.addEventListener('mouseleave', () => el.style.background = '');
         el.addEventListener('click', () => {
           const setor = el.dataset.setor;
@@ -1768,11 +1768,11 @@ function setupModalEventos(c) {
             } else {
               resultados.innerHTML = filtrados.map(a => `
                 <div class="transferir-item" data-id="${a.id}" data-nome="${a.nome_completo.replace(/"/g,'&quot;')}"
-                  style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">
+                  style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;color:var(--text);border-bottom:1px solid var(--border)">
                   ${a.nome_completo}${a.is_master ? ' ★' : ''}
                 </div>`).join('');
               resultados.querySelectorAll('.transferir-item').forEach(el => {
-                el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover, #f3f4f6)');
+                el.addEventListener('mouseenter', () => el.style.background = 'var(--surface-2)');
                 el.addEventListener('mouseleave', () => el.style.background = '');
                 el.addEventListener('click', () => {
                   selecionadoEl.textContent = '✓ ' + el.dataset.nome;
