@@ -950,24 +950,26 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
 
   if (!descricao || descricao.length < 5) { msgEl.innerHTML = '<div class="alert alert-danger">Descreva o problema (mínimo 5 caracteres).</div>'; return; }
 
+  let categoria = document.getElementById('nc-categoria').value;
+  const deepCustom = _ncGetDeepestVal();
+  if (categoria === 'hardware') {
+    const sub = document.getElementById('nc-subcategoria').value;
+    if (sub) categoria = deepCustom || sub;
+  } else if (categoria === 'software') {
+    const subSw = document.getElementById('nc-subcategoria-sw');
+    if (subSw && subSw.value) categoria = deepCustom || subSw.value;
+  } else if (categoria) {
+    categoria = deepCustom || categoria;
+  }
+  if (!categoria) { msgEl.innerHTML = '<div class="alert alert-danger">Selecione uma etiqueta para o chamado.</div>'; return; }
+
   const btn = document.getElementById('btn-confirmar-novo-chamado');
   btn.disabled = true; btn.textContent = 'Abrindo...';
   msgEl.innerHTML = '';
   try {
     const fd = new FormData();
     fd.append('descricao', descricao);
-    let categoria = document.getElementById('nc-categoria').value;
-    const deepCustom = _ncGetDeepestVal();
-    if (categoria === 'hardware') {
-      const sub = document.getElementById('nc-subcategoria').value;
-      if (sub) categoria = deepCustom || sub;
-    } else if (categoria === 'software') {
-      const subSw = document.getElementById('nc-subcategoria-sw');
-      if (subSw && subSw.value) categoria = deepCustom || subSw.value;
-    } else if (categoria) {
-      categoria = deepCustom || categoria;
-    }
-    if (categoria) fd.append('categoria', categoria);
+    fd.append('categoria', categoria);
     const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
     if (usuarioId) fd.append('usuario_id', usuarioId);
     const adminResponsavelId = document.getElementById('nc-admin-responsavel').value;
