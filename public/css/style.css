@@ -3257,7 +3257,8 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .mv2-cat-display .mv2-cat-path .empty { opacity: .5; font-style: italic; }
 .mv2-cat-row.is-editing .mv2-cat-display { display: none; }
 .mv2-cat-row:not(.is-editing) .mv2-cat-edit,
-.mv2-cat-row:not(.is-editing) #btn-salvar-categoria { display: none !important; }
+.mv2-cat-row:not(.is-editing) #btn-salvar-categoria,
+.mv2-cat-row:not(.is-editing) #cm-btn-salvar-categoria { display: none !important; }
 .mv2-ctrl-lbl {
   font-size: .78rem;
   color: var(--text-secondary);

@@ -155,6 +155,9 @@ function _renderBody(c) {
   const _cmRoots = typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[''] || []) : [];
   const _cmL1Subs = _cmL1 ? (typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[_cmL1] || []) : []) : [];
   const _cmL2Subs = _cmL2 ? (typeof _etiquetasByParent !== 'undefined' ? (_etiquetasByParent[_cmL2] || []) : []) : [];
+  const _cmLeafNome = (_cmL3 ? (_cmL2Subs.find(e => e.slug === _cmL3)?.nome || '') : '')
+    || (_cmL2 ? (_cmL1Subs.find(e => e.slug === _cmL2)?.nome || '') : '')
+    || (_cmL1 ? (_cmRoots.find(e => e.slug === _cmL1)?.nome || '') : '');
 
   document.getElementById('cm-modal-title').innerHTML =
     `${_badgeStatus(c.status)} ${_badgeCategoria(c.categoria)}`;
@@ -216,8 +219,11 @@ function _renderBody(c) {
 
           <div class="mv2-cat-row" style="align-items:flex-start">
             <span class="mv2-field-label">Categoria</span>
-            ${_badgeCategoria(c.categoria) || '<span class="mv2-empty-text">Não classificado</span>'}
-            <div style="flex:1;display:flex;flex-direction:column;gap:.3rem;margin-left:.25rem">
+            <div class="mv2-cat-display">
+              <div class="mv2-cat-path" id="cm-cat-path-text">${_cmLeafNome || '<span class=\\'empty\\'>— sem categoria —</span>'}</div>
+              <button type="button" class="btn btn-secondary btn-sm" id="cm-btn-editar-categoria">Alterar</button>
+            </div>
+            <div class="mv2-cat-edit" style="flex:1;display:flex;flex-direction:column;gap:.3rem">
               <select class="form-control form-control-sm" id="cm-sel-cat-l1">
                 <option value="">— Não classificado —</option>
                 ${_cmRoots.map(e => `<option value="${e.slug}" ${e.slug === _cmL1 ? 'selected' : ''}>${e.nome}</option>`).join('')}
@@ -405,6 +411,10 @@ function _setupEventos(c) {
       if (subs.length) { l3.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`; l3.style.display = ''; }
       else { l3.style.display = 'none'; l3.innerHTML = ''; }
     });
+  }
+  const cmCatRow = q('cm-sel-cat-l1')?.closest('.mv2-cat-row');
+  if (q('cm-btn-editar-categoria')) {
+    q('cm-btn-editar-categoria').addEventListener('click', () => cmCatRow?.classList.add('is-editing'));
   }
   if (q('cm-btn-salvar-categoria')) {
     q('cm-btn-salvar-categoria').addEventListener('click', async () => {
