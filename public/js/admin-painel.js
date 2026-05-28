@@ -1039,6 +1039,10 @@ function renderChamadoItem(c) {
       ${c.usuario_id ? `<div class="chamado-nome"><span style="font-weight:400">Usuário: </span>${c.nome}</div>` : ''}
       <div class="chamado-desc">${c.descricao}</div>
       <div class="chamado-item-footer">
+        ${c.aberto_por_admin_nome ? `<span class="badge-aberto-por-admin" title="Aberto por ${c.aberto_por_admin_nome} (${c.aberto_por_admin_is_master ? 'Master' : 'Admin'})">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          ${c.aberto_por_admin_nome.split(' ')[0]}${c.aberto_por_admin_is_master ? ' ★' : ''}
+        </span>` : ''}
         <span class="chamado-footer-meta">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
           ${c.usuario_setor || c.setor}
@@ -1047,10 +1051,6 @@ function renderChamadoItem(c) {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           Ramal ${c.ramal}
         </span>
-        ${c.aberto_por_admin_nome ? `<span class="badge-aberto-por-admin" title="Aberto por ${c.aberto_por_admin_nome} (${c.aberto_por_admin_is_master ? 'Master' : 'Admin'})">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          ${c.aberto_por_admin_nome.split(' ')[0]}${c.aberto_por_admin_is_master ? ' ★' : ''}
-        </span>` : ''}
         ${c.prazo ? `<span class="chamado-footer-prazo${atrasado ? ' prazo-vencido' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Prazo: ${fmtData(c.prazo)}</span>` : ''}
         ${c.admin_nome ? `<span class="tag">Administrador responsável: ${c.admin_nome}</span>` : ''}
       </div>
