@@ -1168,7 +1168,10 @@ async function abrirModal(id) {
     chamadoAtual = await r.json();
     renderModalBody(chamadoAtual);
     _carregarAnexosExtras(chamadoAtual.id);
-  } catch {}
+  } catch (e) {
+    console.error('[abrirModal] Erro ao montar o modal:', e);
+    document.getElementById('modal-body').innerHTML = '<div class="alert alert-danger">Erro ao montar o chamado. Veja o console.</div>';
+  }
 }
 
 async function _carregarAnexosExtras(chamadoId) {
@@ -1635,6 +1638,9 @@ function renderModalBody(c) {
 }
 
 function setupModalEventos(c) {
+  // Bug raiz: primCatSel/subCatSel eram definidos só em renderModalBody — recalcular aqui
+  const [primCatSel, subCatSel] = _resolveCatPair(c.categoria);
+
   const msg = () => document.getElementById('msg-modal');
   const setMsg = (html) => { msg().innerHTML = html; };
 
@@ -1808,10 +1814,12 @@ function setupModalEventos(c) {
 
     selCatEl.addEventListener('change', () => {
       _populateSub(selCatEl.value, '');
-      if (selSubCustomEl) { selSubCustomEl.style.display = 'none'; selSubCustomEl.innerHTML = ''; }
+      // repopula filhos dinâmicos diretos da categoria (ex.: 21 subetiquetas de software)
+      _refreshSelSubCustom(selCatEl.value);
     });
     selSubEl.addEventListener('change', () => {
-      _refreshSelSubCustom(selSubEl.value);
+      // filhos do tipo selecionado; se tipo limpo, cai de volta nos filhos diretos da categoria
+      _refreshSelSubCustom(selSubEl.value || selCatEl.value);
     });
   }
 
