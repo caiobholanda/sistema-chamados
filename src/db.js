@@ -119,6 +119,8 @@ function initDb() {
   try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN ramal TEXT'); } catch {}
+  try { db.exec('ALTER TABLE admins ADD COLUMN is_test INTEGER DEFAULT 0'); } catch {}
+  try { db.exec("UPDATE admins SET is_test = 1 WHERE email = 'estagioadmin@granmarquise.com.br'"); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN novidades_usuario INTEGER DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN novidades_admin INTEGER DEFAULT 0'); } catch {}
   // Backfill: chamados abertos por admin sem usuário associado e com ramal vazio
@@ -1698,7 +1700,7 @@ function buscarAdminPorEmail(email) {
 }
 
 function listarAdmins() {
-  return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, is_master, ativo, senha_plain, criado_em FROM admins ORDER BY criado_em ASC').all();
+  return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, is_master, ativo, senha_plain, criado_em, COALESCE(is_test,0) as is_test FROM admins ORDER BY criado_em ASC').all();
 }
 
 function criarAdmin(dados) {

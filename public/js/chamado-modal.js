@@ -407,7 +407,7 @@ function _setupEventos(c) {
           const adminInfo = window.adminInfo || {};
           const sel = q('cm-sel-transferir-admin');
           sel.innerHTML = '<option value="">Selecione um admin...</option>' +
-            admins.filter(a => a.ativo && a.id !== adminInfo.id).map(a =>
+            admins.filter(a => a.ativo && !a.is_test && a.id !== adminInfo.id).map(a =>
               `<option value="${a.id}">${a.nome_completo}${a.is_master ? ' ★' : ''}</option>`
             ).join('');
         }

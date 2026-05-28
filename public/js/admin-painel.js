@@ -900,7 +900,7 @@ async function carregarAdminsParaFiltro() {
     if (!r.ok) return;
     const admins = await r.json();
     const sel = document.getElementById('filtro-admin');
-    admins.filter(a => a.ativo).forEach(a => {
+    admins.filter(a => a.ativo && !a.is_test).forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
       opt.textContent = a.nome_completo;
@@ -1744,7 +1744,7 @@ function setupModalEventos(c) {
         const r = await api('/api/admin/usuarios');
         if (r.ok) {
           const todosAdmins = await r.json();
-          const admins = todosAdmins.filter(a => a.ativo && a.id !== adminInfo.id && (!c.admin_responsavel_id || a.id !== c.admin_responsavel_id));
+          const admins = todosAdmins.filter(a => a.ativo && !a.is_test && a.id !== adminInfo.id && (!c.admin_responsavel_id || a.id !== c.admin_responsavel_id));
           const busca = document.getElementById('busca-transferir-admin');
           const resultados = document.getElementById('transferir-resultados');
           const selecionadoEl = document.getElementById('transferir-selecionado');
