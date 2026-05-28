@@ -1,4 +1,4 @@
-const SETORES = [
+let SETORES = [
   'Banquetes','Bar Rooftop','Comercial / Vendas','Compras / Almoxarifado','Concierge',
   'Confeitaria / Padaria','Controladoria','Cozinha','Estacionamento','Eventos e Convenções',
   'Financeiro','Fitness Center','Gerência Geral','Governança','Jurídico','Lavanderia',
@@ -7,6 +7,9 @@ const SETORES = [
   'Restaurante Mucuripe','Revenue Management','Room Service','Rouparia','Segurança',
   "Spa by L'Occitane",'Tecnologia da Informação','Transportes'
 ];
+fetch('/api/setores', { credentials: 'include' }).then(r => r.ok ? r.json() : null).then(d => {
+  if (Array.isArray(d) && d.length) SETORES = d.map(x => x.nome);
+}).catch(() => {});
 
 function _addSetorDropdown(inp, onSelect) {
   if (!inp) return;

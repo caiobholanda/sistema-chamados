@@ -549,6 +549,28 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_itens_tipo ON itens(tipo);
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS setores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL UNIQUE,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  if (db.prepare('SELECT COUNT(*) as c FROM setores').get().c === 0) {
+    const _ins = db.prepare('INSERT OR IGNORE INTO setores (nome) VALUES (?)');
+    db.transaction(() => {
+      for (const n of [
+        'Banquetes','Bar Rooftop','Comercial / Vendas','Compras / Almoxarifado','Concierge',
+        'Confeitaria / Padaria','Controladoria','Cozinha','Estacionamento','Eventos e Convenções',
+        'Financeiro','Fitness Center','Gerência Geral','Governança','Jurídico','Lavanderia',
+        'Lobby Bar','Manutenção','Marketing','Mensageria / Portaria','Nutrição','Piscina',
+        'Play Gran','Recepção','Recursos Humanos','Reservas','Restaurante Mangostin',
+        'Restaurante Mucuripe','Revenue Management','Room Service','Rouparia','Segurança',
+        "Spa by L'Occitane",'Tecnologia da Informação','Transportes',
+      ]) _ins.run(n);
+    })();
+  }
+
   seedInventario();
   seedEstoque();
   migrarEquipamentosLegados(db);
@@ -2415,6 +2437,22 @@ function zerarNovidadesAdmin(chamadoId) {
   getDb().prepare('UPDATE chamados SET novidades_admin = 0 WHERE id = ?').run(chamadoId);
 }
 
+function listarSetores() {
+  return getDb().prepare('SELECT id, nome FROM setores ORDER BY nome ASC').all();
+}
+
+function criarSetor(nome) {
+  return getDb().prepare('INSERT INTO setores (nome) VALUES (?)').run(nome).lastInsertRowid;
+}
+
+function editarSetor(id, nome) {
+  getDb().prepare('UPDATE setores SET nome = ? WHERE id = ?').run(nome, id);
+}
+
+function excluirSetor(id) {
+  getDb().prepare('DELETE FROM setores WHERE id = ?').run(id);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -2535,6 +2573,10 @@ module.exports = {
   marcarSugestaoVistaAdmin,
   marcarMensagensLidasUsuario,
   contarNaoVistaAdmin,
+  listarSetores,
+  criarSetor,
+  editarSetor,
+  excluirSetor,
   inserirInfoAdicional,
   listarInfosAdicionais,
   inserirAnexoExtra,

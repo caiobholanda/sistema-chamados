@@ -49,6 +49,7 @@ app.get('/admin-login.html', (req, res) => servirHtmlComVersao(res, 'admin-login
 app.get('/admin-contatos.html', (req, res) => servirHtmlComVersao(res, 'admin-contatos.html'));
 app.get('/admin-sugestoes.html', (req, res) => servirHtmlComVersao(res, 'admin-sugestoes.html'));
 app.get('/admin-servicos.html', (req, res) => servirHtmlComVersao(res, 'admin-servicos.html'));
+app.get('/admin-setores.html', (req, res) => servirHtmlComVersao(res, 'admin-setores.html'));
 app.get('/sugestao-historico.html', (req, res) => servirHtmlComVersao(res, 'sugestao-historico.html'));
 app.get('/redefinir-senha.html', (req, res) => servirHtmlComVersao(res, 'redefinir-senha.html'));
 app.get('/mobile', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
@@ -78,6 +79,7 @@ app.use('/api/admin/estoque', require('./src/rotas/estoque'));
 app.use('/api/admin/contatos', require('./src/rotas/contatos'));
 app.use('/api/sugestoes', require('./src/rotas/sugestoes'));
 app.use('/api/servicos', require('./src/rotas/servicos'));
+app.use('/api/setores', require('./src/rotas/setores'));
 app.use('/api/etiquetas', require('./src/rotas/etiquetas'));
 app.use('/api/admin', require('./src/rotas/admins'));
 
