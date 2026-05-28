@@ -1663,10 +1663,21 @@ function setupModalEventos(c) {
   const selSubCustomEl = document.getElementById('sel-subcategoria-custom');
 
   // Detect if current category is a dynamic sub
-  const isDynSub = !!(c.categoria && !CATS_PRIMARIAS.has(c.categoria) &&
-    !CATS_HARDWARE_SUB.includes(c.categoria) && !CATS_SOFTWARE_SUB.includes(c.categoria) &&
-    _etiquetasDin.find(e => e.slug === c.categoria && e.parent_slug));
-  const dynSubEt = isDynSub ? _etiquetasDin.find(e => e.slug === c.categoria) : null;
+  const dynSubEt = (c.categoria &&
+                    !CATS_PRIMARIAS.has(c.categoria) &&
+                    !CATS_HARDWARE_SUB.includes(c.categoria) &&
+                    !CATS_SOFTWARE_SUB.includes(c.categoria))
+    ? _etiquetasDin.find(e => e.slug === c.categoria) : null;
+
+  const isDynSub = !!(dynSubEt && dynSubEt.parent_slug);
+
+  // Resolver o "avô" quando o pai é um subtipo fixo (ex.: urmobo → software)
+  let dynGrandParent = '';
+  if (isDynSub) {
+    const p = dynSubEt.parent_slug;
+    if (CATS_HARDWARE_SUB.includes(p))      dynGrandParent = 'hardware';
+    else if (CATS_SOFTWARE_SUB.includes(p)) dynGrandParent = 'software';
+  }
 
   function _refreshSelSubCustom(parentVal) {
     if (!selSubCustomEl) return;
@@ -1688,10 +1699,20 @@ function setupModalEventos(c) {
       if (isDynSub ? e.slug === dynSubEt?.parent_slug : e.slug === c.categoria) o.selected = true;
       selCatEl.appendChild(o);
     }
-    // If ticket is a dynamic sub, fix sel-categoria to show the parent
-    if (isDynSub && dynSubEt?.parent_slug) {
-      selCatEl.value = dynSubEt.parent_slug;
-      _refreshSelSubCustom(dynSubEt.parent_slug);
+    // Selecionar os 3 níveis corretamente na abertura
+    if (isDynSub) {
+      if (dynGrandParent === 'software') {
+        selCatEl.value = 'software';
+        if (selSubSwEl) { selSubSwEl.style.display = 'block'; selSubSwEl.value = dynSubEt.parent_slug; }
+        _refreshSelSubCustom(dynSubEt.parent_slug);
+      } else if (dynGrandParent === 'hardware') {
+        selCatEl.value = 'hardware';
+        if (selSubEl) { selSubEl.style.display = 'block'; selSubEl.value = dynSubEt.parent_slug; }
+        _refreshSelSubCustom(dynSubEt.parent_slug);
+      } else {
+        selCatEl.value = dynSubEt.parent_slug;
+        _refreshSelSubCustom(dynSubEt.parent_slug);
+      }
     } else if (selCatEl.value) {
       _refreshSelSubCustom(selCatEl.value);
     }
@@ -1702,22 +1723,35 @@ function setupModalEventos(c) {
       if (selSubSwEl) selSubSwEl.style.display = val === 'software' ? 'block' : 'none';
       if (val !== 'hardware') selSubEl.value = '';
       if (selSubSwEl && val !== 'software') selSubSwEl.value = '';
-      _refreshSelSubCustom(val);
+      let parentForCustom = val;
+      if (val === 'software' && selSubSwEl?.value) parentForCustom = selSubSwEl.value;
+      if (val === 'hardware' && selSubEl?.value)   parentForCustom = selSubEl.value;
+      _refreshSelSubCustom(parentForCustom);
     });
+    if (selSubSwEl) {
+      selSubSwEl.addEventListener('change', () => {
+        _refreshSelSubCustom(selSubSwEl.value || 'software');
+      });
+    }
+    if (selSubEl) {
+      selSubEl.addEventListener('change', () => {
+        _refreshSelSubCustom(selSubEl.value || 'hardware');
+      });
+    }
   }
   const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
   if (btnSalvarCategoria) {
     btnSalvarCategoria.addEventListener('click', async () => {
       let cat = document.getElementById('sel-categoria').value;
-      if (cat === 'hardware') {
+      const subCustom = document.getElementById('sel-subcategoria-custom');
+      if (subCustom && subCustom.style.display !== 'none' && subCustom.value) {
+        cat = subCustom.value;
+      } else if (cat === 'hardware') {
         const sub = document.getElementById('sel-subcategoria').value;
         if (sub) cat = sub;
       } else if (cat === 'software') {
         const subSw = document.getElementById('sel-subcategoria-sw');
         if (subSw && subSw.value) cat = subSw.value;
-      } else {
-        const subCustom = document.getElementById('sel-subcategoria-custom');
-        if (subCustom && subCustom.style.display !== 'none' && subCustom.value) cat = subCustom.value;
       }
       const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
