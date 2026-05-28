@@ -896,11 +896,11 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
 
 async function carregarAdminsParaFiltro() {
   try {
-    const r = await api('/api/admin/usuarios');
+    const r = await api('/api/admin/transferencia-admins');
     if (!r.ok) return;
     const admins = await r.json();
     const sel = document.getElementById('filtro-admin');
-    admins.filter(a => a.ativo).forEach(a => {
+    admins.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
       opt.textContent = a.nome_completo;
