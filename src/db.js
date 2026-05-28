@@ -1308,6 +1308,16 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
     )`;
     for (let i = 0; i < 10; i++) params.push(q);
   }
+  if (filtros.categoria) {
+    const cats = filtros.categoria.split(',').map(s => s.trim()).filter(Boolean);
+    if (cats.length === 1) {
+      sql += ' AND c.categoria = ?';
+      params.push(cats[0]);
+    } else if (cats.length > 1) {
+      sql += ` AND c.categoria IN (${cats.map(() => '?').join(',')})`;
+      params.push(...cats);
+    }
+  }
   if (filtros.data_inicio || filtros.data_fim) {
     const col = filtros.data_tipo === 'encerramento'
       ? 'c.prazo'

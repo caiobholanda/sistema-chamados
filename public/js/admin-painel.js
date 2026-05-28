@@ -292,6 +292,15 @@ async function _carregarEtiquetasDinamicas() {
         ncCat.appendChild(o);
       }
     }
+    const dl = document.getElementById('filtro-etiqueta-list');
+    if (dl) {
+      dl.innerHTML = '';
+      _etiquetasDin.forEach(e => {
+        const o = document.createElement('option');
+        o.value = e.nome;
+        dl.appendChild(o);
+      });
+    }
   } catch {}
 }
 
@@ -486,6 +495,8 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('filtro-admin').value = '';
   const fb = document.getElementById('filtro-busca');
   if (fb) fb.value = '';
+  const fe = document.getElementById('filtro-etiqueta');
+  if (fe) fe.value = '';
   _limparFiltroData();
   carregarChamados();
 });
@@ -493,6 +504,16 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
 // Filtro por texto — atualização instantânea (debounce de 200ms)
 (() => {
   const inp = document.getElementById('filtro-busca');
+  if (!inp) return;
+  let t = null;
+  inp.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(() => carregarChamados(), 200);
+  });
+})();
+
+(() => {
+  const inp = document.getElementById('filtro-etiqueta');
   if (!inp) return;
   let t = null;
   inp.addEventListener('input', () => {
@@ -1018,6 +1039,15 @@ async function carregarChamados(silencioso = false) {
 
   const filtroBusca = (document.getElementById('filtro-busca')?.value || '').trim().replace(/^#/, '');
   if (filtroBusca) params.set('q', filtroBusca);
+
+  const filtroEtiqueta = (document.getElementById('filtro-etiqueta')?.value || '').trim().toLowerCase();
+  if (filtroEtiqueta) {
+    const matches = _etiquetasDin.filter(e => e.nome.toLowerCase().includes(filtroEtiqueta));
+    const slugs = new Set();
+    function _coletarDesc(slug) { slugs.add(slug); (_etiquetasByParent[slug] || []).forEach(c => _coletarDesc(c.slug)); }
+    matches.forEach(e => _coletarDesc(e.slug));
+    params.set('categoria', slugs.size ? [...slugs].join(',') : '__none__');
+  }
 
   try {
     const r = await api('/api/admin/chamados?' + params);

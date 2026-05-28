@@ -123,6 +123,7 @@ router.get('/chamados', requireAdmin, (req, res) => {
       data_inicio: req.query.data_inicio,
       data_fim: req.query.data_fim,
       q: req.query.q,
+      categoria: req.query.categoria,
     };
     const chamados = db.listarChamadosAdmin(filtros, req.admin.sub);
     return res.json(chamados);
