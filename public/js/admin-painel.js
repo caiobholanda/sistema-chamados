@@ -284,7 +284,9 @@ async function _carregarEtiquetasDinamicas() {
     const ncCat = document.getElementById('nc-categoria');
     if (ncCat) {
       ncCat.querySelectorAll('[data-din]').forEach(o => o.remove());
+      const existentes = new Set(Array.from(ncCat.options).map(o => o.value));
       for (const e of (_etiquetasByParent[''] || [])) {
+        if (existentes.has(e.slug)) continue;
         const o = document.createElement('option');
         o.value = e.slug; o.textContent = e.nome; o.dataset.din = '1';
         ncCat.appendChild(o);
@@ -769,10 +771,6 @@ async function _abrirFormTrocarUsuario(chamadoId) {
 
 function abrirModalNovoChamado() {
   document.getElementById('nc-categoria').value = '';
-  const ncSub = document.getElementById('nc-subcategoria');
-  if (ncSub) { ncSub.value = ''; ncSub.style.display = 'none'; }
-  const ncSubSw = document.getElementById('nc-subcategoria-sw');
-  if (ncSubSw) { ncSubSw.value = ''; ncSubSw.style.display = 'none'; }
   const ncSubContainer = document.getElementById('nc-sub-custom-container');
   if (ncSubContainer) ncSubContainer.innerHTML = '';
   document.getElementById('nc-descricao').value = '';
@@ -904,15 +902,15 @@ function _ncBuildSubLevels(parentSlug) {
   container.innerHTML = '';
   if (!parentSlug) return;
 
+  const rootSlug = SLUG_CAT_MAP[parentSlug] || parentSlug;
+
   function addLevel(slug) {
-    const subs = _etiquetasByParent[slug] || [];
+    const subs = (_etiquetasByParent[slug] || []).filter(e => e.ativo !== 0);
     if (!subs.length) return;
     const sel = document.createElement('select');
-    sel.className = 'form-control';
-    sel.style.marginTop = '.5rem';
-    sel.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`;
+    sel.className = 'form-control sub-cat-sel';
+    sel.innerHTML = `<option value="">— selecionar tipo —</option>${subs.map(e => `<option value="${e.slug}">${e.nome}</option>`).join('')}`;
     sel.addEventListener('change', () => {
-      // Remove todos os selects depois deste
       let next = sel.nextElementSibling;
       while (next) { const tmp = next.nextElementSibling; container.removeChild(next); next = tmp; }
       if (sel.value) addLevel(sel.value);
@@ -920,26 +918,11 @@ function _ncBuildSubLevels(parentSlug) {
     container.appendChild(sel);
   }
 
-  addLevel(parentSlug);
+  addLevel(rootSlug);
 }
 
 document.getElementById('nc-categoria').addEventListener('change', () => {
-  const val = document.getElementById('nc-categoria').value;
-  const sub = document.getElementById('nc-subcategoria');
-  const subSw = document.getElementById('nc-subcategoria-sw');
-  sub.style.display = val === 'hardware' ? 'block' : 'none';
-  if (subSw) subSw.style.display = val === 'software' ? 'block' : 'none';
-  if (val !== 'hardware') sub.value = '';
-  if (subSw && val !== 'software') subSw.value = '';
-  const temDropdownProprio = val === 'hardware' || val === 'software';
-  _ncBuildSubLevels((val && !temDropdownProprio) ? val : '');
-});
-
-document.getElementById('nc-subcategoria-sw').addEventListener('change', () => {
-  _ncBuildSubLevels(document.getElementById('nc-subcategoria-sw').value);
-});
-document.getElementById('nc-subcategoria').addEventListener('change', () => {
-  _ncBuildSubLevels(document.getElementById('nc-subcategoria').value);
+  _ncBuildSubLevels(document.getElementById('nc-categoria').value);
 });
 _carregarEtiquetasDinamicas();
 
@@ -950,17 +933,8 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
 
   if (!descricao || descricao.length < 5) { msgEl.innerHTML = '<div class="alert alert-danger">Descreva o problema (mínimo 5 caracteres).</div>'; return; }
 
-  let categoria = document.getElementById('nc-categoria').value;
-  const deepCustom = _ncGetDeepestVal();
-  if (categoria === 'hardware') {
-    const sub = document.getElementById('nc-subcategoria').value;
-    if (sub) categoria = deepCustom || sub;
-  } else if (categoria === 'software') {
-    const subSw = document.getElementById('nc-subcategoria-sw');
-    if (subSw && subSw.value) categoria = deepCustom || subSw.value;
-  } else if (categoria) {
-    categoria = deepCustom || categoria;
-  }
+  const _ncCatBase = document.getElementById('nc-categoria').value;
+  const categoria = _ncGetDeepestVal() || _ncCatBase;
   if (!categoria) { msgEl.innerHTML = '<div class="alert alert-danger">Selecione uma etiqueta para o chamado.</div>'; return; }
 
   const btn = document.getElementById('btn-confirmar-novo-chamado');

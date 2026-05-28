@@ -229,54 +229,18 @@
           <div id="nc-usuario-selecionado" style="display:none;font-size:.8rem;color:var(--text-secondary);margin-top:.35rem;padding:.3rem .5rem;background:var(--bg-card);border-radius:5px;border:1px solid var(--border)"></div>
         </div>
         <div class="form-group">
-          <label for="nc-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <label for="nc-categoria">Serviço</label>
           <select class="form-control" id="nc-categoria">
-            <option value="">Classificar automaticamente</option>
+            <option value="">— selecionar —</option>
             <option value="software">Software</option>
             <option value="hardware">Hardware</option>
             <option value="cameras">Câmeras / CFTV</option>
             <option value="email">E-mail</option>
             <option value="processo_compra">Processo de Compra</option>
+            <option value="backup_restore">Backup/Restore</option>
+            <option value="seguranca_info">Segurança da informação</option>
           </select>
-          <select class="form-control" id="nc-subcategoria" style="display:none;margin-top:.5rem">
-            <option value="">— tipo de hardware —</option>
-            <option value="impressora">Impressora</option>
-            <option value="ramal">Ramal / Telefone</option>
-            <option value="nobreak">Nobreak</option>
-            <option value="monitor">Monitor</option>
-            <option value="mouse">Mouse</option>
-            <option value="teclado">Teclado</option>
-            <option value="rede">Rede / Internet</option>
-            <option value="acesso_senha">Acesso / Senha</option>
-            <option value="tv_projetor">TV</option>
-            <option value="projetor">Projetor</option>
-            <option value="tablet">Tablet</option>
-            <option value="celular">Celular</option>
-            <option value="outros">Outros</option>
-          </select>
-          <select class="form-control" id="nc-subcategoria-sw" style="display:none;margin-top:.5rem">
-            <option value="">— tipo de software —</option>
-            <option value="thex_pos">THEX POS (TOTVS)</option>
-            <option value="thex_pms">THEX PMS (TOTVS)</option>
-            <option value="modulo_eventos">Módulo Eventos</option>
-            <option value="modulo_cp">Módulo Contas a Pagar</option>
-            <option value="modulo_cr">Módulo Contas a Receber</option>
-            <option value="modulo_rad">Módulo RAD</option>
-            <option value="modulo_fiscal">Módulo Fiscal Flex</option>
-            <option value="modulo_contab">Módulo Contabilidade</option>
-            <option value="modulo_compras">Módulo Compras</option>
-            <option value="modulo_almox">Módulo Almoxarifado</option>
-            <option value="modulo_caf">Módulo CAF</option>
-            <option value="modulo_cfinan">Módulo CFINAN</option>
-            <option value="modulo_fatura">Módulo Fatura</option>
-            <option value="app_comanda">App Comanda Eletrônica</option>
-            <option value="app_governanca">App Minha Governança</option>
-            <option value="letsbook">LetsBook (PMWEB)</option>
-            <option value="urmobo">URMOBO (MDM)</option>
-            <option value="cardapio_digital">Cardápio Digital</option>
-            <option value="central_ti">Central de Serviços TI</option>
-          </select>
-          <div id="nc-sub-custom-container"></div>
+          <div id="nc-sub-custom-container" style="display:flex;flex-direction:column;gap:.35rem;margin-top:.5rem"></div>
         </div>
         <div class="form-group">
           <label for="nc-admin-responsavel">Atribuir para admin <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
