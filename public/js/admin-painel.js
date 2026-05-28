@@ -1144,6 +1144,62 @@ async function fecharModal() {
   carregarEstatisticas();
 }
 
+function _setupCategoriaToggle() {
+  const sel = document.getElementById('sel-categoria');
+  if (!sel) return;
+  const row = sel.closest('.mv2-ctrl-row');
+  if (!row || row.dataset.toggleReady) return;
+  row.dataset.toggleReady = '1';
+  row.classList.add('mv2-cat-row');
+
+  const editWrap = sel.parentElement;
+  editWrap.classList.add('mv2-cat-edit');
+  const btnSalvar = document.getElementById('btn-salvar-categoria');
+
+  const display = document.createElement('div');
+  display.className = 'mv2-cat-display';
+  display.innerHTML = `
+    <div class="mv2-cat-path" id="cat-path-text"><span class="empty">— sem categoria —</span></div>
+    <button type="button" class="btn btn-secondary btn-sm" id="btn-editar-categoria">Alterar</button>`;
+  editWrap.parentNode.insertBefore(display, editWrap);
+
+  const pathEl = display.querySelector('#cat-path-text');
+  const btnEditar = display.querySelector('#btn-editar-categoria');
+
+  function textoSelecionado(id) {
+    const s = document.getElementById(id);
+    if (!s) return '';
+    const opt = s.options[s.selectedIndex];
+    return (opt && s.value) ? opt.textContent.trim() : '';
+  }
+
+  function atualizarDisplay() {
+    const catVal = document.getElementById('sel-categoria').value;
+    const cat = textoSelecionado('sel-categoria');
+    let sub = '';
+    if (catVal === 'software')      sub = textoSelecionado('sel-subcategoria-sw');
+    else if (catVal === 'hardware') sub = textoSelecionado('sel-subcategoria');
+    const subCustom = textoSelecionado('sel-subcategoria-custom');
+    const partes = [cat, sub, subCustom].filter(Boolean);
+    if (!partes.length) {
+      pathEl.innerHTML = '<span class="empty">— sem categoria —</span>';
+    } else {
+      pathEl.innerHTML = partes.map(p => `<span>${p}</span>`).join('<span class="sep">›</span>');
+    }
+  }
+
+  function entrarEdicao() { row.classList.add('is-editing'); }
+  function sairEdicao()   { row.classList.remove('is-editing'); atualizarDisplay(); }
+
+  btnEditar.addEventListener('click', entrarEdicao);
+  if (btnSalvar) btnSalvar.addEventListener('click', () => setTimeout(sairEdicao, 50));
+
+  ['sel-categoria', 'sel-subcategoria', 'sel-subcategoria-sw', 'sel-subcategoria-custom']
+    .forEach(id => { const s = document.getElementById(id); if (s) s.addEventListener('change', atualizarDisplay); });
+
+  atualizarDisplay();
+}
+
 function renderModalBody(c) {
   const _statusAtivos    = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
   const isAberto         = _statusAtivos.includes(c.status);
@@ -1759,6 +1815,7 @@ function setupModalEventos(c) {
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
+  _setupCategoriaToggle();
 
   const btnSalvarPrio = document.getElementById('btn-salvar-prio');
   if (btnSalvarPrio) {
