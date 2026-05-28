@@ -205,19 +205,15 @@ const CATEGORIAS_MAP = {
 };
 
 const CATS_PRIMARIAS = new Set(['software','hardware','cameras','email','processo_compra','backup_restore','seguranca_info']);
-const CATS_HARDWARE_SUB = ['impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','tv_projetor','projetor','tablet','celular','outros'];
 const CATS_SOFTWARE_SUB = ['thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
 
-// Fonte única de verdade para a cascata categoria → subcategoria
-// Só hardware tem subcategorias estáticas; demais categorias usam etiquetas dinâmicas da API
-const SUBCATS_MAP = {
-  hardware: CATS_HARDWARE_SUB.map(id => [id, CATEGORIAS_MAP[id].nome]),
+// Slugs internos (valor do <select>) → slugs reais da API
+const SLUG_CAT_MAP = {
+  backup_restore: 'backuprestore',
+  seguranca_info: 'seguranca_da_informacao',
 };
-// Mapa reverso: subSlug → primSlug (para pré-seleção ao abrir chamado)
-const SUB_TO_PRIM = {};
-for (const [prim, subs] of Object.entries(SUBCATS_MAP)) {
-  for (const [slug] of subs) SUB_TO_PRIM[slug] = prim;
-}
+// Reverso: slugs da API → slugs internos
+const SLUG_CAT_MAP_REV = Object.fromEntries(Object.entries(SLUG_CAT_MAP).map(([k,v]) => [v,k]));
 
 let _etiquetasDin = [];
 let _etiquetasByParent = {};
@@ -225,14 +221,53 @@ let _etiquetasByParent = {};
 function _resolveCatPair(slug) {
   if (!slug) return ['', ''];
   if (CATS_PRIMARIAS.has(slug)) return [slug, ''];
-  if (SUB_TO_PRIM[slug]) return [SUB_TO_PRIM[slug], slug];
   if (CATS_SOFTWARE_SUB.includes(slug)) return ['software', ''];
   const et = _etiquetasDin.find(e => e.slug === slug);
   if (!et || !et.parent_slug) return [slug, ''];
-  if (SUB_TO_PRIM[et.parent_slug]) return [SUB_TO_PRIM[et.parent_slug], et.parent_slug];
-  if (CATS_PRIMARIAS.has(et.parent_slug)) return [et.parent_slug, ''];
+  const parentInternal = SLUG_CAT_MAP_REV[et.parent_slug] || et.parent_slug;
+  if (CATS_PRIMARIAS.has(parentInternal)) return [parentInternal, slug];
+  if (CATS_PRIMARIAS.has(et.parent_slug)) return [et.parent_slug, slug];
   const [prim] = _resolveCatPair(et.parent_slug);
-  return [prim, ''];
+  return [prim, slug];
+}
+
+function _buildCatChain(slug, rootSlug) {
+  const chain = [];
+  let cur = slug;
+  while (cur && cur !== rootSlug) {
+    chain.unshift(cur);
+    const et = _etiquetasDin.find(e => e.slug === cur);
+    cur = et?.parent_slug || null;
+  }
+  return chain;
+}
+
+function _sincronizarSubSelects(cat, preselSub) {
+  const container = document.getElementById('sub-custom-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const rootSlug = SLUG_CAT_MAP[cat] || cat;
+  const chain = (preselSub && preselSub !== rootSlug) ? _buildCatChain(preselSub, rootSlug) : [];
+
+  function addLevel(parentSlug, chainIdx) {
+    const kids = (_etiquetasByParent[parentSlug] || []).filter(e => e.ativo !== 0);
+    if (!kids.length) return;
+    const presel = chain[chainIdx] || '';
+    const sel = document.createElement('select');
+    sel.className = 'form-control form-control-sm sub-cat-sel';
+    sel.innerHTML = '<option value="">— selecionar tipo —</option>'
+      + kids.map(e => `<option value="${e.slug}"${e.slug === presel ? ' selected' : ''}>${e.nome}</option>`).join('');
+    container.appendChild(sel);
+    if (presel) addLevel(presel, chainIdx + 1);
+    sel.addEventListener('change', () => {
+      let next = sel.nextSibling;
+      while (next) { const n = next.nextSibling; next.remove(); next = n; }
+      if (sel.value) addLevel(sel.value, 0);
+    });
+  }
+
+  addLevel(rootSlug, 0);
 }
 
 async function _carregarEtiquetasDinamicas() {
@@ -1207,10 +1242,17 @@ function _setupCategoriaToggle() {
   }
 
   function atualizarDisplay() {
-    const subCustom = textoSelecionado('sel-subcategoria-custom');
-    const sub       = textoSelecionado('sel-subcategoria');
-    const cat       = textoSelecionado('sel-categoria');
-    const atual     = subCustom || sub || cat || '';
+    const container = document.getElementById('sub-custom-container');
+    let deepestText = '';
+    if (container) {
+      const sels = container.querySelectorAll('select.sub-cat-sel');
+      for (const s of sels) {
+        const opt = s.options[s.selectedIndex];
+        if (opt && s.value) deepestText = opt.textContent.trim();
+      }
+    }
+    const cat = textoSelecionado('sel-categoria');
+    const atual = deepestText || cat || '';
     if (!atual) {
       pathEl.innerHTML = '<span class="empty">— sem categoria —</span>';
     } else {
@@ -1224,8 +1266,10 @@ function _setupCategoriaToggle() {
   btnEditar.addEventListener('click', entrarEdicao);
   if (btnSalvar) btnSalvar.addEventListener('click', () => setTimeout(sairEdicao, 50));
 
-  ['sel-categoria', 'sel-subcategoria', 'sel-subcategoria-custom']
-    .forEach(id => { const s = document.getElementById(id); if (s) s.addEventListener('change', atualizarDisplay); });
+  const selCatEl2 = document.getElementById('sel-categoria');
+  if (selCatEl2) selCatEl2.addEventListener('change', atualizarDisplay);
+  const subCont2 = document.getElementById('sub-custom-container');
+  if (subCont2) subCont2.addEventListener('change', atualizarDisplay);
 
   atualizarDisplay();
 }
@@ -1401,11 +1445,7 @@ function renderModalBody(c) {
                     <option value="backup_restore"  ${primCatSel === 'backup_restore'  ? 'selected' : ''}>Backup/Restore</option>
                     <option value="seguranca_info"  ${primCatSel === 'seguranca_info'  ? 'selected' : ''}>Segurança da informação</option>
                   </select>
-                  <select class="form-control form-control-sm" id="sel-subcategoria" style="display:${primCatSel && SUBCATS_MAP[primCatSel] ? 'block' : 'none'}">
-                    <option value="">— selecionar tipo —</option>
-                    ${primCatSel && SUBCATS_MAP[primCatSel] ? SUBCATS_MAP[primCatSel].map(([id, nome]) => `<option value="${id}"${subCatSel === id ? ' selected' : ''}>${nome}</option>`).join('') : ''}
-                  </select>
-                  <select class="form-control form-control-sm" id="sel-subcategoria-custom" style="display:none"></select>
+                  <div id="sub-custom-container" style="display:flex;flex-direction:column;gap:.35rem"></div>
                 </div>
                 <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
               </div>
@@ -1741,48 +1781,20 @@ function setupModalEventos(c) {
     });
   }
 
-  const selCatEl      = document.getElementById('sel-categoria');
-  const selSubEl      = document.getElementById('sel-subcategoria');
-  const selSubCustomEl = document.getElementById('sel-subcategoria-custom');
+  const selCatEl       = document.getElementById('sel-categoria');
+  const subContainer   = document.getElementById('sub-custom-container');
 
-  function _refreshSelSubCustom(parentVal) {
-    if (!selSubCustomEl) return;
-    const subs = _etiquetasByParent[parentVal] || [];
-    if (subs.length) {
-      selSubCustomEl.innerHTML = `<option value="">— subtipo —</option>${subs.map(e => `<option value="${e.slug}"${e.slug === c.categoria ? ' selected' : ''}>${e.nome}</option>`).join('')}`;
-      selSubCustomEl.style.display = 'block';
-    } else {
-      selSubCustomEl.style.display = 'none'; selSubCustomEl.innerHTML = '';
-    }
+  function _getDeepestSubVal() {
+    if (!subContainer) return '';
+    const sels = subContainer.querySelectorAll('select.sub-cat-sel');
+    let val = '';
+    for (const s of sels) { if (s.value) val = s.value; }
+    return val;
   }
 
-  function _populateSub(primVal, preselSub) {
-    if (!selSubEl) return;
-    const subs = SUBCATS_MAP[primVal] || [];
-    if (subs.length) {
-      selSubEl.innerHTML = `<option value="">— selecionar tipo —</option>`
-        + subs.map(([id, nome]) => `<option value="${id}"${id === preselSub ? ' selected' : ''}>${nome}</option>`).join('');
-      selSubEl.style.display = 'block';
-    } else {
-      selSubEl.innerHTML = ''; selSubEl.style.display = 'none';
-    }
-  }
-
-  if (selCatEl && selSubEl) {
-    // Pré-popular na abertura
-    _populateSub(primCatSel, subCatSel);
-    if (subCatSel) _refreshSelSubCustom(subCatSel);
-    else if (primCatSel) _refreshSelSubCustom(primCatSel);
-
-    selCatEl.addEventListener('change', () => {
-      _populateSub(selCatEl.value, '');
-      // repopula filhos dinâmicos diretos da categoria (ex.: 21 subetiquetas de software)
-      _refreshSelSubCustom(selCatEl.value);
-    });
-    selSubEl.addEventListener('change', () => {
-      // filhos do tipo selecionado; se tipo limpo, cai de volta nos filhos diretos da categoria
-      _refreshSelSubCustom(selSubEl.value || selCatEl.value);
-    });
+  if (selCatEl) {
+    _sincronizarSubSelects(primCatSel, subCatSel);
+    selCatEl.addEventListener('change', () => _sincronizarSubSelects(selCatEl.value));
   }
 
   // --- Validação e save ---
@@ -1790,43 +1802,43 @@ function setupModalEventos(c) {
   if (btnSalvarCategoria) {
     function _catErrMostrar(msg, destacarSub) {
       if (selCatEl) selCatEl.classList.toggle('is-invalid', !destacarSub);
-      if (selSubEl) selSubEl.classList.toggle('is-invalid', !!destacarSub);
+      if (destacarSub && subContainer) {
+        const last = subContainer.querySelector('select.sub-cat-sel:last-child');
+        if (last) last.classList.add('is-invalid');
+      }
       let e = document.getElementById('cat-err-msg');
       if (!e) {
         e = document.createElement('div');
         e.id = 'cat-err-msg';
         e.style.cssText = 'color:var(--danger,#ef4444);font-size:.8rem;margin-top:.25rem';
-        selSubCustomEl?.parentElement?.appendChild(e);
+        (subContainer || selCatEl?.parentElement)?.appendChild(e);
       }
       e.textContent = msg;
     }
     function _catErrLimpar() {
       if (selCatEl) selCatEl.classList.remove('is-invalid');
-      if (selSubEl) selSubEl.classList.remove('is-invalid');
+      subContainer?.querySelectorAll('select.sub-cat-sel').forEach(s => s.classList.remove('is-invalid'));
       const e = document.getElementById('cat-err-msg'); if (e) e.remove();
     }
-    [selCatEl, selSubEl, selSubCustomEl].forEach(el => {
-      if (el) el.addEventListener('change', _catErrLimpar);
-    });
+    selCatEl?.addEventListener('change', _catErrLimpar);
+    subContainer?.addEventListener('change', _catErrLimpar);
 
     btnSalvarCategoria.addEventListener('click', async () => {
       _catErrLimpar();
       const catVal    = selCatEl?.value || '';
-      const subVis    = selSubEl?.style.display !== 'none';
-      const subVal    = subVis ? (selSubEl?.value || '') : '';
-      const subCusVis = selSubCustomEl?.style.display !== 'none';
-      const subCusVal = subCusVis ? (selSubCustomEl?.value || '') : '';
+      const hasSubs   = (subContainer?.querySelectorAll('select.sub-cat-sel').length || 0) > 0;
+      const subCusVal = _getDeepestSubVal();
 
       if (!catVal) {
         _catErrMostrar('O chamado não pode ficar sem etiqueta. Selecione uma categoria.', false);
         return;
       }
-      if (subVis && !subVal) {
+      if (hasSubs && !subCusVal) {
         _catErrMostrar('O chamado não pode ficar sem etiqueta. Selecione um tipo.', true);
         return;
       }
 
-      const cat = subCusVal || subVal || catVal;
+      const cat = subCusVal || catVal;
       const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
       setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
