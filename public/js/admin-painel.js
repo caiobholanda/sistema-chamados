@@ -260,6 +260,19 @@ for (const [prim, subs] of Object.entries(SUBCATS_MAP)) {
 let _etiquetasDin = [];
 let _etiquetasByParent = {};
 
+function _resolveCatPair(slug) {
+  if (!slug) return ['', ''];
+  if (CATS_PRIMARIAS.has(slug)) return [slug, ''];
+  if (SUB_TO_PRIM[slug]) return [SUB_TO_PRIM[slug], slug];
+  if (CATS_SOFTWARE_SUB.includes(slug)) return ['software', ''];
+  const et = _etiquetasDin.find(e => e.slug === slug);
+  if (!et || !et.parent_slug) return [slug, ''];
+  if (SUB_TO_PRIM[et.parent_slug]) return [SUB_TO_PRIM[et.parent_slug], et.parent_slug];
+  if (CATS_PRIMARIAS.has(et.parent_slug)) return [et.parent_slug, ''];
+  const [prim] = _resolveCatPair(et.parent_slug);
+  return [prim, ''];
+}
+
 async function _carregarEtiquetasDinamicas() {
   try {
     const data = await fetch('/api/etiquetas', { credentials: 'include' }).then(r => r.ok ? r.json() : []);
@@ -1271,19 +1284,6 @@ function renderModalBody(c) {
     : '';
 
   const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
-  // Resolve categoria salva → [primária, sub] para pré-selecionar os dois selects
-  function _resolveCatPair(slug) {
-    if (!slug) return ['', ''];
-    if (CATS_PRIMARIAS.has(slug)) return [slug, ''];
-    if (SUB_TO_PRIM[slug]) return [SUB_TO_PRIM[slug], slug];
-    if (CATS_SOFTWARE_SUB.includes(slug)) return ['software', ''];
-    const et = _etiquetasDin.find(e => e.slug === slug);
-    if (!et || !et.parent_slug) return [slug, ''];
-    if (SUB_TO_PRIM[et.parent_slug]) return [SUB_TO_PRIM[et.parent_slug], et.parent_slug];
-    if (CATS_PRIMARIAS.has(et.parent_slug)) return [et.parent_slug, ''];
-    const [prim] = _resolveCatPair(et.parent_slug);
-    return [prim, ''];
-  }
   const [primCatSel, subCatSel] = _resolveCatPair(c.categoria);
 
   document.getElementById('modal-title').innerHTML = `${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
