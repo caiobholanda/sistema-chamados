@@ -1178,16 +1178,21 @@ function _setupCategoriaToggle() {
 
   function atualizarDisplay() {
     const catVal = document.getElementById('sel-categoria').value;
-    const cat = textoSelecionado('sel-categoria');
-    let sub = '';
-    if (catVal === 'software')      sub = textoSelecionado('sel-subcategoria-sw');
-    else if (catVal === 'hardware') sub = textoSelecionado('sel-subcategoria');
     const subCustom = textoSelecionado('sel-subcategoria-custom');
-    const partes = [cat, sub, subCustom].filter(Boolean);
-    if (!partes.length) {
+    const subSw     = textoSelecionado('sel-subcategoria-sw');
+    const subHw     = textoSelecionado('sel-subcategoria');
+    const cat       = textoSelecionado('sel-categoria');
+
+    let atual = '';
+    if (subCustom)                            atual = subCustom;
+    else if (catVal === 'software' && subSw)  atual = subSw;
+    else if (catVal === 'hardware' && subHw)  atual = subHw;
+    else if (cat)                             atual = cat;
+
+    if (!atual) {
       pathEl.innerHTML = '<span class="empty">— sem categoria —</span>';
     } else {
-      pathEl.innerHTML = partes.map(p => `<span>${p}</span>`).join('<span class="sep">›</span>');
+      pathEl.textContent = atual;
     }
   }
 
