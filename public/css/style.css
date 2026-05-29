@@ -4725,38 +4725,51 @@ html.modal-aberto {
 
   /* Ranking de admins */
   .rank-grid {
-    display: grid;
-    grid-template-columns: 60px minmax(180px, 1fr) 110px 130px 130px;
-    gap: 0;
-    align-items: center;
+    display: flex;
+    flex-direction: column;
   }
   .rank-head {
-    display: contents;
+    display: grid;
+    grid-template-columns: 60px minmax(180px, 1fr) 110px 130px 130px;
+    background: var(--surface-2);
+    border-bottom: 2px solid var(--border);
   }
   .rank-head > * {
     font-size: .62rem; font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase; letter-spacing: .09em;
     padding: .65rem 1rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface-2);
     white-space: nowrap;
+    display: flex; align-items: center;
   }
   .rank-row {
-    display: contents;
+    display: grid;
+    grid-template-columns: 60px minmax(180px, 1fr) 110px 130px 130px;
+    border-bottom: 1px solid var(--border);
+    transition: background .14s;
+    animation: rankFadeIn .38s ease both;
+  }
+  .rank-row:last-child { border-bottom: none; }
+  .rank-row:hover { background: var(--surface-2); }
+  .rank-row.you { background: var(--gold-pale); }
+  .rank-row.you:hover { filter: brightness(.97); }
+  .rank-row.rank-first {
+    box-shadow: inset 3px 0 0 var(--gold);
   }
   .rank-row > * {
     padding: .85rem 1rem;
-    border-bottom: 1px solid var(--border);
     font-size: .85rem;
     color: var(--text);
+    display: flex; align-items: center;
+  }
+  @keyframes rankFadeIn {
+    from { opacity: 0; transform: translateY(7px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   @media (max-width: 720px) {
-    .rank-grid { grid-template-columns: 40px 1fr 70px 80px 80px; }
+    .rank-head, .rank-row { grid-template-columns: 40px 1fr 70px 80px 80px; }
     .rank-head > *, .rank-row > * { padding-left: .55rem; padding-right: .55rem; font-size: .76rem; }
   }
-  .rank-row:last-child > * { border-bottom: none; }
-  .rank-row.you > * { background: var(--gold-pale); }
 
   .rank-pos {
     display: flex; align-items: center; justify-content: center;

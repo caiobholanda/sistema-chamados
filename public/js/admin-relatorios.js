@@ -408,17 +408,18 @@ function rankingRows(ranking) {
     const notaTxt = a.nota_media != null
       ? `<span style="color:${a.nota_media >= 8 ? 'var(--success)' : a.nota_media >= 6 ? 'var(--warning)' : 'var(--danger)'};font-weight:600">${a.nota_media.toFixed(1).replace('.', ',')}</span><small style="color:var(--text-muted);font-weight:400">/10</small>`
       : '<span class="muted">—</span>';
+    const extraClass = [isVoce ? 'you' : '', i === 0 && tot > 0 ? 'rank-first' : ''].filter(Boolean).join(' ');
     return `
-      <div class="rank-row ${isVoce ? 'you' : ''}">
+      <div class="rank-row ${extraClass}" style="animation-delay:${i * 55}ms">
         <div class="rank-pos"><div class="rank-medal ${medal}">${i + 1}</div></div>
         <div class="rank-name">
           <div class="rank-avatar" ${semAtividade ? 'style="background:var(--bg);color:var(--text-muted);border-color:var(--border)"' : ''}>${iniciais}</div>
           <span ${semAtividade ? 'style="color:var(--text-muted)"' : ''}>${a.nome_completo}</span>
           ${isVoce ? '<span class="rank-you-tag">Você</span>' : ''}
         </div>
-        <div class="rank-num ${semAtividade ? 'muted' : ''}" style="text-align:right">${tot}</div>
-        <div class="rank-num muted" style="text-align:right">${fmtTempo(a.tempo_medio_seg)}</div>
-        <div class="rank-num" style="text-align:right;display:flex;justify-content:flex-end;align-items:baseline;gap:.2rem">${notaTxt}</div>
+        <div class="rank-num ${semAtividade ? 'muted' : ''}" style="justify-content:flex-end">${tot}</div>
+        <div class="rank-num muted" style="justify-content:flex-end">${fmtTempo(a.tempo_medio_seg)}</div>
+        <div class="rank-num" style="justify-content:flex-end;gap:.2rem;align-items:baseline">${notaTxt}</div>
       </div>`;
   }).join('');
 }

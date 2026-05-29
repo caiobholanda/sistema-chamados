@@ -34,13 +34,14 @@ function _renderAdminEtChips(filtro) {
   }
   container.innerHTML = lista.map(e => {
     const ativo = _adminEtSelecionados.has(e.slug);
-    const s = ativo ? 'background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.45);color:var(--text-muted);text-decoration:line-through' : '';
+    const cor = e.cor || '#C5A55A';
+    const s = ativo ? `background:${cor}22;border-color:${cor}88;color:${cor};font-weight:600` : '';
     const label = bc(e).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    return `<button type="button" class="admin-et-chip${ativo?' ativo':''}" data-slug="${e.slug}" data-cor="${e.cor}" style="${s}" title="${label}">${label}</button>`;
+    return `<button type="button" class="admin-et-chip${ativo?' ativo':''}" data-slug="${e.slug}" data-cor="${cor}" style="${s}" title="${label}">${label}</button>`;
   }).join('');
   container.querySelectorAll('.admin-et-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      const slug = chip.dataset.slug; const cor = chip.dataset.cor;
+      const slug = chip.dataset.slug; const cor = chip.dataset.cor || '#C5A55A';
       if (_adminEtSelecionados.has(slug)) {
         _adminEtSelecionados.delete(slug);
         chip.classList.remove('ativo');
@@ -48,7 +49,7 @@ function _renderAdminEtChips(filtro) {
       } else {
         _adminEtSelecionados.add(slug);
         chip.classList.add('ativo');
-        chip.style.cssText = 'background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.45);color:var(--text-muted);text-decoration:line-through';
+        chip.style.cssText = `background:${cor}22;border-color:${cor}88;color:${cor};font-weight:600`;
       }
     });
   });
