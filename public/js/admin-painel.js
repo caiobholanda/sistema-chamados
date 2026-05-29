@@ -649,8 +649,10 @@ function _tipoDataAtivo() {
 }
 
 function _limparFiltroData() {
-  const dia = document.getElementById('filtro-data-dia');
-  if (dia) dia.value = '';
+  const ini = document.getElementById('filtro-data-inicio');
+  const fim = document.getElementById('filtro-data-fim');
+  if (ini) ini.value = '';
+  if (fim) fim.value = '';
 }
 
 document.getElementById('btn-toggle-data-filtro').addEventListener('click', () => {
@@ -667,11 +669,12 @@ document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
     if (btn.classList.contains('ativo')) return;
     document.querySelectorAll('.filtro-tipo-btn').forEach(b => b.classList.remove('ativo'));
     btn.classList.add('ativo');
-    if (document.getElementById('filtro-data-dia')?.value) carregarChamados();
+    if (document.getElementById('filtro-data-inicio')?.value || document.getElementById('filtro-data-fim')?.value) carregarChamados();
   });
 });
 
-document.getElementById('filtro-data-dia')?.addEventListener('change', () => carregarChamados());
+document.getElementById('filtro-data-inicio')?.addEventListener('change', () => carregarChamados());
+document.getElementById('filtro-data-fim')?.addEventListener('change', () => carregarChamados());
 
 document.getElementById('btn-limpar-data')?.addEventListener('click', () => {
   _limparFiltroData();
@@ -1108,11 +1111,12 @@ async function carregarChamados(silencioso = false) {
 
   if (setor) params.set('setor', setor);
 
-  const dataDia = document.getElementById('filtro-data-dia')?.value;
-  if (dataDia) {
+  const dataInicio = document.getElementById('filtro-data-inicio')?.value;
+  const dataFim = document.getElementById('filtro-data-fim')?.value;
+  if (dataInicio || dataFim) {
     params.set('data_tipo', _tipoDataAtivo());
-    params.set('data_inicio', dataDia);
-    params.set('data_fim', dataDia);
+    if (dataInicio) params.set('data_inicio', dataInicio);
+    if (dataFim) params.set('data_fim', dataFim);
     if (!statusFiltroAtual && abaAtiva !== 'meus') {
       params.set('status', STATUS_ABERTOS.join(','));
     }
