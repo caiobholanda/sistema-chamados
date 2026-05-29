@@ -2,10 +2,10 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-RUN wget -q https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64-static.tar.gz \
-    && tar -xzf litestream-v0.3.13-linux-amd64-static.tar.gz \
+RUN wget -q https://github.com/benbjohnson/litestream/releases/download/v0.5.11/litestream-0.5.11-linux-x86_64.tar.gz \
+    && tar -xzf litestream-0.5.11-linux-x86_64.tar.gz \
     && mv litestream /usr/local/bin/litestream \
-    && rm litestream-v0.3.13-linux-amd64-static.tar.gz
+    && rm litestream-0.5.11-linux-x86_64.tar.gz
 
 COPY package*.json ./
 RUN npm ci --production
