@@ -1262,14 +1262,14 @@ function renderChamadoItem(c) {
   const cor = CATEGORIAS_MAP[c.categoria]?.cor || '#C5A55A';
   return `
     <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}${ehMinhaArea && !jaResponsavel ? ' chamado-minha-area' : ''}"
-         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"${ehMinhaArea && !jaResponsavel ? ` style="--area-cor:${cor}"` : ''}>
+         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"${ehMinhaArea && !jaResponsavel ? ` style="--area-cor:${cor};background:linear-gradient(90deg,${cor}0d 0%,transparent 260px)"` : ''}>
       <div class="chamado-item-header">
         <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
         ${badgeStatus(c.status)}
         ${atrasado ? `<span class="badge badge-atraso">⚠ Em atraso</span>` : ''}
         ${badgePrio(c.prioridade)}
         ${badgeCategoria(c.categoria)}
-        ${ehMinhaArea && !jaResponsavel ? `<span class="badge-para-voce" style="background:${cor}1a;border-color:${cor}55;color:${cor}">para você</span>` : ''}
+        ${ehMinhaArea && !jaResponsavel ? `<span class="badge-para-voce" style="background:${cor}28;border-color:${cor}80;color:${cor}">Minha área</span>` : ''}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
         ${c.infos_adicionais_count > 0 ? `<span class="badge-info-extra" title="${c.infos_adicionais_count} ${c.infos_adicionais_count === 1 ? 'informação adicional' : 'informações adicionais'}">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
