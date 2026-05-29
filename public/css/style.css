@@ -187,7 +187,9 @@
 [data-theme="dark"] .ht-sem-assin      { color: #4ade80; }
 
 /* Rank row highlight */
-[data-theme="dark"] .rank-row.you > * { background: rgba(197,165,90,.08); }
+[data-theme="dark"] .rank-row.you { background: rgba(197,165,90,.14); }
+[data-theme="dark"] .rank-row.you > * { background: transparent; }
+[data-theme="dark"] .rank-row.you:hover { background: rgba(197,165,90,.20); filter: none; }
 
 /* Rank medals in dark */
 [data-theme="dark"] .rank-medal.gold   { background: linear-gradient(145deg, #3d2800, #5a3c00); border-color: #d4a017; color: #fcd34d; }
