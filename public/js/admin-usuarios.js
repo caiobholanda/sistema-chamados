@@ -34,7 +34,7 @@ function _renderAdminEtChips(filtro) {
   }
   container.innerHTML = lista.map(e => {
     const ativo = _adminEtSelecionados.has(e.slug);
-    const s = ativo ? `background:${e.cor};border-color:${e.cor};color:#fff` : '';
+    const s = ativo ? 'background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.45);color:var(--text-muted);text-decoration:line-through' : '';
     const label = bc(e).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     return `<button type="button" class="admin-et-chip${ativo?' ativo':''}" data-slug="${e.slug}" data-cor="${e.cor}" style="${s}" title="${label}">${label}</button>`;
   }).join('');
@@ -48,7 +48,7 @@ function _renderAdminEtChips(filtro) {
       } else {
         _adminEtSelecionados.add(slug);
         chip.classList.add('ativo');
-        chip.style.background = cor; chip.style.borderColor = cor; chip.style.color = '#fff';
+        chip.style.cssText = 'background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.45);color:var(--text-muted);text-decoration:line-through';
       }
     });
   });
