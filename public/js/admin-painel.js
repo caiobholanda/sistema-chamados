@@ -1259,10 +1259,13 @@ function renderChamadoItem(c) {
   const atrasado  = estaAtrasado(c);
   const ehMinhaArea = _minhasEtiquetas.size > 0 && c.categoria && _minhasEtiquetas.has(c.categoria);
   const jaResponsavel = adminInfo && c.admin_responsavel_id && Number(c.admin_responsavel_id) === Number(adminInfo.id);
+  const foraArea = _minhasEtiquetas.size > 0 && !ehMinhaArea;
   const cor = CATEGORIAS_MAP[c.categoria]?.cor || '#C5A55A';
+  const areaClass = ehMinhaArea && !jaResponsavel ? ' chamado-minha-area' : foraArea ? ' chamado-fora-area' : '';
+  const areaStyle = ehMinhaArea && !jaResponsavel ? ` style="--area-cor:${cor};background:linear-gradient(90deg,${cor}14 0%,transparent 320px)"` : '';
   return `
-    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}${ehMinhaArea && !jaResponsavel ? ' chamado-minha-area' : ''}"
-         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"${ehMinhaArea && !jaResponsavel ? ` style="--area-cor:${cor};background:linear-gradient(90deg,${cor}0d 0%,transparent 260px)"` : ''}>
+    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}${areaClass}"
+         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"${areaStyle}>
       <div class="chamado-item-header">
         <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
         ${badgeStatus(c.status)}

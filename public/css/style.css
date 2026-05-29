@@ -1092,6 +1092,17 @@ tbody tr:hover td { background: var(--surface-2); }
 
 .chamado-minha-area {
   border-left: 4px solid var(--area-cor, var(--gold));
+  box-shadow: inset 4px 0 18px -8px var(--area-cor, var(--gold));
+}
+
+.chamado-fora-area {
+  opacity: .58;
+  filter: saturate(.7);
+  transition: opacity .15s, filter .15s;
+}
+.chamado-fora-area:hover {
+  opacity: 1;
+  filter: saturate(1);
 }
 
 /* ═══════════════════════════════════════════
