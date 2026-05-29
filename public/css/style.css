@@ -1209,6 +1209,38 @@ tbody tr:hover td { background: var(--surface-2); }
 .filtro-data-sep-text { color: var(--text-muted); font-size: .8rem; }
 .btn-data-ativo { background: var(--gold-pale) !important; border-color: var(--gold) !important; color: var(--gold-dark) !important; }
 
+.filtro-periodo-sep {
+  width: 1px; height: 18px;
+  background: var(--border);
+  flex-shrink: 0;
+  align-self: center;
+}
+.filtro-periodo-chips { display: flex; gap: .28rem; align-items: center; }
+.filtro-periodo-chip {
+  padding: .28rem .58rem;
+  font-size: .67rem; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color .13s, color .13s, background .13s, transform .08s;
+  white-space: nowrap; line-height: 1.5;
+  user-select: none;
+}
+.filtro-periodo-chip:hover {
+  border-color: var(--gold);
+  color: var(--gold-dark, #a07828);
+  background: var(--gold-pale, rgba(197,165,90,.07));
+}
+.filtro-periodo-chip.ativo {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--navy);
+}
+.filtro-periodo-chip:active { transform: scale(.93); }
+
 /* ═══════════════════════════════════════════
    CHAMADO ITEM
 ═══════════════════════════════════════════ */

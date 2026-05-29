@@ -648,11 +648,40 @@ function _tipoDataAtivo() {
   return document.querySelector('.filtro-tipo-btn.ativo')?.dataset.tipo || 'criacao';
 }
 
+function _limparChipsAtivos() {
+  document.querySelectorAll('.filtro-periodo-chip').forEach(c => c.classList.remove('ativo'));
+}
+
+function _aplicarPeriodoRapido(tipo) {
+  const hoje = new Date();
+  let ini, fim;
+  if (tipo === 'semana') {
+    const dow = hoje.getDay();
+    const diffIni = dow === 0 ? -6 : 1 - dow;
+    ini = new Date(hoje); ini.setDate(hoje.getDate() + diffIni);
+    fim = new Date(ini);  fim.setDate(ini.getDate() + 6);
+  } else if (tipo === 'mes') {
+    ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+  } else if (tipo === 'trimestre') {
+    const q = Math.floor(hoje.getMonth() / 3);
+    ini = new Date(hoje.getFullYear(), q * 3, 1);
+    fim = new Date(hoje.getFullYear(), q * 3 + 3, 0);
+  }
+  const fmt = d => d.toISOString().split('T')[0];
+  const elIni = document.getElementById('filtro-data-inicio');
+  const elFim = document.getElementById('filtro-data-fim');
+  if (elIni) elIni.value = fmt(ini);
+  if (elFim) elFim.value = fmt(fim);
+  carregarChamados();
+}
+
 function _limparFiltroData() {
   const ini = document.getElementById('filtro-data-inicio');
   const fim = document.getElementById('filtro-data-fim');
   if (ini) ini.value = '';
   if (fim) fim.value = '';
+  _limparChipsAtivos();
 }
 
 document.getElementById('btn-toggle-data-filtro').addEventListener('click', () => {
@@ -673,8 +702,22 @@ document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
   });
 });
 
-document.getElementById('filtro-data-inicio')?.addEventListener('change', () => carregarChamados());
-document.getElementById('filtro-data-fim')?.addEventListener('change', () => carregarChamados());
+document.getElementById('filtro-data-inicio')?.addEventListener('change', () => { _limparChipsAtivos(); carregarChamados(); });
+document.getElementById('filtro-data-fim')?.addEventListener('change', () => { _limparChipsAtivos(); carregarChamados(); });
+
+document.querySelectorAll('.filtro-periodo-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const jaAtivo = chip.classList.contains('ativo');
+    _limparChipsAtivos();
+    if (jaAtivo) {
+      _limparFiltroData();
+      carregarChamados();
+    } else {
+      chip.classList.add('ativo');
+      _aplicarPeriodoRapido(chip.dataset.periodo);
+    }
+  });
+});
 
 document.getElementById('btn-limpar-data')?.addEventListener('click', () => {
   _limparFiltroData();
