@@ -7,6 +7,53 @@ let todosUsuarios = [];
 
 const DOMINIO_EMAIL = '@granmarquise.com.br';
 
+let _todasEtiquetas = [];
+let _adminEtSelecionados = new Set();
+fetch('/api/etiquetas', { credentials: 'include' })
+  .then(r => r.ok ? r.json() : [])
+  .then(d => { _todasEtiquetas = Array.isArray(d) ? d.filter(e => e.ativo) : []; })
+  .catch(() => {});
+
+function _renderAdminEtChips(filtro) {
+  const container = document.getElementById('admin-et-chips');
+  if (!container) return;
+  const bySlug = {};
+  for (const e of _todasEtiquetas) bySlug[e.slug] = e;
+  function bc(e) {
+    const parts = []; let cur = e;
+    while (cur.parent_slug && bySlug[cur.parent_slug]) { cur = bySlug[cur.parent_slug]; parts.unshift(cur.nome); }
+    return parts.length ? parts.join(' › ') + ' › ' + e.nome : e.nome;
+  }
+  const q = (filtro || '').toLowerCase();
+  const lista = _todasEtiquetas
+    .filter(e => !q || bc(e).toLowerCase().includes(q))
+    .sort((a, b) => bc(a).localeCompare(bc(b), 'pt-BR', { sensitivity: 'base' }));
+  if (!lista.length) {
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:.78rem">Nenhuma etiqueta encontrada.</span>';
+    return;
+  }
+  container.innerHTML = lista.map(e => {
+    const ativo = _adminEtSelecionados.has(e.slug);
+    const s = ativo ? `background:${e.cor};border-color:${e.cor};color:#fff` : '';
+    const label = bc(e).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<button type="button" class="admin-et-chip${ativo?' ativo':''}" data-slug="${e.slug}" data-cor="${e.cor}" style="${s}" title="${label}">${label}</button>`;
+  }).join('');
+  container.querySelectorAll('.admin-et-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const slug = chip.dataset.slug; const cor = chip.dataset.cor;
+      if (_adminEtSelecionados.has(slug)) {
+        _adminEtSelecionados.delete(slug);
+        chip.classList.remove('ativo');
+        chip.style.cssText = '';
+      } else {
+        _adminEtSelecionados.add(slug);
+        chip.classList.add('ativo');
+        chip.style.background = cor; chip.style.borderColor = cor; chip.style.color = '#fff';
+      }
+    });
+  });
+}
+
 let SETORES = [
   'Banquetes','Bar Rooftop','Comercial / Vendas','Compras / Almoxarifado','Concierge',
   'Confeitaria / Padaria','Controladoria','Cozinha','Estacionamento','Eventos e Convenções',
@@ -330,6 +377,7 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
   }
   if (!editandoAdminId) body.senha = senha;
   else if (senhaMudou && senha) body.senha = senha;
+  if (editandoAdminId) body.etiquetas = Array.from(_adminEtSelecionados);
 
   try {
     const idSalvoAdmin = editandoAdminId;
@@ -449,6 +497,8 @@ async function abrirModalAdmin(id) {
   document.getElementById('f-master').disabled = false;
   document.getElementById('f-master').title = '';
 
+  const etWrap = document.getElementById('admin-etiquetas-wrap');
+  const etFiltro = document.getElementById('admin-et-filtro');
   if (id) {
     document.getElementById('modal-admin-title').textContent = 'Editar administrador';
     document.getElementById('lbl-senha-dica').textContent = '(deixe em branco para não alterar)';
@@ -476,7 +526,22 @@ async function abrirModalAdmin(id) {
         dicaF.style.display = '';
       }
     }
+    if (etWrap) {
+      etWrap.style.display = '';
+      if (etFiltro) etFiltro.value = '';
+      _adminEtSelecionados = new Set();
+      document.getElementById('admin-et-chips').innerHTML = '<span style="color:var(--text-muted);font-size:.78rem">Carregando…</span>';
+      try {
+        const r = await api(`/api/admin/usuarios/${id}/etiquetas`);
+        if (r.ok) {
+          const slugs = await r.json();
+          _adminEtSelecionados = new Set(Array.isArray(slugs) ? slugs : []);
+        }
+      } catch {}
+      _renderAdminEtChips('');
+    }
   } else {
+    if (etWrap) etWrap.style.display = 'none';
     document.getElementById('modal-admin-title').textContent = 'Novo administrador';
     document.getElementById('f-nome').value = '';
     document.getElementById('f-email').value = DOMINIO_EMAIL;
@@ -493,6 +558,9 @@ async function abrirModalAdmin(id) {
 function fecharModalAdmin() {
   document.getElementById('modal-admin-overlay').classList.remove('open');
   editandoAdminId = null;
+  _adminEtSelecionados = new Set();
+  const w = document.getElementById('admin-etiquetas-wrap');
+  if (w) w.style.display = 'none';
 }
 
 async function toggleAdmin(id, ativo) {
@@ -1048,4 +1116,6 @@ async function abrirPopupChamado(chamadoId) {
 
 _addSetorDropdown(document.getElementById('fu-setor'));
 _addSetorDropdown(document.getElementById('feu-setor'));
+
+document.getElementById('admin-et-filtro')?.addEventListener('input', e => _renderAdminEtChips(e.target.value));
 

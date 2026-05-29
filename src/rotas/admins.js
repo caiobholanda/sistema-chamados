@@ -832,11 +832,21 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
     }
 
     db.atualizarAdmin(alvo.id, dados);
+    if (Array.isArray(req.body.etiquetas)) {
+      const slugs = req.body.etiquetas.filter(s => typeof s === 'string' && s.trim());
+      db.sincronizarEtiquetasAdmin(alvo.id, slugs);
+    }
     return res.json({ mensagem: 'Admin atualizado' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });
   }
+});
+
+router.get('/usuarios/:id/etiquetas', requireAdmin, (req, res) => {
+  const admin = db.buscarAdminPorId(+req.params.id);
+  if (!admin) return res.status(404).json({ erro: 'Admin não encontrado' });
+  res.json(db.listarEtiquetasDeAdmin(+req.params.id));
 });
 
 router.delete('/usuarios/:id', requireMaster, (req, res) => {

@@ -1241,6 +1241,20 @@ tbody tr:hover td { background: var(--surface-2); }
 }
 .filtro-periodo-chip:active { transform: scale(.93); }
 
+.admin-et-chip {
+  padding: .2rem .52rem;
+  font-size: .69rem; font-weight: 600;
+  border-radius: 4px; border: 1.5px solid var(--border);
+  cursor: pointer; user-select: none;
+  transition: border-color .12s, color .12s, background .12s, transform .07s;
+  white-space: nowrap; line-height: 1.5;
+  background: transparent; color: var(--text-secondary);
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+}
+.admin-et-chip:hover:not(.ativo) { border-color: var(--text-secondary); color: var(--text); }
+.admin-et-chip:active { transform: scale(.92); }
+.admin-et-chip.ativo { color: #fff; }
+
 /* ═══════════════════════════════════════════
    CHAMADO ITEM
 ═══════════════════════════════════════════ */

@@ -550,6 +550,14 @@ function initDb() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_etiquetas (
+      admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+      etiqueta_slug TEXT NOT NULL,
+      PRIMARY KEY (admin_id, etiqueta_slug)
+    )
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS setores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL UNIQUE,
@@ -2437,6 +2445,19 @@ function zerarNovidadesAdmin(chamadoId) {
   getDb().prepare('UPDATE chamados SET novidades_admin = 0 WHERE id = ?').run(chamadoId);
 }
 
+function listarEtiquetasDeAdmin(adminId) {
+  return getDb().prepare('SELECT etiqueta_slug FROM admin_etiquetas WHERE admin_id = ?').all(adminId).map(r => r.etiqueta_slug);
+}
+
+function sincronizarEtiquetasAdmin(adminId, slugs) {
+  const db = getDb();
+  db.transaction(() => {
+    db.prepare('DELETE FROM admin_etiquetas WHERE admin_id = ?').run(adminId);
+    const ins = db.prepare('INSERT OR IGNORE INTO admin_etiquetas (admin_id, etiqueta_slug) VALUES (?, ?)');
+    for (const slug of (slugs || [])) ins.run(adminId, slug);
+  })();
+}
+
 function listarSetores() {
   return getDb().prepare('SELECT id, nome FROM setores ORDER BY nome ASC').all();
 }
@@ -2573,6 +2594,8 @@ module.exports = {
   marcarSugestaoVistaAdmin,
   marcarMensagensLidasUsuario,
   contarNaoVistaAdmin,
+  listarEtiquetasDeAdmin,
+  sincronizarEtiquetasAdmin,
   listarSetores,
   criarSetor,
   editarSetor,
