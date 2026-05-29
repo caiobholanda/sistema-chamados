@@ -52,6 +52,7 @@ function _addSetorDropdown(inp, onSelect) {
 }
 
 let adminInfo = null;
+let _minhasEtiquetas = new Set();
 let chamadoAtual = null;
 let abaAtiva = 'abertos';
 let subAbaMeusAtiva = 'abertos';
@@ -498,6 +499,11 @@ async function api(url, opts = {}) {
     const r = await api('/api/admin/me');
     if (!r.ok) { location.replace('/admin-login.html'); return; }
     adminInfo = await r.json();
+
+    try {
+      const re = await api(`/api/admin/usuarios/${adminInfo.id}/etiquetas`);
+      if (re.ok) { const slugs = await re.json(); _minhasEtiquetas = new Set(Array.isArray(slugs) ? slugs : []); }
+    } catch {}
 
     if (adminInfo.is_master) {
       document.getElementById('nav-usuarios-wrap').innerHTML =
@@ -1251,15 +1257,19 @@ function scorePrioridade(c) {
 function renderChamadoItem(c) {
   const encerrado = ['concluido', 'encerrado', 'cancelado'].includes(c.status);
   const atrasado  = estaAtrasado(c);
+  const ehMinhaArea = _minhasEtiquetas.size > 0 && c.categoria && _minhasEtiquetas.has(c.categoria);
+  const jaResponsavel = adminInfo && c.admin_responsavel_id && Number(c.admin_responsavel_id) === Number(adminInfo.id);
+  const cor = CATEGORIAS_MAP[c.categoria]?.cor || '#C5A55A';
   return `
-    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}"
-         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
+    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}${ehMinhaArea && !jaResponsavel ? ' chamado-minha-area' : ''}"
+         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"${ehMinhaArea && !jaResponsavel ? ` style="--area-cor:${cor}"` : ''}>
       <div class="chamado-item-header">
         <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
         ${badgeStatus(c.status)}
         ${atrasado ? `<span class="badge badge-atraso">⚠ Em atraso</span>` : ''}
         ${badgePrio(c.prioridade)}
         ${badgeCategoria(c.categoria)}
+        ${ehMinhaArea && !jaResponsavel ? `<span class="badge-para-voce" style="background:${cor}1a;border-color:${cor}55;color:${cor}">para você</span>` : ''}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
         ${c.infos_adicionais_count > 0 ? `<span class="badge-info-extra" title="${c.infos_adicionais_count} ${c.infos_adicionais_count === 1 ? 'informação adicional' : 'informações adicionais'}">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>

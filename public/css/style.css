@@ -1061,6 +1061,30 @@ tbody tr:hover td { background: var(--surface-2); }
 .badge-novidades-admin svg { flex-shrink: 0; }
 [data-theme="dark"] .badge-novidades-admin { color: #7dd3fc; background: rgba(14,165,233,.15); border-color: rgba(14,165,233,.4); }
 
+.badge-para-voce {
+  display: inline-flex;
+  align-items: center;
+  gap: .22rem;
+  padding: .15rem .48rem;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border: 1px solid;
+  border-radius: 999px;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: default;
+}
+.badge-para-voce::before {
+  content: '★';
+  font-size: .6rem;
+}
+
+.chamado-minha-area {
+  border-left: 3px solid var(--area-cor, var(--gold));
+}
+
 /* ═══════════════════════════════════════════
    ANEXOS — UPLOADER MULTI-ARQUIVOS
 ═══════════════════════════════════════════ */
