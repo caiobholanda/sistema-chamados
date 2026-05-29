@@ -4447,6 +4447,47 @@ html.modal-aberto {
   .login-page { grid-template-columns: 1fr !important; }
   .login-card { padding: 1.5rem 1.1rem; }
 }
+
+/* ═══════════════════════════════════════════
+   PORTAL USUÁRIO — TELAS MUITO PEQUENAS (≤ 420px)
+═══════════════════════════════════════════ */
+@media (max-width: 420px) {
+
+  /* ── Tabs: scroll horizontal em vez de texto em 2 linhas ── */
+  .tabs-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex: none;
+    white-space: nowrap;
+    font-size: .72rem;
+    padding: .6rem .75rem;
+  }
+
+  /* ── Título da página ── */
+  .page-title { font-size: 1.3rem; }
+
+  /* ── Stats: 2 colunas (4 pills não cabem em 3) ── */
+  #stats-strip-u { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* ── Login: reduz padding da coluna direita ── */
+  .login-right { padding: 1.25rem .75rem; }
+
+  /* ── Filtros: remove min-width para evitar scroll horizontal ── */
+  .filtros .form-control { min-width: 0 !important; }
+
+  /* ── Botões de ação do painel: empilhar ── */
+  .page-header > div:last-child {
+    flex-direction: column;
+  }
+  .page-header > div:last-child .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
      RELATÓRIOS v2 — layout profissional
      ═══════════════════════════════════════════════════════════ */
   .rel-toolbar {
