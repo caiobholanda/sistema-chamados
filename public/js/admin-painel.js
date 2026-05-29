@@ -1089,7 +1089,6 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
   if (!descricao || descricao.length < 5) { msgEl.innerHTML = '<div class="alert alert-danger">Descreva o problema (mínimo 5 caracteres).</div>'; return; }
 
   const categoria = _ncCombo?.getValue() || '';
-  if (!categoria) { msgEl.innerHTML = '<div class="alert alert-danger">Selecione uma etiqueta para o chamado.</div>'; return; }
 
   const btn = document.getElementById('btn-confirmar-novo-chamado');
   btn.disabled = true; btn.textContent = 'Abrindo...';
