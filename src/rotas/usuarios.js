@@ -224,6 +224,28 @@ router.post('/esqueci-senha', async (req, res) => {
       db.criarResetToken(usuario.id, token, expires_at);
       const link = `${base}/redefinir-senha.html?token=${token}`;
       await enviarResetSenha(usuario.email, usuario.nome, link);
+
+      try {
+        const prazoReset = new Date(Date.now() + 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
+        const chamadoId = db.inserirChamado({
+          usuario_id: usuario.id,
+          nome: usuario.nome,
+          setor: usuario.setor || 'Geral',
+          ramal: usuario.ramal || '',
+          descricao: `Usuário solicitou redefinição de senha via portal. E-mail: ${usuario.email}. Link de redefinição enviado automaticamente para o e-mail cadastrado.`,
+          anexo_path: null, anexo_nome_original: null,
+          categoria: 'acesso_senha',
+          aberto_por_admin_id: null,
+          admin_responsavel_id: null,
+          servico_id: null, servico_nome: null,
+        });
+        db.getDb().prepare(`UPDATE chamados SET prioridade = 'alta', prazo = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(prazoReset, chamadoId);
+        push.enviarParaTodos('🔑 Redefinição de senha', `${usuario.nome} solicitou redefinição de senha. Chamado #${chamadoId} aberto — prazo: 1h.`).catch(() => {});
+        console.log(`[esqueci-senha] Chamado #${chamadoId} aberto automaticamente para ${usuario.email}`);
+      } catch (e) {
+        console.error('[esqueci-senha] Erro ao criar chamado automático:', e);
+      }
+
       return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
     }
 
