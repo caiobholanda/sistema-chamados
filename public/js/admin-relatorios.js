@@ -303,6 +303,9 @@ function lineChartSvg(serie, mesAtivo) {
   const chartH = 170, chartTop = 30, chartLeft = 40, chartRight = 580;
   const cw = chartRight - chartLeft;
   const stepX = serie.length > 1 ? cw / (serie.length - 1) : 0;
+  const _grid2 = isDark() ? '#2A3448' : '#E5DDD0';
+  const _axis2 = isDark() ? '#6B7F96' : '#7A726A';
+  const _markerInact = isDark() ? '#1A2230' : '#fff';
   const pts = serie.map((s, i) => {
     const x = chartLeft + (serie.length === 1 ? cw / 2 : i * stepX);
     const y = chartTop + chartH - (s.media / 10) * chartH;
@@ -322,9 +325,6 @@ function lineChartSvg(serie, mesAtivo) {
     const _tm2 = isDark() ? '#6B7F96' : '#7A726A';
     return `<text x="${x.toFixed(1)}" y="226" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="${active ? _tc2 : _tm2}" font-weight="${active ? '700' : '400'}">${label}</text>`;
   }).join('');
-  const _grid2 = isDark() ? '#2A3448' : '#E5DDD0';
-  const _axis2 = isDark() ? '#6B7F96' : '#7A726A';
-  const _markerInact = isDark() ? '#1A2230' : '#fff';
   const last = pts[pts.length - 1];
   return `
     <svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
