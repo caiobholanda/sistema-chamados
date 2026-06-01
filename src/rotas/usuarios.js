@@ -256,7 +256,7 @@ router.post('/esqueci-senha', async (req, res) => {
       db.criarAdminResetToken(admin.id, token, expires_at);
       const link = `${base}/redefinir-senha.html?token=${token}`;
       await enviarResetSenha(admin.email, admin.nome_completo, link);
-      return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
+      return res.json({ mensagem: 'E-mail enviado com sucesso.' });
     }
 
     console.log(`[esqueci-senha] E-mail não encontrado no sistema: ${email}`);
