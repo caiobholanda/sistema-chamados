@@ -260,7 +260,7 @@ router.post('/esqueci-senha', async (req, res) => {
     }
 
     console.log(`[esqueci-senha] E-mail não encontrado no sistema: ${email}`);
-    return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
+    return res.status(404).json({ erro: 'E-mail não encontrado no sistema. Verifique o endereço informado.' });
   } catch (err) {
     console.error('[esqueci-senha]', err);
     return res.status(500).json({ erro: 'Erro ao processar solicitação' });

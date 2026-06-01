@@ -403,12 +403,40 @@ function renderAuth() {
     }
   });
 
+  if (!document.getElementById('_gm-esqueci-css')) {
+    const _s = document.createElement('style');
+    _s.id = '_gm-esqueci-css';
+    _s.textContent = `
+      @keyframes _gmShake{0%,100%{transform:translateX(0)}16%{transform:translateX(-7px)}33%{transform:translateX(7px)}50%{transform:translateX(-4px)}66%{transform:translateX(4px)}83%{transform:translateX(-2px)}}
+      @keyframes _gmSlideIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+      ._gm-inp-err{animation:_gmShake .42s ease;border-color:var(--danger,#dc2626)!important;box-shadow:0 0 0 3px rgba(220,38,38,.13)!important}
+      ._gm-errmsg{display:flex;align-items:flex-start;gap:.65rem;padding:.7rem .85rem;border-radius:6px;border-left:3px solid var(--danger,#dc2626);background:rgba(220,38,38,.06);animation:_gmSlideIn .22s ease;margin-bottom:.1rem}
+      ._gm-errmsg svg{flex-shrink:0;margin-top:1px;opacity:.85}
+      ._gm-errmsg__body{font-size:.8rem;line-height:1.45;color:var(--text-secondary)}
+      ._gm-errmsg__title{font-size:.82rem;font-weight:600;color:var(--danger,#dc2626);margin-bottom:.1rem}
+    `;
+    document.head.appendChild(_s);
+  }
+
+  function _erroEsqueci(msgEl, titulo, detalhe) {
+    const inp = document.getElementById('esqueci-email');
+    inp.classList.remove('_gm-inp-err');
+    void inp.offsetWidth;
+    inp.classList.add('_gm-inp-err');
+    inp.addEventListener('animationend', () => inp.classList.remove('_gm-inp-err'), { once: true });
+    msgEl.innerHTML = `
+      <div class="_gm-errmsg" role="alert">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger,#dc2626)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div class="_gm-errmsg__body"><div class="_gm-errmsg__title">${titulo}</div>${detalhe}</div>
+      </div>`;
+  }
+
   document.getElementById('form-esqueci').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msgEl = document.getElementById('msg-esqueci');
     const btn = e.target.querySelector('button[type=submit]');
     const email = document.getElementById('esqueci-email').value.trim().toLowerCase();
-    if (!email) { msgEl.innerHTML = '<div class="alert alert-danger">Informe o e-mail.</div>'; return; }
+    if (!email) { _erroEsqueci(msgEl, 'Campo obrigatório', 'Informe o e-mail cadastrado.'); return; }
     btn.disabled = true; btn.textContent = 'Abrindo chamado...';
     const ctrl = new AbortController();
     const tOut = setTimeout(() => ctrl.abort(), 25000);
@@ -435,12 +463,15 @@ function renderAuth() {
           e.target.style.display = '';
           document.getElementById('esqueci-email').focus();
         });
+      } else if (r.status === 404) {
+        _erroEsqueci(msgEl, 'E-mail não encontrado', 'Este endereço não está cadastrado no sistema. Verifique e tente novamente.');
+        btn.disabled = false; btn.textContent = 'Solicitar redefinição de senha';
       } else {
-        msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
+        _erroEsqueci(msgEl, 'Algo deu errado', d.erro || 'Tente novamente em instantes.');
         btn.disabled = false; btn.textContent = 'Solicitar redefinição de senha';
       }
     } catch {
-      msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>';
+      _erroEsqueci(msgEl, 'Sem conexão', 'Verifique sua conexão com a internet e tente novamente.');
       btn.disabled = false; btn.textContent = 'Solicitar redefinição de senha';
     }
   });
