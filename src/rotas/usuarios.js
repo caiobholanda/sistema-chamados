@@ -232,7 +232,7 @@ router.post('/esqueci-senha', async (req, res) => {
           nome: usuario.nome,
           setor: usuario.setor || 'Geral',
           ramal: usuario.ramal || '',
-          descricao: `Usuário solicitou redefinição de senha via portal. E-mail: ${usuario.email}. Link de redefinição enviado automaticamente para o e-mail cadastrado.`,
+          descricao: `O usuário ${usuario.nome} esqueceu sua senha e solicitou redefinição via portal. Por favor, crie uma nova senha e envie para o e-mail: ${usuario.email}.`,
           anexo_path: null, anexo_nome_original: null,
           categoria: 'acesso_senha',
           aberto_por_admin_id: null,
@@ -246,7 +246,7 @@ router.post('/esqueci-senha', async (req, res) => {
         console.error('[esqueci-senha] Erro ao criar chamado automático:', e);
       }
 
-      return res.json({ mensagem: 'Se o e-mail existir, você receberá as instruções em breve.' });
+      return res.json({ mensagem: 'Chamado aberto com sucesso.' });
     }
 
     const admin = db.buscarAdminPorEmail(email);

@@ -333,14 +333,14 @@ function renderAuth() {
 
           <!-- Painel esqueci senha (oculto inicialmente) -->
           <div id="painel-esqueci" style="display:none;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-            <p style="font-size:.85rem;color:var(--text-secondary);margin:0 0 .75rem">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
+            <p style="font-size:.85rem;color:var(--text-secondary);margin:0 0 .75rem">Digite seu e-mail e abriremos um chamado para a equipe de TI. Um administrador entrará em contato com sua nova senha o quanto antes.</p>
             <div id="msg-esqueci"></div>
             <form id="form-esqueci" novalidate>
               <div class="form-group">
                 <label for="esqueci-email">E-mail</label>
                 <input class="form-control" type="email" id="esqueci-email" placeholder="seu@granmarquise.com.br" autocomplete="email">
               </div>
-              <button type="submit" class="btn btn-primary btn-full">Enviar link de redefinição</button>
+              <button type="submit" class="btn btn-primary btn-full">Solicitar redefinição de senha</button>
             </form>
           </div>
 
@@ -409,7 +409,7 @@ function renderAuth() {
     const btn = e.target.querySelector('button[type=submit]');
     const email = document.getElementById('esqueci-email').value.trim().toLowerCase();
     if (!email) { msgEl.innerHTML = '<div class="alert alert-danger">Informe o e-mail.</div>'; return; }
-    btn.disabled = true; btn.textContent = 'Enviando...';
+    btn.disabled = true; btn.textContent = 'Abrindo chamado...';
     const ctrl = new AbortController();
     const tOut = setTimeout(() => ctrl.abort(), 25000);
     try {
@@ -422,26 +422,26 @@ function renderAuth() {
       clearTimeout(tOut);
       const d = await r.json();
       if (r.ok) {
-        msgEl.innerHTML = `<div class="alert alert-success">${d.mensagem}</div>
+        msgEl.innerHTML = `<div class="alert alert-success">✅ Chamado aberto! A equipe de TI foi notificada e entrará em contato com sua nova senha o quanto antes.</div>
           <button type="button" id="btn-reenviar-esqueci"
             style="background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--text-muted);text-decoration:underline;padding:0;margin-top:.4rem;display:block">
-            Não recebeu? Reenviar link
+            Fazer nova solicitação
           </button>`;
         e.target.style.display = 'none';
         document.getElementById('btn-reenviar-esqueci').addEventListener('click', () => {
           msgEl.innerHTML = '';
           document.getElementById('esqueci-email').value = '';
-          btn.disabled = false; btn.textContent = 'Enviar link de redefinição';
+          btn.disabled = false; btn.textContent = 'Solicitar redefinição de senha';
           e.target.style.display = '';
           document.getElementById('esqueci-email').focus();
         });
       } else {
         msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
-        btn.disabled = false; btn.textContent = 'Enviar link de redefinição';
+        btn.disabled = false; btn.textContent = 'Solicitar redefinição de senha';
       }
     } catch {
       msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>';
-      btn.disabled = false; btn.textContent = 'Enviar link de redefinição';
+      btn.disabled = false; btn.textContent = 'Solicitar redefinição de senha';
     }
   });
 }
