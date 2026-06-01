@@ -300,6 +300,26 @@ function initDb() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS logs_usuarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      evento TEXT NOT NULL,
+      ip TEXT,
+      detalhes TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS logs_admins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+      evento TEXT NOT NULL,
+      ip TEXT,
+      detalhes TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS contatos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       area TEXT,
@@ -2609,6 +2629,10 @@ module.exports = {
   zerarNovidadesUsuario,
   incrementarNovidadesAdmin,
   zerarNovidadesAdmin,
+  registrarLogUsuario,
+  listarLogsUsuario,
+  registrarLogAdmin,
+  listarLogsAdmin,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────
@@ -2689,4 +2713,20 @@ function vincularEquipamentosDoAcordo(chamadoId, usuarioNome, setor) {
 
 function listarHistoricoEquipamento(id) {
   return getDb().prepare('SELECT * FROM equipamentos_historico WHERE equipamento_id = ? ORDER BY criado_em DESC').all(id);
+}
+
+function registrarLogUsuario(usuario_id, evento, ip, detalhes) {
+  getDb().prepare('INSERT INTO logs_usuarios (usuario_id, evento, ip, detalhes) VALUES (?, ?, ?, ?)').run(usuario_id, evento, ip || null, detalhes || null);
+}
+
+function listarLogsUsuario(usuario_id) {
+  return getDb().prepare('SELECT * FROM logs_usuarios WHERE usuario_id = ? ORDER BY criado_em DESC LIMIT 200').all(usuario_id);
+}
+
+function registrarLogAdmin(admin_id, evento, ip, detalhes) {
+  getDb().prepare('INSERT INTO logs_admins (admin_id, evento, ip, detalhes) VALUES (?, ?, ?, ?)').run(admin_id, evento, ip || null, detalhes || null);
+}
+
+function listarLogsAdmin(admin_id) {
+  return getDb().prepare('SELECT * FROM logs_admins WHERE admin_id = ? ORDER BY criado_em DESC LIMIT 200').all(admin_id);
 }

@@ -886,12 +886,52 @@ function escHist(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+const HUC_EVENTOS = {
+  login_sucesso:      { label: 'Login realizado',                      cor: '#16a34a', icone: '<polyline points="20 6 9 17 4 12"/>' },
+  login_falha:        { label: 'Tentativa de login (senha incorreta)', cor: '#dc2626', icone: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' },
+  logout:             { label: 'Logout',                               cor: '#6b7280', icone: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>' },
+  reset_solicitado:   { label: 'Redefinição de senha solicitada',      cor: '#d97706', icone: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>' },
+  reset_email_enviado:{ label: 'E-mail de redefinição enviado',        cor: '#2563eb', icone: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>' },
+  reset_concluido:    { label: 'Senha redefinida com sucesso',         cor: '#16a34a', icone: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>' },
+  reset_link_expirado:{ label: 'Link de redefinição expirado',         cor: '#d97706', icone: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
+  reset_link_ja_usado:{ label: 'Tentativa de reuso de link já usado',  cor: '#dc2626', icone: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' },
+};
+
+function renderTimelineAtividade(logs) {
+  if (!logs.length) return `
+    <div style="padding:3rem 1.5rem;text-align:center;color:var(--text-muted)">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.35;margin-bottom:.75rem">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.1rem;color:var(--text);font-weight:500">Sem atividade registrada</div>
+      <div style="margin-top:.25rem;font-size:.85rem">Logins, logouts e redefinições de senha aparecerão aqui.</div>
+    </div>`;
+
+  const items = logs.map(l => {
+    const ev = HUC_EVENTOS[l.evento] || { label: l.evento, cor: '#6b7280', icone: '<circle cx="12" cy="12" r="10"/>' };
+    return `
+      <div style="display:flex;gap:.85rem;align-items:flex-start">
+        <div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:${ev.cor}18;border:1.5px solid ${ev.cor}40;display:flex;align-items:center;justify-content:center;margin-top:.1rem">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${ev.cor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ev.icone}</svg>
+        </div>
+        <div style="flex:1;min-width:0;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+          <div style="font-size:.88rem;font-weight:600;color:var(--text);line-height:1.3">${ev.label}</div>
+          <div style="display:flex;align-items:center;gap:.75rem;margin-top:.3rem;flex-wrap:wrap">
+            <span style="font-size:.74rem;color:var(--text-muted);font-variant-numeric:tabular-nums">${fmtDHist(l.criado_em)}</span>
+            ${l.ip ? `<span style="font-size:.72rem;color:var(--text-muted);font-family:'SF Mono',Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--border);padding:.1rem .4rem;border-radius:3px">${escHist(l.ip)}</span>` : ''}
+            ${l.detalhes ? `<span style="font-size:.74rem;color:var(--text-secondary);font-style:italic">${escHist(l.detalhes)}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `<div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:0">${items}</div>`;
+}
+
 async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
-  // Remove modal anterior se existir
   const existing = document.getElementById('huc-overlay');
   if (existing) existing.remove();
 
-  // Cria overlay (centrado, largo — não usa o .hist-modal porque aquele é side panel)
   const overlay = document.createElement('div');
   overlay.id = 'huc-overlay';
   overlay.style.cssText = `
@@ -901,10 +941,9 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
   overlay.innerHTML = `
     <div style="background:var(--surface);width:min(820px,100%);max-height:90vh;display:flex;flex-direction:column;border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;border:1px solid var(--border)">
 
-      <!-- Header navy com nome do usuário e botão fechar -->
       <div style="background:var(--navy);color:#fff;padding:1.1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-shrink:0">
         <div style="min-width:0">
-          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.5rem;font-weight:600;line-height:1.1">Histórico de Chamados</div>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.5rem;font-weight:600;line-height:1.1">Histórico de Usuário</div>
           <div style="display:flex;align-items:center;gap:.4rem;margin-top:.25rem;color:var(--gold-light);font-size:.85rem">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
             <span>${escHist(nomeUsuario)}</span>
@@ -915,11 +954,22 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
         </button>
       </div>
 
-      <!-- Body com scroll -->
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0">
+        <button id="huc-tab-chamados" style="flex:1;padding:.75rem 1rem;border:none;background:none;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--navy);border-bottom:2px solid var(--gold);display:flex;align-items:center;justify-content:center;gap:.4rem;transition:color .15s,border-color .15s">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          Chamados
+        </button>
+        <button id="huc-tab-atividade" style="flex:1;padding:.75rem 1rem;border:none;background:none;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--text-muted);border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:.4rem;transition:color .15s,border-color .15s">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Atividade de Acesso
+        </button>
+      </div>
+
       <div id="huc-body" style="flex:1;overflow-y:auto;background:var(--bg)">
         <div style="padding:3rem 1rem;text-align:center;color:var(--text-muted)">
           <div class="spinner" style="margin:0 auto"></div>
-          <div style="margin-top:.75rem;font-size:.88rem">Carregando chamados…</div>
+          <div style="margin-top:.75rem;font-size:.88rem">Carregando…</div>
         </div>
       </div>
 
@@ -933,6 +983,49 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
     if (e.key === 'Escape') { fechar(); document.removeEventListener('keydown', esc); }
   });
 
+  let abaAtual = 'chamados';
+  const tabChamados  = overlay.querySelector('#huc-tab-chamados');
+  const tabAtividade = overlay.querySelector('#huc-tab-atividade');
+
+  function setTab(aba) {
+    abaAtual = aba;
+    const ativo   = 'color:var(--navy);border-bottom:2px solid var(--gold)';
+    const inativo = 'color:var(--text-muted);border-bottom:2px solid transparent';
+    tabChamados.style.cssText  += aba === 'chamados'  ? ativo : inativo;
+    tabAtividade.style.cssText += aba === 'atividade' ? ativo : inativo;
+  }
+
+  tabAtividade.addEventListener('click', async () => {
+    if (abaAtual === 'atividade') return;
+    setTab('atividade');
+    document.getElementById('huc-body').innerHTML = `
+      <div style="padding:3rem 1rem;text-align:center;color:var(--text-muted)">
+        <div class="spinner" style="margin:0 auto"></div>
+        <div style="margin-top:.75rem;font-size:.88rem">Carregando atividade…</div>
+      </div>`;
+    try {
+      const r = await fetch(`/api/admin/portal-usuarios/${usuarioId}/logs`);
+      if (!r.ok) { document.getElementById('huc-body').innerHTML = '<div style="padding:2rem;color:var(--danger);text-align:center">Erro ao carregar atividade.</div>'; return; }
+      const logs = await r.json();
+      document.getElementById('huc-body').innerHTML = renderTimelineAtividade(logs);
+    } catch {
+      const body = document.getElementById('huc-body');
+      if (body) body.innerHTML = '<div style="padding:2rem;color:var(--danger);text-align:center">Erro de conexão.</div>';
+    }
+  });
+
+  tabChamados.addEventListener('click', async () => {
+    if (abaAtual === 'chamados') return;
+    setTab('chamados');
+    await carregarChamados();
+  });
+
+  async function carregarChamados() {
+    document.getElementById('huc-body').innerHTML = `
+      <div style="padding:3rem 1rem;text-align:center;color:var(--text-muted)">
+        <div class="spinner" style="margin:0 auto"></div>
+        <div style="margin-top:.75rem;font-size:.88rem">Carregando chamados…</div>
+      </div>`;
   try {
     const r = await fetch(`/api/admin/portal-usuarios/${usuarioId}/chamados`);
     if (!r.ok) {
@@ -949,8 +1042,7 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
           </svg>
           <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.1rem;color:var(--text);font-weight:500">Sem histórico</div>
           <div style="margin-top:.25rem;font-size:.85rem">Este usuário ainda não abriu nenhum chamado.</div>
-        </div>
-      `;
+        </div>`;
       return;
     }
 
@@ -1100,6 +1192,9 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
     const body = document.getElementById('huc-body');
     if (body) body.innerHTML = '<div style="padding:2rem;color:var(--danger);text-align:center">Erro de conexão.</div>';
   }
+  }  // fecha carregarChamados
+
+  carregarChamados();
 }
 
 // ── Popup do chamado (usa o chamado-modal.js compartilhado) ──

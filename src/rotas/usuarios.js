@@ -29,7 +29,10 @@ router.post('/login', async (req, res) => {
     if (!usuario) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
 
     const ok = await bcrypt.compare(senha, usuario.senha_hash);
-    if (!ok) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
+    if (!ok) {
+      try { db.registrarLogUsuario(usuario.id, 'login_falha', req.ip); } catch {}
+      return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
+    }
     if (usuario.ativo === 0) return res.status(403).json({ erro: 'Conta desativada. Entre em contato com o suporte.' });
 
     if (!usuario.senha_plain || usuario.senha_plain !== senha) {
@@ -38,6 +41,7 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ sub: usuario.id, nome: usuario.nome, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: 30 * 24 * 60 * 60 });
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    try { db.registrarLogUsuario(usuario.id, 'login_sucesso', req.ip); } catch {}
 
     return res.json({ mensagem: 'Login realizado', nome: usuario.nome });
   } catch (err) {
@@ -48,6 +52,13 @@ router.post('/login', async (req, res) => {
 
 // POST /api/usuarios/logout
 router.post('/logout', (req, res) => {
+  try {
+    const tok = req.cookies?.token_usuario;
+    if (tok) {
+      const dec = jwt.verify(tok, process.env.JWT_SECRET);
+      if (dec?.sub) db.registrarLogUsuario(dec.sub, 'logout', req.ip);
+    }
+  } catch {}
   res.clearCookie('token_usuario');
   return res.json({ mensagem: 'Logout realizado' });
 });
@@ -222,8 +233,10 @@ router.post('/esqueci-senha', async (req, res) => {
       console.log(`[esqueci-senha] Usuário encontrado: ${email}`);
       const token = crypto.randomBytes(32).toString('hex');
       db.criarResetToken(usuario.id, token, expires_at);
+      try { db.registrarLogUsuario(usuario.id, 'reset_solicitado', req.ip); } catch {}
       const link = `${base}/redefinir-senha.html?token=${token}`;
       await enviarResetSenha(usuario.email, usuario.nome, link);
+      try { db.registrarLogUsuario(usuario.id, 'reset_email_enviado', req.ip); } catch {}
       return res.json({ mensagem: 'E-mail enviado com sucesso.' });
     }
 
@@ -232,8 +245,10 @@ router.post('/esqueci-senha', async (req, res) => {
       console.log(`[esqueci-senha] Admin encontrado: ${email}`);
       const token = crypto.randomBytes(32).toString('hex');
       db.criarAdminResetToken(admin.id, token, expires_at);
+      try { db.registrarLogAdmin(admin.id, 'reset_solicitado', req.ip); } catch {}
       const link = `${base}/redefinir-senha.html?token=${token}`;
       await enviarResetSenha(admin.email, admin.nome_completo, link);
+      try { db.registrarLogAdmin(admin.id, 'reset_email_enviado', req.ip); } catch {}
       return res.json({ mensagem: 'E-mail enviado com sucesso.' });
     }
 
@@ -258,11 +273,23 @@ router.post('/redefinir-senha', async (req, res) => {
       isAdmin = true;
     }
     if (!registro) return res.status(400).json({ erro: 'Link inválido ou expirado' });
-    if (registro.usado) return res.status(400).json({ erro: 'Este link já foi utilizado' });
+    if (registro.usado) {
+      try {
+        if (isAdmin) db.registrarLogAdmin(registro.admin_id, 'reset_link_ja_usado', req.ip);
+        else db.registrarLogUsuario(registro.usuario_id, 'reset_link_ja_usado', req.ip);
+      } catch {}
+      return res.status(400).json({ erro: 'Este link já foi utilizado' });
+    }
 
     const agora = new Date();
     const expira = new Date(registro.expires_at.replace(' ', 'T') + 'Z');
-    if (agora > expira) return res.status(400).json({ erro: 'Link expirado. Solicite um novo.' });
+    if (agora > expira) {
+      try {
+        if (isAdmin) db.registrarLogAdmin(registro.admin_id, 'reset_link_expirado', req.ip);
+        else db.registrarLogUsuario(registro.usuario_id, 'reset_link_expirado', req.ip);
+      } catch {}
+      return res.status(400).json({ erro: 'Link expirado. Solicite um novo.' });
+    }
 
     if (!senhaForte(senha)) {
       return res.status(400).json({ erro: 'A senha não atende aos requisitos mínimos de segurança' });
@@ -272,9 +299,11 @@ router.post('/redefinir-senha', async (req, res) => {
     if (isAdmin) {
       db.atualizarAdmin(registro.admin_id, { senha_hash, senha_plain: senha });
       db.marcarAdminResetTokenUsado(token);
+      try { db.registrarLogAdmin(registro.admin_id, 'reset_concluido', req.ip); } catch {}
     } else {
       db.atualizarUsuario(registro.usuario_id, { senha_hash, senha_plain: senha });
       db.marcarResetTokenUsado(token);
+      try { db.registrarLogUsuario(registro.usuario_id, 'reset_concluido', req.ip); } catch {}
     }
 
     return res.json({ mensagem: 'Senha redefinida com sucesso!' });
