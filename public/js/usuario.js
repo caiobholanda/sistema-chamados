@@ -1511,6 +1511,30 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       <form id="form-chamado-usuario" novalidate>
         <div class="form-row">
           <div class="form-group">
+            <label for="ch-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+            <select class="form-control" id="ch-categoria">
+              <option value="">Classificar automaticamente</option>
+              <option value="acesso_senha">Acesso / Senha</option>
+              <option value="cameras">Câmeras / CFTV</option>
+              <option value="celular">Celular</option>
+              <option value="email">E-mail</option>
+              <option value="hardware">Hardware</option>
+              <option value="impressora">Impressora</option>
+              <option value="monitor">Monitor</option>
+              <option value="mouse">Mouse</option>
+              <option value="nobreak">Nobreak</option>
+              <option value="outros">Outros</option>
+              <option value="processo_compra">Processo de Compra</option>
+              <option value="projetor">Projetor</option>
+              <option value="ramal">Ramal / Telefone</option>
+              <option value="rede">Rede / Internet</option>
+              <option value="software">Software</option>
+              <option value="tablet">Tablet</option>
+              <option value="teclado">Teclado</option>
+              <option value="tv_projetor">TV</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label for="ch-setor">Setor <span class="req">*</span></label>
             <select class="form-control" id="ch-setor" required>
               <option value="">Selecione seu setor...</option>
@@ -1561,30 +1585,6 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
                 <option>Estacionamento</option>
                 <option>Transportes</option>
               </optgroup>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="ch-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-            <select class="form-control" id="ch-categoria">
-              <option value="">Classificar automaticamente</option>
-              <option value="acesso_senha">Acesso / Senha</option>
-              <option value="cameras">Câmeras / CFTV</option>
-              <option value="celular">Celular</option>
-              <option value="email">E-mail</option>
-              <option value="hardware">Hardware</option>
-              <option value="impressora">Impressora</option>
-              <option value="monitor">Monitor</option>
-              <option value="mouse">Mouse</option>
-              <option value="nobreak">Nobreak</option>
-              <option value="outros">Outros</option>
-              <option value="processo_compra">Processo de Compra</option>
-              <option value="projetor">Projetor</option>
-              <option value="ramal">Ramal / Telefone</option>
-              <option value="rede">Rede / Internet</option>
-              <option value="software">Software</option>
-              <option value="tablet">Tablet</option>
-              <option value="teclado">Teclado</option>
-              <option value="tv_projetor">TV</option>
             </select>
           </div>
         </div>
