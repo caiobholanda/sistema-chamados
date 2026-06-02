@@ -499,9 +499,14 @@ function renderPainel(usuario) {
   if (header) {
     header.style.display = '';
     const nav = header.querySelector('nav');
+    const ajudaVista = localStorage.getItem('ajuda_vista') === '1';
     if (nav) nav.innerHTML = `
       <span style="font-size:.82rem;color:var(--text-muted);margin-right:.25rem">${usuario.nome}</span>
-      <button id="btn-ajuda-usuario" class="btn-ajuda" title="Como funciona">?</button>
+      <button id="btn-ajuda-usuario" class="btn-ajuda" title="Guia rápido de como usar o sistema">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="ajuda-label">Guia rápido</span>
+        ${ajudaVista ? '' : '<span class="ajuda-pulse"></span>'}
+      </button>
       <button id="btn-logout-usuario" class="btn btn-ghost btn-sm" style="margin-left:.25rem">Sair</button>
     `;
   }
@@ -617,7 +622,11 @@ function renderPainel(usuario) {
     renderAuth();
   });
 
-  document.getElementById('btn-ajuda-usuario')?.addEventListener('click', _abrirAjuda);
+  document.getElementById('btn-ajuda-usuario')?.addEventListener('click', () => {
+    _abrirAjuda();
+    localStorage.setItem('ajuda_vista', '1');
+    document.querySelector('#btn-ajuda-usuario .ajuda-pulse')?.remove();
+  });
 
   document.getElementById('btn-novo-chamado').addEventListener('click', () => {
     const area = document.getElementById('area-form-chamado');

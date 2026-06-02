@@ -579,9 +579,15 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
 .combo-dd-item:hover, .combo-dd-item.ativo { background:var(--gold-pale); color:var(--navy); }
 .combo-dd-vazio { padding:10px 13px; color:var(--text-muted); font-size:.84rem; font-style:italic; }
 
-/* Botão de ajuda (?) no header */
-.btn-ajuda { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--gold); background:transparent; color:var(--gold); font-weight:700; font-family:'Cormorant Garamond',serif; font-size:1.15rem; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:all .15s; margin-right:.4rem; }
-.btn-ajuda:hover { background:var(--gold); color:var(--navy); transform:scale(1.08); }
+/* Botão "Guia rápido" no header */
+.btn-ajuda { display:inline-flex; align-items:center; gap:.4rem; padding:.4rem .85rem; border-radius:999px; border:none; background:linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%); color:var(--navy); font-weight:700; font-size:.82rem; font-family:inherit; cursor:pointer; transition:all .18s ease; margin-right:.5rem; box-shadow:0 2px 8px rgba(212,175,55,.35), inset 0 1px 0 rgba(255,255,255,.25); letter-spacing:.01em; position:relative; }
+.btn-ajuda::before { content:''; position:absolute; inset:-3px; border-radius:999px; background:linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%); opacity:0; z-index:-1; filter:blur(8px); transition:opacity .25s; }
+.btn-ajuda:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(212,175,55,.5), inset 0 1px 0 rgba(255,255,255,.3); }
+.btn-ajuda:hover::before { opacity:.6; }
+.btn-ajuda svg { flex-shrink:0; }
+.btn-ajuda .ajuda-pulse { position:absolute; top:-2px; right:-2px; width:10px; height:10px; border-radius:50%; background:#EF4444; border:2px solid var(--navy); animation:pulseAjuda 2s infinite; }
+@keyframes pulseAjuda { 0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,.6); } 50% { box-shadow:0 0 0 6px rgba(239,68,68,0); } }
+@media (max-width:520px) { .btn-ajuda .ajuda-label { display:none; } .btn-ajuda { padding:.4rem; } }
 
 /* Modal de ajuda */
 .ajuda-overlay { position:fixed; inset:0; background:rgba(13,27,42,.72); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:9999; padding:1rem; }
