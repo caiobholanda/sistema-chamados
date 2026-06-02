@@ -1877,9 +1877,10 @@ const _AJUDA_FOTOS = {
     <text x="26" y="178" font-family="Inter,sans-serif" font-size="11" fill="#1C1C1C" text-decoration="line-through">Mouse quebrado</text>
     <rect x="250" y="148" width="78" height="22" rx="11" fill="#15803D"/>
     <text x="289" y="163" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="9.5" fill="#FFF">CONCLUÍDO</text>
-    <path d="M 200 40 Q 218 40 230 33" stroke="#EF4444" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    <path d="M 222 28 L 230 33 L 224 39" stroke="#EF4444" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="180" y="44" text-anchor="end" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#EF4444">status ao vivo</text>
+    <path d="M 162 32 Q 195 32 225 32" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M 218 25 L 228 32 L 218 39" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="40" y="22" width="118" height="22" rx="11" fill="#EF4444"/>
+    <text x="99" y="37" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#FFF">STATUS AO VIVO</text>
   </svg>`,
 
   passo5: `<svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg">
@@ -1928,7 +1929,7 @@ const _AJUDA_FOTOS = {
   </svg>`,
 };
 
-function _abrirLightbox(svgHtml) {
+function _abrirAjudaFoto(svgHtml) {
   let lb = document.getElementById('ajuda-light');
   if (!lb) {
     lb = document.createElement('div');
@@ -1936,7 +1937,10 @@ function _abrirLightbox(svgHtml) {
     lb.className = 'ajuda-light';
     lb.innerHTML = `<button class="ajuda-light-fechar" aria-label="Fechar">×</button><div id="ajuda-light-content"></div>`;
     document.body.appendChild(lb);
-    lb.addEventListener('click', () => lb.classList.remove('aberto'));
+    lb.addEventListener('click', e => {
+      if (e.target.closest('#ajuda-light-content svg')) return;
+      lb.classList.remove('aberto');
+    });
   }
   document.getElementById('ajuda-light-content').innerHTML = svgHtml;
   lb.classList.add('aberto');
@@ -2046,7 +2050,7 @@ function _abrirAjuda() {
       el.addEventListener('click', ev => {
         ev.stopPropagation();
         const k = el.dataset.passo;
-        if (_AJUDA_FOTOS[k]) _abrirLightbox(_AJUDA_FOTOS[k]);
+        if (_AJUDA_FOTOS[k]) _abrirAjudaFoto(_AJUDA_FOTOS[k]);
       });
     });
   }
