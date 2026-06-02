@@ -1200,10 +1200,9 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
 // ── Popup do chamado (usa o chamado-modal.js compartilhado) ──
 
 async function abrirPopupChamado(chamadoId) {
-  // Usa o modal de chamado completo (mesmo do painel principal)
-  // O z-index do cm-modal-overlay foi setado para 3100 no HTML
-  // para ficar por cima do modal de histórico (3000).
   if (typeof window.abrirChamadoModal === 'function') {
+    const el = document.getElementById('cm-modal-overlay');
+    if (el) document.body.appendChild(el); // move pro final do body para garantir z-index acima do huc-overlay
     window.abrirChamadoModal(chamadoId);
   } else {
     console.warn('[admin-usuarios] chamado-modal.js não carregado');
