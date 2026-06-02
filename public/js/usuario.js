@@ -1848,7 +1848,7 @@ const _AJUDA_FOTOS = {
     <rect width="360" height="180" fill="#F7F3ED"/>
     <rect x="14" y="22" width="332" height="50" rx="8" fill="#FFF" stroke="#E5DDD0"/>
     <text x="28" y="46" font-family="Georgia,serif" font-size="14" font-weight="600" fill="#0D1B2A">Olá, Maria 👋</text>
-    <text x="28" y="62" font-family="Inter,sans-serif" font-size="10" fill="#7A726A">Tem uma ideia para o hotel?</text>
+    <text x="28" y="62" font-family="Inter,sans-serif" font-size="10" fill="#7A726A">Tem uma ideia para melhorar o site?</text>
     <rect x="18" y="92" width="155" height="38" rx="6" fill="#FFF" stroke="#E5DDD0" stroke-width="1.5"/>
     <text x="95.5" y="116" text-anchor="middle" font-family="Inter,sans-serif" font-weight="600" font-size="11" fill="#4A4540">+ Abrir chamado</text>
     <rect x="183" y="89" width="160" height="44" rx="7" fill="#FFF7D6" stroke="#D4AF37" stroke-width="2.5"/>
@@ -1991,7 +1991,7 @@ function _abrirAjuda() {
                 Mandar sugestão
               </div>
               <div class="ajuda-foto" data-passo="passo3">${_AJUDA_FOTOS.passo3}</div>
-              <div class="ajuda-desc">Ideias para melhorar o hotel? Botão <strong>💡 Sugestão</strong>. Vai direto à gerência.</div>
+              <div class="ajuda-desc">Ideias para melhorar o site? Botão <strong>💡 Sugestão</strong>.</div>
             </div>
           </div>
 
