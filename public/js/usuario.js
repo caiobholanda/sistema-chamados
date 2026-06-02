@@ -1511,16 +1511,20 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       <form id="form-chamado-usuario" novalidate>
         <div class="form-row">
           <div class="form-group">
-            <label for="ch-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-            <select class="form-control" id="ch-categoria">
-              <option value="">Deixe em branco — nossa IA classifica para você</option>
-            </select>
+            <label for="ch-cat-txt">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+            <div class="combo-wrap">
+              <input type="text" class="form-control combo-input" id="ch-cat-txt" placeholder="Deixe em branco — nossa IA classifica para você" autocomplete="off">
+              <input type="hidden" id="ch-categoria">
+              <div class="combo-dd" id="ch-cat-dd"></div>
+            </div>
           </div>
           <div class="form-group">
-            <label for="ch-setor">Setor <span class="req">*</span></label>
-            <select class="form-control" id="ch-setor" required>
-              <option value="">Selecione seu setor...</option>
-            </select>
+            <label for="ch-setor-txt">Setor <span class="req">*</span></label>
+            <div class="combo-wrap">
+              <input type="text" class="form-control combo-input" id="ch-setor-txt" placeholder="Selecione seu setor..." autocomplete="off">
+              <input type="hidden" id="ch-setor">
+              <div class="combo-dd" id="ch-setor-dd"></div>
+            </div>
           </div>
         </div>
         <div class="form-group">
@@ -1613,7 +1617,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
     const setor = document.getElementById('ch-setor').value;
     if (!setor) {
       msg.innerHTML = '<div class="alert alert-danger">Selecione o seu setor.</div>';
-      document.getElementById('ch-setor').focus();
+      document.getElementById('ch-setor-txt').focus();
       return;
     }
     const descricao = document.getElementById('ch-descricao').value.trim();
@@ -1643,60 +1647,152 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
   });
 }
 
+function _montarCombo(inputEl, hiddenEl, ddEl, estrutura) {
+  let focusIdx = -1;
+
+  function itensVisiveis() {
+    return ddEl.querySelectorAll('.combo-dd-item');
+  }
+
+  function renderizar(filtro) {
+    const q = (filtro || '').toLowerCase().trim();
+    let html = '';
+    let algumVisivel = false;
+
+    for (const node of estrutura) {
+      if (node.type === 'group') {
+        const filhos = estrutura.filter(n => n.type === 'item' && n.group === node.label);
+        const visiveis = filhos.filter(f => !q || f.label.toLowerCase().includes(q));
+        if (visiveis.length) {
+          html += `<div class="combo-dd-group">${node.label}</div>`;
+          for (const f of visiveis) {
+            html += `<div class="combo-dd-item in-group" data-value="${f.value}">${f.label}</div>`;
+            algumVisivel = true;
+          }
+        }
+      } else if (!node.group) {
+        if (!q || node.label.toLowerCase().includes(q)) {
+          html += `<div class="combo-dd-item" data-value="${node.value}">${node.label}</div>`;
+          algumVisivel = true;
+        }
+      }
+    }
+
+    if (!algumVisivel) html = '<div class="combo-dd-vazio">Nenhum resultado</div>';
+    ddEl.innerHTML = html;
+    focusIdx = -1;
+
+    ddEl.querySelectorAll('.combo-dd-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        selecionar(el.dataset.value, el.textContent);
+      });
+    });
+  }
+
+  function abrir() {
+    renderizar(inputEl.value);
+    ddEl.classList.add('open');
+    inputEl.classList.add('open');
+  }
+
+  function fechar() {
+    ddEl.classList.remove('open');
+    inputEl.classList.remove('open');
+    focusIdx = -1;
+  }
+
+  function selecionar(value, label) {
+    hiddenEl.value = value;
+    inputEl.value = label;
+    fechar();
+  }
+
+  function navegar(dir) {
+    const items = itensVisiveis();
+    if (!items.length) return;
+    items[focusIdx]?.classList.remove('ativo');
+    focusIdx = Math.max(0, Math.min(items.length - 1, focusIdx + dir));
+    items[focusIdx].classList.add('ativo');
+    items[focusIdx].scrollIntoView({ block: 'nearest' });
+  }
+
+  inputEl.addEventListener('focus', () => abrir());
+  inputEl.addEventListener('input', () => {
+    hiddenEl.value = '';
+    renderizar(inputEl.value);
+    if (!ddEl.classList.contains('open')) abrir();
+  });
+  inputEl.addEventListener('blur', () => {
+    setTimeout(() => {
+      fechar();
+      const match = estrutura.find(n => n.type === 'item' && n.label.toLowerCase() === inputEl.value.toLowerCase().trim());
+      if (match) { hiddenEl.value = match.value; inputEl.value = match.label; }
+      else if (!hiddenEl.value) inputEl.value = '';
+    }, 160);
+  });
+  inputEl.addEventListener('keydown', e => {
+    if (!ddEl.classList.contains('open')) { if (e.key === 'ArrowDown') abrir(); return; }
+    if (e.key === 'ArrowDown')  { e.preventDefault(); navegar(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); navegar(-1); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      const items = itensVisiveis();
+      if (focusIdx >= 0 && items[focusIdx]) selecionar(items[focusIdx].dataset.value, items[focusIdx].textContent);
+    }
+    else if (e.key === 'Escape') fechar();
+  });
+}
+
 async function _preencherSelectsChamado(usuario) {
   const [etiquetas, setores] = await Promise.all([
     fetch('/api/etiquetas').then(r => r.json()).catch(() => []),
     fetch('/api/setores').then(r => r.json()).catch(() => []),
   ]);
 
-  const selCat = document.getElementById('ch-categoria');
-  const selSetor = document.getElementById('ch-setor');
-  if (!selCat || !selSetor) return;
+  const catTxt    = document.getElementById('ch-cat-txt');
+  const catHidden = document.getElementById('ch-categoria');
+  const catDd     = document.getElementById('ch-cat-dd');
+  const setorTxt    = document.getElementById('ch-setor-txt');
+  const setorHidden = document.getElementById('ch-setor');
+  const setorDd     = document.getElementById('ch-setor-dd');
+  if (!catTxt || !setorTxt) return;
 
-  // Serviço: cascata com optgroups para pais e options para filhos
+  // Serviço: cascata pais → groups, filhos → items
+  const estruturaCat = [];
   if (Array.isArray(etiquetas) && etiquetas.length) {
-    const pais = etiquetas.filter(e => !e.parent_slug);
+    const pais   = etiquetas.filter(e => !e.parent_slug);
     const filhos = etiquetas.filter(e => e.parent_slug);
     const slugsPais = new Set(pais.map(p => p.slug));
-
-    let html = '<option value="">Deixe em branco — nossa IA classifica para você</option>';
     for (const pai of pais) {
       const kids = filhos.filter(f => f.parent_slug === pai.slug);
       if (kids.length) {
-        html += `<optgroup label="${pai.nome}">`;
-        for (const k of kids) {
-          html += `<option value="${k.slug}">${k.nome}</option>`;
-        }
-        html += '</optgroup>';
+        estruturaCat.push({ type: 'group', label: pai.nome });
+        for (const k of kids) estruturaCat.push({ type: 'item', value: k.slug, label: k.nome, group: pai.nome });
       } else {
-        html += `<option value="${pai.slug}">${pai.nome}</option>`;
+        estruturaCat.push({ type: 'item', value: pai.slug, label: pai.nome });
       }
     }
-    const orfaos = filhos.filter(f => !slugsPais.has(f.parent_slug));
-    for (const o of orfaos) {
-      html += `<option value="${o.slug}">${o.nome}</option>`;
-    }
-    selCat.innerHTML = html;
+    filhos.filter(f => !slugsPais.has(f.parent_slug))
+      .forEach(o => estruturaCat.push({ type: 'item', value: o.slug, label: o.nome }));
   }
+  _montarCombo(catTxt, catHidden, catDd, estruturaCat);
 
-  // Setor: lista plana da base
+  // Setor: lista plana
+  const estruturaSetor = [];
   if (Array.isArray(setores) && setores.length) {
-    selSetor.innerHTML = '<option value="">Selecione seu setor...</option>';
-    for (const s of setores) {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = s.nome;
-      selSetor.appendChild(opt);
-    }
+    for (const s of setores) estruturaSetor.push({ type: 'item', value: s.nome, label: s.nome });
   }
+  _montarCombo(setorTxt, setorHidden, setorDd, estruturaSetor);
 
   // Pré-seleciona setor do usuário
   if (usuario?.setor) {
-    selSetor.value = usuario.setor;
-    if (!selSetor.value) {
-      const opt = document.createElement('option');
-      opt.value = opt.textContent = usuario.setor;
-      selSetor.appendChild(opt);
-      selSetor.value = usuario.setor;
+    const match = estruturaSetor.find(n => n.label === usuario.setor);
+    if (match) { setorHidden.value = match.value; setorTxt.value = match.label; }
+    else {
+      estruturaSetor.push({ type: 'item', value: usuario.setor, label: usuario.setor });
+      setorHidden.value = usuario.setor;
+      setorTxt.value = usuario.setor;
     }
   }
 }
