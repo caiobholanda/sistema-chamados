@@ -587,7 +587,7 @@ async function classificarInteligente(descricao) {
     }).join('\n');
 
     const msg = await ai.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       max_tokens: 50,
       system: `Você é o classificador de chamados de suporte TI do Hotel Gran Marquise (Fortaleza, hotel 5 estrelas).
 Analise a descrição do chamado e identifique a categoria mais adequada com base nas categorias disponíveis, nas suas descrições e nos exemplos reais de chamados anteriores.
