@@ -3300,9 +3300,9 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   display: flex;
   flex-direction: column;
   gap: .6rem;
-  position: sticky;
-  top: 1rem;
-  align-self: start;
+  padding: .9rem 1rem;
+  border-left: 1px solid var(--border);
+  background: var(--surface-2);
 }
 .mv2-side-title {
   display: flex;
@@ -3997,7 +3997,7 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
 /* ─── Overlay histórico completo ──────────────────────────────── */
 .hist-overlay {
   display: none;
-  position: fixed; inset: 0; z-index: 3000;
+  position: fixed; inset: 0; z-index: 3200;
   background: rgba(0,0,0,.45);
   align-items: flex-start; justify-content: flex-end;
   overflow: hidden;
