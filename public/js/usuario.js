@@ -1513,7 +1513,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
           <div class="form-group">
             <label for="ch-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
             <select class="form-control" id="ch-categoria">
-              <option value="">Classificar automaticamente</option>
+              <option value="">Deixe em branco — nossa IA classifica para você</option>
             </select>
           </div>
           <div class="form-group">
@@ -1659,7 +1659,7 @@ async function _preencherSelectsChamado(usuario) {
     const filhos = etiquetas.filter(e => e.parent_slug);
     const slugsPais = new Set(pais.map(p => p.slug));
 
-    let html = '<option value="">Classificar automaticamente</option>';
+    let html = '<option value="">Deixe em branco — nossa IA classifica para você</option>';
     for (const pai of pais) {
       const kids = filhos.filter(f => f.parent_slug === pai.slug);
       if (kids.length) {
