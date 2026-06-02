@@ -1514,77 +1514,12 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
             <label for="ch-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
             <select class="form-control" id="ch-categoria">
               <option value="">Classificar automaticamente</option>
-              <option value="acesso_senha">Acesso / Senha</option>
-              <option value="cameras">Câmeras / CFTV</option>
-              <option value="celular">Celular</option>
-              <option value="email">E-mail</option>
-              <option value="hardware">Hardware</option>
-              <option value="impressora">Impressora</option>
-              <option value="monitor">Monitor</option>
-              <option value="mouse">Mouse</option>
-              <option value="nobreak">Nobreak</option>
-              <option value="outros">Outros</option>
-              <option value="processo_compra">Processo de Compra</option>
-              <option value="projetor">Projetor</option>
-              <option value="ramal">Ramal / Telefone</option>
-              <option value="rede">Rede / Internet</option>
-              <option value="software">Software</option>
-              <option value="tablet">Tablet</option>
-              <option value="teclado">Teclado</option>
-              <option value="tv_projetor">TV</option>
             </select>
           </div>
           <div class="form-group">
             <label for="ch-setor">Setor <span class="req">*</span></label>
             <select class="form-control" id="ch-setor" required>
               <option value="">Selecione seu setor...</option>
-              <optgroup label="Hospedagem">
-                <option>Recepção</option>
-                <option>Concierge</option>
-                <option>Governança</option>
-                <option>Reservas</option>
-                <option>Mensageria / Portaria</option>
-              </optgroup>
-              <optgroup label="Alimentos &amp; Bebidas">
-                <option>Restaurante Mucuripe</option>
-                <option>Restaurante Mangostin</option>
-                <option>Bar Rooftop</option>
-                <option>Lobby Bar</option>
-                <option>Room Service</option>
-                <option>Cozinha</option>
-                <option>Confeitaria / Padaria</option>
-                <option>Nutrição</option>
-                <option>Banquetes</option>
-              </optgroup>
-              <optgroup label="Eventos">
-                <option>Eventos e Convenções</option>
-              </optgroup>
-              <optgroup label="Bem-estar &amp; Lazer">
-                <option>Spa by L'Occitane</option>
-                <option>Fitness Center</option>
-                <option>Piscina</option>
-                <option>Play Gran</option>
-              </optgroup>
-              <optgroup label="Administrativo">
-                <option>Gerência Geral</option>
-                <option>Recursos Humanos</option>
-                <option>Financeiro</option>
-                <option>Controladoria</option>
-                <option>Compras / Almoxarifado</option>
-                <option>Comercial / Vendas</option>
-                <option>Marketing</option>
-                <option>Revenue Management</option>
-                <option>Tecnologia da Informação</option>
-                <option>Jurídico</option>
-              </optgroup>
-              <optgroup label="Operacional">
-                <option>Manutenção</option>
-                <option>Segurança</option>
-                <option>Lavanderia</option>
-                <option>Rouparia</option>
-                <option>Estacionamento</option>
-                <option>Transportes</option>
-              </optgroup>
             </select>
           </div>
         </div>
@@ -1610,24 +1545,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
     </div>
   `;
 
-  if (usuario.setor) {
-    const sel = document.getElementById('ch-setor');
-    sel.value = usuario.setor;
-    if (!sel.value) {
-      // Setor do cadastro não existe na lista — adiciona dinamicamente
-      const og = sel.querySelector('optgroup[label="Outros"]') || (() => {
-        const g = document.createElement('optgroup');
-        g.label = 'Outros';
-        sel.appendChild(g);
-        return g;
-      })();
-      const opt = document.createElement('option');
-      opt.value = usuario.setor;
-      opt.textContent = usuario.setor;
-      og.appendChild(opt);
-      sel.value = usuario.setor;
-    }
-  }
+  _preencherSelectsChamado(usuario);
 
   document.getElementById('btn-cancelar-chamado').addEventListener('click', onCancel);
 
@@ -1723,4 +1641,62 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
     } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Enviar Chamado'; }
   });
+}
+
+async function _preencherSelectsChamado(usuario) {
+  const [etiquetas, setores] = await Promise.all([
+    fetch('/api/etiquetas').then(r => r.json()).catch(() => []),
+    fetch('/api/setores').then(r => r.json()).catch(() => []),
+  ]);
+
+  const selCat = document.getElementById('ch-categoria');
+  const selSetor = document.getElementById('ch-setor');
+  if (!selCat || !selSetor) return;
+
+  // Serviço: cascata com optgroups para pais e options para filhos
+  if (Array.isArray(etiquetas) && etiquetas.length) {
+    const pais = etiquetas.filter(e => !e.parent_slug);
+    const filhos = etiquetas.filter(e => e.parent_slug);
+    const slugsPais = new Set(pais.map(p => p.slug));
+
+    let html = '<option value="">Classificar automaticamente</option>';
+    for (const pai of pais) {
+      const kids = filhos.filter(f => f.parent_slug === pai.slug);
+      if (kids.length) {
+        html += `<optgroup label="${pai.nome}">`;
+        for (const k of kids) {
+          html += `<option value="${k.slug}">${k.nome}</option>`;
+        }
+        html += '</optgroup>';
+      } else {
+        html += `<option value="${pai.slug}">${pai.nome}</option>`;
+      }
+    }
+    const orfaos = filhos.filter(f => !slugsPais.has(f.parent_slug));
+    for (const o of orfaos) {
+      html += `<option value="${o.slug}">${o.nome}</option>`;
+    }
+    selCat.innerHTML = html;
+  }
+
+  // Setor: lista plana da base
+  if (Array.isArray(setores) && setores.length) {
+    selSetor.innerHTML = '<option value="">Selecione seu setor...</option>';
+    for (const s of setores) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = s.nome;
+      selSetor.appendChild(opt);
+    }
+  }
+
+  // Pré-seleciona setor do usuário
+  if (usuario?.setor) {
+    selSetor.value = usuario.setor;
+    if (!selSetor.value) {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = usuario.setor;
+      selSetor.appendChild(opt);
+      selSetor.value = usuario.setor;
+    }
+  }
 }
