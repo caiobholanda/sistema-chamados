@@ -54,12 +54,17 @@ router.post('/', uploadChamadoMiddleware(), async (req, res) => {
 
     const usuario_id = getUsuarioIdFromCookie(req);
 
-    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','processo_compra','outros','thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
     const categoriaEnviada = (req.body.categoria || '').trim();
     let categoria;
-    if (categoriaEnviada && CATEGORIAS_VALIDAS.includes(categoriaEnviada)) {
-      categoria = categoriaEnviada;
-    } else {
+    if (categoriaEnviada) {
+      const { CATEGORIAS } = require('../categorizador');
+      const slugsEstaticos = new Set(CATEGORIAS.map(c => c.id));
+      const slugsDinamicos = new Set(db.listarEtiquetas().map(e => e.slug));
+      if (slugsEstaticos.has(categoriaEnviada) || slugsDinamicos.has(categoriaEnviada)) {
+        categoria = categoriaEnviada;
+      }
+    }
+    if (!categoria) {
       const cat = await classificarInteligente(descricao);
       categoria = cat ? cat.id : null;
     }
