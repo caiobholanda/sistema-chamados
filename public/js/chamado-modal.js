@@ -221,7 +221,7 @@ function _renderBody(c) {
           <div class="mv2-cat-row" style="align-items:flex-start">
             <span class="mv2-field-label">Categoria</span>
             <div class="mv2-cat-display">
-              <div class="mv2-cat-path" id="cm-cat-path-text">${_cmLeafNome || '<span class=\\'empty\\'>— sem categoria —</span>'}</div>
+              <div class="mv2-cat-path" id="cm-cat-path-text">${_cmLeafNome || '<span class="empty">— sem categoria —</span>'}</div>
               <button type="button" class="btn btn-secondary btn-sm" id="cm-btn-editar-categoria">Alterar</button>
             </div>
             <div class="mv2-cat-edit" style="flex:1">
