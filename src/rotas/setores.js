@@ -4,7 +4,7 @@ const db = require('../db');
 const { requireAdmin } = require('../auth');
 
 function san(str) {
-  return typeof str === 'string' ? str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').trim() : str;
+  return typeof str === 'string' ? str.trim() : str;
 }
 
 router.get('/', (req, res) => {
