@@ -1809,6 +1809,139 @@ async function _preencherSelectsChamado(usuario) {
   }
 }
 
+const _AJUDA_FOTOS = {
+  passo1: `<svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg">
+    <rect width="360" height="180" fill="#F7F3ED"/>
+    <text x="18" y="32" font-family="Georgia,serif" font-size="17" font-weight="600" fill="#0D1B2A">Meus Chamados</text>
+    <text x="18" y="50" font-family="Inter,sans-serif" font-size="10" fill="#7A726A">Acompanhe suas solicitações de TI</text>
+    <rect x="18" y="78" width="155" height="38" rx="6" fill="#D4AF37" stroke="#B8960C" stroke-width="1.5"/>
+    <text x="95.5" y="102" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="12" fill="#0D1B2A">+ Abrir chamado</text>
+    <rect x="183" y="78" width="145" height="38" rx="6" fill="#FFF" stroke="#E5DDD0" stroke-width="1.5"/>
+    <text x="255.5" y="102" text-anchor="middle" font-family="Inter,sans-serif" font-weight="600" font-size="11" fill="#4A4540">💡 Mandar Sugestão</text>
+    <path d="M 95 158 Q 95 138 95 122" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M 88 130 L 95 122 L 102 130" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="50" y="148" width="90" height="22" rx="11" fill="#EF4444"/>
+    <text x="95" y="163" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="10" fill="#FFF">CLIQUE AQUI</text>
+  </svg>`,
+
+  passo2: `<svg viewBox="0 0 360 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="360" height="200" fill="#F7F3ED"/>
+    <rect x="14" y="14" width="332" height="172" rx="8" fill="#FFF" stroke="#E5DDD0"/>
+    <text x="28" y="38" font-family="Georgia,serif" font-size="14" font-weight="600" fill="#0D1B2A">Novo Chamado</text>
+    <line x1="28" y1="48" x2="332" y2="48" stroke="#EDD97A" stroke-width="1"/>
+    <text x="28" y="68" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#4A4540">Serviço (opcional)</text>
+    <rect x="28" y="74" width="148" height="32" rx="3" fill="#FFFCF2" stroke="#D4AF37" stroke-width="2"/>
+    <text x="38" y="94" font-family="Inter,sans-serif" font-size="10" fill="#B8960C" font-style="italic">Deixe vazio — IA decide</text>
+    <text x="184" y="68" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#4A4540">Setor *</text>
+    <rect x="184" y="74" width="148" height="32" rx="3" fill="#FFF" stroke="#E5DDD0"/>
+    <text x="194" y="94" font-family="Inter,sans-serif" font-size="10" fill="#1C1C1C">Recepção</text>
+    <text x="28" y="124" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#4A4540">Descrição</text>
+    <rect x="28" y="130" width="304" height="40" rx="3" fill="#FFF" stroke="#E5DDD0"/>
+    <text x="38" y="148" font-family="Inter,sans-serif" font-size="9.5" fill="#1C1C1C">Impressora da recepção não imprime, papel atolado.</text>
+    <path d="M 102 188 Q 102 160 102 112" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M 95 120 L 102 112 L 109 120" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="40" y="178" width="124" height="20" rx="10" fill="#EF4444"/>
+    <text x="102" y="192" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="9" fill="#FFF">DEIXE ESTE VAZIO</text>
+  </svg>`,
+
+  passo3: `<svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg">
+    <rect width="360" height="180" fill="#F7F3ED"/>
+    <rect x="14" y="22" width="332" height="50" rx="8" fill="#FFF" stroke="#E5DDD0"/>
+    <text x="28" y="46" font-family="Georgia,serif" font-size="14" font-weight="600" fill="#0D1B2A">Olá, Maria 👋</text>
+    <text x="28" y="62" font-family="Inter,sans-serif" font-size="10" fill="#7A726A">Tem uma ideia para o hotel?</text>
+    <rect x="18" y="92" width="155" height="38" rx="6" fill="#FFF" stroke="#E5DDD0" stroke-width="1.5"/>
+    <text x="95.5" y="116" text-anchor="middle" font-family="Inter,sans-serif" font-weight="600" font-size="11" fill="#4A4540">+ Abrir chamado</text>
+    <rect x="183" y="89" width="160" height="44" rx="7" fill="#FFF7D6" stroke="#D4AF37" stroke-width="2.5"/>
+    <text x="263" y="116" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="12" fill="#B8960C">💡 Mandar Sugestão</text>
+    <path d="M 263 168 Q 263 150 263 138" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M 256 146 L 263 138 L 270 146" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="210" y="158" width="106" height="20" rx="10" fill="#EF4444"/>
+    <text x="263" y="172" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="9" fill="#FFF">PARA SUGESTÕES</text>
+  </svg>`,
+
+  passo4: `<svg viewBox="0 0 360 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="360" height="200" fill="#F7F3ED"/>
+    <rect x="14" y="14" width="332" height="55" rx="8" fill="#FFF" stroke="#E5DDD0"/>
+    <text x="26" y="33" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#7A726A">#142 · Recepção</text>
+    <text x="26" y="50" font-family="Inter,sans-serif" font-size="11" fill="#1C1C1C">Impressora travada</text>
+    <rect x="232" y="20" width="88" height="22" rx="11" fill="#7C3AED"/>
+    <text x="276" y="35" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="9.5" fill="#FFF">EM ANDAMENTO</text>
+    <text x="26" y="62" font-family="Inter,sans-serif" font-size="9" fill="#7A726A">Atualizado há 2 min</text>
+    <rect x="14" y="78" width="332" height="55" rx="8" fill="#FFF" stroke="#E5DDD0"/>
+    <text x="26" y="97" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#7A726A">#141 · TI</text>
+    <text x="26" y="114" font-family="Inter,sans-serif" font-size="11" fill="#1C1C1C">Solicitação de e-mail</text>
+    <rect x="262" y="84" width="58" height="22" rx="11" fill="#1D4ED8"/>
+    <text x="291" y="99" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="9.5" fill="#FFF">ABERTO</text>
+    <rect x="14" y="142" width="332" height="48" rx="8" fill="#FFF" stroke="#E5DDD0"/>
+    <text x="26" y="161" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#7A726A">#138 · Cozinha</text>
+    <text x="26" y="178" font-family="Inter,sans-serif" font-size="11" fill="#1C1C1C" text-decoration="line-through">Mouse quebrado</text>
+    <rect x="250" y="148" width="78" height="22" rx="11" fill="#15803D"/>
+    <text x="289" y="163" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="9.5" fill="#FFF">CONCLUÍDO</text>
+    <path d="M 200 40 Q 218 40 230 33" stroke="#EF4444" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M 222 28 L 230 33 L 224 39" stroke="#EF4444" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="180" y="44" text-anchor="end" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#EF4444">status ao vivo</text>
+  </svg>`,
+
+  passo5: `<svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg">
+    <rect width="360" height="220" fill="#F7F3ED"/>
+    <rect x="14" y="14" width="332" height="192" rx="8" fill="#FFF" stroke="#E5DDD0"/>
+    <rect x="14" y="14" width="332" height="28" rx="8" fill="#0D1B2A"/>
+    <circle cx="32" cy="28" r="5" fill="#15803D"/>
+    <text x="44" y="32" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#EDD97A">Chat com suporte · online</text>
+    <rect x="26" y="56" width="200" height="32" rx="12" fill="#F7F3ED"/>
+    <text x="36" y="76" font-family="Inter,sans-serif" font-size="10" fill="#1C1C1C">Oi! Minha impressora travou.</text>
+    <text x="36" y="98" font-family="Inter,sans-serif" font-size="8" fill="#7A726A">Você · 14:32</text>
+    <rect x="134" y="112" width="200" height="32" rx="12" fill="#D4AF37"/>
+    <text x="144" y="132" font-family="Inter,sans-serif" font-size="10" fill="#0D1B2A">Já estou indo aí! 5 min.</text>
+    <text x="334" y="154" text-anchor="end" font-family="Inter,sans-serif" font-size="8" fill="#7A726A">Suporte · 14:33</text>
+    <rect x="26" y="168" width="308" height="28" rx="14" fill="#F7F3ED" stroke="#E5DDD0"/>
+    <text x="40" y="186" font-family="Inter,sans-serif" font-size="10" fill="#7A726A" font-style="italic">Digite uma mensagem...</text>
+    <circle cx="316" cy="182" r="11" fill="#D4AF37"/>
+    <path d="M 312 178 L 320 182 L 312 186 L 314 182 Z" fill="#0D1B2A"/>
+    <path d="M 270 86 Q 250 86 230 78" stroke="#EF4444" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M 238 72 L 230 78 L 238 84" stroke="#EF4444" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="278" y="91" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#EF4444">tempo real</text>
+  </svg>`,
+
+  passo6: `<svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg">
+    <rect width="360" height="180" fill="#F7F3ED"/>
+    <rect x="14" y="14" width="332" height="152" rx="8" fill="#FFF" stroke="#E5DDD0"/>
+    <text x="28" y="36" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#4A4540">Anexos</text>
+    <rect x="28" y="46" width="120" height="30" rx="4" fill="#FFFCF2" stroke="#D4AF37" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="88" y="65" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#B8960C">+ Adicionar arquivos</text>
+    <rect x="28" y="90" width="62" height="62" rx="6" fill="#F7F3ED" stroke="#E5DDD0"/>
+    <rect x="38" y="100" width="42" height="32" rx="3" fill="#D4AF37"/>
+    <circle cx="48" cy="110" r="3" fill="#FFF"/>
+    <path d="M 38 132 L 50 118 L 62 128 L 80 110 L 80 132 Z" fill="#0D1B2A"/>
+    <text x="59" y="146" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" fill="#4A4540">foto.jpg</text>
+    <rect x="100" y="90" width="62" height="62" rx="6" fill="#F7F3ED" stroke="#E5DDD0"/>
+    <rect x="120" y="100" width="22" height="30" rx="2" fill="#FFF" stroke="#B91C1C"/>
+    <text x="131" y="121" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#B91C1C">PDF</text>
+    <text x="131" y="146" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" fill="#4A4540">manual.pdf</text>
+    <rect x="172" y="90" width="62" height="62" rx="6" fill="#F7F3ED" stroke="#E5DDD0"/>
+    <polygon points="195,108 212,120 195,132" fill="#7C3AED"/>
+    <text x="203" y="146" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" fill="#4A4540">video.mp4</text>
+    <path d="M 88 156 L 88 80" stroke="#EF4444" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M 81 88 L 88 80 L 95 88" stroke="#EF4444" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="244" y="118" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#EF4444">📸 Foto =</text>
+    <text x="244" y="132" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#EF4444">resolução rápida</text>
+  </svg>`,
+};
+
+function _abrirLightbox(svgHtml) {
+  let lb = document.getElementById('ajuda-light');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'ajuda-light';
+    lb.className = 'ajuda-light';
+    lb.innerHTML = `<button class="ajuda-light-fechar" aria-label="Fechar">×</button><div id="ajuda-light-content"></div>`;
+    document.body.appendChild(lb);
+    lb.addEventListener('click', () => lb.classList.remove('aberto'));
+  }
+  document.getElementById('ajuda-light-content').innerHTML = svgHtml;
+  lb.classList.add('aberto');
+}
+
 function _abrirAjuda() {
   let overlay = document.getElementById('ajuda-overlay');
   if (!overlay) {
@@ -1820,7 +1953,7 @@ function _abrirAjuda() {
         <div class="ajuda-cabec">
           <div>
             <div class="ajuda-tit" id="ajuda-titulo">Como funciona</div>
-            <div class="ajuda-sub">6 passos. Leitura em 30 segundos.</div>
+            <div class="ajuda-sub">6 passos com ilustrações. Clique nas imagens para ampliar.</div>
           </div>
           <button class="ajuda-fechar" id="ajuda-fechar" aria-label="Fechar">×</button>
         </div>
@@ -1833,8 +1966,8 @@ function _abrirAjuda() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Abrir chamado
               </div>
-              <div class="ajuda-desc">Descreva seu problema. Quanto mais detalhe, mais rápido resolvemos.</div>
-              <div class="ajuda-fluxo"><span class="tag">+ Abrir chamado</span><span class="seta">→</span>Setor<span class="seta">→</span>Descrição<span class="seta">→</span>Enviar</div>
+              <div class="ajuda-foto" data-passo="passo1">${_AJUDA_FOTOS.passo1}</div>
+              <div class="ajuda-desc">Clique em <strong>+ Abrir chamado</strong>. Descreva o problema com detalhe.</div>
             </div>
           </div>
 
@@ -1845,7 +1978,8 @@ function _abrirAjuda() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2v2a4 4 0 0 0 8 0v-2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"/></svg>
                 IA classifica sozinha
               </div>
-              <div class="ajuda-desc">Não sabe a categoria? Deixe o campo <strong>Serviço</strong> vazio. Nossa IA lê e classifica.</div>
+              <div class="ajuda-foto" data-passo="passo2">${_AJUDA_FOTOS.passo2}</div>
+              <div class="ajuda-desc">Não sabe a categoria? Deixe <strong>Serviço</strong> vazio. A IA lê e escolhe.</div>
             </div>
           </div>
 
@@ -1856,7 +1990,8 @@ function _abrirAjuda() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.5.4.8 1 .8 1.6V18h6.4v-1.7c0-.6.3-1.2.8-1.6A7 7 0 0 0 12 2z"/></svg>
                 Mandar sugestão
               </div>
-              <div class="ajuda-desc">Tem uma ideia para melhorar o hotel? Botão <strong>💡 Sugestão</strong>. Chega direto à gerência.</div>
+              <div class="ajuda-foto" data-passo="passo3">${_AJUDA_FOTOS.passo3}</div>
+              <div class="ajuda-desc">Ideias para melhorar o hotel? Botão <strong>💡 Sugestão</strong>. Vai direto à gerência.</div>
             </div>
           </div>
 
@@ -1867,14 +2002,8 @@ function _abrirAjuda() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Acompanhar em tempo real
               </div>
-              <div class="ajuda-desc">Os cards atualizam sozinhos. Cor do badge mostra o status:</div>
-              <div class="ajuda-fluxo">
-                <span class="tag" style="background:#1D4ED8">Aberto</span>
-                <span class="seta">→</span>
-                <span class="tag" style="background:#7C3AED">Em andamento</span>
-                <span class="seta">→</span>
-                <span class="tag" style="background:#15803D">Concluído</span>
-              </div>
+              <div class="ajuda-foto" data-passo="passo4">${_AJUDA_FOTOS.passo4}</div>
+              <div class="ajuda-desc">Cards atualizam sozinhos. Cor do badge mostra o status.</div>
             </div>
           </div>
 
@@ -1885,7 +2014,8 @@ function _abrirAjuda() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 Chat com o suporte
               </div>
-              <div class="ajuda-desc">Clique num chamado aberto. Conversa direta com o TI, mensagens chegam na hora.</div>
+              <div class="ajuda-foto" data-passo="passo5">${_AJUDA_FOTOS.passo5}</div>
+              <div class="ajuda-desc">Clique num chamado aberto. Conversa direta com o TI — mensagens chegam na hora.</div>
             </div>
           </div>
 
@@ -1896,7 +2026,8 @@ function _abrirAjuda() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                 Anexar arquivos
               </div>
-              <div class="ajuda-desc">Foto do problema = solução mais rápida. Aceita imagem, vídeo, PDF. Até 10 arquivos, 200 MB cada.</div>
+              <div class="ajuda-foto" data-passo="passo6">${_AJUDA_FOTOS.passo6}</div>
+              <div class="ajuda-desc">Foto, vídeo ou PDF. Até 10 arquivos de 200 MB cada.</div>
             </div>
           </div>
 
@@ -1910,7 +2041,14 @@ function _abrirAjuda() {
     document.body.appendChild(overlay);
     overlay.querySelector('#ajuda-fechar').addEventListener('click', () => overlay.classList.remove('aberto'));
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('aberto'); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('aberto'); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { overlay.classList.remove('aberto'); document.getElementById('ajuda-light')?.classList.remove('aberto'); } });
+    overlay.querySelectorAll('.ajuda-foto').forEach(el => {
+      el.addEventListener('click', ev => {
+        ev.stopPropagation();
+        const k = el.dataset.passo;
+        if (_AJUDA_FOTOS[k]) _abrirLightbox(_AJUDA_FOTOS[k]);
+      });
+    });
   }
   overlay.classList.add('aberto');
 }
