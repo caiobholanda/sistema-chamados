@@ -1985,7 +1985,7 @@ function _abrirAjuda() {
         <div class="ajuda-cabec">
           <div>
             <div class="ajuda-tit" id="ajuda-titulo">Como funciona</div>
-            <div class="ajuda-sub">7 passos com ilustrações. Clique nas imagens para ampliar.</div>
+            <div class="ajuda-sub">7 passos com ilustrações.</div>
           </div>
           <button class="ajuda-fechar" id="ajuda-fechar" aria-label="Fechar">×</button>
         </div>
@@ -2082,14 +2082,6 @@ function _abrirAjuda() {
     overlay.querySelector('#ajuda-fechar').addEventListener('click', () => overlay.classList.remove('aberto'));
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('aberto'); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { overlay.classList.remove('aberto'); document.getElementById('ajuda-light')?.classList.remove('aberto'); } });
-    overlay.addEventListener('click', ev => {
-      const foto = ev.target.closest('.ajuda-foto');
-      if (foto) {
-        ev.stopPropagation();
-        const k = foto.dataset.passo;
-        if (_AJUDA_FOTOS[k]) _abrirAjudaFoto(_AJUDA_FOTOS[k]);
-      }
-    });
   }
   overlay.classList.add('aberto');
 }

@@ -618,11 +618,8 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
 [data-theme="dark"] .ajuda-dica { background: rgba(212,175,55,.1); color: var(--text); }
 
 /* Mini-screenshots SVG dentro dos passos */
-.ajuda-foto { display:block; width:100%; max-width:520px; margin:.6rem 0 .3rem; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); cursor:zoom-in; overflow:hidden; box-shadow:var(--shadow-sm); transition:all .15s ease; position:relative; }
-.ajuda-foto:hover { transform:translateY(-1px); box-shadow:var(--shadow-md); border-color:var(--gold); }
+.ajuda-foto { display:block; width:100%; max-width:520px; margin:.6rem 0 .3rem; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); overflow:hidden; box-shadow:var(--shadow-sm); }
 .ajuda-foto svg { display:block; width:100%; height:auto; }
-.ajuda-foto::after { content:'🔍 Clique para ampliar'; position:absolute; bottom:5px; right:6px; font-size:.66rem; background:rgba(13,27,42,.78); color:var(--gold-light); padding:.15rem .42rem; border-radius:4px; pointer-events:none; opacity:0; transition:opacity .15s; }
-.ajuda-foto:hover::after { opacity:1; }
 
 /* Lightbox da foto ampliada */
 .ajuda-light { position:fixed; inset:0; background:rgba(0,0,0,.88); display:none; align-items:center; justify-content:center; z-index:10000; padding:2rem; cursor:zoom-out; }
