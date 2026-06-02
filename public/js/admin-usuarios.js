@@ -3,6 +3,7 @@ let editandoAdminId = null;
 let abaAdmins = 'ativos';
 let abaUsuarios = 'ativos';
 let filtroUsuariosTexto = '';
+let filtroAdminsTexto = '';
 let todosAdmins = [];
 let todosUsuarios = [];
 
@@ -350,6 +351,20 @@ document.getElementById('filtro-usuarios-clear')?.addEventListener('click', () =
   renderUsuarios();
 });
 
+document.getElementById('filtro-admins')?.addEventListener('input', e => {
+  filtroAdminsTexto = e.target.value;
+  document.getElementById('filtro-admins-clear').style.display = filtroAdminsTexto ? 'block' : 'none';
+  renderAdmins();
+});
+document.getElementById('filtro-admins-clear')?.addEventListener('click', () => {
+  filtroAdminsTexto = '';
+  const inp = document.getElementById('filtro-admins');
+  inp.value = '';
+  inp.focus();
+  document.getElementById('filtro-admins-clear').style.display = 'none';
+  renderAdmins();
+});
+
 // ══════════════════════════════════════════════════════════════
 //  ADMINISTRADORES
 // ══════════════════════════════════════════════════════════════
@@ -453,14 +468,24 @@ async function carregarAdmins() {
 
 function renderAdmins() {
   const lista = document.getElementById('lista-admins');
-  const filtrados = todosAdmins.filter(a => abaAdmins === 'ativos' ? a.ativo : !a.ativo);
+  let filtrados = todosAdmins.filter(a => abaAdmins === 'ativos' ? a.ativo : !a.ativo);
+
+  const q = _normFiltro(filtroAdminsTexto).trim();
+  if (q) {
+    filtrados = filtrados.filter(a =>
+      _normFiltro(a.usuario).includes(q) ||
+      _normFiltro(a.nome_completo).includes(q) ||
+      _normFiltro(a.email).includes(q) ||
+      _normFiltro(a.ramal).includes(q)
+    );
+  }
 
   if (!filtrados.length) {
     lista.innerHTML = `<div class="empty-state"><div class="empty-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
       </svg></div>
-      <p>Nenhum administrador ${abaAdmins === 'ativos' ? 'ativo' : 'inativo'}.</p>
+      <p>${q ? `Nenhum administrador encontrado para "${filtroAdminsTexto}".` : `Nenhum administrador ${abaAdmins === 'ativos' ? 'ativo' : 'inativo'}.`}</p>
     </div>`;
     return;
   }
