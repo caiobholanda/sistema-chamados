@@ -100,6 +100,14 @@ function renderConteudo(dados, ranking, mes) {
   const { volumeStatus, totalMes, totalMesAnt, abertosUltimos12, notaMedia,
           top5Setores, porCategoria, tempoMedioRespostaSeg, sla, chamadosReabertos } = dados;
   const tendencia6m = padSerie12m(dados.tendencia6m, mes);
+  const mesAntKey = mesAnterior(mes);
+  const notaMesAntObj = tendencia6m.find(s => s.mes === mesAntKey) || { media: null, total: 0 };
+  const anoAtual = mes.slice(0, 4);
+  const mesesAno = tendencia6m.filter(s => s.mes.startsWith(anoAtual) && s.media != null);
+  const notaAnoTotal = mesesAno.reduce((acc, s) => acc + s.total, 0);
+  const notaAnoMedia = notaAnoTotal > 0
+    ? mesesAno.reduce((acc, s) => acc + s.media * s.total, 0) / notaAnoTotal
+    : null;
 
   const cnt = (s) => (volumeStatus.find(r => r.status === s)?.total || 0);
   const emAberto  = cnt('aberto') + cnt('aguardando_compra') + cnt('aguardando_chegar');
@@ -176,17 +184,11 @@ function renderConteudo(dados, ranking, mes) {
         <div class="chart-head">
           <div class="chart-title-block">
             <div class="chart-title">Satisfação dos usuários</div>
-            <div class="chart-sub">Nota média (1–10) nos últimos 12 meses</div>
+            <div class="chart-sub">Comparativo de notas · escala 1–10</div>
           </div>
-          ${notaMedia.media ? `<span class="chart-pill ${notaMedia.media >= 8 ? 'ok' : 'warn'}">${notaMedia.media.toFixed(1).replace('.', ',')} no mês</span>` : ''}
+          ${notaMedia.media ? `<span class="chart-pill ${notaMedia.media >= 8 ? 'good' : 'warn'}">${notaMedia.media.toFixed(1).replace('.', ',')} este mês</span>` : ''}
         </div>
-        ${lineChartSvg(tendencia6m, mes)}
-        <div class="chart-legend">
-          <span class="leg"><span class="leg-swatch" style="background:#15803D"></span> Nota média</span>
-          <span class="leg" style="margin-left:auto;color:var(--text-secondary)">
-            <strong style="color:var(--text)">${notaMedia.total || 0}</strong> &nbsp;avaliações recebidas no período
-          </span>
-        </div>
+        ${comparacaoNotasHtml(notaMedia, notaMesAntObj, notaAnoMedia, notaAnoTotal, mes)}
       </div>
     </div>
 
@@ -310,6 +312,47 @@ function barChartSvg(serie, mesAtivo) {
       ${bars}
       ${xLabels}
     </svg>`;
+}
+
+function comparacaoNotasHtml(notaMesAtual, notaMesAnt, notaAnoMedia, notaAnoTotal, mes) {
+  function coluna(titulo, subtitulo, media, total, extra) {
+    const vazio = media == null;
+    const nota = vazio ? null : Math.round(media * 10) / 10;
+    const pct = vazio ? 0 : (media / 10) * 100;
+    const cor = vazio ? '#7A726A' : media >= 8 ? '#15803D' : media >= 6 ? '#D97706' : '#B45309';
+    const barCor = vazio ? (isDark() ? '#2A3448' : '#E5DDD0') : cor;
+    return `
+      <div class="nota-col">
+        <div class="nota-col-titulo">${titulo}</div>
+        <div class="nota-col-sub">${subtitulo}</div>
+        <div class="nota-col-num" style="color:${cor}">${vazio ? '—' : nota.toFixed(1).replace('.', ',')}</div>
+        <div class="nota-bar-wrap">
+          <div class="nota-bar-fill" style="width:${pct.toFixed(1)}%;background:${barCor}"></div>
+        </div>
+        <div class="nota-col-count">${total > 0 ? total + ' avaliação' + (total !== 1 ? 'ões' : '') : 'sem avaliações'}</div>
+        ${extra || ''}
+      </div>`;
+  }
+
+  const deltaMes = notaMesAtual.media != null && notaMesAnt.media != null
+    ? notaMesAtual.media - notaMesAnt.media : null;
+  const deltaAno = notaMesAtual.media != null && notaAnoMedia != null
+    ? notaMesAtual.media - notaAnoMedia : null;
+
+  function deltaTag(delta) {
+    if (delta == null) return '';
+    const abs = Math.abs(delta).toFixed(1);
+    if (Math.abs(delta) < 0.05) return `<div class="nota-delta flat">— sem variação</div>`;
+    const sinal = delta > 0 ? '▲ +' : '▼ ';
+    const cls = delta > 0 ? 'up' : 'down';
+    return `<div class="nota-delta ${cls}">${sinal}${abs} vs. anterior</div>`;
+  }
+
+  const colAtual = coluna('Este mês', nomeMes(mes), notaMesAtual.media, notaMesAtual.total || 0, deltaTag(deltaMes));
+  const colAnt   = coluna('Mês anterior', nomeMes(mesAnterior(mes)), notaMesAnt.media, notaMesAnt.total || 0, '');
+  const colAno   = coluna(`Média ${mes.slice(0, 4)}`, `Jan–${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mes.slice(5,7),10)-1]} (ano atual)`, notaAnoMedia, notaAnoTotal, deltaTag(deltaAno));
+
+  return `<div class="nota-comparativo">${colAtual}${colAnt}${colAno}</div>`;
 }
 
 function lineChartSvg(serie, mesAtivo) {

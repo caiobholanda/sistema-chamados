@@ -4689,6 +4689,42 @@ html.modal-aberto {
   .chart-legend .leg { display: inline-flex; align-items: center; gap: .35rem; }
   .chart-legend .leg-swatch { width: 10px; height: 10px; border-radius: 2px; }
 
+  /* Nota comparativo */
+  .nota-comparativo {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--border);
+    border-radius: 8px; overflow: hidden;
+    margin-top: .5rem;
+  }
+  .nota-col {
+    background: var(--surface);
+    padding: 1.25rem 1rem 1rem;
+    display: flex; flex-direction: column; gap: .35rem;
+  }
+  .nota-col-titulo {
+    font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--text-muted);
+  }
+  .nota-col-sub {
+    font-size: .72rem; color: var(--text-muted); line-height: 1.3;
+    min-height: 2em;
+  }
+  .nota-col-num {
+    font-size: 2.4rem; font-weight: 800; line-height: 1;
+    letter-spacing: -.03em; margin: .25rem 0 .5rem;
+  }
+  .nota-bar-wrap {
+    height: 5px; background: var(--border); border-radius: 3px; overflow: hidden;
+  }
+  .nota-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+  .nota-col-count { font-size: .7rem; color: var(--text-muted); margin-top: .25rem; }
+  .nota-delta {
+    font-size: .72rem; font-weight: 600; margin-top: auto; padding-top: .5rem;
+  }
+  .nota-delta.up   { color: var(--success); }
+  .nota-delta.down { color: var(--danger); }
+  .nota-delta.flat { color: var(--text-muted); }
+
   /* Sectors horizontal bars */
   .sector-list { display: flex; flex-direction: column; gap: .55rem; }
   .sector-row {
