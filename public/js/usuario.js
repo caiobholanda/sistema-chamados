@@ -2086,12 +2086,13 @@ function _abrirAjuda() {
     overlay.querySelector('#ajuda-fechar').addEventListener('click', () => overlay.classList.remove('aberto'));
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('aberto'); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { overlay.classList.remove('aberto'); document.getElementById('ajuda-light')?.classList.remove('aberto'); } });
-    overlay.querySelectorAll('.ajuda-foto').forEach(el => {
-      el.addEventListener('click', ev => {
+    overlay.addEventListener('click', ev => {
+      const foto = ev.target.closest('.ajuda-foto');
+      if (foto) {
         ev.stopPropagation();
-        const k = el.dataset.passo;
+        const k = foto.dataset.passo;
         if (_AJUDA_FOTOS[k]) _abrirAjudaFoto(_AJUDA_FOTOS[k]);
-      });
+      }
     });
   }
   overlay.classList.add('aberto');
