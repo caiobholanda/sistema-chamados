@@ -2851,12 +2851,12 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 .mv2-danger-compact .modal-danger-label { margin-bottom: .4rem; }
 
-/* Chat full-width no modal: altura generosa */
+/* Chat na coluna direita: ocupa toda a altura disponível */
 .mv2-chat-msgs {
   flex: 1 !important;
-  height: 300px !important;
-  max-height: 400px !important;
-  min-height: 200px !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 100px !important;
   overflow-y: auto !important;
 }
 
