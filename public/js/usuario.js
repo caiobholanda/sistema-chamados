@@ -1907,10 +1907,10 @@ const _AJUDA_FOTOS = {
   passoTabs: `<svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
     <rect width="600" height="200" fill="#F7F3ED"/>
     <rect x="20" y="26" width="560" height="56" rx="10" fill="#FFF" stroke="#E5DDD0" stroke-width="1.5"/>
-    <rect x="32" y="38" width="138" height="32" rx="16" fill="#D4AF37"/>
-    <text x="80" y="58" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#0D1B2A">Em Aberto</text>
-    <circle cx="151" cy="54" r="11" fill="#0D1B2A"/>
-    <text x="151" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#D4AF37">3</text>
+    <rect x="32" y="38" width="148" height="32" rx="16" fill="#D4AF37"/>
+    <text x="46" y="58" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#0D1B2A">Em Aberto</text>
+    <circle cx="160" cy="54" r="11" fill="#0D1B2A"/>
+    <text x="160" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#D4AF37">3</text>
     <text x="195" y="58" font-family="Inter,sans-serif" font-size="13" font-weight="600" fill="#7A726A">Concluídos</text>
     <circle cx="294" cy="54" r="10" fill="#E5DDD0"/>
     <text x="294" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#4A4540">12</text>
@@ -2073,10 +2073,6 @@ function _abrirAjuda() {
               <div class="ajuda-foto" data-passo="passo6">${_AJUDA_FOTOS.passo6}</div>
               <div class="ajuda-desc">Foto, vídeo ou PDF. Até 10 arquivos de 200 MB cada.</div>
             </div>
-          </div>
-
-          <div class="ajuda-dica">
-            <strong>Dica de ouro:</strong> uma boa descrição + uma foto reduz em até 70% o tempo de atendimento.
           </div>
 
         </div>
