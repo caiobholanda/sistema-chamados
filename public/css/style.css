@@ -578,6 +578,38 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
 .combo-dd-item.in-group { padding-left:20px; }
 .combo-dd-item:hover, .combo-dd-item.ativo { background:var(--gold-pale); color:var(--navy); }
 .combo-dd-vazio { padding:10px 13px; color:var(--text-muted); font-size:.84rem; font-style:italic; }
+
+/* Botão de ajuda (?) no header */
+.btn-ajuda { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--gold); background:transparent; color:var(--gold); font-weight:700; font-family:'Cormorant Garamond',serif; font-size:1.15rem; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:all .15s; margin-right:.4rem; }
+.btn-ajuda:hover { background:var(--gold); color:var(--navy); transform:scale(1.08); }
+
+/* Modal de ajuda */
+.ajuda-overlay { position:fixed; inset:0; background:rgba(13,27,42,.72); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:9999; padding:1rem; }
+.ajuda-overlay.aberto { display:flex; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from {opacity:0} to {opacity:1} }
+.ajuda-modal { background:var(--surface); border-radius:14px; max-width:580px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-lg); border:1px solid var(--border); animation:slideUp .25s ease; }
+@keyframes slideUp { from {transform:translateY(20px); opacity:0} to {transform:translateY(0); opacity:1} }
+.ajuda-cabec { padding:1.4rem 1.6rem 1.1rem; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; background:linear-gradient(135deg, var(--gold-pale) 0%, transparent 100%); border-radius:14px 14px 0 0; }
+.ajuda-tit { font-family:'Cormorant Garamond',serif; font-size:1.7rem; font-weight:600; color:var(--navy); line-height:1.1; letter-spacing:.01em; }
+.ajuda-sub { font-size:.82rem; color:var(--text-muted); margin-top:.25rem; }
+.ajuda-fechar { background:transparent; border:none; color:var(--text-muted); font-size:1.6rem; cursor:pointer; line-height:1; padding:0 .3rem; border-radius:6px; transition:all .15s; }
+.ajuda-fechar:hover { background:var(--surface-2); color:var(--text); }
+.ajuda-corpo { padding:.4rem 1.6rem 1.6rem; }
+.ajuda-passo { display:flex; gap:.9rem; padding:.95rem 0; border-bottom:1px solid var(--border); }
+.ajuda-passo:last-child { border-bottom:none; }
+.ajuda-num { flex-shrink:0; width:34px; height:34px; border-radius:50%; background:var(--gold); color:var(--navy); font-weight:700; font-size:.95rem; display:flex; align-items:center; justify-content:center; font-family:'Cormorant Garamond',serif; }
+.ajuda-conteudo { flex:1; min-width:0; }
+.ajuda-acao { font-size:.97rem; font-weight:600; color:var(--text); display:flex; align-items:center; gap:.4rem; margin-bottom:.18rem; }
+.ajuda-acao svg { color:var(--gold); flex-shrink:0; }
+.ajuda-desc { font-size:.83rem; color:var(--text-secondary); line-height:1.45; }
+.ajuda-fluxo { display:inline-flex; align-items:center; gap:.32rem; margin-top:.35rem; padding:.28rem .55rem; background:var(--surface-2); border:1px dashed var(--border-strong); border-radius:6px; font-size:.77rem; color:var(--text-secondary); font-weight:500; }
+.ajuda-fluxo .tag { background:var(--navy); color:var(--gold-light); padding:.08rem .4rem; border-radius:4px; font-size:.74rem; font-weight:600; }
+.ajuda-fluxo .seta { color:var(--gold); font-weight:700; }
+.ajuda-dica { background:var(--gold-pale); border-left:3px solid var(--gold); padding:.7rem .9rem; border-radius:4px; font-size:.83rem; color:var(--navy); margin-top:1rem; line-height:1.45; }
+.ajuda-dica strong { color:var(--gold-dark); }
+[data-theme="dark"] .ajuda-passo { border-color: rgba(255,255,255,.06); }
+[data-theme="dark"] .ajuda-acao { color: var(--text); }
+[data-theme="dark"] .ajuda-dica { background: rgba(212,175,55,.1); color: var(--text); }
 .form-hint { font-size: .72rem; color: var(--text-muted); margin-top: .3rem; }
 
 /* ═══════════════════════════════════════════

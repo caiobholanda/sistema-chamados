@@ -501,6 +501,7 @@ function renderPainel(usuario) {
     const nav = header.querySelector('nav');
     if (nav) nav.innerHTML = `
       <span style="font-size:.82rem;color:var(--text-muted);margin-right:.25rem">${usuario.nome}</span>
+      <button id="btn-ajuda-usuario" class="btn-ajuda" title="Como funciona">?</button>
       <button id="btn-logout-usuario" class="btn btn-ghost btn-sm" style="margin-left:.25rem">Sair</button>
     `;
   }
@@ -615,6 +616,8 @@ function renderPainel(usuario) {
     await apiFetch('/api/usuarios/logout', { method: 'POST' });
     renderAuth();
   });
+
+  document.getElementById('btn-ajuda-usuario')?.addEventListener('click', _abrirAjuda);
 
   document.getElementById('btn-novo-chamado').addEventListener('click', () => {
     const area = document.getElementById('area-form-chamado');
@@ -1795,4 +1798,110 @@ async function _preencherSelectsChamado(usuario) {
       setorTxt.value = usuario.setor;
     }
   }
+}
+
+function _abrirAjuda() {
+  let overlay = document.getElementById('ajuda-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'ajuda-overlay';
+    overlay.className = 'ajuda-overlay';
+    overlay.innerHTML = `
+      <div class="ajuda-modal" role="dialog" aria-labelledby="ajuda-titulo">
+        <div class="ajuda-cabec">
+          <div>
+            <div class="ajuda-tit" id="ajuda-titulo">Como funciona</div>
+            <div class="ajuda-sub">6 passos. Leitura em 30 segundos.</div>
+          </div>
+          <button class="ajuda-fechar" id="ajuda-fechar" aria-label="Fechar">×</button>
+        </div>
+        <div class="ajuda-corpo">
+
+          <div class="ajuda-passo">
+            <div class="ajuda-num">1</div>
+            <div class="ajuda-conteudo">
+              <div class="ajuda-acao">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Abrir chamado
+              </div>
+              <div class="ajuda-desc">Descreva seu problema. Quanto mais detalhe, mais rápido resolvemos.</div>
+              <div class="ajuda-fluxo"><span class="tag">+ Abrir chamado</span><span class="seta">→</span>Setor<span class="seta">→</span>Descrição<span class="seta">→</span>Enviar</div>
+            </div>
+          </div>
+
+          <div class="ajuda-passo">
+            <div class="ajuda-num">2</div>
+            <div class="ajuda-conteudo">
+              <div class="ajuda-acao">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2v2a4 4 0 0 0 8 0v-2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"/></svg>
+                IA classifica sozinha
+              </div>
+              <div class="ajuda-desc">Não sabe a categoria? Deixe o campo <strong>Serviço</strong> vazio. Nossa IA lê e classifica.</div>
+            </div>
+          </div>
+
+          <div class="ajuda-passo">
+            <div class="ajuda-num">3</div>
+            <div class="ajuda-conteudo">
+              <div class="ajuda-acao">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.5.4.8 1 .8 1.6V18h6.4v-1.7c0-.6.3-1.2.8-1.6A7 7 0 0 0 12 2z"/></svg>
+                Mandar sugestão
+              </div>
+              <div class="ajuda-desc">Tem uma ideia para melhorar o hotel? Botão <strong>💡 Sugestão</strong>. Chega direto à gerência.</div>
+            </div>
+          </div>
+
+          <div class="ajuda-passo">
+            <div class="ajuda-num">4</div>
+            <div class="ajuda-conteudo">
+              <div class="ajuda-acao">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Acompanhar em tempo real
+              </div>
+              <div class="ajuda-desc">Os cards atualizam sozinhos. Cor do badge mostra o status:</div>
+              <div class="ajuda-fluxo">
+                <span class="tag" style="background:#1D4ED8">Aberto</span>
+                <span class="seta">→</span>
+                <span class="tag" style="background:#7C3AED">Em andamento</span>
+                <span class="seta">→</span>
+                <span class="tag" style="background:#15803D">Concluído</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ajuda-passo">
+            <div class="ajuda-num">5</div>
+            <div class="ajuda-conteudo">
+              <div class="ajuda-acao">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Chat com o suporte
+              </div>
+              <div class="ajuda-desc">Clique num chamado aberto. Conversa direta com o TI, mensagens chegam na hora.</div>
+            </div>
+          </div>
+
+          <div class="ajuda-passo">
+            <div class="ajuda-num">6</div>
+            <div class="ajuda-conteudo">
+              <div class="ajuda-acao">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                Anexar arquivos
+              </div>
+              <div class="ajuda-desc">Foto do problema = solução mais rápida. Aceita imagem, vídeo, PDF. Até 10 arquivos, 200 MB cada.</div>
+            </div>
+          </div>
+
+          <div class="ajuda-dica">
+            <strong>Dica de ouro:</strong> uma boa descrição + uma foto reduz em até 70% o tempo de atendimento.
+          </div>
+
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#ajuda-fechar').addEventListener('click', () => overlay.classList.remove('aberto'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('aberto'); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('aberto'); });
+  }
+  overlay.classList.add('aberto');
 }
