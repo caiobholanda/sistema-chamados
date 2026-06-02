@@ -2,8 +2,13 @@ let meAdmin = null;
 let editandoAdminId = null;
 let abaAdmins = 'ativos';
 let abaUsuarios = 'ativos';
+let filtroUsuariosTexto = '';
 let todosAdmins = [];
 let todosUsuarios = [];
+
+function _normFiltro(s) {
+  return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
 
 const DOMINIO_EMAIL = '@granmarquise.com.br';
 
@@ -331,6 +336,20 @@ document.getElementById('sub-usuarios-inativos').addEventListener('click', () =>
   renderUsuarios();
 });
 
+document.getElementById('filtro-usuarios')?.addEventListener('input', e => {
+  filtroUsuariosTexto = e.target.value;
+  document.getElementById('filtro-usuarios-clear').style.display = filtroUsuariosTexto ? 'block' : 'none';
+  renderUsuarios();
+});
+document.getElementById('filtro-usuarios-clear')?.addEventListener('click', () => {
+  filtroUsuariosTexto = '';
+  const inp = document.getElementById('filtro-usuarios');
+  inp.value = '';
+  inp.focus();
+  document.getElementById('filtro-usuarios-clear').style.display = 'none';
+  renderUsuarios();
+});
+
 // ══════════════════════════════════════════════════════════════
 //  ADMINISTRADORES
 // ══════════════════════════════════════════════════════════════
@@ -651,14 +670,24 @@ async function carregarUsuarios() {
 
 function renderUsuarios() {
   const lista = document.getElementById('lista-usuarios');
-  const filtrados = todosUsuarios.filter(u => abaUsuarios === 'ativos' ? u.ativo !== 0 : u.ativo === 0);
+  let filtrados = todosUsuarios.filter(u => abaUsuarios === 'ativos' ? u.ativo !== 0 : u.ativo === 0);
+
+  const q = _normFiltro(filtroUsuariosTexto).trim();
+  if (q) {
+    filtrados = filtrados.filter(u =>
+      _normFiltro(u.nome).includes(q) ||
+      _normFiltro(u.email).includes(q) ||
+      _normFiltro(u.setor).includes(q) ||
+      _normFiltro(u.ramal).includes(q)
+    );
+  }
 
   if (!filtrados.length) {
     lista.innerHTML = `<div class="empty-state"><div class="empty-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
       </svg></div>
-      <p>Nenhum usuário ${abaUsuarios === 'ativos' ? 'ativo' : 'inativo'}.</p>
+      <p>${q ? `Nenhum usuário encontrado para "${filtroUsuariosTexto}".` : `Nenhum usuário ${abaUsuarios === 'ativos' ? 'ativo' : 'inativo'}.`}</p>
     </div>`;
     return;
   }

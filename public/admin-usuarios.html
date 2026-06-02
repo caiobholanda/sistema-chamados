@@ -68,6 +68,11 @@
       </div>
       <button class="btn btn-primary btn-sm" id="btn-novo-usuario">+ Novo usuário</button>
     </div>
+    <div style="margin:.6rem 0 .8rem;position:relative;max-width:480px">
+      <svg style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="filtro-usuarios" type="text" class="form-control" placeholder="Filtrar por nome, e-mail, setor ou ramal..." autocomplete="off" style="padding-left:2.2rem;padding-right:2.2rem">
+      <button id="filtro-usuarios-clear" type="button" style="display:none;position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:.2rem .4rem;line-height:1" title="Limpar">×</button>
+    </div>
     <div id="lista-usuarios"></div>
   </div>
 </main>
