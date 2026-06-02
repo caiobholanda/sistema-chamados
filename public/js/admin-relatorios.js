@@ -82,9 +82,24 @@ function mesAtual() {
 }
 
 // ── Render ─────────────────────────────────────────────────
+function padSerie12m(serie, mesAtual) {
+  const map = {};
+  for (const s of serie) map[s.mes] = s;
+  const result = [];
+  for (let i = 11; i >= 0; i--) {
+    const [y, m] = mesAtual.split('-').map(Number);
+    const d = new Date(Date.UTC(y, m - 1, 1));
+    d.setUTCMonth(d.getUTCMonth() - i);
+    const key = d.toISOString().slice(0, 7);
+    result.push(map[key] || { mes: key, media: null, total: 0 });
+  }
+  return result;
+}
+
 function renderConteudo(dados, ranking, mes) {
   const { volumeStatus, totalMes, totalMesAnt, abertosUltimos12, notaMedia,
-          tendencia6m, top5Setores, porCategoria, tempoMedioRespostaSeg, sla, chamadosReabertos } = dados;
+          top5Setores, porCategoria, tempoMedioRespostaSeg, sla, chamadosReabertos } = dados;
+  const tendencia6m = padSerie12m(dados.tendencia6m, mes);
 
   const cnt = (s) => (volumeStatus.find(r => r.status === s)?.total || 0);
   const emAberto  = cnt('aberto') + cnt('aguardando_compra') + cnt('aguardando_chegar');
@@ -161,7 +176,7 @@ function renderConteudo(dados, ranking, mes) {
         <div class="chart-head">
           <div class="chart-title-block">
             <div class="chart-title">Satisfação dos usuários</div>
-            <div class="chart-sub">Nota média (1–10) nos últimos 6 meses</div>
+            <div class="chart-sub">Nota média (1–10) nos últimos 12 meses</div>
           </div>
           ${notaMedia.media ? `<span class="chart-pill ${notaMedia.media >= 8 ? 'ok' : 'warn'}">${notaMedia.media.toFixed(1).replace('.', ',')} no mês</span>` : ''}
         </div>
@@ -298,7 +313,7 @@ function barChartSvg(serie, mesAtivo) {
 }
 
 function lineChartSvg(serie, mesAtivo) {
-  if (!serie.length) return '<div class="chart-empty">Nenhuma avaliação no período</div>';
+  if (!serie.some(s => s.media != null)) return '<div class="chart-empty">Nenhuma avaliação no período</div>';
   const w = 600, h = 240;
   const chartH = 170, chartTop = 30, chartLeft = 40, chartRight = 580;
   const cw = chartRight - chartLeft;
@@ -308,16 +323,33 @@ function lineChartSvg(serie, mesAtivo) {
   const _markerInact = isDark() ? '#1A2230' : '#fff';
   const pts = serie.map((s, i) => {
     const x = chartLeft + (serie.length === 1 ? cw / 2 : i * stepX);
-    const y = chartTop + chartH - (s.media / 10) * chartH;
+    const y = s.media != null ? chartTop + chartH - (s.media / 10) * chartH : null;
     return [x, y, s];
   });
-  const lineD = 'M' + pts.map(([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L');
-  const areaD = lineD + ` L${pts[pts.length-1][0].toFixed(1)},${(chartTop + chartH).toFixed(1)} L${pts[0][0].toFixed(1)},${(chartTop + chartH).toFixed(1)} Z`;
-  const markers = pts.map(([x,y,s]) => {
+
+  // Linha segmentada — quebra onde não há dados
+  let lineD = '', inSeg = false;
+  for (const [x, y] of pts) {
+    if (y == null) { inSeg = false; continue; }
+    lineD += inSeg ? ` L${x.toFixed(1)},${y.toFixed(1)}` : `M${x.toFixed(1)},${y.toFixed(1)}`;
+    inSeg = true;
+  }
+
+  // Área de preenchimento usando apenas pontos com dados
+  const withData = pts.filter(([, y]) => y != null);
+  const areaD = withData.length >= 2
+    ? 'M' + withData.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L')
+      + ` L${withData[withData.length-1][0].toFixed(1)},${(chartTop + chartH).toFixed(1)}`
+      + ` L${withData[0][0].toFixed(1)},${(chartTop + chartH).toFixed(1)} Z`
+    : '';
+
+  const markers = pts.map(([x, y, s]) => {
+    if (y == null) return '';
     const active = s.mes === mesAtivo;
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${active ? 5 : 4}" fill="${active ? '#15803D' : _markerInact}" stroke="#15803D" stroke-width="2"/>`;
   }).join('');
-  const xLabels = pts.map(([x,_y,s]) => {
+
+  const xLabels = pts.map(([x, , s]) => {
     const [, mm] = s.mes.split('-');
     const label = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][parseInt(mm,10)-1];
     const active = s.mes === mesAtivo;
@@ -325,7 +357,14 @@ function lineChartSvg(serie, mesAtivo) {
     const _tm2 = isDark() ? '#6B7F96' : '#7A726A';
     return `<text x="${x.toFixed(1)}" y="226" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="${active ? _tc2 : _tm2}" font-weight="${active ? '700' : '400'}">${label}</text>`;
   }).join('');
-  const last = pts[pts.length - 1];
+
+  // Tooltip do último ponto com dados
+  const last = withData[withData.length - 1];
+  const tooltipEl = last
+    ? `<rect x="${(last[0] - 25).toFixed(1)}" y="${(last[1] - 22).toFixed(1)}" width="50" height="20" rx="2" fill="#15803D"/>
+       <text x="${last[0].toFixed(1)}" y="${(last[1] - 8).toFixed(1)}" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Inter, sans-serif">${last[2].media.toFixed(1).replace('.', ',')}</text>`
+    : '';
+
   return `
     <svg class="chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
       <defs>
@@ -340,11 +379,10 @@ function lineChartSvg(serie, mesAtivo) {
       <g fill="${_axis2}" font-size="10" font-family="Inter, sans-serif" text-anchor="end">
         ${[10, 8, 6, 4, 2].map((n, i) => `<text x="32" y="${(chartTop + (i / 4) * chartH + 4).toFixed(1)}">${n}</text>`).join('')}
       </g>
-      <path d="${areaD}" fill="url(#satFill)"/>
+      ${areaD ? `<path d="${areaD}" fill="url(#satFill)"/>` : ''}
       <path d="${lineD}" fill="none" stroke="#15803D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
       ${markers}
-      <rect x="${(last[0] - 25).toFixed(1)}" y="${(last[1] - 22).toFixed(1)}" width="50" height="20" rx="2" fill="#15803D"/>
-      <text x="${last[0].toFixed(1)}" y="${(last[1] - 8).toFixed(1)}" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="Inter, sans-serif">${last[2].media.toFixed(1).replace('.', ',')}</text>
+      ${tooltipEl}
       ${xLabels}
     </svg>`;
 }

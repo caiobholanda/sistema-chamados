@@ -1933,7 +1933,7 @@ function relatorioMes(mes) {
   const tendencia6m = db.prepare(`
     SELECT strftime('%Y-%m', concluido_em) as mes, AVG(nota) as media, COUNT(nota) as total
     FROM chamados
-    WHERE concluido_em >= date(?, '-5 months') AND nota IS NOT NULL AND status != 'cancelado'
+    WHERE concluido_em >= date(?, '-11 months') AND nota IS NOT NULL AND status != 'cancelado'
     GROUP BY mes
     ORDER BY mes ASC
   `).all(inicio);
