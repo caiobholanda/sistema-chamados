@@ -3463,8 +3463,10 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
     e.preventDefault();
     const msg = document.getElementById('msg-nc-etiqueta');
     const btn = document.getElementById('btn-nce-salvar');
-    const nome = document.getElementById('nce-nome').value.trim();
-    const cor  = document.getElementById('nce-cor-valor').value;
+    const nome      = document.getElementById('nce-nome').value.trim();
+    const cor       = document.getElementById('nce-cor-valor').value;
+    const parent    = document.getElementById('nce-parent').value || null;
+    const descricao = document.getElementById('nce-descricao').value.trim() || null;
     msg.innerHTML = '';
     if (!nome) { msg.innerHTML = '<div class="alert alert-danger">Nome é obrigatório.</div>'; return; }
     btn.disabled = true; btn.textContent = 'Criando…';
@@ -3472,7 +3474,7 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
       const r = await api('/api/etiquetas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, cor }),
+        body: JSON.stringify({ nome, cor, parent_slug: parent, descricao }),
       });
       const d = await r.json();
       if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao criar.'}</div>`; return; }
