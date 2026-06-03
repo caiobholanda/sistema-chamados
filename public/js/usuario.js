@@ -1947,30 +1947,33 @@ const _AJUDA_FOTOS = {
     <text x="278" y="91" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#EF4444">tempo real</text>
   </svg>`,
 
-  passoTabs: `<svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
-    <rect width="600" height="200" fill="#F7F3ED"/>
-    <rect x="20" y="26" width="560" height="56" rx="10" fill="#FFF" stroke="#E5DDD0" stroke-width="1.5"/>
-    <rect x="32" y="38" width="148" height="32" rx="16" fill="#D4AF37"/>
-    <text x="46" y="58" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#0D1B2A">Em Aberto</text>
-    <circle cx="160" cy="54" r="11" fill="#0D1B2A"/>
-    <text x="160" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#D4AF37">3</text>
-    <text x="195" y="58" font-family="Inter,sans-serif" font-size="13" font-weight="600" fill="#7A726A">Concluídos</text>
-    <circle cx="294" cy="54" r="10" fill="#E5DDD0"/>
-    <text x="294" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#4A4540">12</text>
-    <text x="322" y="58" font-family="Inter,sans-serif" font-size="13" font-weight="600" fill="#7A726A">Cancelados</text>
-    <circle cx="418" cy="54" r="10" fill="#E5DDD0"/>
-    <text x="418" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#4A4540">1</text>
-    <text x="447" y="58" font-family="Inter,sans-serif" font-size="13" font-weight="600" fill="#7A726A">Sugestões</text>
-    <circle cx="540" cy="54" r="10" fill="#E5DDD0"/>
-    <text x="540" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#4A4540">2</text>
-    <path d="M 100 180 L 100 90" stroke="#EF4444" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-    <path d="M 91 100 L 100 90 L 109 100" stroke="#EF4444" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="40" y="158" width="120" height="28" rx="14" fill="#EF4444"/>
-    <text x="100" y="177" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="12" fill="#FFF">ABA ATIVA</text>
-    <path d="M 380 180 L 380 80" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <path d="M 371 88 L 380 80 L 389 88" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="305" y="158" width="150" height="28" rx="14" fill="#EF4444"/>
-    <text x="380" y="177" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="12" fill="#FFF">QUANTIDADE DE ITENS</text>
+  passoTabs: `<svg viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="680" height="200" fill="#F7F3ED"/>
+    <rect x="10" y="26" width="660" height="52" rx="10" fill="#FFF" stroke="#E5DDD0" stroke-width="1.5"/>
+    <rect x="20" y="36" width="118" height="32" rx="16" fill="#D4AF37"/>
+    <text x="34" y="57" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#0D1B2A">Em Aberto</text>
+    <circle cx="108" cy="52" r="9" fill="#0D1B2A"/>
+    <text x="108" y="56" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#D4AF37">3</text>
+    <text x="150" y="57" font-family="Inter,sans-serif" font-size="11" font-weight="600" fill="#7A726A">Avaliação Pendente</text>
+    <circle cx="287" cy="52" r="9" fill="#e67e22"/>
+    <text x="287" y="56" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#FFF">2</text>
+    <text x="308" y="57" font-family="Inter,sans-serif" font-size="11" font-weight="600" fill="#7A726A">Concluídos</text>
+    <circle cx="393" cy="52" r="9" fill="#E5DDD0"/>
+    <text x="393" y="56" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#4A4540">12</text>
+    <text x="415" y="57" font-family="Inter,sans-serif" font-size="11" font-weight="600" fill="#7A726A">Cancelados</text>
+    <circle cx="501" cy="52" r="9" fill="#E5DDD0"/>
+    <text x="501" y="56" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#4A4540">1</text>
+    <text x="523" y="57" font-family="Inter,sans-serif" font-size="11" font-weight="600" fill="#7A726A">Sugestões</text>
+    <circle cx="600" cy="52" r="9" fill="#E5DDD0"/>
+    <text x="600" y="56" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#4A4540">2</text>
+    <path d="M 69 180 L 69 92" stroke="#EF4444" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M 60 102 L 69 92 L 78 102" stroke="#EF4444" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="9" y="158" width="120" height="28" rx="14" fill="#EF4444"/>
+    <text x="69" y="177" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="12" fill="#FFF">ABA ATIVA</text>
+    <path d="M 393 180 L 393 74" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M 384 82 L 393 74 L 402 82" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="318" y="158" width="150" height="28" rx="14" fill="#EF4444"/>
+    <text x="393" y="177" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="12" fill="#FFF">QUANTIDADE DE ITENS</text>
   </svg>`,
 
   passo6: `<svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg">
