@@ -580,6 +580,7 @@ function renderPainel(usuario) {
 
     <div class="tabs-bar">
       <button class="tab-btn ativo" id="tab-abertos">Em Aberto <span class="tab-badge" id="badge-abertos-u"></span></button>
+      <button class="tab-btn" id="tab-avaliacao-pendente">Avaliação Pendente <span class="tab-badge tab-badge-warn" id="badge-avaliacao-u"></span></button>
       <button class="tab-btn" id="tab-encerrados">Concluídos <span class="tab-badge" id="badge-encerrados-u"></span></button>
       <button class="tab-btn" id="tab-cancelados-u">Cancelados <span class="tab-badge" id="badge-cancelados-u"></span></button>
       <button class="tab-btn" id="tab-sugestoes-u">Minhas Sugestões <span class="tab-badge" id="badge-sugestoes-u"></span></button>
