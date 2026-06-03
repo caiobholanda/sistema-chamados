@@ -971,6 +971,7 @@ tbody tr:hover td { background: var(--surface-2); }
   color: var(--navy);
 }
 .tab-btn:not(.ativo) .tab-badge { background: var(--border); color: var(--text-secondary); }
+.tab-btn:not(.ativo) .tab-badge-warn { background: #e67e22; color: #fff; }
 
 /* ═══════════════════════════════════════════
    SECTION TOOLBAR + SUB-TABS
