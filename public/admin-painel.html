@@ -228,6 +228,87 @@
   </div>
 </div>
 
+<!-- Modal: Novo usuário do portal (via + no form de novo chamado) -->
+<div class="modal-overlay" id="modal-nc-novo-usuario" style="z-index:600">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2>Novo usuário do portal</h2>
+      <button class="modal-close" id="btn-fechar-nc-usuario">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:1.25rem">
+      <div id="msg-nc-usuario"></div>
+      <form id="form-nc-usuario" autocomplete="off">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+          <div class="form-group" style="margin:0">
+            <label style="font-size:.8rem">Nome completo <span class="req">*</span></label>
+            <input class="form-control" type="text" id="ncu-nome" maxlength="100" placeholder="Nome completo">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label style="font-size:.8rem">Setor</label>
+            <input class="form-control" type="text" id="ncu-setor" maxlength="80" placeholder="Ex: Recepção">
+          </div>
+        </div>
+        <div class="form-group" style="margin:.6rem 0 0">
+          <label style="font-size:.8rem">E-mail <span class="req">*</span> <span style="font-weight:400;color:var(--text-muted)">(@granmarquise.com.br)</span></label>
+          <input class="form-control" type="email" id="ncu-email" placeholder="usuario@granmarquise.com.br">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem">
+          <div class="form-group" style="margin:0">
+            <label style="font-size:.8rem">Senha <span class="req">*</span></label>
+            <input class="form-control" type="password" id="ncu-senha" placeholder="Senha forte">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label style="font-size:.8rem">Ramal</label>
+            <input class="form-control" type="text" id="ncu-ramal" maxlength="4" placeholder="4 dígitos">
+          </div>
+        </div>
+        <p style="font-size:.74rem;color:var(--text-muted);margin:.5rem 0 .75rem">Mín. 8 chars · maiúscula + minúscula + número + especial.</p>
+        <div style="display:flex;gap:.5rem">
+          <button type="submit" class="btn btn-primary" style="flex:1" id="btn-ncu-salvar">Criar usuário</button>
+          <button type="button" class="btn btn-secondary" id="btn-ncu-cancelar">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nova etiqueta (via + no form de novo chamado) -->
+<div class="modal-overlay" id="modal-nc-nova-etiqueta" style="z-index:600">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <h2>Nova etiqueta</h2>
+      <button class="modal-close" id="btn-fechar-nc-etiqueta">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:1.25rem">
+      <div id="msg-nc-etiqueta"></div>
+      <form id="form-nc-etiqueta" autocomplete="off">
+        <div class="form-group">
+          <label style="font-size:.8rem">Nome <span class="req">*</span></label>
+          <input class="form-control" type="text" id="nce-nome" maxlength="60" placeholder="Ex: Impressora, VPN…">
+        </div>
+        <div class="form-group">
+          <label style="font-size:.8rem">Cor</label>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.3rem" id="nce-cores">
+            <button type="button" class="nce-cor-btn ativo" data-cor="#5B6796" style="width:26px;height:26px;border-radius:50%;background:#5B6796;border:2px solid #5B6796;cursor:pointer" title="Índigo"></button>
+            <button type="button" class="nce-cor-btn" data-cor="#0F766E" style="width:26px;height:26px;border-radius:50%;background:#0F766E;border:2px solid transparent;cursor:pointer" title="Verde-azulado"></button>
+            <button type="button" class="nce-cor-btn" data-cor="#D4AF37" style="width:26px;height:26px;border-radius:50%;background:#D4AF37;border:2px solid transparent;cursor:pointer" title="Ouro"></button>
+            <button type="button" class="nce-cor-btn" data-cor="#B85450" style="width:26px;height:26px;border-radius:50%;background:#B85450;border:2px solid transparent;cursor:pointer" title="Vermelho"></button>
+            <button type="button" class="nce-cor-btn" data-cor="#6B6B6B" style="width:26px;height:26px;border-radius:50%;background:#6B6B6B;border:2px solid transparent;cursor:pointer" title="Cinza"></button>
+            <button type="button" class="nce-cor-btn" data-cor="#2D7A4F" style="width:26px;height:26px;border-radius:50%;background:#2D7A4F;border:2px solid transparent;cursor:pointer" title="Verde"></button>
+            <button type="button" class="nce-cor-btn" data-cor="#0EA5E9" style="width:26px;height:26px;border-radius:50%;background:#0EA5E9;border:2px solid transparent;cursor:pointer" title="Azul"></button>
+            <button type="button" class="nce-cor-btn" data-cor="#8B5CF6" style="width:26px;height:26px;border-radius:50%;background:#8B5CF6;border:2px solid transparent;cursor:pointer" title="Roxo"></button>
+          </div>
+          <input type="hidden" id="nce-cor-valor" value="#5B6796">
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.25rem">
+          <button type="submit" class="btn btn-primary" style="flex:1" id="btn-nce-salvar">Criar etiqueta</button>
+          <button type="button" class="btn btn-secondary" id="btn-nce-cancelar">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script defer src="/js/nav.js?v=10"></script>
 <script defer src="/js/historico-modal.js?v=10"></script>
 <script defer src="/js/admin-painel.js?v=25"></script>
