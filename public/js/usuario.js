@@ -962,8 +962,10 @@ function renderPainel(usuario) {
 
     const abertos = qtd.aberto + qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
     const encerrados = qtd.concluido + qtd.encerrado;
+    const pendentes = todosChamados.filter(c => c.status === 'concluido' && c.nota === null).length;
     el('badge-abertos-u').textContent = abertos || '';
     el('badge-encerrados-u').textContent = encerrados || '';
+    if (el('badge-avaliacao-u')) el('badge-avaliacao-u').textContent = pendentes || '';
     if (el('badge-cancelados-u')) el('badge-cancelados-u').textContent = qtd.cancelado || '';
     if (el('cnt-u-cancelado')) el('cnt-u-cancelado').textContent = qtd.cancelado;
 
