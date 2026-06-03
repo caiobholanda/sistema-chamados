@@ -3354,3 +3354,125 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
 iniciarPush();
 _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
 
+// ── Modais rápidos: + Novo usuário e + Nova etiqueta ─────────────────
+
+(function () {
+  const ovUsuario  = document.getElementById('modal-nc-novo-usuario');
+  const ovEtiqueta = document.getElementById('modal-nc-nova-etiqueta');
+
+  function abrirUsuario() {
+    document.getElementById('ncu-nome').value = '';
+    document.getElementById('ncu-setor').value = '';
+    document.getElementById('ncu-email').value = '';
+    document.getElementById('ncu-senha').value = '';
+    document.getElementById('ncu-ramal').value = '';
+    document.getElementById('msg-nc-usuario').innerHTML = '';
+    ovUsuario.classList.add('open');
+    document.getElementById('ncu-nome').focus();
+  }
+  function fecharUsuario() { ovUsuario.classList.remove('open'); }
+
+  function abrirEtiqueta() {
+    document.getElementById('nce-nome').value = '';
+    document.getElementById('msg-nc-etiqueta').innerHTML = '';
+    document.getElementById('nce-cor-valor').value = '#5B6796';
+    document.querySelectorAll('.nce-cor-btn').forEach(b => {
+      const ativo = b.dataset.cor === '#5B6796';
+      b.classList.toggle('ativo', ativo);
+      b.style.border = ativo ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
+      b.style.outline = ativo ? '2px solid white' : '';
+      b.style.outlineOffset = ativo ? '-4px' : '';
+    });
+    ovEtiqueta.classList.add('open');
+    document.getElementById('nce-nome').focus();
+  }
+  function fecharEtiqueta() { ovEtiqueta.classList.remove('open'); }
+
+  document.getElementById('btn-nc-novo-usuario')?.addEventListener('click', abrirUsuario);
+  document.getElementById('btn-fechar-nc-usuario')?.addEventListener('click', fecharUsuario);
+  document.getElementById('btn-ncu-cancelar')?.addEventListener('click', fecharUsuario);
+
+  document.getElementById('btn-nc-nova-etiqueta')?.addEventListener('click', abrirEtiqueta);
+  document.getElementById('btn-fechar-nc-etiqueta')?.addEventListener('click', fecharEtiqueta);
+  document.getElementById('btn-nce-cancelar')?.addEventListener('click', fecharEtiqueta);
+
+  // Cor da etiqueta
+  document.getElementById('nce-cores')?.addEventListener('click', e => {
+    const btn = e.target.closest('.nce-cor-btn');
+    if (!btn) return;
+    const cor = btn.dataset.cor;
+    document.getElementById('nce-cor-valor').value = cor;
+    document.querySelectorAll('.nce-cor-btn').forEach(b => {
+      const sel = b === btn;
+      b.style.border = sel ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
+      b.style.outline = sel ? '2px solid white' : '';
+      b.style.outlineOffset = sel ? '-4px' : '';
+    });
+  });
+
+  // Submit: criar usuário
+  document.getElementById('form-nc-usuario')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = document.getElementById('msg-nc-usuario');
+    const btn = document.getElementById('btn-ncu-salvar');
+    const nome  = document.getElementById('ncu-nome').value.trim();
+    const email = document.getElementById('ncu-email').value.trim();
+    const senha = document.getElementById('ncu-senha').value;
+    const setor = document.getElementById('ncu-setor').value.trim();
+    const ramal = document.getElementById('ncu-ramal').value.trim();
+    msg.innerHTML = '';
+    btn.disabled = true; btn.textContent = 'Criando…';
+    try {
+      const r = await api('/api/admin/portal-usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, email, senha, setor: setor || null, ramal: ramal || null }),
+      });
+      const d = await r.json();
+      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao criar.'}</div>`; return; }
+      // Adiciona à lista em memória e auto-seleciona
+      const novoUsuario = { id: d.id, nome, email, setor: setor || null, ativo: 1 };
+      if (!_usuariosPortalNc) _usuariosPortalNc = [];
+      _usuariosPortalNc.push(novoUsuario);
+      const busca = document.getElementById('nc-usuario-busca');
+      const selecionado = document.getElementById('nc-usuario-selecionado');
+      if (busca) busca.value = nome;
+      if (selecionado) {
+        selecionado.innerHTML = '✓ ' + nome + (setor ? ` · <span style="color:var(--text-muted);font-weight:400">${setor}</span>` : '');
+        selecionado.dataset.usuarioId = d.id;
+        selecionado.style.display = 'block';
+      }
+      fecharUsuario();
+      mostrarToast('Usuário criado!', `${nome} já está disponível e selecionado.`);
+    } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
+    finally { btn.disabled = false; btn.textContent = 'Criar usuário'; }
+  });
+
+  // Submit: criar etiqueta
+  document.getElementById('form-nc-etiqueta')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = document.getElementById('msg-nc-etiqueta');
+    const btn = document.getElementById('btn-nce-salvar');
+    const nome = document.getElementById('nce-nome').value.trim();
+    const cor  = document.getElementById('nce-cor-valor').value;
+    msg.innerHTML = '';
+    if (!nome) { msg.innerHTML = '<div class="alert alert-danger">Nome é obrigatório.</div>'; return; }
+    btn.disabled = true; btn.textContent = 'Criando…';
+    try {
+      const r = await api('/api/etiquetas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, cor }),
+      });
+      const d = await r.json();
+      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao criar.'}</div>`; return; }
+      // Recarrega etiquetas e auto-seleciona a nova
+      await _carregarEtiquetasDinamicas();
+      if (_ncCombo && d.slug) _ncCombo.setValue(d.slug);
+      fecharEtiqueta();
+      mostrarToast('Etiqueta criada!', `"${nome}" já está disponível e selecionada.`);
+    } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
+    finally { btn.disabled = false; btn.textContent = 'Criar etiqueta'; }
+  });
+})();
+
