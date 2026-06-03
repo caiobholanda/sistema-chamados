@@ -864,6 +864,18 @@ function renderPainel(usuario) {
   document.getElementById('tab-abertos').addEventListener('click', () => {
     abaAtiva = 'abertos';
     document.getElementById('tab-abertos').classList.add('ativo');
+    document.getElementById('tab-avaliacao-pendente').classList.remove('ativo');
+    document.getElementById('tab-encerrados').classList.remove('ativo');
+    document.getElementById('tab-cancelados-u').classList.remove('ativo');
+    document.getElementById('tab-sugestoes-u').classList.remove('ativo');
+    _pararSugRefresh();
+    renderListaChamados(todosChamados, abaAtiva);
+  });
+
+  document.getElementById('tab-avaliacao-pendente').addEventListener('click', () => {
+    abaAtiva = 'avaliacao';
+    document.getElementById('tab-avaliacao-pendente').classList.add('ativo');
+    document.getElementById('tab-abertos').classList.remove('ativo');
     document.getElementById('tab-encerrados').classList.remove('ativo');
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
     document.getElementById('tab-sugestoes-u').classList.remove('ativo');
@@ -875,6 +887,7 @@ function renderPainel(usuario) {
     abaAtiva = 'encerrados';
     document.getElementById('tab-encerrados').classList.add('ativo');
     document.getElementById('tab-abertos').classList.remove('ativo');
+    document.getElementById('tab-avaliacao-pendente').classList.remove('ativo');
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
     document.getElementById('tab-sugestoes-u').classList.remove('ativo');
     _pararSugRefresh();
@@ -885,6 +898,7 @@ function renderPainel(usuario) {
     abaAtiva = 'sugestoes';
     document.getElementById('tab-sugestoes-u').classList.add('ativo');
     document.getElementById('tab-abertos').classList.remove('ativo');
+    document.getElementById('tab-avaliacao-pendente').classList.remove('ativo');
     document.getElementById('tab-encerrados').classList.remove('ativo');
     document.getElementById('tab-cancelados-u').classList.remove('ativo');
     _carregarSugestoesUsuario();
@@ -895,6 +909,7 @@ function renderPainel(usuario) {
     abaAtiva = 'cancelados';
     document.getElementById('tab-cancelados-u').classList.add('ativo');
     document.getElementById('tab-abertos').classList.remove('ativo');
+    document.getElementById('tab-avaliacao-pendente').classList.remove('ativo');
     document.getElementById('tab-encerrados').classList.remove('ativo');
     document.getElementById('tab-sugestoes-u').classList.remove('ativo');
     _pararSugRefresh();
