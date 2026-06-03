@@ -2088,7 +2088,7 @@ function _abrirAjuda() {
                 Navegar pelas abas
               </div>
               <div class="ajuda-foto" data-passo="passoTabs">${_AJUDA_FOTOS.passoTabs}</div>
-              <div class="ajuda-desc"><strong>Em Aberto</strong> · <strong>Concluídos</strong> · <strong>Cancelados</strong> · <strong>Minhas Sugestões</strong>. Clique pra filtrar. O número ao lado mostra quantos itens tem.</div>
+              <div class="ajuda-desc"><strong>Em Aberto</strong> · <strong>Avaliação Pendente</strong> · <strong>Concluídos</strong> · <strong>Cancelados</strong> · <strong>Minhas Sugestões</strong>. Clique pra filtrar. O número ao lado mostra quantos itens tem.</div>
             </div>
           </div>
 
