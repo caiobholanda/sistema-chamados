@@ -3384,15 +3384,17 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
       b.style.outline = ativo ? '2px solid white' : '';
       b.style.outlineOffset = ativo ? '-4px' : '';
     });
-    // Popular select de etiqueta pai com as etiquetas raiz (sem pai)
+    // Popular select de etiqueta pai com todas as etiquetas ativas
     const sel = document.getElementById('nce-parent');
     sel.innerHTML = '<option value="">— sem pai (etiqueta raiz) —</option>';
-    (_etiquetasDin || []).filter(e => !e.parent_slug && e.ativo !== 0).forEach(e => {
+    (_etiquetasDin || []).forEach(e => {
       const opt = document.createElement('option');
       opt.value = e.slug;
-      opt.textContent = e.nome;
+      opt.textContent = e.parent_slug ? `↳ ${e.nome}` : e.nome;
       sel.appendChild(opt);
     });
+    // Cor inicial padrão
+    _nceSetCor('#5B6796');
     ovEtiqueta.classList.add('open');
     document.getElementById('nce-nome').focus();
   }
