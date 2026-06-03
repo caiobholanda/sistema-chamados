@@ -1,3 +1,12 @@
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 let SETORES = [
   'Banquetes','Bar Rooftop','Comercial / Vendas','Compras / Almoxarifado','Concierge',
   'Confeitaria / Padaria','Controladoria','Cozinha','Estacionamento','Eventos e Convenções',
@@ -153,7 +162,7 @@ function _renderMsgAdmin(m, chamadoId) {
   const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
   const anexoHtml = _chatAnexoHtml(`/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
   return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
-    <div class="chat-msg-author">${m.autor_nome}</div>
+    <div class="chat-msg-author">${_esc(m.autor_nome)}</div>
     ${textoHtml}${anexoHtml}
     <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
   </div>`;
@@ -1283,12 +1292,12 @@ function renderChamadoItem(c) {
         </span>` : ''}
         ${c.mensagens_nao_lidas > 0 ? `<span class="msg-badge-nao-lidas">${c.mensagens_nao_lidas}</span>` : ''}
       </div>
-      ${c.usuario_id ? `<div class="chamado-nome"><span style="font-weight:400">Usuário: </span>${c.nome}</div>` : ''}
-      <div class="chamado-desc">${c.descricao}</div>
+      ${c.usuario_id ? `<div class="chamado-nome"><span style="font-weight:400">Usuário: </span>${_esc(c.nome)}</div>` : ''}
+      <div class="chamado-desc">${_esc(c.descricao)}</div>
       <div class="chamado-item-footer">
-        ${c.aberto_por_admin_nome ? `<span class="badge-aberto-por-admin" title="Aberto por ${c.aberto_por_admin_nome} (${c.aberto_por_admin_is_master ? 'Master' : 'Admin'})">
+        ${c.aberto_por_admin_nome ? `<span class="badge-aberto-por-admin" title="Aberto por ${_esc(c.aberto_por_admin_nome)} (${c.aberto_por_admin_is_master ? 'Master' : 'Admin'})">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          ${c.aberto_por_admin_nome.split(' ')[0]}${c.aberto_por_admin_is_master ? ' ★' : ''}
+          ${_esc(c.aberto_por_admin_nome.split(' ')[0])}${c.aberto_por_admin_is_master ? ' ★' : ''}
         </span>` : ''}
         <span class="chamado-footer-meta">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
@@ -1427,7 +1436,7 @@ function renderModalBody(c) {
       <div class="mv2-logo-bar">
         <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise" class="mv2-logo-img">
         <div class="mv2-logo-user">
-          <div class="mv2-logo-user-nome">${c.nome}</div>
+          <div class="mv2-logo-user-nome">${_esc(c.nome)}</div>
           <div class="mv2-logo-user-setor">
             <span>${c.usuario_setor || c.setor}</span>
             ${(c.usuario_ramal || c.ramal) ? `<span class="mv2-sep">·</span><span>Ramal ${c.usuario_ramal || c.ramal}</span>` : ''}
@@ -1491,7 +1500,7 @@ function renderModalBody(c) {
           <!-- Descrição -->
           <div class="mv2-section">
             <span class="mv2-field-label">Descrição do problema</span>
-            <div class="mv2-desc">${c.descricao}</div>
+            <div class="mv2-desc">${_esc(c.descricao)}</div>
 
             ${c.infos_adicionais && c.infos_adicionais.length > 0 ? c.infos_adicionais.map(info => `
               <div style="margin-top:.6rem;padding:.55rem .7rem;background:var(--surface-2);border-left:3px solid var(--gold);border-radius:0 4px 4px 0">

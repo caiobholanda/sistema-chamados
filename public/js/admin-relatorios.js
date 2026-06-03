@@ -17,6 +17,18 @@ const CAT_NOMES = {
   processo_compra: 'Processo de Compra', outros: 'Outros',
 };
 
+// Carrega nomes legíveis das etiquetas dinâmicas
+fetch('/api/etiquetas', { credentials: 'include' })
+  .then(r => r.ok ? r.json() : [])
+  .then(arr => { for (const e of arr) if (e.slug && !CAT_NOMES[e.slug]) CAT_NOMES[e.slug] = e.nome; })
+  .catch(() => {});
+
+function _catLabel(slug) {
+  if (CAT_NOMES[slug]) return CAT_NOMES[slug];
+  if (!slug) return 'Sem categoria';
+  return slug.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ');
+}
+
 let _adminLogadoId = null;
 
 function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
@@ -460,7 +472,7 @@ function donutCategorias(cats, total) {
     const pct = ((c.total / total) * 100).toFixed(0);
     return `<div class="leg">
       <span class="leg-sw" style="background:${CAT_COLORS[c.categoria] || CAT_COLORS.outros}"></span>
-      <span class="leg-name">${CAT_NOMES[c.categoria] || c.categoria}</span>
+      <span class="leg-name">${_catLabel(c.categoria)}</span>
       <span class="leg-count">${c.total}</span>
       <span class="leg-pct">${pct}%</span>
     </div>`;

@@ -11,6 +11,15 @@ function _normFiltro(s) {
   return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const DOMINIO_EMAIL = '@granmarquise.com.br';
 
 let _todasEtiquetas = [];
@@ -500,10 +509,10 @@ function renderAdmins() {
           <tbody>
             ${filtrados.map(a => `
               <tr>
-                <td style="text-align:center"><code>${a.usuario}</code></td>
-                <td style="text-align:center">${a.nome_completo}</td>
-                <td style="text-align:center;font-size:.82rem">${a.email || '<span class="text-muted">—</span>'}</td>
-                <td style="text-align:center;font-size:.85rem">${a.ramal ? `<code>${a.ramal}</code>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+                <td style="text-align:center"><code>${_esc(a.usuario)}</code></td>
+                <td style="text-align:center">${_esc(a.nome_completo)}</td>
+                <td style="text-align:center;font-size:.82rem">${a.email ? _esc(a.email) : '<span class="text-muted">—</span>'}</td>
+                <td style="text-align:center;font-size:.85rem">${a.ramal ? `<code>${_esc(a.ramal)}</code>` : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="text-align:center">${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
                 ${senhaCell(a.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
@@ -733,15 +742,15 @@ function renderUsuarios() {
           <tbody>
             ${filtrados.map(u => `
               <tr>
-                <td style="text-align:center">${u.nome}</td>
-                <td style="text-align:center;font-size:.82rem">${u.email}</td>
-                <td style="text-align:center;font-size:.82rem">${u.setor || '<span class="text-muted">—</span>'}</td>
-                <td style="text-align:center;font-size:.82rem;font-family:monospace">${u.ramal || '<span class="text-muted">—</span>'}</td>
+                <td style="text-align:center">${_esc(u.nome)}</td>
+                <td style="text-align:center;font-size:.82rem">${_esc(u.email)}</td>
+                <td style="text-align:center;font-size:.82rem">${u.setor ? _esc(u.setor) : '<span class="text-muted">—</span>'}</td>
+                <td style="text-align:center;font-size:.82rem;font-family:monospace">${u.ramal ? _esc(u.ramal) : '<span class="text-muted">—</span>'}</td>
                 ${senhaCell(u.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
                   <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
-                    <button class="acao-btn" title="Ver histórico de chamados" onclick="abrirHistoricoChamadosUsuario(${u.id}, '${u.nome.replace(/'/g, "\\'")}')">
+                    <button class="acao-btn btn-hist-usuario" data-uid="${u.id}" data-nome="${_esc(u.nome)}" title="Ver histórico de chamados">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     </button>
                     <span class="acao-sep"></span>
@@ -763,6 +772,12 @@ function renderUsuarios() {
       </div>
     </div>`;
 }
+
+// Event delegation seguro para histórico (substitui onclick com nome injetado)
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn-hist-usuario');
+  if (btn) abrirHistoricoChamadosUsuario(+btn.dataset.uid, btn.dataset.nome);
+});
 
 // ── Editar Usuário do Portal ──────────────────────────────────
 

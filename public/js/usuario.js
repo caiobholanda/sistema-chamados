@@ -1607,12 +1607,21 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
   });
 
   document.getElementById('ch-anexo').addEventListener('change', function () {
-    Array.from(this.files || []).forEach(f => {
+    const novos = Array.from(this.files || []);
+    let descartados = 0;
+    novos.forEach(f => {
       const dup = _chArquivos.some(x => x.name === f.name && x.size === f.size);
-      if (!dup && _chArquivos.length < 10) _chArquivos.push(f);
+      if (dup) return;
+      if (_chArquivos.length < 10) _chArquivos.push(f);
+      else descartados++;
     });
     this.value = '';
     _renderChTiles();
+    if (descartados > 0) {
+      const msg = document.getElementById('msg-form-chamado');
+      msg.innerHTML = `<div class="alert alert-danger">Limite de 10 anexos atingido — ${descartados} arquivo${descartados>1?'s foram':' foi'} ignorado${descartados>1?'s':''}.</div>`;
+      setTimeout(() => { if (msg.innerHTML.includes('Limite de 10 anexos')) msg.innerHTML = ''; }, 5000);
+    }
   });
 
   document.getElementById('ch-anexo-tiles').addEventListener('click', (e) => {
@@ -1626,28 +1635,40 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
     e.preventDefault();
     const msg = document.getElementById('msg-form-chamado');
     const btn = document.getElementById('btn-enviar-chamado');
-    const setor = document.getElementById('ch-setor').value;
+    msg.innerHTML = '';
+
+    // Tenta recuperar setor caso usuário tenha digitado sem clicar no dropdown
+    const setorTxtEl = document.getElementById('ch-setor-txt');
+    const setorHiddenEl = document.getElementById('ch-setor');
+    if (!setorHiddenEl.value && setorTxtEl.value.trim()) {
+      setorHiddenEl.value = setorTxtEl.value.trim();
+    }
+    const setor = setorHiddenEl.value;
     if (!setor) {
       msg.innerHTML = '<div class="alert alert-danger">Selecione o seu setor.</div>';
-      document.getElementById('ch-setor-txt').focus();
+      setorTxtEl.focus();
       return;
     }
     const descricao = document.getElementById('ch-descricao').value.trim();
     if (descricao.length < 10) {
-      msg.innerHTML = '<div class="alert alert-danger">Por favor, descreva melhor o problema. A descrição precisa ter ao menos 10 caracteres para que o suporte entenda o que está acontecendo.</div>';
+      msg.innerHTML = '<div class="alert alert-danger">Descrição muito curta. Por favor escreva ao menos 10 caracteres explicando o problema.</div>';
       document.getElementById('ch-descricao').focus();
       return;
     }
+    if (_chArquivos.length > 10) {
+      msg.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>';
+      return;
+    }
+
     btn.disabled = true; btn.textContent = 'Enviando...';
     try {
       const fd = new FormData();
       fd.append('nome', usuario.nome);
-      fd.append('setor', document.getElementById('ch-setor').value);
+      fd.append('setor', setor);
       fd.append('ramal', usuario.ramal || '');
       fd.append('descricao', document.getElementById('ch-descricao').value);
       const categoria = document.getElementById('ch-categoria').value;
       if (categoria) fd.append('categoria', categoria);
-      if (_chArquivos.length > 10) { msg.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>'; return; }
       _chArquivos.forEach(f => fd.append('anexos', f, f.name));
 
       const r = await fetch('/api/chamados', { method: 'POST', body: fd });
@@ -1732,6 +1753,8 @@ function _montarCombo(inputEl, hiddenEl, ddEl, estrutura) {
   inputEl.addEventListener('focus', () => abrir());
   inputEl.addEventListener('input', () => {
     hiddenEl.value = '';
+    const exato = estrutura.find(n => n.type === 'item' && n.label.toLowerCase() === inputEl.value.toLowerCase().trim());
+    if (exato) hiddenEl.value = exato.value;
     renderizar(inputEl.value);
     if (!ddEl.classList.contains('open')) abrir();
   });
@@ -1847,7 +1870,7 @@ const _AJUDA_FOTOS = {
   passo3: `<svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg">
     <rect width="360" height="180" fill="#F7F3ED"/>
     <rect x="14" y="22" width="332" height="50" rx="8" fill="#FFF" stroke="#E5DDD0"/>
-    <text x="28" y="46" font-family="Georgia,serif" font-size="14" font-weight="600" fill="#0D1B2A">Olá, Maria 👋</text>
+    <text x="28" y="46" font-family="Georgia,serif" font-size="14" font-weight="600" fill="#0D1B2A">Olá 👋</text>
     <text x="28" y="62" font-family="Inter,sans-serif" font-size="10" fill="#7A726A">Tem uma ideia para melhorar o site?</text>
     <rect x="18" y="92" width="155" height="38" rx="6" fill="#FFF" stroke="#E5DDD0" stroke-width="1.5"/>
     <text x="95.5" y="116" text-anchor="middle" font-family="Inter,sans-serif" font-weight="600" font-size="11" fill="#4A4540">+ Abrir chamado</text>
@@ -1924,12 +1947,10 @@ const _AJUDA_FOTOS = {
     <path d="M 91 100 L 100 90 L 109 100" stroke="#EF4444" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     <rect x="40" y="158" width="120" height="28" rx="14" fill="#EF4444"/>
     <text x="100" y="177" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="12" fill="#FFF">ABA ATIVA</text>
-    <path d="M 380 180 L 380 80" stroke="#0D1B2A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="4,4"/>
-    <path d="M 371 90 L 380 80 L 389 90" stroke="#0D1B2A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="305" y="158" width="150" height="28" rx="14" fill="#0D1B2A"/>
-    <text x="380" y="177" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="12" fill="#D4AF37">QUANTIDADE DE ITENS</text>
-    <text x="540" y="125" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#7A726A">filtra o que você vê</text>
-    <path d="M 540 130 L 540 75" stroke="#7A726A" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-dasharray="2,3"/>
+    <path d="M 380 180 L 380 80" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M 371 88 L 380 80 L 389 88" stroke="#EF4444" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="305" y="158" width="150" height="28" rx="14" fill="#EF4444"/>
+    <text x="380" y="177" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="12" fill="#FFF">QUANTIDADE DE ITENS</text>
   </svg>`,
 
   passo6: `<svg viewBox="0 0 360 180" xmlns="http://www.w3.org/2000/svg">
