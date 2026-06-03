@@ -1087,7 +1087,7 @@ function renderPainel(usuario) {
 
     if (!filtrados.length) {
       _limparChats();
-      const msg = aba === 'abertos' ? 'Nenhum chamado em aberto.' : 'Nenhum chamado encerrado ainda.';
+      const msg = aba === 'abertos' ? 'Nenhum chamado em aberto.' : aba === 'avaliacao' ? 'Nenhuma avaliação pendente. Tudo em dia!' : 'Nenhum chamado encerrado ainda.';
       lista.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">
