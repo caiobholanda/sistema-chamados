@@ -287,6 +287,16 @@
           <input class="form-control" type="text" id="nce-nome" maxlength="60" placeholder="Ex: Impressora, VPN…">
         </div>
         <div class="form-group">
+          <label style="font-size:.8rem">Etiqueta pai <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <select class="form-control" id="nce-parent" style="font-size:.82rem">
+            <option value="">— sem pai (etiqueta raiz) —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label style="font-size:.8rem">Descrição <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <textarea class="form-control" id="nce-descricao" rows="2" maxlength="500" placeholder="Descreva quando usar esta etiqueta…" style="font-size:.8rem;resize:vertical"></textarea>
+        </div>
+        <div class="form-group">
           <label style="font-size:.8rem">Cor</label>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.3rem" id="nce-cores">
             <button type="button" class="nce-cor-btn ativo" data-cor="#5B6796" style="width:26px;height:26px;border-radius:50%;background:#5B6796;border:2px solid #5B6796;cursor:pointer" title="Índigo"></button>
