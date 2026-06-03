@@ -1071,6 +1071,8 @@ function renderPainel(usuario) {
 
     const filtrados = (aba === 'abertos'
       ? todos.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status))
+      : aba === 'avaliacao'
+      ? todos.filter(c => c.status === 'concluido' && c.nota === null)
       : todos.filter(c => ['concluido', 'encerrado'].includes(c.status)))
       .sort((a, b) => {
         const prioDiff = _scorePrio(a) - _scorePrio(b);
