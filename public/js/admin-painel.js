@@ -3374,6 +3374,7 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
 
   function abrirEtiqueta() {
     document.getElementById('nce-nome').value = '';
+    document.getElementById('nce-descricao').value = '';
     document.getElementById('msg-nc-etiqueta').innerHTML = '';
     document.getElementById('nce-cor-valor').value = '#5B6796';
     document.querySelectorAll('.nce-cor-btn').forEach(b => {
@@ -3382,6 +3383,15 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
       b.style.border = ativo ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
       b.style.outline = ativo ? '2px solid white' : '';
       b.style.outlineOffset = ativo ? '-4px' : '';
+    });
+    // Popular select de etiqueta pai com as etiquetas raiz (sem pai)
+    const sel = document.getElementById('nce-parent');
+    sel.innerHTML = '<option value="">— sem pai (etiqueta raiz) —</option>';
+    (_etiquetasDin || []).filter(e => !e.parent_slug && e.ativo !== 0).forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.slug;
+      opt.textContent = e.nome;
+      sel.appendChild(opt);
     });
     ovEtiqueta.classList.add('open');
     document.getElementById('nce-nome').focus();
