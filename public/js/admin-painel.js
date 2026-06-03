@@ -3408,18 +3408,30 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
   document.getElementById('btn-fechar-nc-etiqueta')?.addEventListener('click', fecharEtiqueta);
   document.getElementById('btn-nce-cancelar')?.addEventListener('click', fecharEtiqueta);
 
-  // Cor da etiqueta
-  document.getElementById('nce-cores')?.addEventListener('click', e => {
-    const btn = e.target.closest('.nce-cor-btn');
-    if (!btn) return;
-    const cor = btn.dataset.cor;
+  // Helper para setar cor visualmente
+  function _nceSetCor(cor) {
     document.getElementById('nce-cor-valor').value = cor;
     document.querySelectorAll('.nce-cor-btn').forEach(b => {
-      const sel = b === btn;
+      const sel = b.dataset.cor === cor;
       b.style.border = sel ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
       b.style.outline = sel ? '2px solid white' : '';
       b.style.outlineOffset = sel ? '-4px' : '';
     });
+  }
+
+  // Cor da etiqueta — clique manual nos swatches
+  document.getElementById('nce-cores')?.addEventListener('click', e => {
+    const btn = e.target.closest('.nce-cor-btn');
+    if (!btn) return;
+    _nceSetCor(btn.dataset.cor);
+  });
+
+  // Cor automática ao selecionar etiqueta pai
+  document.getElementById('nce-parent')?.addEventListener('change', function () {
+    const slug = this.value;
+    if (!slug) { _nceSetCor('#5B6796'); return; }
+    const pai = (_etiquetasDin || []).find(e => e.slug === slug);
+    if (pai?.cor) _nceSetCor(pai.cor);
   });
 
   // Submit: criar usuário
