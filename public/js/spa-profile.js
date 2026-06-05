@@ -4,6 +4,7 @@ let _locale = null;
 let _sig = null;
 let _docType = 'cpf';
 let _currentLang = 'pt-BR';
+let _docToken = null;
 
 /* ─── Helpers ─── */
 
@@ -247,6 +248,7 @@ function collectData() {
     canais_marketing:        canais,
     assinatura_data_url:     _sig ? _sig.getDataURL() : null,
     idioma:                  _currentLang,
+    documento_token:         _docToken,
   };
 }
 
@@ -479,11 +481,32 @@ function init() {
   // Form submit
   document.getElementById('spa-form')?.addEventListener('submit', handleSubmit);
 
-  // Determine initial language
+  // Determine initial language and handle token
   let lang = 'pt-BR';
   try {
     const params = new URLSearchParams(window.location.search);
+    const token  = params.get('t');
     lang = params.get('lang') || localStorage.getItem('spa_lang') || 'pt-BR';
+
+    if (token) {
+      _docToken = token;
+      fetch('/api/spa/documento?t=' + encodeURIComponent(token))
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d) return;
+          if (d.locale) lang = d.locale;
+          if (d.hospede_nome) {
+            const parts = d.hospede_nome.trim().split(/\s+/);
+            const nomeEl = document.getElementById('f-nome');
+            const sobEl  = document.getElementById('f-sobrenome');
+            if (nomeEl) nomeEl.value = parts[0] || '';
+            if (sobEl)  sobEl.value  = parts.slice(1).join(' ') || '';
+          }
+          loadLocale(lang);
+        })
+        .catch(() => loadLocale(lang));
+      return;
+    }
   } catch {}
 
   loadLocale(lang);

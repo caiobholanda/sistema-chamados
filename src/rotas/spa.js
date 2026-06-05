@@ -10,8 +10,13 @@ const {
   liberarPesquisaSpa, iniciarPesquisaSpa, concluirPesquisaSpa, expirarPesquisaSpa,
   inserirRespostaSpa, buscarRespostaSpa,
   inserirHistoricoSpa, listarHistoricoSpa,
+  marcarDocumentoEnviado, buscarDocumentoToken, vincularDocumentoAoPerfil,
 } = require('../db');
 const { requireAdmin } = require('../auth');
+const { enviarWhatsApp } = require('../whatsapp');
+
+const LOCALES_VALIDOS = ['pt-BR', 'pt-PT', 'en', 'fr', 'es', 'it', 'de'];
+const RE_E164 = /^\+[1-9]\d{7,14}$/;
 
 function san(str) {
   if (typeof str !== 'string') return str;
@@ -22,12 +27,8 @@ function validarEmail(e) {
   return typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 }
 
-function nowISO() {
-  return new Date().toISOString();
-}
+function nowISO() { return new Date().toISOString(); }
 
-// Verifica expiry on-demand e transiciona para NAO_REALIZADA se necessário.
-// Retorna a reserva com status atualizado.
 function verificarExpiry(reserva) {
   if (!reserva) return null;
   const agora = Date.now();
@@ -61,13 +62,13 @@ router.post('/perfil', async (req, res) => {
     const b = req.body || {};
     const erros = [];
 
-    if (!b.nome || !String(b.nome).trim())          erros.push('nome');
-    if (!b.sobrenome || !String(b.sobrenome).trim()) erros.push('sobrenome');
-    if (!b.documento || !String(b.documento).trim()) erros.push('documento');
-    if (!validarEmail(b.email))                      erros.push('email');
+    if (!b.nome || !String(b.nome).trim())           erros.push('nome');
+    if (!b.sobrenome || !String(b.sobrenome).trim())  erros.push('sobrenome');
+    if (!b.documento || !String(b.documento).trim())  erros.push('documento');
+    if (!validarEmail(b.email))                       erros.push('email');
     if (!b.telefone || String(b.telefone).trim().length < 6) erros.push('telefone');
     if (!b.info_medica || !String(b.info_medica).trim())     erros.push('info_medica');
-    if (!b.consentimento_saude)                      erros.push('consentimento_saude');
+    if (!b.consentimento_saude)                       erros.push('consentimento_saude');
 
     if (erros.length) return res.status(400).json({ erro: 'Campos obrigatórios ausentes', campos: erros });
 
@@ -97,6 +98,19 @@ router.post('/perfil', async (req, res) => {
 
     const id = inserirSpaPerfil(dados);
     console.log(`[Spa] Perfil #${id} registrado — ${dados.nome} ${dados.sobrenome} (${dados.idioma})`);
+
+    // Vincular ao token de documento se fornecido
+    if (b.documento_token) {
+      try {
+        const reserva = buscarDocumentoToken(String(b.documento_token).trim());
+        if (reserva && !reserva.documento_perfil_id && reserva.documento_token_expiry
+            && new Date() < new Date(reserva.documento_token_expiry)) {
+          vincularDocumentoAoPerfil(reserva.id, id);
+          inserirHistoricoSpa(reserva.id, 'FORMULARIO_PREENCHIDO', `Perfil #${id} vinculado`);
+        }
+      } catch {}
+    }
+
     res.json({ id, apto: true });
   } catch (err) {
     console.error('[Spa] erro ao salvar perfil:', err);
@@ -106,12 +120,8 @@ router.post('/perfil', async (req, res) => {
 
 /* GET /api/spa/perfis — lista resumida (admin) */
 router.get('/perfis', requireAdmin, (req, res) => {
-  try {
-    res.json(listarSpaPerfis());
-  } catch (err) {
-    console.error('[Spa] erro ao listar perfis:', err);
-    res.status(500).json({ erro: 'Erro interno' });
-  }
+  try { res.json(listarSpaPerfis()); }
+  catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
 });
 
 /* GET /api/spa/perfil/:id — detalhe completo (admin) */
@@ -120,17 +130,38 @@ router.get('/perfil/:id', requireAdmin, (req, res) => {
     const perfil = getSpaPerfil(parseInt(req.params.id, 10));
     if (!perfil) return res.status(404).json({ erro: 'Perfil não encontrado' });
     res.json(perfil);
-  } catch (err) {
-    console.error('[Spa] erro ao buscar perfil:', err);
-    res.status(500).json({ erro: 'Erro interno' });
-  }
+  } catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+});
+
+// ── Link de documento pré-tratamento (público, via token) ─────────────────────
+
+/* GET /api/spa/documento?t=TOKEN — valida token e retorna info para pré-preenchimento */
+router.get('/documento', (req, res) => {
+  const token = String(req.query.t || '').trim();
+  if (!token) return res.status(400).json({ erro: 'Token ausente' });
+
+  const reserva = buscarDocumentoToken(token);
+  if (!reserva) return res.status(404).json({ erro: 'Link inválido ou expirado' });
+
+  if (!reserva.documento_token_expiry || new Date() > new Date(reserva.documento_token_expiry))
+    return res.status(410).json({ erro: 'Link expirado', expirado: true });
+
+  if (reserva.documento_perfil_id)
+    return res.status(409).json({ erro: 'Formulário já preenchido', usado: true });
+
+  res.json({
+    hospede_nome:  reserva.hospede_nome,
+    hospede_email: reserva.hospede_email,
+    servico:       reserva.servico,
+    locale:        reserva.idioma_documento,
+  });
 });
 
 // ── Terapeutas (admin) ────────────────────────────────────────────────────────
 
 router.get('/terapeutas', requireAdmin, (req, res) => {
   try { res.json(listarSpaTerapeutas()); }
-  catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+  catch { res.status(500).json({ erro: 'Erro interno' }); }
 });
 
 router.post('/terapeutas', requireAdmin, (req, res) => {
@@ -139,32 +170,28 @@ router.post('/terapeutas', requireAdmin, (req, res) => {
   try {
     const id = criarSpaTerapeuta(nome);
     res.json({ id, nome, ativo: 1 });
-  } catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch { res.status(500).json({ erro: 'Erro interno' }); }
 });
 
 router.put('/terapeutas/:id', requireAdmin, (req, res) => {
   const id   = parseInt(req.params.id, 10);
   const nome = san(String(req.body?.nome || '').trim());
   if (!nome) return res.status(400).json({ erro: 'Nome obrigatório' });
-  try {
-    atualizarSpaTerapeuta(id, nome);
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+  try { atualizarSpaTerapeuta(id, nome); res.json({ ok: true }); }
+  catch { res.status(500).json({ erro: 'Erro interno' }); }
 });
 
 router.post('/terapeutas/:id/toggle', requireAdmin, (req, res) => {
   const id = parseInt(req.params.id, 10);
-  try {
-    toggleSpaTerapeuta(id);
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+  try { toggleSpaTerapeuta(id); res.json({ ok: true }); }
+  catch { res.status(500).json({ erro: 'Erro interno' }); }
 });
 
 // ── Reservas (admin CRUD) ─────────────────────────────────────────────────────
 
 router.get('/reservas', requireAdmin, (req, res) => {
   try { res.json(listarSpaReservas()); }
-  catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+  catch { res.status(500).json({ erro: 'Erro interno' }); }
 });
 
 router.get('/reservas/:id', requireAdmin, (req, res) => {
@@ -172,30 +199,31 @@ router.get('/reservas/:id', requireAdmin, (req, res) => {
     const r = buscarSpaReservaPorId(parseInt(req.params.id, 10));
     if (!r) return res.status(404).json({ erro: 'Reserva não encontrada' });
     res.json(r);
-  } catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch { res.status(500).json({ erro: 'Erro interno' }); }
 });
 
 router.post('/reservas', requireAdmin, (req, res) => {
   const b = req.body || {};
-  const hospede_nome  = san(String(b.hospede_nome  || '').trim());
-  const servico       = san(String(b.servico        || '').trim());
-  const data_termino  = String(b.data_termino || '').trim();
+  const hospede_nome = san(String(b.hospede_nome || '').trim());
+  const servico      = san(String(b.servico      || '').trim());
+  const data_termino = String(b.data_termino || '').trim();
 
-  if (!hospede_nome)  return res.status(400).json({ erro: 'Nome do hóspede obrigatório' });
-  if (!servico)       return res.status(400).json({ erro: 'Serviço obrigatório' });
-  if (!data_termino)  return res.status(400).json({ erro: 'Data/hora de término obrigatória' });
+  if (!hospede_nome) return res.status(400).json({ erro: 'Nome do hóspede obrigatório' });
+  if (!servico)      return res.status(400).json({ erro: 'Serviço obrigatório' });
+  if (!data_termino) return res.status(400).json({ erro: 'Data/hora de término obrigatória' });
 
   try {
     const token = crypto.randomBytes(24).toString('hex');
     const id = criarSpaReserva({
       hospede_nome,
-      hospede_email:  b.hospede_email ? san(String(b.hospede_email).trim()) : null,
-      terapeuta_id:   b.terapeuta_id  ? parseInt(b.terapeuta_id, 10) : null,
+      hospede_email:    b.hospede_email    ? san(String(b.hospede_email).trim())    : null,
+      hospede_telefone: b.hospede_telefone ? san(String(b.hospede_telefone).trim()) : null,
+      terapeuta_id:     b.terapeuta_id     ? parseInt(b.terapeuta_id, 10)           : null,
       servico,
       data_termino,
       token,
     });
-    inserirHistoricoSpa(id, 'CRIADA', `Reserva criada por admin`);
+    inserirHistoricoSpa(id, 'CRIADA', 'Reserva criada por admin');
     res.json({ id, token });
   } catch (err) {
     console.error('[Spa] erro ao criar reserva:', err);
@@ -204,8 +232,8 @@ router.post('/reservas', requireAdmin, (req, res) => {
 });
 
 router.put('/reservas/:id', requireAdmin, (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const b  = req.body || {};
+  const id  = parseInt(req.params.id, 10);
+  const b   = req.body || {};
   const reserva = buscarSpaReservaPorId(id);
   if (!reserva) return res.status(404).json({ erro: 'Reserva não encontrada' });
 
@@ -220,24 +248,23 @@ router.put('/reservas/:id', requireAdmin, (req, res) => {
   try {
     atualizarSpaReserva(id, {
       hospede_nome,
-      hospede_email: b.hospede_email ? san(String(b.hospede_email).trim()) : null,
-      terapeuta_id:  b.terapeuta_id  ? parseInt(b.terapeuta_id, 10) : null,
+      hospede_email:    b.hospede_email    ? san(String(b.hospede_email).trim())    : null,
+      hospede_telefone: b.hospede_telefone ? san(String(b.hospede_telefone).trim()) : null,
+      terapeuta_id:     b.terapeuta_id     ? parseInt(b.terapeuta_id, 10)           : null,
       servico,
       data_termino,
     });
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch { res.status(500).json({ erro: 'Erro interno' }); }
 });
 
 router.delete('/reservas/:id', requireAdmin, (req, res) => {
   const id = parseInt(req.params.id, 10);
-  try {
-    deletarSpaReserva(id);
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+  try { deletarSpaReserva(id); res.json({ ok: true }); }
+  catch { res.status(500).json({ erro: 'Erro interno' }); }
 });
 
-/* POST /api/spa/reservas/:id/liberar — libera pesquisa (janela de 30 min após data_termino) */
+/* POST /api/spa/reservas/:id/liberar */
 router.post('/reservas/:id/liberar', requireAdmin, (req, res) => {
   const id = parseInt(req.params.id, 10);
   const reserva = buscarSpaReservaPorId(id);
@@ -245,14 +272,12 @@ router.post('/reservas/:id/liberar', requireAdmin, (req, res) => {
   if (reserva.status_pesquisa !== 'BLOQUEADA')
     return res.status(409).json({ erro: 'Pesquisa já foi liberada ou encerrada' });
 
-  const agora    = Date.now();
-  const termino  = new Date(reserva.data_termino).getTime();
-  const janela   = 30 * 60 * 1000;
+  const agora   = Date.now();
+  const termino = new Date(reserva.data_termino).getTime();
+  const janela  = 30 * 60 * 1000;
 
-  if (agora < termino)
-    return res.status(400).json({ erro: 'O tratamento ainda não terminou' });
-  if (agora > termino + janela)
-    return res.status(400).json({ erro: 'Janela de liberação expirou (30 min após término)' });
+  if (agora < termino)         return res.status(400).json({ erro: 'O tratamento ainda não terminou' });
+  if (agora > termino + janela) return res.status(400).json({ erro: 'Janela de liberação expirou (30 min após término)' });
 
   try {
     const liberadaEm = nowISO();
@@ -265,14 +290,54 @@ router.post('/reservas/:id/liberar', requireAdmin, (req, res) => {
   }
 });
 
-/* GET /api/spa/reservas/:id/historico */
-router.get('/reservas/:id/historico', requireAdmin, (req, res) => {
+/* POST /api/spa/reservas/:id/enviar-documento */
+router.post('/reservas/:id/enviar-documento', requireAdmin, async (req, res) => {
+  const id     = parseInt(req.params.id, 10);
+  const locale = String(req.body?.locale || '').trim();
+
+  if (!LOCALES_VALIDOS.includes(locale))
+    return res.status(400).json({ erro: 'Idioma inválido' });
+
+  const reserva = buscarSpaReservaPorId(id);
+  if (!reserva) return res.status(404).json({ erro: 'Reserva não encontrada' });
+
+  if (reserva.documento_pre_enviado)
+    return res.status(409).json({ erro: 'Documento já foi enviado anteriormente', ja_enviado: true });
+
+  const telefone = reserva.hospede_telefone;
+  if (!telefone || !RE_E164.test(telefone))
+    return res.status(400).json({
+      erro: 'Número de WhatsApp não configurado ou inválido. Edite a reserva e adicione o número no formato E.164 (ex.: +5585999999999).',
+    });
+
   try {
-    res.json(listarHistoricoSpa(parseInt(req.params.id, 10)));
-  } catch (err) { res.status(500).json({ erro: 'Erro interno' }); }
+    const docToken = crypto.randomBytes(16).toString('hex');
+    const expiry   = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const baseUrl  = process.env.BASE_URL || 'https://sistema-chamados-granmarquise.fly.dev';
+    const urlFormulario = `${baseUrl}/spa-profile.html?t=${docToken}&lang=${locale}`;
+    const nomeCliente   = reserva.hospede_nome.split(' ')[0];
+
+    const result = await enviarWhatsApp({ telefone, locale, urlFormulario, nomeCliente });
+
+    const enviadoEm = nowISO();
+    marcarDocumentoEnviado(id, { token: docToken, tokenExpiry: expiry, locale, enviadoEm });
+    inserirHistoricoSpa(id, 'DOCUMENTO_ENVIADO', `Idioma: ${locale}; Fallback: ${result.fallback}`);
+
+    console.log(`[Spa] Documento pré-tratamento enviado para reserva #${id} (${locale}, fallback=${result.fallback})`);
+    res.json({ ok: true, enviado_em: enviadoEm, ...result });
+  } catch (err) {
+    console.error('[Spa] erro ao enviar documento:', err);
+    res.status(500).json({ erro: err.message || 'Erro ao enviar mensagem. Verifique as configurações do WhatsApp.' });
+  }
 });
 
-// ── Pesquisa (pública, via token) ─────────────────────────────────────────────
+/* GET /api/spa/reservas/:id/historico */
+router.get('/reservas/:id/historico', requireAdmin, (req, res) => {
+  try { res.json(listarHistoricoSpa(parseInt(req.params.id, 10))); }
+  catch { res.status(500).json({ erro: 'Erro interno' }); }
+});
+
+// ── Pesquisa de satisfação (pública, via token) ───────────────────────────────
 
 /* GET /api/spa/pesquisa?t=TOKEN */
 router.get('/pesquisa', (req, res) => {
@@ -284,20 +349,17 @@ router.get('/pesquisa', (req, res) => {
 
   reserva = verificarExpiry(reserva);
 
-  const agora   = Date.now();
-  const termino = new Date(reserva.data_termino).getTime();
-  const janela  = 30 * 60 * 1000;
-
+  const agora = Date.now();
   const resposta = {
-    id:               reserva.id,
-    hospede_nome:     reserva.hospede_nome,
-    terapeuta_nome:   reserva.terapeuta_nome,
-    servico:          reserva.servico,
-    data_termino:     reserva.data_termino,
-    status_pesquisa:  reserva.status_pesquisa,
-    liberada_em:      reserva.liberada_em,
-    iniciada_em:      reserva.iniciada_em,
-    concluida_em:     reserva.concluida_em,
+    id:              reserva.id,
+    hospede_nome:    reserva.hospede_nome,
+    terapeuta_nome:  reserva.terapeuta_nome,
+    servico:         reserva.servico,
+    data_termino:    reserva.data_termino,
+    status_pesquisa: reserva.status_pesquisa,
+    liberada_em:     reserva.liberada_em,
+    iniciada_em:     reserva.iniciada_em,
+    concluida_em:    reserva.concluida_em,
   };
 
   if (reserva.status_pesquisa === 'EM_ANDAMENTO') {
@@ -366,27 +428,26 @@ router.post('/pesquisa/responder', (req, res) => {
     return res.status(409).json({ erro: 'Tempo esgotado', expirado: true });
   }
 
-  const b  = req.body || {};
-  const nota_geral          = parseInt(b.nota_geral, 10);
-  const nota_terapeuta      = parseInt(b.nota_terapeuta, 10);
-  const nota_ambiente       = parseInt(b.nota_ambiente, 10);
+  const b                    = req.body || {};
+  const nota_geral           = parseInt(b.nota_geral, 10);
+  const nota_terapeuta       = parseInt(b.nota_terapeuta, 10);
+  const nota_ambiente        = parseInt(b.nota_ambiente, 10);
   const nota_custo_beneficio = parseInt(b.nota_custo_beneficio, 10);
 
-  const notas = [nota_geral, nota_terapeuta, nota_ambiente, nota_custo_beneficio];
-  if (notas.some(n => isNaN(n) || n < 1 || n > 5))
+  if ([nota_geral, nota_terapeuta, nota_ambiente, nota_custo_beneficio].some(n => isNaN(n) || n < 1 || n > 5))
     return res.status(400).json({ erro: 'Todas as notas devem ser entre 1 e 5' });
 
   try {
     const concluidaEm = nowISO();
     concluirPesquisaSpa(reserva.id, concluidaEm);
     inserirRespostaSpa({
-      reserva_id:          reserva.id,
+      reserva_id:           reserva.id,
       nota_geral,
       nota_terapeuta,
       nota_ambiente,
       nota_custo_beneficio,
-      recomendaria:        b.recomendaria ? 1 : 0,
-      comentario:          b.comentario ? san(String(b.comentario)).substring(0, 2000) : null,
+      recomendaria: b.recomendaria ? 1 : 0,
+      comentario:   b.comentario ? san(String(b.comentario)).substring(0, 2000) : null,
     });
     inserirHistoricoSpa(reserva.id, 'CONCLUIDA', `Notas: ${nota_geral}/${nota_terapeuta}/${nota_ambiente}/${nota_custo_beneficio}`);
     res.json({ ok: true, concluida_em: concluidaEm });

@@ -20,6 +20,95 @@
     .pesq-CONCLUIDA    { background:#dcfce7; color:#166534; }
     .pesq-NAO_REALIZADA{ background:#fee2e2; color:#991b1b; }
 
+    /* ── Botão WhatsApp ── */
+    .btn-wa {
+      display:inline-flex;align-items:center;gap:.3rem;
+      font-size:.68rem;font-weight:700;padding:.28rem .65rem;border-radius:6px;cursor:pointer;
+      border:1px solid #86efac;background:#f0fdf4;color:#15803d;
+      transition:all .15s;white-space:nowrap;
+    }
+    .btn-wa:hover:not(:disabled) { background:#dcfce7;border-color:#4ade80; }
+    .btn-wa:disabled { opacity:.45;cursor:default;filter:grayscale(.8); }
+
+    /* ── Documento enviado badge ── */
+    .doc-badge {
+      display:inline-flex;flex-direction:column;gap:.1rem;
+    }
+    .doc-badge-label {
+      font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+      color:#166534;background:#dcfce7;border:1px solid #86efac;
+      border-radius:6px;padding:2px 7px;display:inline-block;
+    }
+    .doc-badge-meta {
+      font-size:.62rem;color:var(--text-secondary);line-height:1.2;padding:0 .1rem;
+    }
+
+    /* ── Modal de idioma ── */
+    .modal-lang { max-width:560px;width:95vw; }
+
+    .lang-grid {
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:.6rem;
+      margin:1.1rem 0 1rem;
+    }
+    @media(max-width:500px){ .lang-grid { grid-template-columns:repeat(3,1fr); } }
+
+    .lang-card {
+      position:relative;
+      border:2px solid var(--border,#e5e7eb);
+      border-radius:10px;
+      background:var(--surface,#fff);
+      padding:.85rem .4rem .7rem;
+      text-align:center;
+      cursor:pointer;
+      user-select:none;
+      transition:border-color .16s,background .16s,transform .12s,box-shadow .16s;
+      overflow:hidden;
+    }
+    .lang-card::after {
+      content:'';
+      position:absolute;inset:0;
+      background:linear-gradient(135deg,transparent 50%,rgba(184,147,90,.06) 100%);
+      opacity:0;transition:opacity .2s;
+    }
+    .lang-card:hover {
+      border-color:var(--gold,#d4953d);
+      transform:translateY(-2px);
+      box-shadow:0 4px 14px rgba(184,147,90,.18);
+    }
+    .lang-card:hover::after { opacity:1; }
+    .lang-card.selected {
+      border-color:var(--gold,#d4953d);
+      background:var(--gold-light,#fef3c7);
+      box-shadow:0 0 0 1px var(--gold,#d4953d),0 4px 16px rgba(184,147,90,.22);
+    }
+
+    .lang-check {
+      position:absolute;top:.3rem;right:.3rem;
+      width:.95rem;height:.95rem;border-radius:50%;
+      background:var(--gold,#d4953d);
+      display:none;align-items:center;justify-content:center;
+    }
+    .lang-check::after { content:'✓';font-size:.5rem;color:#fff;font-weight:800; }
+    .lang-card.selected .lang-check { display:flex; }
+
+    .lang-flag { font-size:1.55rem;line-height:1;display:block;margin-bottom:.35rem; }
+    .lang-name { font-size:.7rem;font-weight:700;color:var(--text,#111);line-height:1.2; }
+    .lang-sub  { font-size:.58rem;color:var(--text-secondary,#6b7280);margin-top:.1rem;letter-spacing:.04em; }
+    .lang-card.selected .lang-name { color:var(--gold-dark,#92400e); }
+
+    /* ── Phone info strip ── */
+    .phone-strip {
+      display:flex;align-items:center;gap:.6rem;
+      padding:.6rem .9rem;border-radius:8px;
+      font-size:.78rem;
+    }
+    .phone-strip.ok   { background:#f0fdf4;border:1px solid #86efac;color:#15803d; }
+    .phone-strip.warn { background:#fffbeb;border:1px solid #fbbf24;color:#92400e; }
+    .phone-strip.err  { background:#fef2f2;border:1px solid #fca5a5;color:#991b1b; }
+
+    /* ── Other existing styles ── */
     .terapeuta-list { display:flex; flex-direction:column; gap:.5rem; }
     .terapeuta-item { display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border:1px solid var(--border);border-radius:8px;background:var(--surface); }
     .terapeuta-item.inativo { opacity:.5; }
@@ -28,7 +117,7 @@
     .empty-state { padding:4rem 1.5rem;text-align:center;color:var(--text-secondary,#6b7280); }
     .empty-icon  { font-size:2.5rem;margin-bottom:1rem; }
 
-    .url-copy { font-size:.72rem; color:var(--text-secondary);font-family:monospace;background:var(--surface-2,#f9fafb);padding:.15rem .4rem;border-radius:4px;cursor:pointer;border:1px solid var(--border);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;transition:background .15s; }
+    .url-copy { font-size:.72rem; color:var(--text-secondary);font-family:monospace;background:var(--surface-2,#f9fafb);padding:.15rem .4rem;border-radius:4px;cursor:pointer;border:1px solid var(--border);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;transition:background .15s; }
     .url-copy:hover { background:var(--gold-light,#fef3c7); }
 
     .hist-list { display:flex;flex-direction:column;gap:.4rem; }
@@ -37,11 +126,8 @@
     .hist-ev   { font-weight:600; }
 
     .modal-spa { max-width:560px;width:95vw; }
-
     .form-grid-2 { display:grid;grid-template-columns:1fr 1fr;gap:1rem; }
     .field-full  { grid-column:1/-1; }
-
-    .countdown-chip { display:inline-flex;align-items:center;gap:.35rem;background:#fef3c7;color:#92400e;border:1px solid #fbbf24;border-radius:20px;font-size:.7rem;font-weight:700;padding:.25rem .75rem; }
   </style>
 </head>
 <body>
@@ -85,13 +171,14 @@
             <th>Serviço</th>
             <th>Terapeuta</th>
             <th>Término</th>
+            <th>Pré-tratamento</th>
             <th>Pesquisa</th>
-            <th>Link</th>
+            <th>Link Pesquisa</th>
             <th>Ações</th>
           </tr>
         </thead>
         <tbody id="reservas-body">
-          <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary)">Carregando…</td></tr>
+          <tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-secondary)">Carregando…</td></tr>
         </tbody>
       </table>
     </div>
@@ -151,6 +238,11 @@
           <input class="form-control" id="r-hospede-email" type="email" placeholder="maria@email.com">
         </div>
         <div>
+          <label class="form-label">WhatsApp <span style="font-size:.72rem;color:var(--text-secondary)">(E.164)</span></label>
+          <input class="form-control" id="r-hospede-telefone" type="tel" placeholder="+5585999999999">
+          <div id="r-telefone-hint" style="font-size:.7rem;color:var(--text-secondary);margin-top:.25rem"></div>
+        </div>
+        <div>
           <label class="form-label">Terapeuta</label>
           <select class="form-control" id="r-terapeuta">
             <option value="">— Selecionar —</option>
@@ -169,6 +261,75 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" id="btn-cancelar-reserva">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-reserva">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Idioma (Enviar Pré-tratamento) -->
+<div class="modal-overlay" id="modal-doc-overlay" style="display:none">
+  <div class="modal modal-lang">
+    <div class="modal-header">
+      <h2 class="modal-title">Enviar Formulário Pré-tratamento</h2>
+      <button class="modal-close" id="btn-fechar-modal-doc">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.84rem;color:var(--text-secondary);margin-bottom:.1rem">
+        Selecione o idioma do formulário que será enviado ao hóspede via WhatsApp:
+      </p>
+
+      <div class="lang-grid" id="lang-grid">
+        <div class="lang-card" data-locale="pt-BR">
+          <div class="lang-check"></div>
+          <span class="lang-flag">🇧🇷</span>
+          <div class="lang-name">Português</div>
+          <div class="lang-sub">Brasil</div>
+        </div>
+        <div class="lang-card" data-locale="pt-PT">
+          <div class="lang-check"></div>
+          <span class="lang-flag">🇵🇹</span>
+          <div class="lang-name">Português</div>
+          <div class="lang-sub">Portugal</div>
+        </div>
+        <div class="lang-card" data-locale="en">
+          <div class="lang-check"></div>
+          <span class="lang-flag">🇬🇧</span>
+          <div class="lang-name">English</div>
+          <div class="lang-sub">en</div>
+        </div>
+        <div class="lang-card" data-locale="fr">
+          <div class="lang-check"></div>
+          <span class="lang-flag">🇫🇷</span>
+          <div class="lang-name">Français</div>
+          <div class="lang-sub">fr</div>
+        </div>
+        <div class="lang-card" data-locale="es">
+          <div class="lang-check"></div>
+          <span class="lang-flag">🇪🇸</span>
+          <div class="lang-name">Español</div>
+          <div class="lang-sub">es</div>
+        </div>
+        <div class="lang-card" data-locale="it">
+          <div class="lang-check"></div>
+          <span class="lang-flag">🇮🇹</span>
+          <div class="lang-name">Italiano</div>
+          <div class="lang-sub">it</div>
+        </div>
+        <div class="lang-card" data-locale="de">
+          <div class="lang-check"></div>
+          <span class="lang-flag">🇩🇪</span>
+          <div class="lang-name">Deutsch</div>
+          <div class="lang-sub">de</div>
+        </div>
+      </div>
+
+      <div class="phone-strip" id="doc-phone-strip">
+        <span>📱</span>
+        <span id="doc-phone-txt">—</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancelar-doc">Cancelar</button>
+      <button class="btn btn-primary" id="btn-confirmar-doc" disabled>Confirmar e enviar</button>
     </div>
   </div>
 </div>
@@ -194,7 +355,7 @@
 
 <!-- Modal Histórico -->
 <div class="modal-overlay" id="modal-hist-overlay" style="display:none">
-  <div class="modal" style="max-width:480px">
+  <div class="modal" style="max-width:500px">
     <div class="modal-header">
       <h2 class="modal-title">Histórico da Reserva</h2>
       <button class="modal-close" id="btn-fechar-hist">×</button>

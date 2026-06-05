@@ -661,6 +661,14 @@ function initDb() {
     )
   `); } catch {}
 
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN hospede_telefone TEXT"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_token TEXT UNIQUE"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_token_expiry TEXT"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_pre_enviado INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN idioma_documento TEXT"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_enviado_em TEXT"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_perfil_id INTEGER"); } catch {}
+
   try { db.exec(`
     CREATE TABLE IF NOT EXISTS spa_terapeutas (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2733,17 +2741,35 @@ function buscarSpaReservaPorToken(token) {
 
 function criarSpaReserva(dados) {
   return getDb().prepare(`
-    INSERT INTO spa_reservas (hospede_nome, hospede_email, terapeuta_id, servico, data_termino, token)
-    VALUES (@hospede_nome, @hospede_email, @terapeuta_id, @servico, @data_termino, @token)
+    INSERT INTO spa_reservas (hospede_nome, hospede_email, hospede_telefone, terapeuta_id, servico, data_termino, token)
+    VALUES (@hospede_nome, @hospede_email, @hospede_telefone, @terapeuta_id, @servico, @data_termino, @token)
   `).run(dados).lastInsertRowid;
 }
 
 function atualizarSpaReserva(id, dados) {
   return getDb().prepare(`
     UPDATE spa_reservas SET hospede_nome=@hospede_nome, hospede_email=@hospede_email,
-      terapeuta_id=@terapeuta_id, servico=@servico, data_termino=@data_termino
+      hospede_telefone=@hospede_telefone, terapeuta_id=@terapeuta_id,
+      servico=@servico, data_termino=@data_termino
     WHERE id=@id
   `).run({ ...dados, id });
+}
+
+function marcarDocumentoEnviado(id, { token, tokenExpiry, locale, enviadoEm }) {
+  return getDb().prepare(`
+    UPDATE spa_reservas
+    SET documento_token=?, documento_token_expiry=?, documento_pre_enviado=1,
+        idioma_documento=?, documento_enviado_em=?
+    WHERE id=?
+  `).run(token, tokenExpiry, locale, enviadoEm, id);
+}
+
+function buscarDocumentoToken(token) {
+  return getDb().prepare('SELECT * FROM spa_reservas WHERE documento_token = ?').get(token);
+}
+
+function vincularDocumentoAoPerfil(reservaId, perfilId) {
+  return getDb().prepare('UPDATE spa_reservas SET documento_perfil_id=? WHERE id=?').run(perfilId, reservaId);
 }
 
 function deletarSpaReserva(id) {
@@ -2994,6 +3020,9 @@ module.exports = {
   buscarRespostaSpa,
   inserirHistoricoSpa,
   listarHistoricoSpa,
+  marcarDocumentoEnviado,
+  buscarDocumentoToken,
+  vincularDocumentoAoPerfil,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────
