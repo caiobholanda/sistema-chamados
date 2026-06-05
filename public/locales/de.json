@@ -1,0 +1,98 @@
+{
+  "meta": { "lang": "Deutsch", "code": "de" },
+  "page_title": "Spa L'Occitane — Kundenprofil",
+  "header": {
+    "title": "Kundenprofil — Vertraulich",
+    "required_notice": "(*) Pflichtfelder sind mit (*) markiert; ohne diese Angaben können wir die gewünschten Behandlungen möglicherweise nicht durchführen.",
+    "intro": "Vielen Dank, dass Sie dieses Formular sorgfältig ausfüllen. Ihre Angaben helfen uns, die Behandlungen optimal auf Ihre Bedürfnisse abzustimmen."
+  },
+  "lang_label": "Sprache",
+  "sections": {
+    "personal": "1. Persönliche Daten",
+    "facial_routine": "2. Aktuelle Gesichtspflege-Routine",
+    "body_routine": "3. Aktuelle Körperpflege-Routine",
+    "pressure": "4. Bevorzugter Massagedruck",
+    "medical": "5. Medizinische Informationen",
+    "data_notice": "6. Datenschutzhinweis",
+    "consents": "7. Einwilligungen",
+    "signature": "8. Unterschrift"
+  },
+  "fields": {
+    "first_name": "Vorname",
+    "last_name": "Nachname",
+    "email": "E-Mail",
+    "email_placeholder": "ihre@email.de",
+    "phone": "Telefon",
+    "phone_placeholder": "+49 000 000 0000",
+    "dob": "Geburtsdatum",
+    "other_product": "Sonstiges Produkt",
+    "other_product_placeholder": "Produkt beschreiben…"
+  },
+  "doc": {
+    "type_label": "Dokumententyp",
+    "cpf": "CPF",
+    "passport": "Reisepass",
+    "number_label": "Dokumentennummer",
+    "cpf_placeholder": "000.000.000-00",
+    "passport_placeholder": "Reisepassnummer"
+  },
+  "facial_items": [
+    "Reiniger", "Toner / Gesichtswasser", "Gesichtspeeling", "Gesichtsmaske",
+    "Augenserum", "Augenkonturpflege", "Gesichtsserum",
+    "Tagescreme", "Nachtcreme", "Gesichtsöl", "Sonnenschutz"
+  ],
+  "body_items": [
+    "Körperlotion / -creme / -öl", "Körperpeeling", "Schlankheitscreme",
+    "Handcreme", "Fußcreme"
+  ],
+  "pressure": {
+    "label": "Bevorzugten Druck auswählen",
+    "light": "Sanft / Leicht",
+    "medium": "Mittel",
+    "firm": "Kräftig / Fest"
+  },
+  "medical": {
+    "label": "Gibt es medizinische Informationen, die Sie mit uns teilen sollten?",
+    "placeholder": "Allergien, Operationen / Eingriffe, Schwangerschaft, Verletzungen, chronische Erkrankungen oder sonstige relevante Informationen…"
+  },
+  "legal": {
+    "title": "Datenschutzhinweis",
+    "text": "L'OCCITANE wird Ihre personenbezogenen Daten für folgende Zwecke verarbeiten: (i) zur Verwaltung Ihrer Anfragen und Buchungen im Spa; (ii) zur Durchführung der gewünschten Behandlungen und zur Gewährleistung Ihrer Sicherheit während Ihres Besuchs; (iii) zur Führung einer Behandlungshistorie zur Personalisierung künftiger Dienstleistungen; (iv) zur Zusendung von Marketingmitteilungen, sofern Sie Ihre Einwilligung erteilt haben; (v) zur Einhaltung geltender gesetzlicher Verpflichtungen. Weitere Informationen darüber, wie wir Ihre personenbezogenen Daten verarbeiten, und über Ihre Rechte finden Sie in der Datenschutzerklärung an der Spa-Rezeption oder scannen Sie den QR-Code."
+  },
+  "consents": {
+    "declaration": "Mit dem Ausfüllen und Unterzeichnen dieses Formulars erkläre ich, mindestens 16 Jahre alt zu sein, und stimme der Erhebung, Nutzung und Weitergabe meiner personenbezogenen Daten zu (bitte zutreffende Felder ankreuzen):",
+    "health": "Ich stimme der Erhebung und Verarbeitung meiner Gesundheitsdaten durch L'OCCITANE zu, um sicherzustellen, dass die Spa-Behandlungen und -Dienstleistungen meinen individuellen Bedürfnissen und meinem Gesundheitszustand entsprechen, und für meine Sicherheit während der Behandlung.",
+    "marketing_intro": "Ich stimme zu, Neuigkeiten, Angebote und personalisierte Inhalte von L'OCCITANE zu erhalten per:",
+    "email": "E-Mail",
+    "sms": "SMS",
+    "whatsapp": "WhatsApp"
+  },
+  "signature": {
+    "label": "Unterschrift des Kunden",
+    "instruction": "Bitte im Feld unten unterschreiben",
+    "clear": "Unterschrift löschen",
+    "date_label": "Datum"
+  },
+  "buttons": {
+    "submit": "Absenden / Bestätigen",
+    "submitting": "Wird gesendet…"
+  },
+  "errors": {
+    "first_name": "Der Vorname ist erforderlich.",
+    "last_name": "Der Nachname ist erforderlich.",
+    "doc_number": "Die Dokumentennummer ist erforderlich.",
+    "cpf_invalid": "Ungültige CPF-Nummer. Bitte überprüfen und erneut versuchen.",
+    "email": "Bitte geben Sie eine gültige E-Mail-Adresse an.",
+    "phone": "Die Telefonnummer ist erforderlich.",
+    "medical": "Bitte beschreiben Sie relevante medizinische Informationen.",
+    "health_consent": "Die Einwilligung zur Verarbeitung der Gesundheitsdaten ist erforderlich.",
+    "signature": "Die Unterschrift ist erforderlich.",
+    "generic": "Bitte alle Pflichtfelder ausfüllen, bevor Sie absenden.",
+    "server": "Beim Absenden ist ein Fehler aufgetreten. Bitte erneut versuchen."
+  },
+  "success": {
+    "title": "Formular erfolgreich abgesendet!",
+    "message": "Ihr Profil wurde erfasst. Der Therapeut bestätigt Ihre Verfügbarkeit für die Behandlung.",
+    "ref_label": "Referenz"
+  }
+}

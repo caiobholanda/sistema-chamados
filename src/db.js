@@ -636,6 +636,31 @@ function initDb() {
   seedEstoque();
   migrarEquipamentosLegados(db);
 
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS spa_perfis (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      sobrenome TEXT NOT NULL,
+      tipo_documento TEXT NOT NULL DEFAULT 'cpf',
+      documento TEXT NOT NULL,
+      email TEXT NOT NULL,
+      telefone TEXT NOT NULL,
+      data_nascimento TEXT,
+      rotina_facial TEXT,
+      rotina_corporal TEXT,
+      produto_especifico TEXT,
+      pressao_massagem TEXT,
+      info_medica TEXT NOT NULL,
+      consentimento_saude INTEGER NOT NULL DEFAULT 0,
+      consentimento_marketing INTEGER NOT NULL DEFAULT 0,
+      canais_marketing TEXT,
+      assinatura_data_url TEXT,
+      idioma TEXT DEFAULT 'pt-BR',
+      apto INTEGER NOT NULL DEFAULT 1,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `); } catch {}
+
   return db;
 }
 
@@ -2613,6 +2638,29 @@ function listarUltimosGeradosProgramados(limit = 30) {
   `).all(limit);
 }
 
+function inserirSpaPerfil(dados) {
+  return getDb().prepare(`
+    INSERT INTO spa_perfis
+      (nome, sobrenome, tipo_documento, documento, email, telefone, data_nascimento,
+       rotina_facial, rotina_corporal, produto_especifico, pressao_massagem, info_medica,
+       consentimento_saude, consentimento_marketing, canais_marketing, assinatura_data_url, idioma)
+    VALUES
+      (@nome, @sobrenome, @tipo_documento, @documento, @email, @telefone, @data_nascimento,
+       @rotina_facial, @rotina_corporal, @produto_especifico, @pressao_massagem, @info_medica,
+       @consentimento_saude, @consentimento_marketing, @canais_marketing, @assinatura_data_url, @idioma)
+  `).run(dados).lastInsertRowid;
+}
+
+function getSpaPerfil(id) {
+  return getDb().prepare('SELECT * FROM spa_perfis WHERE id = ?').get(id);
+}
+
+function listarSpaPerfis() {
+  return getDb().prepare(
+    'SELECT id, nome, sobrenome, email, idioma, apto, criado_em FROM spa_perfis ORDER BY criado_em DESC LIMIT 200'
+  ).all();
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -2762,6 +2810,9 @@ module.exports = {
   listarLogsUsuario,
   registrarLogAdmin,
   listarLogsAdmin,
+  inserirSpaPerfil,
+  getSpaPerfil,
+  listarSpaPerfis,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────

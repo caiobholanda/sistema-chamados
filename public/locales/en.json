@@ -1,0 +1,98 @@
+{
+  "meta": { "lang": "English", "code": "en" },
+  "page_title": "Spa L'Occitane — Client Profile Form",
+  "header": {
+    "title": "Client Profile Form — Confidential",
+    "required_notice": "(*) Marked fields are required; without them, we may not be able to perform the desired treatments.",
+    "intro": "Thank you for completing this form carefully. Your answers help us personalise treatments to suit your individual needs."
+  },
+  "lang_label": "Language",
+  "sections": {
+    "personal": "1. Personal Details",
+    "facial_routine": "2. Current Facial Routine",
+    "body_routine": "3. Current Body Routine",
+    "pressure": "4. Massage Pressure Preference",
+    "medical": "5. Medical Information",
+    "data_notice": "6. Data Protection Notice",
+    "consents": "7. Consents",
+    "signature": "8. Signature"
+  },
+  "fields": {
+    "first_name": "First Name",
+    "last_name": "Last Name",
+    "email": "Email",
+    "email_placeholder": "your@email.com",
+    "phone": "Phone",
+    "phone_placeholder": "+1 000 000 0000",
+    "dob": "Date of Birth",
+    "other_product": "Other specific product",
+    "other_product_placeholder": "Describe the product…"
+  },
+  "doc": {
+    "type_label": "Document Type",
+    "cpf": "CPF",
+    "passport": "Passport",
+    "number_label": "Document Number",
+    "cpf_placeholder": "000.000.000-00",
+    "passport_placeholder": "Passport number"
+  },
+  "facial_items": [
+    "Cleanser", "Toner", "Scrub", "Face Mask",
+    "Eye Serum", "Eye Contour", "Face Serum",
+    "Day Cream", "Night Cream", "Face Oil", "Sun Block"
+  ],
+  "body_items": [
+    "Lotion / Cream / Oil", "Body Scrub", "Slimming Cream",
+    "Hand Cream", "Foot Cream"
+  ],
+  "pressure": {
+    "label": "Select your preferred pressure",
+    "light": "Light",
+    "medium": "Medium",
+    "firm": "Firm"
+  },
+  "medical": {
+    "label": "Is there any medical information you should share with us?",
+    "placeholder": "Allergies, surgical interventions, pregnancy, injuries, long-lasting conditions or anything else relevant…"
+  },
+  "legal": {
+    "title": "Data Protection Notice",
+    "text": "L'OCCITANE will process your personal data for the following purposes: (i) to manage your enquiries and bookings at the Spa; (ii) to carry out the requested treatments and ensure your safety throughout your visit; (iii) to keep a record of treatments performed in order to personalise future services; (iv) to send marketing communications, where you have given your prior consent; (v) to comply with applicable legal obligations. For further information about how we handle your personal data and your rights as a data subject, please refer to the Privacy Notice available at the Spa reception desk or scan the QR code."
+  },
+  "consents": {
+    "declaration": "By completing and signing this form, I declare that I am at least 16 years of age and consent to the collection, use and disclosure of my personal data (please tick the relevant boxes):",
+    "health": "I consent to the collection and processing of my health data by L'OCCITANE, to ensure that the Spa treatments and services are appropriate for my individual needs and health condition, and for my safety during treatment.",
+    "marketing_intro": "I agree to receive news, offers and personalised content from L'OCCITANE by:",
+    "email": "Email",
+    "sms": "SMS",
+    "whatsapp": "WhatsApp"
+  },
+  "signature": {
+    "label": "Client Signature",
+    "instruction": "Sign in the box below",
+    "clear": "Clear signature",
+    "date_label": "Date"
+  },
+  "buttons": {
+    "submit": "Submit & Confirm",
+    "submitting": "Submitting…"
+  },
+  "errors": {
+    "first_name": "First name is required.",
+    "last_name": "Last name is required.",
+    "doc_number": "Document number is required.",
+    "cpf_invalid": "Invalid CPF number. Please check and try again.",
+    "email": "A valid email address is required.",
+    "phone": "Phone number is required.",
+    "medical": "Please describe any relevant medical information.",
+    "health_consent": "Consent to health data processing is required.",
+    "signature": "Signature is required.",
+    "generic": "Please complete all required fields before submitting.",
+    "server": "An error occurred while submitting. Please try again."
+  },
+  "success": {
+    "title": "Form submitted successfully!",
+    "message": "Your profile has been recorded. The therapist will confirm your availability for treatment.",
+    "ref_label": "Reference"
+  }
+}
