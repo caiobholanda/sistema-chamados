@@ -11,6 +11,107 @@ const FREQ_SHORT = {
 const DIA_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const MESES = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
+// ── Etiquetas / Combo ─────────────────────────────────────────────────────────
+let _etiquetasDin = [];
+let _catCombo = null;
+
+function _criarComboEtiqueta(wrapEl, cfg = {}) {
+  if (!wrapEl) return null;
+  if (!document.getElementById('_et-combo-css')) {
+    const st = document.createElement('style');
+    st.id = '_et-combo-css';
+    st.textContent = '.et-combo-item:hover{background:var(--surface-2)}.et-combo-sel{background:var(--surface-2)}';
+    document.head.appendChild(st);
+  }
+  const cls = cfg.sm ? 'form-control form-control-sm' : 'form-control';
+  wrapEl.innerHTML = `<div style="position:relative">
+    <input type="text" class="${cls}" data-combo-inp placeholder="${cfg.placeholder || 'Selecionar etiqueta…'}" autocomplete="off">
+    <input type="hidden" data-combo-val>
+    <div data-combo-dd style="display:none;position:absolute;z-index:1050;left:0;right:0;top:calc(100% + 2px);background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);max-height:220px;overflow-y:auto"></div>
+  </div>`;
+  const inp  = wrapEl.querySelector('[data-combo-inp]');
+  const valI = wrapEl.querySelector('[data-combo-val]');
+  const dd   = wrapEl.querySelector('[data-combo-dd]');
+
+  function _bc(et) {
+    const parts = [];
+    let cur = et;
+    while (cur?.parent_slug) {
+      const p = _etiquetasDin.find(x => x.slug === cur.parent_slug);
+      if (!p) break;
+      parts.unshift(p.nome);
+      cur = p;
+    }
+    return parts.join(' › ');
+  }
+
+  function _render(q) {
+    if (!_etiquetasDin.length) {
+      dd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Carregando etiquetas…</div>';
+      dd.style.display = 'block'; return;
+    }
+    const query = (q || '').toLowerCase().trim();
+    let list = _etiquetasDin.filter(e => e.ativo !== 0);
+    if (query) {
+      list = list.filter(e => {
+        const bc = _bc(e);
+        return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query) || e.slug.includes(query);
+      });
+    }
+    list.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+    if (!list.length) {
+      dd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
+    } else {
+      dd.innerHTML = list.map(e => {
+        const bc = _bc(e);
+        const cor = e.cor || '#6B7280';
+        const sel = e.slug === valI.value;
+        return `<div class="et-combo-item${sel ? ' et-combo-sel' : ''}" data-slug="${e.slug}"
+          style="padding:.42rem .75rem;cursor:pointer;display:flex;align-items:center;gap:.45rem;font-size:.83rem">
+          <span style="width:7px;height:7px;border-radius:50%;background:${cor};flex-shrink:0"></span>
+          <span>${bc ? `<span style="color:var(--text-muted);font-size:.74rem">${bc} › </span>` : ''}<strong style="font-weight:600">${e.nome}</strong></span>
+        </div>`;
+      }).join('');
+    }
+    dd.style.display = 'block';
+  }
+
+  function _close() { dd.style.display = 'none'; }
+
+  function _pick(slug) {
+    const et = slug ? _etiquetasDin.find(e => e.slug === slug) : null;
+    valI.value = slug || '';
+    if (et) { const bc = _bc(et); inp.value = bc ? `${bc} › ${et.nome}` : et.nome; }
+    else inp.value = '';
+    _close();
+    cfg.onChange?.(slug, et);
+  }
+
+  inp.addEventListener('focus', () => _render(inp.value));
+  inp.addEventListener('input', () => {
+    if (!inp.value.trim()) { valI.value = ''; cfg.onChange?.('', null); }
+    _render(inp.value);
+  });
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') _close();
+    if (ev.key === 'Enter') { ev.preventDefault(); const f = dd.querySelector('.et-combo-item'); if (f) _pick(f.dataset.slug); }
+  });
+  dd.addEventListener('mousedown', ev => {
+    const item = ev.target.closest('.et-combo-item');
+    if (!item) return;
+    ev.preventDefault();
+    _pick(item.dataset.slug);
+  });
+  document.addEventListener('click', ev => { if (!wrapEl.contains(ev.target)) _close(); }, true);
+
+  return {
+    getValue: () => valI.value,
+    setValue(slug) { _pick(slug); },
+    clear() { valI.value = ''; inp.value = ''; _close(); },
+    get inputEl() { return inp; },
+  };
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 let _adminInfo = null;
 async function checkAuth() {
@@ -162,9 +263,10 @@ function fecharModal() {
 }
 
 function limparForm() {
-  ['f-titulo','f-nome','f-setor','f-ramal','f-categoria','f-descricao','f-pessoa-busca'].forEach(id => {
+  ['f-titulo','f-nome','f-setor','f-ramal','f-descricao','f-pessoa-busca'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  _catCombo?.clear();
   const selEl = document.getElementById('f-pessoa-selecionada');
   if (selEl) selEl.style.display = 'none';
   const resEl = document.getElementById('f-pessoa-resultados');
@@ -185,7 +287,7 @@ function lerForm() {
     setor:              document.getElementById('f-setor').value,
     ramal:              document.getElementById('f-ramal').value,
     descricao:          document.getElementById('f-descricao').value,
-    categoria:          document.getElementById('f-categoria').value,
+    categoria:          _catCombo?.getValue() || '',
     prioridade:         document.getElementById('f-prioridade').value,
     admin_responsavel_id: document.getElementById('f-admin').value || null,
     frequencia:         freq,
@@ -203,7 +305,7 @@ function preencherForm(prog) {
   document.getElementById('f-nome').value       = prog.nome || '';
   document.getElementById('f-setor').value      = prog.setor || '';
   document.getElementById('f-ramal').value      = prog.ramal || '';
-  document.getElementById('f-categoria').value  = prog.categoria || '';
+  _catCombo?.setValue(prog.categoria || '');
   document.getElementById('f-descricao').value  = prog.descricao || '';
   document.getElementById('f-prioridade').value = prog.prioridade || 'normal';
   document.getElementById('f-admin').value      = prog.admin_responsavel_id || '';
@@ -343,12 +445,8 @@ async function carregarEtiquetas() {
   const r = await apiFetch('/api/etiquetas');
   if (!r) return;
   const lista = await r.json();
-  const dl = document.getElementById('etiquetas-list');
-  (Array.isArray(lista) ? lista : []).forEach(et => {
-    const opt = document.createElement('option');
-    opt.value = et.nome;
-    dl.appendChild(opt);
-  });
+  _etiquetasDin = Array.isArray(lista) ? lista : [];
+  _catCombo = _criarComboEtiqueta(document.getElementById('f-cat-combo'), { placeholder: '— selecionar etiqueta —' });
 }
 
 // ── Busca de solicitante do portal ────────────────────────────────────────────
