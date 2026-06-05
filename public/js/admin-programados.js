@@ -20,7 +20,11 @@ function _criarComboEtiqueta(wrapEl, cfg = {}) {
   if (!document.getElementById('_et-combo-css')) {
     const st = document.createElement('style');
     st.id = '_et-combo-css';
-    st.textContent = '.et-combo-item:hover{background:var(--surface-2)}.et-combo-sel{background:var(--surface-2)}';
+    st.textContent = `
+      .et-combo-item { transition: background .1s; }
+      .et-combo-item:hover { background: var(--surface-2, #f9fafb) !important; }
+      .et-combo-sel  { background: var(--gold-light, #fef3c7) !important; }
+    `;
     document.head.appendChild(st);
   }
   const cls = cfg.sm ? 'form-control form-control-sm' : 'form-control';
@@ -60,16 +64,24 @@ function _criarComboEtiqueta(wrapEl, cfg = {}) {
     }
     list.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
     if (!list.length) {
-      dd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
+      dd.innerHTML = '<div style="padding:.55rem .9rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
     } else {
       dd.innerHTML = list.map(e => {
         const bc = _bc(e);
         const cor = e.cor || '#6B7280';
         const sel = e.slug === valI.value;
         return `<div class="et-combo-item${sel ? ' et-combo-sel' : ''}" data-slug="${e.slug}"
-          style="padding:.42rem .75rem;cursor:pointer;display:flex;align-items:center;gap:.45rem;font-size:.83rem">
-          <span style="width:7px;height:7px;border-radius:50%;background:${cor};flex-shrink:0"></span>
-          <span>${bc ? `<span style="color:var(--text-muted);font-size:.74rem">${bc} › </span>` : ''}<strong style="font-weight:600">${e.nome}</strong></span>
+          style="padding:.5rem .9rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;border-bottom:1px solid var(--border-light,#f3f4f6)">
+          <span style="
+            display:inline-flex;align-items:center;
+            padding:.2rem .55rem;border-radius:3px;
+            font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;flex-shrink:0;
+            background:color-mix(in srgb,${cor} 12%,transparent);
+            color:${cor};
+            border:1px solid color-mix(in srgb,${cor} 30%,transparent)
+          ">${e.nome}</span>
+          ${bc ? `<span style="font-size:.74rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${bc}</span>` : ''}
+          ${sel ? `<span style="margin-left:auto;font-size:.75rem;color:var(--gold,#d4953d);font-weight:800;flex-shrink:0">✓</span>` : ''}
         </div>`;
       }).join('');
     }
