@@ -311,11 +311,11 @@ window.verLog = async (id, titulo) => {
 
 // ── Carregar admins para select ───────────────────────────────────────────────
 async function carregarAdmins() {
-  const r = await apiFetch('/api/admin/admins');
+  const r = await apiFetch('/api/admin/transferencia-admins');
   if (!r) return;
-  const d = await r.json();
+  const lista = await r.json();
   const sel = document.getElementById('f-admin');
-  (d.admins || d.items || []).forEach(a => {
+  (Array.isArray(lista) ? lista : []).forEach(a => {
     const opt = document.createElement('option');
     opt.value = a.id;
     opt.textContent = a.nome_completo || a.nome || a.usuario;
@@ -335,34 +335,10 @@ async function carregarSetores() {
   });
 }
 
-// ── Nav ───────────────────────────────────────────────────────────────────────
-async function carregarNav() {
-  const r = await apiFetch('/api/admin/me');
-  if (!r) return;
-  const me = await r.json();
-  const nav = document.getElementById('nav-admin');
-  const links = [
-    ['/admin-painel.html','Chamados'],
-    ['/admin-usuarios.html','Usuários'],
-    ['/admin-relatorios.html','Relatórios'],
-    ['/admin-programados.html','Programados'],
-  ];
-  if (me.is_master) links.push(['/admin-estoque.html','Estoque']);
-  nav.innerHTML = links.map(([href,label]) =>
-    `<a href="${href}" class="nav-link${location.pathname===href?' active':''}">${label}</a>`
-  ).join('') + `<button class="btn btn-ghost btn-sm nav-sair" onclick="sair()">Sair</button>`;
-}
-
-window.sair = async () => {
-  await apiFetch('/api/admin/logout', { method: 'POST' });
-  window.location.href = '/admin-login.html';
-};
-
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
   const ok = await checkAuth();
   if (!ok) return;
-  carregarNav();
   carregarAdmins();
   carregarSetores();
   carregarAgendamentos();
