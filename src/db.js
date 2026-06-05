@@ -578,6 +578,39 @@ function initDb() {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS chamados_programados (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      titulo TEXT NOT NULL,
+      nome TEXT NOT NULL,
+      setor TEXT NOT NULL,
+      ramal TEXT,
+      descricao TEXT NOT NULL,
+      categoria TEXT,
+      prioridade TEXT NOT NULL DEFAULT 'normal',
+      frequencia TEXT NOT NULL,
+      dia_semana INTEGER,
+      dia_mes INTEGER,
+      mes INTEGER,
+      hora TEXT NOT NULL DEFAULT '08:00',
+      pular_feriados INTEGER NOT NULL DEFAULT 1,
+      admin_responsavel_id INTEGER,
+      ativo INTEGER NOT NULL DEFAULT 1,
+      proxima_execucao TEXT NOT NULL,
+      ultima_execucao TEXT,
+      total_gerados INTEGER NOT NULL DEFAULT 0,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS chamados_programados_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      programado_id INTEGER NOT NULL,
+      chamado_id INTEGER NOT NULL,
+      executado_em TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (programado_id) REFERENCES chamados_programados(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_prog_proxima ON chamados_programados(proxima_execucao) WHERE ativo=1;
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS setores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL UNIQUE,
@@ -2494,6 +2527,92 @@ function excluirSetor(id) {
   getDb().prepare('DELETE FROM setores WHERE id = ?').run(id);
 }
 
+// ── Chamados Programados ──────────────────────────────────────────────────────
+function listarChamadosProgramados() {
+  return getDb().prepare(`
+    SELECT p.*, a.nome_completo AS admin_nome
+    FROM chamados_programados p
+    LEFT JOIN admins a ON a.id = p.admin_responsavel_id
+    ORDER BY p.ativo DESC, p.titulo COLLATE NOCASE
+  `).all();
+}
+
+function buscarProgramadoPorId(id) {
+  return getDb().prepare('SELECT * FROM chamados_programados WHERE id = ?').get(id) || null;
+}
+
+function inserirChamadoProgramado(dados) {
+  return getDb().prepare(`
+    INSERT INTO chamados_programados
+      (titulo, nome, setor, ramal, descricao, categoria, prioridade, frequencia,
+       dia_semana, dia_mes, mes, hora, pular_feriados, admin_responsavel_id, proxima_execucao)
+    VALUES
+      (@titulo,@nome,@setor,@ramal,@descricao,@categoria,@prioridade,@frequencia,
+       @dia_semana,@dia_mes,@mes,@hora,@pular_feriados,@admin_responsavel_id,@proxima_execucao)
+  `).run(dados).lastInsertRowid;
+}
+
+function atualizarChamadoProgramado(id, dados) {
+  getDb().prepare(`
+    UPDATE chamados_programados SET
+      titulo=@titulo, nome=@nome, setor=@setor, ramal=@ramal,
+      descricao=@descricao, categoria=@categoria, prioridade=@prioridade,
+      frequencia=@frequencia, dia_semana=@dia_semana, dia_mes=@dia_mes, mes=@mes,
+      hora=@hora, pular_feriados=@pular_feriados,
+      admin_responsavel_id=@admin_responsavel_id, proxima_execucao=@proxima_execucao
+    WHERE id=@id
+  `).run({ ...dados, id });
+}
+
+function toggleChamadoProgramado(id, ativo) {
+  getDb().prepare('UPDATE chamados_programados SET ativo=? WHERE id=?').run(ativo ? 1 : 0, id);
+}
+
+function deletarChamadoProgramado(id) {
+  getDb().prepare('DELETE FROM chamados_programados WHERE id=?').run(id);
+}
+
+function getProgramadosPendentes() {
+  const agora = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  return getDb().prepare(
+    "SELECT * FROM chamados_programados WHERE ativo=1 AND proxima_execucao <= ?"
+  ).all(agora);
+}
+
+function registrarExecucaoProgramado(programadoId, chamadoId, proximaExecucao) {
+  const db = getDb();
+  const agora = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  db.prepare(`
+    INSERT INTO chamados_programados_log (programado_id, chamado_id, executado_em)
+    VALUES (?, ?, ?)
+  `).run(programadoId, chamadoId, agora);
+  db.prepare(`
+    UPDATE chamados_programados
+    SET ultima_execucao=?, proxima_execucao=?, total_gerados=total_gerados+1
+    WHERE id=?
+  `).run(agora, proximaExecucao, programadoId);
+}
+
+function listarLogProgramado(programadoId, limit = 20) {
+  return getDb().prepare(`
+    SELECT l.*, c.nome, c.setor, c.status
+    FROM chamados_programados_log l
+    JOIN chamados c ON c.id = l.chamado_id
+    WHERE l.programado_id = ?
+    ORDER BY l.executado_em DESC LIMIT ?
+  `).all(programadoId, limit);
+}
+
+function listarUltimosGeradosProgramados(limit = 30) {
+  return getDb().prepare(`
+    SELECT l.*, p.titulo AS prog_titulo, c.nome, c.setor, c.status
+    FROM chamados_programados_log l
+    JOIN chamados_programados p ON p.id = l.programado_id
+    JOIN chamados c ON c.id = l.chamado_id
+    ORDER BY l.executado_em DESC LIMIT ?
+  `).all(limit);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -2620,6 +2739,16 @@ module.exports = {
   criarSetor,
   editarSetor,
   excluirSetor,
+  listarChamadosProgramados,
+  buscarProgramadoPorId,
+  inserirChamadoProgramado,
+  atualizarChamadoProgramado,
+  toggleChamadoProgramado,
+  deletarChamadoProgramado,
+  getProgramadosPendentes,
+  registrarExecucaoProgramado,
+  listarLogProgramado,
+  listarUltimosGeradosProgramados,
   inserirInfoAdicional,
   listarInfosAdicionais,
   inserirAnexoExtra,

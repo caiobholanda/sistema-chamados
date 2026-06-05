@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chamados Programados — Gran Marquise TI</title>
+  <link rel="preconnect" href="https://letsimage.s3.amazonaws.com">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .prog-grid { display: flex; flex-direction: column; gap: .75rem; }
+    .prog-card {
+      border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+      overflow: hidden; transition: box-shadow .15s, border-color .15s;
+    }
+    .prog-card:hover { border-color: var(--gold); box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+    .prog-card.inativo { opacity: .55; }
+    .prog-card-head {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .85rem 1rem; border-bottom: 1px solid var(--border-light, var(--border));
+    }
+    .prog-freq-dot {
+      width: 2.4rem; height: 2.4rem; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+    }
+    .freq-diario    { background:#e0f2fe; color:#0369a1; }
+    .freq-semanal   { background:#fef3c7; color:#92400e; }
+    .freq-mensal    { background:#ede9fe; color:#5b21b6; }
+    .freq-bimestral { background:#fce7f3; color:#9d174d; }
+    .freq-trimestral{ background:#dcfce7; color:#166534; }
+    .freq-semestral { background:#fee2e2; color:#991b1b; }
+    .freq-anual     { background:#fef9c3; color:#713f12; }
+    .prog-card-title { font-weight: 700; font-size: .93rem; flex: 1; }
+    .prog-card-sub { font-size: .75rem; color: var(--text-secondary, #6b7280); margin-top: .1rem; }
+    .prog-card-body { padding: .75rem 1rem; display: flex; gap: 2rem; flex-wrap: wrap; }
+    .prog-meta { font-size: .78rem; color: var(--text-secondary, #6b7280); }
+    .prog-meta strong { color: var(--text); font-weight: 600; }
+    .prog-next { font-size: .75rem; font-weight: 600; color: var(--gold); }
+    .prog-card-actions { display: flex; align-items: center; gap: .4rem; padding: .6rem 1rem; border-top: 1px solid var(--border-light, var(--border)); background: var(--surface-2, #f9fafb); }
+    .toggle-btn { font-size: .72rem; padding: .25rem .65rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-weight: 600; }
+    .toggle-btn.ativo { border-color: #d1fae5; color: #065f46; background: #d1fae5; }
+    .toggle-btn.inativo { border-color: #fee2e2; color: #991b1b; background: #fee2e2; }
+
+    /* Modal */
+    .modal-programado { max-width: 680px; width: 95vw; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; }
+    .field-full { grid-column: 1 / -1; }
+    .preview-datas { margin-top: .75rem; padding: .75rem; background: var(--surface-2, #f9fafb); border-radius: 8px; border: 1px solid var(--border); }
+    .preview-datas h4 { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-secondary, #6b7280); margin: 0 0 .5rem; }
+    .preview-lista { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .preview-chip {
+      font-size: .72rem; padding: .2rem .6rem; border-radius: 12px;
+      background: var(--gold-light, #fef3c7); color: var(--gold-dark, #92400e);
+      border: 1px solid var(--gold, #d4953d); font-weight: 600;
+    }
+
+    /* Tabs */
+    .tabs-bar { margin-bottom: 1.25rem; }
+    .log-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .log-table th { text-align: left; padding: .5rem .75rem; border-bottom: 2px solid var(--border); font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-secondary, #6b7280); }
+    .log-table td { padding: .55rem .75rem; border-bottom: 1px solid var(--border-light, #f3f4f6); }
+    .log-table tr:last-child td { border-bottom: none; }
+
+    .badge-status-aberto       { background: #dbeafe; color: #1d4ed8; }
+    .badge-status-em_andamento { background: #fef3c7; color: #92400e; }
+    .badge-status-concluido    { background: #dcfce7; color: #166534; }
+    .badge-status-encerrado    { background: #f1f5f9; color: #475569; }
+    .badge-status { font-size:.65rem; padding:2px 7px; border-radius:8px; font-weight:700; text-transform:uppercase; }
+
+    .empty-state { padding: 3rem 1rem; text-align: center; color: var(--text-secondary, #6b7280); }
+    .empty-icon  { font-size: 2.5rem; margin-bottom: .75rem; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-brand">
+    <img class="header-logo-img" src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise">
+    <div class="header-brand-text">
+      <div class="header-brand-name">Gran Marquise</div>
+      <div class="header-brand-sub">Suporte de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <nav id="nav-admin"></nav>
+</header>
+
+<div id="toast-container"></div>
+
+<main class="wide">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Chamados Programados</h1>
+      <p class="page-sub">Abertura automática de chamados recorrentes — Diário, Semanal, Mensal e mais</p>
+    </div>
+    <button class="btn btn-primary" id="btn-novo">+ Novo Agendamento</button>
+  </div>
+
+  <div class="tabs-bar">
+    <button class="tab-btn active" data-tab="agendamentos">Agendamentos</button>
+    <button class="tab-btn" data-tab="historico">Histórico de Geração</button>
+  </div>
+
+  <!-- Tab: Agendamentos -->
+  <div id="tab-agendamentos">
+    <div id="prog-loading" class="empty-state" style="display:none">
+      <div class="spinner-sm"></div> Carregando…
+    </div>
+    <div id="prog-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">📅</div>
+      <div>Nenhum agendamento criado ainda.</div>
+      <div style="margin-top:.5rem;font-size:.82rem;color:var(--text-secondary)">Crie o primeiro clicando em "+ Novo Agendamento"</div>
+    </div>
+    <div class="prog-grid" id="prog-grid"></div>
+  </div>
+
+  <!-- Tab: Histórico -->
+  <div id="tab-historico" style="display:none">
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Agendamento</th>
+            <th>Chamado</th>
+            <th>Solicitante / Setor</th>
+            <th>Status</th>
+            <th>Executado em</th>
+          </tr>
+        </thead>
+        <tbody id="hist-body">
+          <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-secondary)">Carregando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal criar/editar -->
+<div class="modal-overlay" id="modal-overlay" style="display:none">
+  <div class="modal modal-programado">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-titulo">Novo Agendamento</h2>
+      <button class="modal-close" id="btn-fechar-modal">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+      <div class="form-grid-2">
+        <div class="field-full">
+          <label class="form-label">Título do agendamento <span class="req">*</span></label>
+          <input class="form-control" id="f-titulo" placeholder="Ex: Verificação semanal dos backups">
+        </div>
+        <div>
+          <label class="form-label">Nome do solicitante <span class="req">*</span></label>
+          <input class="form-control" id="f-nome" placeholder="Ex: Sistema TI">
+        </div>
+        <div>
+          <label class="form-label">Setor <span class="req">*</span></label>
+          <input class="form-control" id="f-setor" list="setores-list" placeholder="Ex: Tecnologia da Informação">
+          <datalist id="setores-list"></datalist>
+        </div>
+        <div>
+          <label class="form-label">Ramal</label>
+          <input class="form-control" id="f-ramal" placeholder="0000" maxlength="4">
+        </div>
+        <div>
+          <label class="form-label">Categoria</label>
+          <input class="form-control" id="f-categoria" placeholder="Ex: preventiva, rede, impressora…">
+        </div>
+        <div class="field-full">
+          <label class="form-label">Descrição <span class="req">*</span></label>
+          <textarea class="form-control" id="f-descricao" rows="3" placeholder="Descreva a atividade recorrente (mín. 10 caracteres)"></textarea>
+        </div>
+        <div>
+          <label class="form-label">Prioridade</label>
+          <select class="form-control" id="f-prioridade">
+            <option value="normal">Normal</option>
+            <option value="urgente">Urgente</option>
+            <option value="baixa">Baixa</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Admin responsável</label>
+          <select class="form-control" id="f-admin">
+            <option value="">— Sem responsável —</option>
+          </select>
+        </div>
+
+        <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:.75rem;margin-top:.25rem">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin-bottom:.6rem">⏰ Agendamento</div>
+        </div>
+
+        <div>
+          <label class="form-label">Frequência <span class="req">*</span></label>
+          <select class="form-control" id="f-frequencia">
+            <option value="">Selecione…</option>
+            <option value="diario">Diário</option>
+            <option value="semanal">Semanal</option>
+            <option value="mensal">Mensal</option>
+            <option value="bimestral">Bimestral</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="semestral">Semestral</option>
+            <option value="anual">Anual</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Horário</label>
+          <input class="form-control" id="f-hora" type="time" value="08:00">
+        </div>
+
+        <div id="campo-dia-semana" style="display:none">
+          <label class="form-label">Dia da semana</label>
+          <select class="form-control" id="f-dia-semana">
+            <option value="1">Segunda-feira</option>
+            <option value="2">Terça-feira</option>
+            <option value="3">Quarta-feira</option>
+            <option value="4">Quinta-feira</option>
+            <option value="5">Sexta-feira</option>
+            <option value="6">Sábado</option>
+            <option value="0">Domingo</option>
+          </select>
+        </div>
+        <div id="campo-dia-mes" style="display:none">
+          <label class="form-label">Dia do mês</label>
+          <input class="form-control" id="f-dia-mes" type="number" min="1" max="31" placeholder="Ex: 1">
+        </div>
+        <div id="campo-mes" style="display:none">
+          <label class="form-label">Mês</label>
+          <select class="form-control" id="f-mes">
+            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+            <option value="3">Março</option><option value="4">Abril</option>
+            <option value="5">Maio</option><option value="6">Junho</option>
+            <option value="7">Julho</option><option value="8">Agosto</option>
+            <option value="9">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+        </div>
+
+        <div class="field-full" style="display:flex;align-items:center;gap:.6rem">
+          <input type="checkbox" id="f-pular-feriados" checked style="width:1rem;height:1rem;cursor:pointer">
+          <label for="f-pular-feriados" style="font-size:.83rem;cursor:pointer;margin:0">
+            Pular feriados e fins de semana (cria no próximo dia útil)
+          </label>
+        </div>
+      </div>
+
+      <div class="preview-datas" id="preview-datas" style="display:none">
+        <h4>Próximas execuções (preview)</h4>
+        <div class="preview-lista" id="preview-lista"></div>
+      </div>
+
+      <div id="modal-erro" style="display:none;margin-top:.75rem;padding:.6rem .85rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-preview">🔍 Ver datas</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost" id="btn-cancelar-modal">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar">Salvar Agendamento</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/admin-programados.js"></script>
+</body>
+</html>
