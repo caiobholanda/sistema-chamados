@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spa by L'Occitane — Admin</title>
+  <link rel="preconnect" href="https://letsimage.s3.amazonaws.com">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .spa-table { width:100%; border-collapse:collapse; font-size:.84rem; }
+    .spa-table th { text-align:left; padding:.65rem 1rem; border-bottom:2px solid var(--border); font-size:.7rem; text-transform:uppercase; letter-spacing:.07em; color:var(--text-secondary,#6b7280); white-space:nowrap; }
+    .spa-table td { padding:.7rem 1rem; border-bottom:1px solid var(--border-light,#f3f4f6); vertical-align:middle; }
+    .spa-table tr:last-child td { border-bottom:none; }
+    .spa-table tbody tr:hover td { background:var(--surface-2,#f9fafb); }
+
+    .badge-pesq { display:inline-flex;align-items:center;gap:.3rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:8px; }
+    .pesq-BLOQUEADA    { background:#f1f5f9; color:#475569; }
+    .pesq-LIBERADA     { background:#fef3c7; color:#92400e; }
+    .pesq-EM_ANDAMENTO { background:#dbeafe; color:#1d4ed8; }
+    .pesq-CONCLUIDA    { background:#dcfce7; color:#166534; }
+    .pesq-NAO_REALIZADA{ background:#fee2e2; color:#991b1b; }
+
+    .terapeuta-list { display:flex; flex-direction:column; gap:.5rem; }
+    .terapeuta-item { display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border:1px solid var(--border);border-radius:8px;background:var(--surface); }
+    .terapeuta-item.inativo { opacity:.5; }
+    .terapeuta-nome { flex:1; font-size:.88rem; font-weight:500; }
+
+    .empty-state { padding:4rem 1.5rem;text-align:center;color:var(--text-secondary,#6b7280); }
+    .empty-icon  { font-size:2.5rem;margin-bottom:1rem; }
+
+    .url-copy { font-size:.72rem; color:var(--text-secondary);font-family:monospace;background:var(--surface-2,#f9fafb);padding:.15rem .4rem;border-radius:4px;cursor:pointer;border:1px solid var(--border);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;transition:background .15s; }
+    .url-copy:hover { background:var(--gold-light,#fef3c7); }
+
+    .hist-list { display:flex;flex-direction:column;gap:.4rem; }
+    .hist-item { display:flex;gap:.75rem;align-items:baseline;font-size:.8rem; }
+    .hist-ts   { font-size:.72rem;color:var(--text-secondary);white-space:nowrap;flex-shrink:0; }
+    .hist-ev   { font-weight:600; }
+
+    .modal-spa { max-width:560px;width:95vw; }
+
+    .form-grid-2 { display:grid;grid-template-columns:1fr 1fr;gap:1rem; }
+    .field-full  { grid-column:1/-1; }
+
+    .countdown-chip { display:inline-flex;align-items:center;gap:.35rem;background:#fef3c7;color:#92400e;border:1px solid #fbbf24;border-radius:20px;font-size:.7rem;font-weight:700;padding:.25rem .75rem; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-brand">
+    <img class="header-logo-img" src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise">
+    <div class="header-brand-text">
+      <div class="header-brand-name">Gran Marquise</div>
+      <div class="header-brand-sub">Suporte de TI</div>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <nav></nav>
+</header>
+
+<div id="toast-container"></div>
+
+<main class="wide">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Spa by L'Occitane</h1>
+      <p class="page-sub">Reservas, pesquisa de satisfação e terapeutas</p>
+    </div>
+    <button class="btn btn-primary" id="btn-nova-reserva">+ Nova Reserva</button>
+  </div>
+
+  <div class="tabs-bar">
+    <button class="tab-btn active" data-tab="reservas">Reservas</button>
+    <button class="tab-btn" data-tab="terapeutas">Terapeutas</button>
+    <button class="tab-btn" data-tab="perfis">Perfis de Hóspedes</button>
+  </div>
+
+  <!-- Tab: Reservas -->
+  <div id="tab-reservas">
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="spa-table" id="tbl-reservas">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Hóspede</th>
+            <th>Serviço</th>
+            <th>Terapeuta</th>
+            <th>Término</th>
+            <th>Pesquisa</th>
+            <th>Link</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="reservas-body">
+          <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary)">Carregando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab: Terapeutas -->
+  <div id="tab-terapeutas" style="display:none">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+      <button class="btn btn-sm btn-primary" id="btn-novo-terapeuta">+ Novo Terapeuta</button>
+    </div>
+    <div class="card" style="padding:1rem">
+      <div class="terapeuta-list" id="terapeuta-list">
+        <div class="empty-state" style="padding:2rem"><div class="spinner-sm"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Perfis de Hóspedes -->
+  <div id="tab-perfis" style="display:none">
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="spa-table" id="tbl-perfis">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Idioma</th>
+            <th>Apto</th>
+            <th>Cadastrado em</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="perfis-body">
+          <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-secondary)">Carregando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal Reserva -->
+<div class="modal-overlay" id="modal-reserva-overlay" style="display:none">
+  <div class="modal modal-spa">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-reserva-titulo">Nova Reserva</h2>
+      <button class="modal-close" id="btn-fechar-modal-reserva">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="reserva-id">
+      <div class="form-grid-2">
+        <div class="field-full">
+          <label class="form-label">Nome do Hóspede <span class="req">*</span></label>
+          <input class="form-control" id="r-hospede-nome" placeholder="Ex.: Maria Silva">
+        </div>
+        <div>
+          <label class="form-label">E-mail do Hóspede</label>
+          <input class="form-control" id="r-hospede-email" type="email" placeholder="maria@email.com">
+        </div>
+        <div>
+          <label class="form-label">Terapeuta</label>
+          <select class="form-control" id="r-terapeuta">
+            <option value="">— Selecionar —</option>
+          </select>
+        </div>
+        <div class="field-full">
+          <label class="form-label">Serviço <span class="req">*</span></label>
+          <input class="form-control" id="r-servico" placeholder="Ex.: Massagem Relaxante 60min">
+        </div>
+        <div class="field-full">
+          <label class="form-label">Data e Hora de Término <span class="req">*</span></label>
+          <input class="form-control" id="r-data-termino" type="datetime-local">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancelar-reserva">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-reserva">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Terapeuta -->
+<div class="modal-overlay" id="modal-terapeuta-overlay" style="display:none">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-terapeuta-titulo">Novo Terapeuta</h2>
+      <button class="modal-close" id="btn-fechar-modal-terapeuta">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="terapeuta-id">
+      <label class="form-label">Nome <span class="req">*</span></label>
+      <input class="form-control" id="t-nome" placeholder="Nome da terapeuta">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancelar-terapeuta">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-terapeuta">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Histórico -->
+<div class="modal-overlay" id="modal-hist-overlay" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h2 class="modal-title">Histórico da Reserva</h2>
+      <button class="modal-close" id="btn-fechar-hist">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="hist-list" id="hist-list"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/nav.js"></script>
+<script src="/js/admin-spa.js"></script>
+</body>
+</html>

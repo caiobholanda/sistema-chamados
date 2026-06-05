@@ -59,7 +59,7 @@
 
   html += link('/admin-relatorios.html', 'Relatórios');
 
-  const adminDropdownPages = ['/admin-itens.html', '/admin-contatos.html', '/admin-sugestoes.html', '/admin-servicos.html', '/admin-setores.html', '/admin-programados.html'];
+  const adminDropdownPages = ['/admin-itens.html', '/admin-contatos.html', '/admin-sugestoes.html', '/admin-servicos.html', '/admin-setores.html', '/admin-programados.html', '/admin-spa.html'];
   const adminAtivo = adminDropdownPages.includes(path);
   html += `<div class="nav-dropdown" id="nav-admin-dropdown">
     <button class="nav-dropdown-trigger${adminAtivo ? ' ativo' : ''}" id="nav-admin-trigger">
@@ -72,6 +72,7 @@
       <a href="/admin-servicos.html"${path === '/admin-servicos.html' ? ' class="ativo"' : ''}>Etiquetas</a>
       <a href="/admin-setores.html"${path === '/admin-setores.html' ? ' class="ativo"' : ''}>Setores</a>
       <a href="/admin-programados.html"${path === '/admin-programados.html' ? ' class="ativo"' : ''}>Programados</a>
+      <a href="/admin-spa.html"${path === '/admin-spa.html' ? ' class="ativo"' : ''}>Spa</a>
     </div>
   </div>`;
 

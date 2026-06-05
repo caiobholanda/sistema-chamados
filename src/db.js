@@ -661,6 +661,52 @@ function initDb() {
     )
   `); } catch {}
 
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS spa_terapeutas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      ativo INTEGER NOT NULL DEFAULT 1,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS spa_reservas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      hospede_nome TEXT NOT NULL,
+      hospede_email TEXT,
+      terapeuta_id INTEGER REFERENCES spa_terapeutas(id),
+      servico TEXT NOT NULL,
+      data_termino TEXT NOT NULL,
+      status_pesquisa TEXT NOT NULL DEFAULT 'BLOQUEADA',
+      token TEXT UNIQUE NOT NULL,
+      liberada_em TEXT,
+      iniciada_em TEXT,
+      concluida_em TEXT,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_spa_reservas_token ON spa_reservas(token);
+
+    CREATE TABLE IF NOT EXISTS spa_pesquisa_respostas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reserva_id INTEGER NOT NULL REFERENCES spa_reservas(id) ON DELETE CASCADE,
+      nota_geral INTEGER NOT NULL,
+      nota_terapeuta INTEGER NOT NULL,
+      nota_ambiente INTEGER NOT NULL,
+      nota_custo_beneficio INTEGER NOT NULL,
+      recomendaria INTEGER NOT NULL DEFAULT 0,
+      comentario TEXT,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS spa_historico (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reserva_id INTEGER NOT NULL REFERENCES spa_reservas(id) ON DELETE CASCADE,
+      evento TEXT NOT NULL,
+      detalhes TEXT,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_spa_historico_reserva ON spa_historico(reserva_id);
+  `); } catch {}
+
   return db;
 }
 
@@ -2638,6 +2684,123 @@ function listarUltimosGeradosProgramados(limit = 30) {
   `).all(limit);
 }
 
+// ── Spa Terapeutas ────────────────────────────────────────────────────────────
+
+function listarSpaTerapeutas() {
+  return getDb().prepare('SELECT * FROM spa_terapeutas ORDER BY nome ASC').all();
+}
+
+function criarSpaTerapeuta(nome) {
+  return getDb().prepare('INSERT INTO spa_terapeutas (nome) VALUES (?)').run(nome).lastInsertRowid;
+}
+
+function atualizarSpaTerapeuta(id, nome) {
+  return getDb().prepare('UPDATE spa_terapeutas SET nome = ? WHERE id = ?').run(nome, id);
+}
+
+function toggleSpaTerapeuta(id) {
+  return getDb().prepare('UPDATE spa_terapeutas SET ativo = CASE WHEN ativo=1 THEN 0 ELSE 1 END WHERE id = ?').run(id);
+}
+
+// ── Spa Reservas ──────────────────────────────────────────────────────────────
+
+function listarSpaReservas({ limit = 200 } = {}) {
+  return getDb().prepare(`
+    SELECT r.*, t.nome AS terapeuta_nome
+    FROM spa_reservas r
+    LEFT JOIN spa_terapeutas t ON t.id = r.terapeuta_id
+    ORDER BY r.data_termino DESC LIMIT ?
+  `).all(limit);
+}
+
+function buscarSpaReservaPorId(id) {
+  return getDb().prepare(`
+    SELECT r.*, t.nome AS terapeuta_nome
+    FROM spa_reservas r
+    LEFT JOIN spa_terapeutas t ON t.id = r.terapeuta_id
+    WHERE r.id = ?
+  `).get(id);
+}
+
+function buscarSpaReservaPorToken(token) {
+  return getDb().prepare(`
+    SELECT r.*, t.nome AS terapeuta_nome
+    FROM spa_reservas r
+    LEFT JOIN spa_terapeutas t ON t.id = r.terapeuta_id
+    WHERE r.token = ?
+  `).get(token);
+}
+
+function criarSpaReserva(dados) {
+  return getDb().prepare(`
+    INSERT INTO spa_reservas (hospede_nome, hospede_email, terapeuta_id, servico, data_termino, token)
+    VALUES (@hospede_nome, @hospede_email, @terapeuta_id, @servico, @data_termino, @token)
+  `).run(dados).lastInsertRowid;
+}
+
+function atualizarSpaReserva(id, dados) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET hospede_nome=@hospede_nome, hospede_email=@hospede_email,
+      terapeuta_id=@terapeuta_id, servico=@servico, data_termino=@data_termino
+    WHERE id=@id
+  `).run({ ...dados, id });
+}
+
+function deletarSpaReserva(id) {
+  return getDb().prepare('DELETE FROM spa_reservas WHERE id = ?').run(id);
+}
+
+function liberarPesquisaSpa(id, liberadaEm) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET status_pesquisa='LIBERADA', liberada_em=?
+    WHERE id=? AND status_pesquisa='BLOQUEADA'
+  `).run(liberadaEm, id).changes;
+}
+
+function iniciarPesquisaSpa(id, iniciadaEm) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET status_pesquisa='EM_ANDAMENTO', iniciada_em=?
+    WHERE id=? AND status_pesquisa='LIBERADA'
+  `).run(iniciadaEm, id).changes;
+}
+
+function concluirPesquisaSpa(id, concluidaEm) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET status_pesquisa='CONCLUIDA', concluida_em=?
+    WHERE id=? AND status_pesquisa='EM_ANDAMENTO'
+  `).run(concluidaEm, id).changes;
+}
+
+function expirarPesquisaSpa(id) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET status_pesquisa='NAO_REALIZADA'
+    WHERE id=? AND status_pesquisa IN ('LIBERADA','EM_ANDAMENTO')
+  `).run(id).changes;
+}
+
+function inserirRespostaSpa(dados) {
+  return getDb().prepare(`
+    INSERT INTO spa_pesquisa_respostas
+      (reserva_id, nota_geral, nota_terapeuta, nota_ambiente, nota_custo_beneficio, recomendaria, comentario)
+    VALUES
+      (@reserva_id, @nota_geral, @nota_terapeuta, @nota_ambiente, @nota_custo_beneficio, @recomendaria, @comentario)
+  `).run(dados).lastInsertRowid;
+}
+
+function buscarRespostaSpa(reserva_id) {
+  return getDb().prepare('SELECT * FROM spa_pesquisa_respostas WHERE reserva_id = ?').get(reserva_id);
+}
+
+function inserirHistoricoSpa(reserva_id, evento, detalhes) {
+  return getDb().prepare('INSERT INTO spa_historico (reserva_id, evento, detalhes) VALUES (?,?,?)').run(reserva_id, evento, detalhes || null);
+}
+
+function listarHistoricoSpa(reserva_id) {
+  return getDb().prepare('SELECT * FROM spa_historico WHERE reserva_id = ? ORDER BY criado_em ASC').all(reserva_id);
+}
+
+// ── Spa Perfis ────────────────────────────────────────────────────────────────
+
 function inserirSpaPerfil(dados) {
   return getDb().prepare(`
     INSERT INTO spa_perfis
@@ -2813,6 +2976,24 @@ module.exports = {
   inserirSpaPerfil,
   getSpaPerfil,
   listarSpaPerfis,
+  listarSpaTerapeutas,
+  criarSpaTerapeuta,
+  atualizarSpaTerapeuta,
+  toggleSpaTerapeuta,
+  listarSpaReservas,
+  buscarSpaReservaPorId,
+  buscarSpaReservaPorToken,
+  criarSpaReserva,
+  atualizarSpaReserva,
+  deletarSpaReserva,
+  liberarPesquisaSpa,
+  iniciarPesquisaSpa,
+  concluirPesquisaSpa,
+  expirarPesquisaSpa,
+  inserirRespostaSpa,
+  buscarRespostaSpa,
+  inserirHistoricoSpa,
+  listarHistoricoSpa,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────
