@@ -149,21 +149,28 @@
           <input class="form-control" id="f-titulo" placeholder="Ex: Verificação semanal dos backups">
         </div>
         <div>
+          <label class="form-label">Setor <span class="req">*</span></label>
+          <input class="form-control" id="f-setor" list="setores-list" placeholder="Ex: Tecnologia da Informação" autocomplete="off">
+          <datalist id="setores-list"></datalist>
+        </div>
+        <div>
+          <label class="form-label">Serviço / Etiqueta</label>
+          <input class="form-control" id="f-categoria" list="etiquetas-list" placeholder="Buscar etiqueta…" autocomplete="off">
+          <datalist id="etiquetas-list"></datalist>
+        </div>
+        <div class="field-full" style="position:relative">
+          <label class="form-label">Solicitante do portal <span style="font-size:.75rem;font-weight:400;color:var(--text-secondary)">(opcional — preenche nome e ramal)</span></label>
+          <input class="form-control" id="f-pessoa-busca" placeholder="Buscar pelo nome…" autocomplete="off">
+          <div id="f-pessoa-resultados" style="display:none;position:absolute;z-index:300;left:0;right:0;border:1px solid var(--border);border-radius:8px;background:var(--surface);max-height:180px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
+          <div id="f-pessoa-selecionada" style="display:none;margin-top:.4rem;font-size:.8rem;padding:.3rem .7rem;background:var(--gold-light,#fef3c7);color:var(--gold-dark,#92400e);border-radius:5px;border:1px solid var(--gold,#d4953d)"></div>
+        </div>
+        <div>
           <label class="form-label">Nome do solicitante <span class="req">*</span></label>
           <input class="form-control" id="f-nome" placeholder="Ex: Sistema TI">
         </div>
         <div>
-          <label class="form-label">Setor <span class="req">*</span></label>
-          <input class="form-control" id="f-setor" list="setores-list" placeholder="Ex: Tecnologia da Informação">
-          <datalist id="setores-list"></datalist>
-        </div>
-        <div>
           <label class="form-label">Ramal</label>
           <input class="form-control" id="f-ramal" placeholder="0000" maxlength="4">
-        </div>
-        <div>
-          <label class="form-label">Categoria</label>
-          <input class="form-control" id="f-categoria" placeholder="Ex: preventiva, rede, impressora…">
         </div>
         <div class="field-full">
           <label class="form-label">Descrição <span class="req">*</span></label>

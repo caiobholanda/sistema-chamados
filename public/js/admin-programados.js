@@ -162,9 +162,13 @@ function fecharModal() {
 }
 
 function limparForm() {
-  ['f-titulo','f-nome','f-setor','f-ramal','f-categoria','f-descricao'].forEach(id => {
+  ['f-titulo','f-nome','f-setor','f-ramal','f-categoria','f-descricao','f-pessoa-busca'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  const selEl = document.getElementById('f-pessoa-selecionada');
+  if (selEl) selEl.style.display = 'none';
+  const resEl = document.getElementById('f-pessoa-resultados');
+  if (resEl) resEl.style.display = 'none';
   document.getElementById('f-frequencia').value = '';
   document.getElementById('f-hora').value = '08:00';
   document.getElementById('f-prioridade').value = 'normal';
@@ -328,10 +332,85 @@ async function carregarSetores() {
   if (!r) return;
   const d = await r.json();
   const dl = document.getElementById('setores-list');
-  (d.setores || d.items || []).forEach(s => {
+  (Array.isArray(d) ? d : (d.setores || d.items || [])).forEach(s => {
     const opt = document.createElement('option');
-    opt.value = s.nome;
+    opt.value = s.nome || s;
     dl.appendChild(opt);
+  });
+}
+
+async function carregarEtiquetas() {
+  const r = await apiFetch('/api/etiquetas');
+  if (!r) return;
+  const lista = await r.json();
+  const dl = document.getElementById('etiquetas-list');
+  (Array.isArray(lista) ? lista : []).forEach(et => {
+    const opt = document.createElement('option');
+    opt.value = et.nome;
+    dl.appendChild(opt);
+  });
+}
+
+// ── Busca de solicitante do portal ────────────────────────────────────────────
+let _portalUsers = [];
+
+async function carregarUsuariosPortal() {
+  const r = await apiFetch('/api/admin/portal-usuarios');
+  if (!r) return;
+  const lista = await r.json();
+  _portalUsers = Array.isArray(lista) ? lista.filter(u => u.ativo !== 0) : [];
+}
+
+function setupPessoaBusca() {
+  const busca    = document.getElementById('f-pessoa-busca');
+  const resultEl = document.getElementById('f-pessoa-resultados');
+  const selEl    = document.getElementById('f-pessoa-selecionada');
+  const fSetor   = document.getElementById('f-setor');
+
+  function getFiltrados() {
+    const setor = fSetor.value.trim().toLowerCase();
+    const q     = busca.value.trim().toLowerCase();
+    return _portalUsers.filter(u => {
+      const okSetor = !setor || (u.setor && u.setor.toLowerCase().includes(setor));
+      const okNome  = !q || u.nome.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q));
+      return okSetor && okNome;
+    }).slice(0, 8);
+  }
+
+  function mostrar(lista) {
+    if (!lista.length) { resultEl.style.display = 'none'; return; }
+    resultEl.innerHTML = lista.map(u => `
+      <div class="pp-opt" data-nome="${esc(u.nome)}" data-ramal="${esc(u.ramal||'')}"
+           style="padding:.55rem .9rem;cursor:pointer;border-bottom:1px solid var(--border-light,#f3f4f6)">
+        <div style="font-size:.85rem;font-weight:600">${esc(u.nome)}</div>
+        <div style="font-size:.74rem;color:var(--text-secondary)">${esc(u.setor||'—')}${u.ramal ? ` · Ramal ${esc(u.ramal)}` : ''}</div>
+      </div>`).join('');
+    resultEl.style.display = 'block';
+    resultEl.querySelectorAll('.pp-opt').forEach(el => {
+      el.addEventListener('mouseenter', () => el.style.background = 'var(--surface-2,#f9fafb)');
+      el.addEventListener('mouseleave', () => el.style.background = '');
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const nome  = el.dataset.nome;
+        const ramal = el.dataset.ramal;
+        document.getElementById('f-nome').value  = nome;
+        document.getElementById('f-ramal').value = ramal;
+        busca.value = nome;
+        selEl.textContent = `${nome}${ramal ? ` · Ramal ${ramal}` : ''}`;
+        selEl.style.display = 'block';
+        resultEl.style.display = 'none';
+      });
+    });
+  }
+
+  busca.addEventListener('input', () => { selEl.style.display = 'none'; mostrar(getFiltrados()); });
+  busca.addEventListener('focus', () => mostrar(getFiltrados()));
+  busca.addEventListener('blur',  () => setTimeout(() => { resultEl.style.display = 'none'; }, 150));
+
+  fSetor.addEventListener('input', () => {
+    busca.value = '';
+    selEl.style.display = 'none';
+    resultEl.style.display = 'none';
   });
 }
 
@@ -339,7 +418,10 @@ async function carregarSetores() {
 (async () => {
   const ok = await checkAuth();
   if (!ok) return;
+  setupPessoaBusca();
   carregarAdmins();
   carregarSetores();
+  carregarEtiquetas();
+  carregarUsuariosPortal();
   carregarAgendamentos();
 })();
