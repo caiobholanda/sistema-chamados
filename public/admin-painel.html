@@ -103,7 +103,7 @@
   <div class="filtros-card">
     <div class="filtros">
       <input class="form-control" type="search" id="filtro-busca" aria-label="Buscar chamados" placeholder="Buscar por ID, nome, descrição, setor, etiqueta…" style="min-width:220px;flex:1">
-      <div style="position:relative;flex:1;min-width:120px">
+      <div class="filtro-setor-wrap" style="flex:1;min-width:120px">
         <input class="form-control" type="text" id="filtro-setor" placeholder="Todos os setores" autocomplete="off" aria-label="Setor">
       </div>
       <select class="form-control" id="filtro-admin" aria-label="Responsável">
@@ -112,7 +112,7 @@
       <div class="etiq-dd-wrap" id="etiq-dd-wrap">
         <button type="button" class="etiq-dd-trigger" id="etiq-dd-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Filtrar por etiqueta">
           <span class="etiq-dd-dot" id="etiq-dd-dot"></span>
-          <span class="etiq-dd-label" id="etiq-dd-label">Todas as etiquetas</span>
+          <span class="etiq-dd-label" id="etiq-dd-label">Etiqueta</span>
           <svg class="etiq-dd-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="etiq-dd-panel" id="etiq-dd-panel" role="listbox" aria-label="Etiquetas">

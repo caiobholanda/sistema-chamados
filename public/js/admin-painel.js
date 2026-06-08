@@ -508,7 +508,7 @@ function _atualizarDropdownVisual() {
       trigger?.classList.add('has-value');
     }
   } else {
-    label.textContent = 'Todas as etiquetas';
+    label.textContent = 'Etiqueta';
     trigger?.classList.remove('has-value');
   }
 }

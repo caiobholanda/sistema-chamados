@@ -5118,10 +5118,18 @@ html.modal-aberto {
 /* ═══════════════════════════════════════════
    ETIQUETA FILTER DROPDOWN
 ═══════════════════════════════════════════ */
+.filtro-setor-wrap {
+  position: relative;
+  z-index: 10;
+}
 .etiq-dd-wrap {
   position: relative;
   flex: 0 0 auto;
-  min-width: 158px;
+  min-width: 130px;
+  z-index: 9;
+}
+@media (max-width: 1100px) {
+  #filtro-busca { min-width: 140px !important; }
 }
 .etiq-dd-trigger {
   display: flex;
