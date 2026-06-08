@@ -434,6 +434,10 @@ router.post('/chamados/:id/info-adicional', requireAdmin, (req, res) => {
       VALUES (?, ?, 'info_adicional', NULL, ?)
     `).run(chamado.id, req.admin.sub, texto);
     db.incrementarNovidadesAdmin(chamado.id);
+    push.enviarParaTodos(
+      `ℹ️ Nova informação no Chamado #${chamado.id}`,
+      `${autorNome}: ${texto.slice(0, 100)}${texto.length > 100 ? '…' : ''}`
+    ).catch(() => {});
     return res.status(201).json({ mensagem: 'Informação adicionada' });
   } catch (err) {
     console.error(err);
