@@ -1502,6 +1502,9 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
     }
   }
 
+  const _statusArr = (filtros.status || '').split(',').map(s => s.trim()).filter(Boolean);
+  const _isEncerrados = _statusArr.length > 0 && _statusArr.every(s => s === 'concluido' || s === 'encerrado');
+
   sql += `
     ORDER BY
       CASE WHEN c.prioridade IS NULL THEN 0 ELSE 1 END ASC,
@@ -1514,7 +1517,7 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
       END ASC,
       CASE WHEN c.prazo IS NULL THEN 1 ELSE 0 END ASC,
       c.prazo ASC,
-      c.criado_em ASC
+      ${_isEncerrados ? 'COALESCE(c.concluido_em, c.atualizado_em) DESC' : 'c.criado_em ASC'}
   `;
 
   return db.prepare(sql).all(...params);
