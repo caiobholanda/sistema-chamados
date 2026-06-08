@@ -1311,9 +1311,16 @@ async function carregarChamados(silencioso = false) {
         </div>`;
       return;
     }
+    const _statusArr2 = (params.get('status') || '').split(',').map(s => s.trim());
+    const _isEncerrados = _statusArr2.length > 0 && _statusArr2.every(s => s === 'concluido' || s === 'encerrado');
     chamados.sort((a, b) => {
       const prioDiff = scorePrioridade(a) - scorePrioridade(b);
       if (prioDiff !== 0) return prioDiff;
+      if (_isEncerrados) {
+        const dA = new Date(a.concluido_em || a.atualizado_em || a.criado_em);
+        const dB = new Date(b.concluido_em || b.atualizado_em || b.criado_em);
+        return dB - dA;
+      }
       return new Date(a.criado_em) - new Date(b.criado_em);
     });
     lista.innerHTML = chamados.map(c => renderChamadoItem(c)).join('');
