@@ -208,7 +208,15 @@
         ? candidatos.filter(e => { const bc = breadcrumb(e); return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query); })
         : candidatos).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
 
-      dd.innerHTML = filtered.length
+      const showSemPai = !query || 'sem pai'.includes(query) || 'raiz'.includes(query);
+      const semPaiHtml = showSemPai
+        ? `<div class="et-pcomb-item${!valI.value ? ' et-pcomb-sel' : ''}" data-slug=""
+            style="padding:.42rem .75rem;cursor:pointer;font-size:.82rem;color:var(--text-muted);font-style:italic;border-bottom:1px solid var(--border-light,#f3f4f6)">
+            — Sem pai (etiqueta raiz) —
+          </div>`
+        : '';
+
+      dd.innerHTML = semPaiHtml + (filtered.length
         ? filtered.map(e => {
             const bc = breadcrumb(e);
             const cor = e.cor || '#6B7280';
@@ -218,8 +226,8 @@
               <span>${bc ? `<span style="color:var(--text-muted);font-size:.74rem">${bc} › </span>` : ''}<strong style="font-weight:600">${e.nome}</strong></span>
             </div>`;
           }).join('')
-        : '<div style="padding:.4rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
-      dd.style.display = filtered.length || query ? 'block' : 'none';
+        : (showSemPai ? '' : '<div style="padding:.4rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>'));
+      dd.style.display = semPaiHtml || filtered.length || query ? 'block' : 'none';
     }
 
     function _close() { dd.style.display = 'none'; }
