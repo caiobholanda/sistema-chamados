@@ -4,9 +4,9 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
-const { initDb, initSugestoes, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo, getProgramadosPendentes, registrarExecucaoProgramado, inserirChamado } = require('./src/db');
+const { initDb, initSugestoes, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo } = require('./src/db');
 const push = require('./src/push');
-const { calcularProxima } = require('./src/programados');
+const { executarChamadosProgramados } = require('./src/scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -159,40 +159,6 @@ async function checarPrazos() {
   }
 }
 
-async function executarChamadosProgramados() {
-  try {
-    const pendentes = getProgramadosPendentes();
-    if (!pendentes.length) return;
-    console.log(`[Programados] ${pendentes.length} agendamento(s) para executar`);
-    for (const prog of pendentes) {
-      try {
-        const chamadoId = inserirChamado({
-          nome: prog.nome,
-          setor: prog.setor,
-          ramal: prog.ramal || null,
-          descricao: `[Automático] ${prog.descricao}`,
-          categoria: prog.categoria || null,
-          aberto_por_admin_id: null,
-          admin_responsavel_id: prog.admin_responsavel_id || null,
-          anexo_path: null,
-          anexo_nome_original: null,
-          servico_id: null,
-          servico_nome: null,
-        });
-        const proxima = calcularProxima(prog, new Date());
-        const proximaISO = proxima.toISOString().replace('T', ' ').slice(0, 19);
-        registrarExecucaoProgramado(prog.id, chamadoId, proximaISO);
-        const msg = `Chamado #${chamadoId} criado automaticamente: "${prog.titulo}" (${prog.setor})`;
-        console.log(`[Programados] ${msg}`);
-        push.enviarParaTodos('📅 Chamado Programado', msg).catch(() => {});
-      } catch (err) {
-        console.error(`[Programados] erro ao executar programado #${prog.id}:`, err.message);
-      }
-    }
-  } catch (err) {
-    console.error('[Programados] erro geral:', err);
-  }
-}
 
 async function main() {
   initDb();

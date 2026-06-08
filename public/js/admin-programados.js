@@ -349,6 +349,10 @@ document.getElementById('btn-novo').addEventListener('click', () => {
 document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
 document.getElementById('btn-cancelar-modal').addEventListener('click', fecharModal);
 
+const _fecharLogModal = () => { document.getElementById('log-modal-overlay').style.display = 'none'; };
+document.getElementById('btn-fechar-log').addEventListener('click', _fecharLogModal);
+document.getElementById('btn-fechar-log-2').addEventListener('click', _fecharLogModal);
+
 document.getElementById('btn-preview').addEventListener('click', async () => {
   const body = lerForm();
   const r = await apiFetch('/api/admin/programados/preview', { method: 'POST', body: JSON.stringify(body) });
@@ -414,14 +418,16 @@ window.verLog = async (id, titulo) => {
   const d = await r.json();
   if (!d.ok) return;
   const rows = d.items.length
-    ? d.items.map(it => `<tr>
-        <td>#${it.chamado_id}</td>
-        <td>${esc(it.nome)} · ${esc(it.setor)}</td>
-        <td><span class="badge badge-status badge-status-${it.status}">${it.status}</span></td>
-        <td>${fmtDT(it.executado_em)}</td>
+    ? d.items.map(it => `<tr style="border-bottom:1px solid var(--border-light,#f3f4f6)">
+        <td style="padding:.45rem .6rem"><a href="/admin-painel.html#chamado=${it.chamado_id}" target="_blank" style="color:var(--gold)">#${it.chamado_id}</a></td>
+        <td style="padding:.45rem .6rem">${esc(it.nome)} · ${esc(it.setor)}</td>
+        <td style="padding:.45rem .6rem"><span class="badge badge-status badge-status-${it.status}">${it.status}</span></td>
+        <td style="padding:.45rem .6rem">${fmtDT(it.executado_em)}</td>
       </tr>`).join('')
-    : '<tr><td colspan="4" style="text-align:center;padding:1rem;color:var(--text-secondary)">Nenhum chamado gerado ainda.</td></tr>';
-  alert(`Log do agendamento "${titulo}"\n\n(Abra a aba Histórico para ver o log completo)`);
+    : '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-secondary)">Nenhum chamado gerado ainda.</td></tr>';
+  document.getElementById('log-modal-titulo').textContent = `Log — ${titulo}`;
+  document.getElementById('log-modal-tbody').innerHTML = rows;
+  document.getElementById('log-modal-overlay').style.display = 'flex';
 };
 
 // ── Carregar admins para select ───────────────────────────────────────────────

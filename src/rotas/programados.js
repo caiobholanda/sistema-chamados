@@ -9,6 +9,7 @@ const {
   listarLogProgramado, listarUltimosGeradosProgramados,
 } = require('../db');
 const { calcularProxima, proximasN } = require('../programados');
+const { executarChamadosProgramados } = require('../scheduler');
 
 const FREQS_VALIDAS = ['diario','semanal','mensal','bimestral','trimestral','semestral','anual'];
 
@@ -49,6 +50,14 @@ function validarEMontar(body) {
   prog.proxima_execucao = toISO(proxima);
   return { prog };
 }
+
+// POST /api/admin/programados/debug/trigger — disparo manual do scheduler (diagnóstico)
+router.post('/debug/trigger', requireAdmin, async (req, res) => {
+  const { getProgramadosPendentes } = require('../db');
+  const pendentesAntes = getProgramadosPendentes().map(p => ({ id: p.id, titulo: p.titulo, proxima: p.proxima_execucao }));
+  const resultados = await executarChamadosProgramados();
+  res.json({ ok: true, pendentesAntes, resultados });
+});
 
 // GET /api/admin/programados
 router.get('/', requireAdmin, (req, res) => {
