@@ -348,9 +348,6 @@ document.getElementById('btn-novo').addEventListener('click', () => {
 });
 document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
 document.getElementById('btn-cancelar-modal').addEventListener('click', fecharModal);
-document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('modal-overlay')) fecharModal();
-});
 
 document.getElementById('btn-preview').addEventListener('click', async () => {
   const body = lerForm();
