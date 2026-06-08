@@ -10,8 +10,9 @@ const TIPOS_PERMITIDOS = [
   'application/pdf',
   'text/plain',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/x-ms-wmv',
 ];
-const EXTENSOES_PERMITIDAS = ['.jpg', '.jpeg', '.png', '.pdf', '.txt', '.log', '.docx'];
+const EXTENSOES_PERMITIDAS = ['.jpg', '.jpeg', '.png', '.pdf', '.txt', '.log', '.docx', '.mp4', '.webm', '.mov', '.avi', '.mkv', '.wmv'];
 
 function sanitizarNome(nome) {
   return nome
@@ -33,8 +34,10 @@ const storage = multer.diskStorage({
 });
 
 function fileFilter(_req, file, cb) {
-  const ext = path.extname(file.originalname).toLowerCase();
-  if (!EXTENSOES_PERMITIDAS.includes(ext) || !TIPOS_PERMITIDOS.includes(file.mimetype)) {
+  const mimeOk = TIPOS_PERMITIDOS.includes(file.mimetype)
+    || file.mimetype.startsWith('video/')
+    || file.mimetype.startsWith('image/');
+  if (!mimeOk) {
     return cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Tipo de arquivo não permitido'));
   }
   cb(null, true);
@@ -43,7 +46,7 @@ function fileFilter(_req, file, cb) {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB
 });
 
 function renomearAnexoComId(chamadoId, tempPath, nomeOriginal) {
@@ -56,4 +59,47 @@ function renomearAnexoComId(chamadoId, tempPath, nomeOriginal) {
   return novoNome;
 }
 
-module.exports = { upload, renomearAnexoComId, UPLOADS_DIR };
+function uploadMiddleware(field) {
+  return (req, res, next) => {
+    upload.single(field)(req, res, err => {
+      if (!err) return next();
+      if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ erro: 'Arquivo muito grande (máx. 200 MB).' });
+      return res.status(400).json({ erro: 'Tipo de arquivo não permitido. São aceitos: imagens, vídeos, PDF, TXT e DOCX.' });
+    });
+  };
+}
+
+// Aceita "anexos" (múltiplos, novo) e "anexo" (único, legado) na mesma request.
+function uploadChamadoMiddleware() {
+  const handler = upload.fields([
+    { name: 'anexos', maxCount: 10 },
+    { name: 'anexo',  maxCount: 1 },
+  ]);
+  return (req, res, next) => {
+    handler(req, res, err => {
+      if (!err) {
+        req.arquivos = [
+          ...((req.files && req.files['anexo']) || []),
+          ...((req.files && req.files['anexos']) || []),
+        ];
+        return next();
+      }
+      if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ erro: 'Arquivo muito grande (máx. 200 MB por arquivo).' });
+      if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE')
+        return res.status(400).json({ erro: 'Limite ou tipo de arquivo inválido. Máx. 10 anexos por chamado.' });
+      return res.status(400).json({ erro: 'Tipo de arquivo não permitido. São aceitos: imagens, vídeos, PDF, TXT e DOCX.' });
+    });
+  };
+}
+
+function renomearAnexoExtra(chamadoId, anexoExtraId, tempPath, nomeOriginal) {
+  if (!tempPath) return null;
+  const ext = path.extname(nomeOriginal).toLowerCase();
+  const base = sanitizarNome(path.basename(nomeOriginal, ext));
+  const novoNome = `${chamadoId}_x${anexoExtraId}__${base}${ext}`;
+  const novoCaminho = path.join(UPLOADS_DIR, novoNome);
+  fs.renameSync(tempPath, novoCaminho);
+  return novoNome;
+}
+
+module.exports = { upload, uploadMiddleware, uploadChamadoMiddleware, renomearAnexoComId, renomearAnexoExtra, UPLOADS_DIR };

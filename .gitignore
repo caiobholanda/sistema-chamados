@@ -5,3 +5,5 @@ data/*.db-shm
 data/uploads/*
 !data/uploads/.gitkeep
 .env
+chamados_b64.txt
+chamados_backup.db

@@ -1,0 +1,8 @@
+node_modules/
+data/
+.git/
+*.log
+public/uploads/
+.env
+fly.toml
+package-lock.json

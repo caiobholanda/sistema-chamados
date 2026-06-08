@@ -67,12 +67,1206 @@ function initDb() {
       valor_novo TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS mensagens_chamado (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id),
+      autor_tipo TEXT NOT NULL CHECK(autor_tipo IN ('usuario','admin')),
+      autor_id INTEGER,
+      autor_nome TEXT NOT NULL,
+      mensagem TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
-  // Migração: adicionar usuario_id em bancos existentes que não têm a coluna
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS equipamentos_mencoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      equipamento TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_eq_equipamento ON equipamentos_mencoes(equipamento);
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS config (
+      chave TEXT PRIMARY KEY,
+      valor TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS prazo_alertas (
+      chamado_id INTEGER NOT NULL,
+      tipo TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (chamado_id, tipo)
+    );
+  `);
+
   try { db.exec('ALTER TABLE chamados ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)'); } catch {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN ativo INTEGER DEFAULT 1'); } catch {}
+  try { db.exec('ALTER TABLE admins ADD COLUMN email TEXT'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN categoria TEXT'); } catch {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
+  try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
+  try { db.exec('ALTER TABLE admins ADD COLUMN ramal TEXT'); } catch {}
+  try { db.exec('ALTER TABLE admins ADD COLUMN is_test INTEGER DEFAULT 0'); } catch {}
+  try { db.exec("UPDATE admins SET is_test = 1 WHERE email = 'estagioadmin@granmarquise.com.br'"); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN novidades_usuario INTEGER DEFAULT 0'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN novidades_admin INTEGER DEFAULT 0'); } catch {}
+  // Backfill: chamados abertos por admin sem usuário associado e com ramal vazio
+  try {
+    db.exec(`
+      UPDATE chamados SET ramal = (
+        SELECT a.ramal FROM admins a WHERE a.id = chamados.aberto_por_admin_id
+      )
+      WHERE usuario_id IS NULL
+        AND aberto_por_admin_id IS NOT NULL
+        AND (ramal IS NULL OR ramal = '')
+        AND EXISTS (SELECT 1 FROM admins a WHERE a.id = chamados.aberto_por_admin_id AND a.ramal IS NOT NULL AND a.ramal != '')
+    `);
+  } catch {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN ramal TEXT'); } catch {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN setor TEXT'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN assinatura TEXT'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN assinado_em DATETIME'); } catch {}
+  try { db.exec("ALTER TABLE estoque_itens ADD COLUMN observacao TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE estoque_itens ADD COLUMN especificacao TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE impressoras ADD COLUMN numero_serie TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN chamado_id INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE estoque_itens ADD COLUMN qtd_usado INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_destino TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE estoque_movimentacoes ADD COLUMN setor_origem TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE push_subscriptions ADD COLUMN is_mobile INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN aberto_por_admin_id INTEGER REFERENCES admins(id)"); } catch {}
+  try { db.exec("ALTER TABLE termos_aceite ADD COLUMN cargo TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE termos_aceite ADD COLUMN setor TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE termos_aceite ADD COLUMN equipamentos TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN requer_acordo INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN acordo_equipamentos TEXT DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE equipamentos_historico ADD COLUMN chamado_id INTEGER DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN cancelamento_motivo TEXT"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN cancelado_em DATETIME"); } catch {}
+  try { db.exec("UPDATE chamados SET concluido_em = atualizado_em WHERE status = 'encerrado' AND concluido_em IS NULL AND atualizado_em IS NOT NULL"); } catch {}
+  try { db.exec("ALTER TABLE push_subscriptions ADD COLUMN app_origin TEXT DEFAULT ''"); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS chamado_infos_adicionais (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      texto TEXT NOT NULL,
+      autor_tipo TEXT NOT NULL,
+      autor_id INTEGER,
+      autor_nome TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS chamado_anexos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      path TEXT NOT NULL,
+      nome_original TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `); } catch {}
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_chamado_anexos_chamado ON chamado_anexos(chamado_id)`); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_atendimento_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      admin_id INTEGER NOT NULL REFERENCES admins(id),
+      assumido_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      encerrado_em DATETIME,
+      duracao_segundos INTEGER,
+      motivo TEXT
+    )
+  `); } catch {}
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_aalog_admin ON admin_atendimento_log(admin_id)`); } catch {}
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_aalog_chamado ON admin_atendimento_log(chamado_id)`); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_path TEXT"); } catch {}
+  try { db.exec("ALTER TABLE chamados ADD COLUMN admin_anexo_nome_original TEXT"); } catch {}
+  try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_path TEXT"); } catch {}
+  try { db.exec("ALTER TABLE mensagens_chamado ADD COLUMN chat_anexo_nome_original TEXT"); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS servicos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      descricao TEXT,
+      ativo INTEGER DEFAULT 1,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN servico_id INTEGER'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN servico_nome TEXT'); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS etiquetas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT UNIQUE NOT NULL,
+      nome TEXT NOT NULL,
+      descricao TEXT,
+      parent_slug TEXT,
+      cor TEXT DEFAULT '#6B7280',
+      sistema INTEGER DEFAULT 0,
+      ativo INTEGER DEFAULT 1,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `); } catch {}
+  try { db.exec("ALTER TABLE etiquetas ADD COLUMN sistema INTEGER DEFAULT 0"); } catch {}
+  // Seed das categorias do sistema (INSERT OR IGNORE garante idempotência)
+  const _seedEtiquetas = [
+    { slug: 'software',        nome: 'Software',                cor: '#6366F1', parent_slug: null,       descricao: 'Chamados relacionados a problemas em sistemas operacionais, aplicativos, softwares e plataformas digitais instalados nos computadores ou dispositivos.' },
+    { slug: 'hardware',        nome: 'Hardware',                cor: '#0EA5E9', parent_slug: null,       descricao: 'Chamados relacionados a falhas, defeitos ou substituição de equipamentos físicos como computadores, periféricos e componentes eletrônicos.' },
+    { slug: 'cameras',         nome: 'Câmeras / CFTV',          cor: '#06B6D4', parent_slug: null,       descricao: 'Chamados sobre câmeras de segurança, gravadores de vídeo (DVR/NVR), falhas no circuito de câmeras (CFTV), pontos cegos e acesso ao sistema de monitoramento.' },
+    { slug: 'email',           nome: 'E-mail',                  cor: '#F43F5E', parent_slug: null,       descricao: 'Chamados sobre problemas no e-mail corporativo: não recebe, não envia, senha expirada, e-mail bloqueado, configuração de cliente de e-mail, caixa cheia.' },
+    { slug: 'processo_compra', nome: 'Processo de Compra',      cor: '#F97316', parent_slug: null,       descricao: 'Chamados relacionados a dúvidas ou problemas no processo interno de compras, aprovações, cotações, pedidos e sistemas de compras do hotel.' },
+    { slug: 'impressora',      nome: 'Impressora',              cor: '#8B5CF6', parent_slug: 'hardware', descricao: 'Chamados sobre impressoras: não imprime, toner vazio, papel encravado, driver desatualizado, impressora offline, configuração de impressora de rede.' },
+    { slug: 'ramal',           nome: 'Ramal / Telefone',        cor: '#EC4899', parent_slug: 'hardware', descricao: 'Chamados sobre ramais telefônicos, PABX, aparelhos de telefone com defeito, problemas de discagem ou recepção de chamadas internas e externas.' },
+    { slug: 'nobreak',         nome: 'Nobreak',                 cor: '#F59E0B', parent_slug: 'hardware', descricao: 'Chamados sobre nobreaks (UPS): bateria fraca, alarme ativo, equipamento desligando sem energia, substituição de bateria ou nobreak.' },
+    { slug: 'monitor',         nome: 'Monitor',                 cor: '#10B981', parent_slug: 'hardware', descricao: 'Chamados sobre monitores: tela preta, imagem com defeito, monitor não ligando, cabo com problema, tela queimada ou necessidade de substituição.' },
+    { slug: 'mouse',           nome: 'Mouse',                   cor: '#6B7280', parent_slug: 'hardware', descricao: 'Chamados sobre mouse com defeito, cursor travado, botões não funcionando, não reconhecido pelo sistema ou necessidade de substituição.' },
+    { slug: 'teclado',         nome: 'Teclado',                 cor: '#6B7280', parent_slug: 'hardware', descricao: 'Chamados sobre teclado com defeito, teclas presas ou não funcionando, não reconhecido pelo sistema ou necessidade de substituição.' },
+    { slug: 'rede',            nome: 'Rede / Internet',         cor: '#3B82F6', parent_slug: 'hardware', descricao: 'Chamados sobre problemas de conectividade: sem internet, rede lenta, wi-fi instável, cabo de rede com problema, ponto de rede sem sinal.' },
+    { slug: 'acesso_senha',    nome: 'Acesso / Senha',          cor: '#EF4444', parent_slug: 'hardware', descricao: 'Chamados sobre bloqueio de conta, esqueceu senha, redefinição de senha, permissão de acesso a sistemas ou pastas, criação ou remoção de usuários.' },
+    { slug: 'tv_projetor',     nome: 'TV',                      cor: '#8B5CF6', parent_slug: 'hardware', descricao: 'Chamados sobre televisores nos ambientes do hotel: TV não liga, sem sinal, controle remoto com defeito, problemas de configuração ou instalação.' },
+    { slug: 'projetor',        nome: 'Projetor',                cor: '#7C3AED', parent_slug: 'hardware', descricao: 'Chamados sobre projetores em salas de reunião: não liga, sem imagem, cabo HDMI com problema, lâmpada queimada, configuração de entrada de vídeo.' },
+    { slug: 'tablet',          nome: 'Tablet',                  cor: '#0EA5E9', parent_slug: 'hardware', descricao: 'Chamados sobre tablets com defeito, tela quebrada, não carrega, aplicativo com problema, configuração ou dispositivo bloqueado.' },
+    { slug: 'celular',         nome: 'Celular',                 cor: '#06B6D4', parent_slug: 'hardware', descricao: 'Chamados sobre celulares corporativos: não liga, tela quebrada, aplicativo com problema, configuração de e-mail ou acesso a sistemas no celular.' },
+    { slug: 'outros',          nome: 'Outros',                  cor: '#6B7280', parent_slug: 'hardware', descricao: 'Chamados de hardware que não se encaixam nas categorias específicas: equipamentos variados, periféricos incomuns ou problemas não classificados.' },
+    { slug: 'thex_pos',        nome: 'THEX POS (TOTVS)',        cor: '#DC2626', parent_slug: 'software', descricao: 'Chamados sobre o sistema THEX POS da TOTVS: erros no ponto de venda, emissão de nota fiscal, cupom fiscal, problemas de integração com pagamento, lentidão ou falha no PDV.' },
+    { slug: 'thex_pms',        nome: 'THEX PMS (TOTVS)',        cor: '#B91C1C', parent_slug: 'software', descricao: 'Chamados sobre o sistema THEX PMS da TOTVS: reservas, check-in, check-out, tarifas, relatórios de hospedagem, integração com OTAs, lentidão ou erros no sistema hoteleiro.' },
+    { slug: 'modulo_eventos',  nome: 'Módulo Eventos',          cor: '#7C3AED', parent_slug: 'software', descricao: 'Chamados sobre o módulo de eventos da TOTVS: cadastro de eventos, salas, contratos, faturamento de eventos, erros ou lentidão no módulo de eventos.' },
+    { slug: 'modulo_cp',       nome: 'Módulo Contas a Pagar',   cor: '#DB2777', parent_slug: 'software', descricao: 'Chamados sobre o módulo Contas a Pagar da TOTVS: lançamentos, pagamentos, aprovações, emissão de borderô, erros ou lentidão no módulo.' },
+    { slug: 'modulo_cr',       nome: 'Módulo Contas a Receber', cor: '#0891B2', parent_slug: 'software', descricao: 'Chamados sobre o módulo Contas a Receber da TOTVS: faturamento, recebimentos, baixas, relatórios, erros ou lentidão no módulo.' },
+    { slug: 'modulo_rad',      nome: 'Módulo RAD',              cor: '#9333EA', parent_slug: 'software', descricao: 'Chamados sobre o módulo RAD (Relatórios e Análises) da TOTVS: geração de relatórios personalizados, erros, exportações e consultas.' },
+    { slug: 'modulo_fiscal',   nome: 'Módulo Fiscal Flex',      cor: '#B45309', parent_slug: 'software', descricao: 'Chamados sobre o módulo Fiscal Flex da TOTVS: emissão de NF-e, NFS-e, SPED, escrituração fiscal, erros na emissão de documentos fiscais.' },
+    { slug: 'modulo_contab',   nome: 'Módulo Contabilidade',    cor: '#0369A1', parent_slug: 'software', descricao: 'Chamados sobre o módulo de Contabilidade da TOTVS: lançamentos contábeis, fechamento, conciliação, relatórios contábeis, erros ou integração.' },
+    { slug: 'modulo_compras',  nome: 'Módulo Compras',          cor: '#15803D', parent_slug: 'software', descricao: 'Chamados sobre o módulo de Compras da TOTVS: pedidos de compra, cotações, aprovações, recebimento de mercadorias, erros ou lentidão.' },
+    { slug: 'modulo_almox',    nome: 'Módulo Almoxarifado',     cor: '#92400E', parent_slug: 'software', descricao: 'Chamados sobre o módulo de Almoxarifado da TOTVS: entrada e saída de estoque, inventário, relatórios de estoque, erros ou lentidão no módulo.' },
+    { slug: 'modulo_caf',      nome: 'Módulo CAF',              cor: '#6D28D9', parent_slug: 'software', descricao: 'Chamados sobre o módulo CAF (Controle de Ativos Fixos) da TOTVS: cadastro de ativos, depreciação, inventário de patrimônio, erros ou relatórios.' },
+    { slug: 'modulo_cfinan',   nome: 'Módulo CFINAN',           cor: '#1D4ED8', parent_slug: 'software', descricao: 'Chamados sobre o módulo CFINAN (Controle Financeiro) da TOTVS: fluxo de caixa, gestão financeira, conciliação bancária, erros ou lentidão.' },
+    { slug: 'modulo_fatura',   nome: 'Módulo Fatura',           cor: '#0F766E', parent_slug: 'software', descricao: 'Chamados sobre o módulo de Fatura da TOTVS: emissão de faturas, notas de débito, cobranças, erros na faturação ou envio de faturas.' },
+    { slug: 'app_comanda',     nome: 'App Comanda Eletrônica',  cor: '#BE123C', parent_slug: 'software', descricao: 'Chamados sobre o aplicativo de Comanda Eletrônica: pedidos não sincronizando, app travando, não abre, erro ao enviar comanda, problemas de conexão com o sistema.' },
+    { slug: 'app_governanca',  nome: 'App Minha Governança',    cor: '#0E7490', parent_slug: 'software', descricao: 'Chamados sobre o aplicativo Minha Governança: checklist de quartos, tarefas de limpeza não atualizando, app com erro, sincronização com PMS.' },
+    { slug: 'letsbook',        nome: 'LetsBook (PMWEB)',        cor: '#7C3AED', parent_slug: 'software', descricao: 'Chamados sobre o sistema LetsBook da PMWEB: reservas online, motor de reservas, integração com site, campanhas de marketing, erros ou lentidão.' },
+    { slug: 'urmobo',          nome: 'URMOBO (MDM)',            cor: '#374151', parent_slug: 'software', descricao: 'Chamados sobre o URMOBO (MDM): gerenciamento de dispositivos móveis, políticas de segurança, instalação remota de apps, localização de dispositivos, erros na plataforma.' },
+    { slug: 'cardapio_digital',nome: 'Cardápio Digital',        cor: '#D97706', parent_slug: 'software', descricao: 'Chamados sobre o cardápio digital do restaurante: QR code não funciona, cardápio desatualizado, erro ao acessar, problemas de exibição ou navegação.' },
+    { slug: 'central_ti',      nome: 'Central de Serviços TI',  cor: '#6B7280', parent_slug: 'software', descricao: 'Chamados administrativos da Central de Serviços de TI: solicitações gerais, instalações, configurações e atendimentos que não se encaixam nas categorias específicas.' },
+  ];
+  const _stmtSeed = db.prepare('INSERT OR IGNORE INTO etiquetas (slug, nome, cor, parent_slug, sistema, descricao) VALUES (?, ?, ?, ?, 1, ?)');
+  const _stmtSeedDesc = db.prepare("UPDATE etiquetas SET descricao = ? WHERE slug = ? AND (descricao IS NULL OR descricao = '')");
+  for (const e of _seedEtiquetas) {
+    try { _stmtSeed.run(e.slug, e.nome, e.cor, e.parent_slug, e.descricao); } catch {}
+    try { _stmtSeedDesc.run(e.descricao, e.slug); } catch {}
+  }
+  try { db.exec("ALTER TABLE inventario_micros ADD COLUMN tipo_equipamento TEXT DEFAULT ''"); } catch {}
+  try { db.exec("ALTER TABLE inventario_micros ADD COLUMN nobreak TEXT DEFAULT ''"); } catch {}
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS mensagens_leitura (
+      admin_id INTEGER NOT NULL,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      lido_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (admin_id, chamado_id)
+    )
+  `); } catch {}
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      usado INTEGER DEFAULT 0,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      usado INTEGER DEFAULT 0,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS logs_usuarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      evento TEXT NOT NULL,
+      ip TEXT,
+      detalhes TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS logs_admins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+      evento TEXT NOT NULL,
+      ip TEXT,
+      detalhes TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS contatos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      area TEXT,
+      wpp TEXT,
+      telefone_fixo TEXT,
+      email TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS contato_pessoas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      contato_id INTEGER NOT NULL REFERENCES contatos(id) ON DELETE CASCADE,
+      nome TEXT,
+      responsabilidade TEXT,
+      celular TEXT
+    );
+  `);
+
+  // Migration: trocar UNIQUE inline por partial unique index (ativo=1)
+  // Regra: mesmo @ não pode existir em usuários E admins ao mesmo tempo (validado nas rotas)
+  // Permite: reutilizar @ após desativação; bloqueia reativação se já existe @ ativo em qualquer tabela
+  if (!db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_usuarios_email_ativo'").get()) {
+    try {
+      db.pragma('foreign_keys = OFF');
+      db.transaction(() => {
+        db.exec(`
+          CREATE TABLE usuarios_v2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            email TEXT NOT NULL,
+            senha_hash TEXT NOT NULL,
+            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            ativo INTEGER DEFAULT 1,
+            senha_plain TEXT,
+            ramal TEXT,
+            setor TEXT
+          );
+          INSERT INTO usuarios_v2 (id, nome, email, senha_hash, criado_em, ativo, senha_plain, ramal, setor)
+            SELECT id, nome, email, senha_hash, COALESCE(criado_em, CURRENT_TIMESTAMP),
+                   COALESCE(ativo, 1), senha_plain, ramal, setor FROM usuarios;
+          DROP TABLE usuarios;
+          ALTER TABLE usuarios_v2 RENAME TO usuarios;
+          CREATE UNIQUE INDEX idx_usuarios_email_ativo ON usuarios(email) WHERE ativo = 1;
+        `);
+      })();
+      db.pragma('foreign_keys = ON');
+    } catch (err) { console.error('[DB] Migration usuarios falhou:', err.message); db.pragma('foreign_keys = ON'); }
+  }
+
+  if (!db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_admins_usuario_ativo'").get()) {
+    try {
+      db.pragma('foreign_keys = OFF');
+      db.transaction(() => {
+        db.exec(`
+          CREATE TABLE admins_v2 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario TEXT NOT NULL,
+            nome_completo TEXT NOT NULL,
+            senha_hash TEXT NOT NULL,
+            is_master INTEGER DEFAULT 0,
+            ativo INTEGER DEFAULT 1,
+            criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+            email TEXT,
+            senha_plain TEXT
+          );
+          INSERT INTO admins_v2 (id, usuario, nome_completo, senha_hash, is_master, ativo, criado_em, email, senha_plain)
+            SELECT id, usuario, nome_completo, senha_hash, COALESCE(is_master, 0), COALESCE(ativo, 1),
+                   COALESCE(criado_em, CURRENT_TIMESTAMP), email, senha_plain FROM admins;
+          DROP TABLE admins;
+          ALTER TABLE admins_v2 RENAME TO admins;
+          CREATE UNIQUE INDEX idx_admins_usuario_ativo ON admins(usuario) WHERE ativo = 1;
+          CREATE UNIQUE INDEX idx_admins_email_ativo ON admins(email) WHERE ativo = 1 AND email IS NOT NULL;
+        `);
+      })();
+      db.pragma('foreign_keys = ON');
+    } catch (err) { console.error('[DB] Migration admins falhou:', err.message); db.pragma('foreign_keys = ON'); }
+  }
+
+  // Fix model name for SELB 3Y24 (WF5890 → WF-C5890)
+  try { db.exec("UPDATE impressoras SET nome = 'Epson WF-C5890' WHERE selb = '3Y24' AND nome = 'EPSON WF5890'"); } catch {}
+  // Add ADE4 impressora if not yet registered
+  try {
+    if (!getDb().prepare("SELECT id FROM impressoras WHERE selb = 'ADE4'").get()) {
+      getDb().prepare("INSERT INTO impressoras (nome, ip, selb, localizacao) VALUES ('RICOH SP 3710SF', '', 'ADE4', 'RECEPCAO')").run();
+    }
+  } catch {}
+  // Preencher números de série a partir da planilha (só preenche se estiver vazio)
+  try {
+    const setNs = getDb().prepare("UPDATE impressoras SET numero_serie = ? WHERE selb = ? AND (numero_serie IS NULL OR numero_serie = '')");
+    const nsMap = [
+      ['X952018033',  '08MW'],
+      ['CNCRQDM82V',  '2BL6'],
+      ['32M00866',    '2EP1'],
+      ['5171Z211150', '2EP2'],
+      ['5171Z413875', '2EP3'],
+      ['5171Z811579', '2EP4'],
+      ['5171Z811752', '2EP5'],
+      ['5851ZC10635', '2EP7'],
+      ['T314QB00927', '2EQ4'],
+      ['T333QB10405', '2EQ8'],
+      ['5161Z412223', '2IY9'],
+      ['5179Z410077', '2KA7'],
+      ['5170Z710320', '2QC9'],
+      ['XBJZ032892',  '3Y24'],
+      ['5179ZB12118', 'ADE4'],
+      ['5171ZA10686', 'JNI9'],
+      ['5170Z411605', 'JPD3'],
+      ['5170ZA10221', 'JST4'],
+      ['X3B7006907',  'RFA2'],
+    ];
+    for (const [ns, selb] of nsMap) setNs.run(ns, selb);
+  } catch {}
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS assinaturas_historico (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL REFERENCES chamados(id) ON DELETE CASCADE,
+      assinatura TEXT,
+      assinado_em DATETIME,
+      admin_id INTEGER REFERENCES admins(id),
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_assin_hist_chamado ON assinaturas_historico(chamado_id);
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS termos_aceite (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chamado_id INTEGER NOT NULL UNIQUE REFERENCES chamados(id) ON DELETE CASCADE,
+      usuario_id INTEGER REFERENCES usuarios(id),
+      usuario_nome TEXT NOT NULL,
+      usuario_email TEXT NOT NULL,
+      aceito_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_termos_aceite_chamado ON termos_aceite(chamado_id);
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS itens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      tipo TEXT NOT NULL CHECK(tipo IN ('estoque', 'inventario')),
+      categoria TEXT,
+      quantidade INTEGER DEFAULT 0,
+      quantidade_minima INTEGER DEFAULT 0,
+      localizacao TEXT,
+      descricao TEXT,
+      status TEXT DEFAULT 'disponivel',
+      numero_serie TEXT,
+      fabricante TEXT,
+      modelo TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS inventario_micros (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      setor TEXT NOT NULL DEFAULT '',
+      usuario TEXT NOT NULL DEFAULT '',
+      processador TEXT DEFAULT '',
+      memoria TEXT DEFAULT '',
+      sistema_operacional TEXT DEFAULT '',
+      hd_ssd TEXT DEFAULT '',
+      office TEXT DEFAULT '',
+      tag TEXT DEFAULT '',
+      entradas_monitor TEXT DEFAULT '',
+      modelo_monitor TEXT DEFAULT '',
+      status TEXT DEFAULT '',
+      hostname TEXT DEFAULT '',
+      data_troca TEXT DEFAULT '',
+      observacao TEXT DEFAULT '',
+      atualizacao_win11 TEXT DEFAULT '',
+      tipo_equipamento TEXT DEFAULT '',
+      nobreak TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS estoque_itens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      tipo TEXT NOT NULL DEFAULT 'outro',
+      qtd_preto INTEGER DEFAULT 0,
+      qtd_ciano INTEGER DEFAULT 0,
+      qtd_magenta INTEGER DEFAULT 0,
+      qtd_amarelo INTEGER DEFAULT 0,
+      qtd_geral INTEGER DEFAULT 0,
+      urgente INTEGER DEFAULT 0,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS estoque_movimentacoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_id INTEGER NOT NULL REFERENCES estoque_itens(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL,
+      cor TEXT DEFAULT '',
+      quantidade INTEGER NOT NULL DEFAULT 1,
+      admin_nome TEXT DEFAULT '',
+      observacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS impressoras (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      ip TEXT DEFAULT '',
+      selb TEXT DEFAULT '',
+      localizacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS equipamentos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      codigo TEXT NOT NULL UNIQUE,
+      nome TEXT NOT NULL,
+      categoria TEXT DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'disponivel',
+      setor_atual TEXT DEFAULT '',
+      observacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS equipamentos_historico (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      equipamento_id INTEGER NOT NULL REFERENCES equipamentos(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL,
+      setor_origem TEXT DEFAULT '',
+      setor_destino TEXT DEFAULT '',
+      admin_nome TEXT DEFAULT '',
+      observacao TEXT DEFAULT '',
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_chamados_status ON chamados(status);
+    CREATE INDEX IF NOT EXISTS idx_chamados_admin ON chamados(admin_responsavel_id);
+    CREATE INDEX IF NOT EXISTS idx_chamados_usuario ON chamados(usuario_id);
+    CREATE INDEX IF NOT EXISTS idx_chamados_criado ON chamados(criado_em);
+    CREATE INDEX IF NOT EXISTS idx_mensagens_chamado ON mensagens_chamado(chamado_id);
+    CREATE INDEX IF NOT EXISTS idx_historico_chamado ON historico_chamados(chamado_id);
+    CREATE INDEX IF NOT EXISTS idx_itens_tipo ON itens(tipo);
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_etiquetas (
+      admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+      etiqueta_slug TEXT NOT NULL,
+      PRIMARY KEY (admin_id, etiqueta_slug)
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chamados_programados (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      titulo TEXT NOT NULL,
+      nome TEXT NOT NULL,
+      setor TEXT NOT NULL,
+      ramal TEXT,
+      descricao TEXT NOT NULL,
+      categoria TEXT,
+      prioridade TEXT NOT NULL DEFAULT 'normal',
+      frequencia TEXT NOT NULL,
+      dia_semana INTEGER,
+      dia_mes INTEGER,
+      mes INTEGER,
+      hora TEXT NOT NULL DEFAULT '08:00',
+      pular_feriados INTEGER NOT NULL DEFAULT 1,
+      admin_responsavel_id INTEGER,
+      ativo INTEGER NOT NULL DEFAULT 1,
+      proxima_execucao TEXT NOT NULL,
+      ultima_execucao TEXT,
+      total_gerados INTEGER NOT NULL DEFAULT 0,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS chamados_programados_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      programado_id INTEGER NOT NULL,
+      chamado_id INTEGER NOT NULL,
+      executado_em TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (programado_id) REFERENCES chamados_programados(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_prog_proxima ON chamados_programados(proxima_execucao) WHERE ativo=1;
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS setores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL UNIQUE,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  if (db.prepare('SELECT COUNT(*) as c FROM setores').get().c === 0) {
+    const _ins = db.prepare('INSERT OR IGNORE INTO setores (nome) VALUES (?)');
+    db.transaction(() => {
+      for (const n of [
+        'Banquetes','Bar Rooftop','Comercial / Vendas','Compras / Almoxarifado','Concierge',
+        'Confeitaria / Padaria','Controladoria','Cozinha','Estacionamento','Eventos e Convenções',
+        'Financeiro','Fitness Center','Gerência Geral','Governança','Jurídico','Lavanderia',
+        'Lobby Bar','Manutenção','Marketing','Mensageria / Portaria','Nutrição','Piscina',
+        'Play Gran','Recepção','Recursos Humanos','Reservas','Restaurante Mangostin',
+        'Restaurante Mucuripe','Revenue Management','Room Service','Rouparia','Segurança',
+        "Spa by L'Occitane",'Tecnologia da Informação','Transportes',
+      ]) _ins.run(n);
+    })();
+  }
+
+  seedInventario();
+  seedEstoque();
+  migrarEquipamentosLegados(db);
+
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS spa_perfis (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      sobrenome TEXT NOT NULL,
+      tipo_documento TEXT NOT NULL DEFAULT 'cpf',
+      documento TEXT NOT NULL,
+      email TEXT NOT NULL,
+      telefone TEXT NOT NULL,
+      data_nascimento TEXT,
+      rotina_facial TEXT,
+      rotina_corporal TEXT,
+      produto_especifico TEXT,
+      pressao_massagem TEXT,
+      info_medica TEXT NOT NULL,
+      consentimento_saude INTEGER NOT NULL DEFAULT 0,
+      consentimento_marketing INTEGER NOT NULL DEFAULT 0,
+      canais_marketing TEXT,
+      assinatura_data_url TEXT,
+      idioma TEXT DEFAULT 'pt-BR',
+      apto INTEGER NOT NULL DEFAULT 1,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `); } catch {}
+
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN hospede_telefone TEXT"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_token TEXT UNIQUE"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_token_expiry TEXT"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_pre_enviado INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN idioma_documento TEXT"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_enviado_em TEXT"); } catch {}
+  try { db.exec("ALTER TABLE spa_reservas ADD COLUMN documento_perfil_id INTEGER"); } catch {}
+
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS spa_terapeutas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      ativo INTEGER NOT NULL DEFAULT 1,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS spa_reservas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      hospede_nome TEXT NOT NULL,
+      hospede_email TEXT,
+      terapeuta_id INTEGER REFERENCES spa_terapeutas(id),
+      servico TEXT NOT NULL,
+      data_termino TEXT NOT NULL,
+      status_pesquisa TEXT NOT NULL DEFAULT 'BLOQUEADA',
+      token TEXT UNIQUE NOT NULL,
+      liberada_em TEXT,
+      iniciada_em TEXT,
+      concluida_em TEXT,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_spa_reservas_token ON spa_reservas(token);
+
+    CREATE TABLE IF NOT EXISTS spa_pesquisa_respostas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reserva_id INTEGER NOT NULL REFERENCES spa_reservas(id) ON DELETE CASCADE,
+      nota_geral INTEGER NOT NULL,
+      nota_terapeuta INTEGER NOT NULL,
+      nota_ambiente INTEGER NOT NULL,
+      nota_custo_beneficio INTEGER NOT NULL,
+      recomendaria INTEGER NOT NULL DEFAULT 0,
+      comentario TEXT,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS spa_historico (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reserva_id INTEGER NOT NULL REFERENCES spa_reservas(id) ON DELETE CASCADE,
+      evento TEXT NOT NULL,
+      detalhes TEXT,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_spa_historico_reserva ON spa_historico(reserva_id);
+  `); } catch {}
 
   return db;
+}
+
+function migrarEquipamentosLegados(db) {
+  // Roda apenas uma vez: se a tabela equipamentos estiver vazia, popula com os itens do estoque
+  const jaExiste = db.prepare('SELECT COUNT(*) as n FROM equipamentos').get().n;
+  if (jaExiste > 0) return;
+
+  // Agrupa itens do estoque por nome (soma qtd_geral + qtd_preto de duplicatas)
+  const itens = db.prepare(`
+    SELECT nome, tipo,
+      SUM(qtd_geral) as qtd_geral,
+      SUM(qtd_preto) as qtd_preto
+    FROM estoque_itens
+    WHERE tipo IN ('reserva','periferico')
+    GROUP BY nome
+    HAVING (SUM(qtd_geral) + SUM(qtd_preto)) > 0
+    ORDER BY nome
+  `).all();
+
+  const CATEGORIA_MAP = {
+    reserva: 'Equipamento',
+    periferico: 'Periférico',
+  };
+
+  const inserir = db.prepare(`INSERT INTO equipamentos (codigo, nome, categoria, status, setor_atual, observacao) VALUES ('__TMP__', ?, ?, 'disponivel', '', '')`);
+  const atualizarCodigo = db.prepare('UPDATE equipamentos SET codigo = ? WHERE id = ?');
+
+  const migrar = db.transaction(() => {
+    for (const item of itens) {
+      const qtd = (item.qtd_geral || 0) + (item.qtd_preto || 0);
+      const categoria = CATEGORIA_MAP[item.tipo] || item.tipo;
+      for (let i = 0; i < qtd; i++) {
+        const r = inserir.run(item.nome, categoria);
+        const id = r.lastInsertRowid;
+        atualizarCodigo.run(`EQ-${String(id).padStart(4, '0')}`, id);
+      }
+    }
+  });
+  migrar();
+}
+
+// ── Seed data ─────────────────────────────────────────────
+
+const SEED_INVENTARIO = [
+  ["ADM AEB","NATALIA","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","NOTEBOOK","DELL","","","","",""],
+  ["ALMOXARIFADO","ADALBERTO","I5 12500","8GB","WIN 11","SSD 256","H & B 2021","2WJDYR2","VGA-D.P.","AOC","NOVO","ALMOXARIFADO-01","2024","",""],
+  ["BANQUETES","VANDERLAN","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA-D.P.","DELL","NOVO","BANQUETES-10","ABRIL 2026","",""],
+  ["BANQUETES","LENE","I5 8400","8GB","WIN 11","HD 1TB","H & B 2016","","VGA-HDMI","AOC","","BANQUETES-02","","TROCAR PARA SSD","CONCLUIDO"],
+  ["BANQUETES","ANA PAULA","I5 8400","8GB","WIN 11","HD 1TB","H & B 2016","","VGA-DVI","","","BANQUETES-01","","TROCAR PARA SSD","CONCLUIDO"],
+  ["ALMOXARIFADO","ISAAC","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA-D.P. / VGA-HDMI","DELL/LG","NOVO","SUPRIMENTOS-01","MARÇO 2026","",""],
+  ["CONTROLADORIA","ERICA","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","HDMI / VGA -D.P.","DELL / 3 TECH","NOVO","FATURAMENTO-01","MARÇO 2026","",""],
+  ["BANQUETES","NATECIA","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","","VGA","DELL","NOVO","MANUT-01","2025","",""],
+  ["COZINHA","ERIKA","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA-D.P.","DELL","NOVO","ADMCOZ-01","ABRIL 2026","",""],
+  ["GOVERNANCA","GOV 2","I5 8500","8GB","WIN 11","SSD 256","H & B 2019","","VGA-DVI (ADAPTADOR HDMI-VGA)","DELL","","GOVERNACA-02","","",""],
+  ["GUEST","KAMILE","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","HDMI / VGA","SOYO","NOVO","GUEST-01","MARÇO 2026","",""],
+  ["RH","MIKA","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA / D.P","DELL","NOVO","QUALIDADE-01","ABRIL 2026","",""],
+  ["BUSINESS","BUSINESS","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","AIO","DELL","","BUSINESS 1","","",""],
+  ["BUSINESS","BUSINESS","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","AIO","DELL","","BUSINESS 2","","",""],
+  ["SEGURANÇA","SEGURANCA","I5 8500","8GB","WIN 11","SSD 256","H & B 2019","","VGA-DVI-HDMI / VGA-D.P. (CABO DVI-HDMI)","LENOVO/ DELL","","PORT-SEG-01","ABRIL 2026","",""],
+  ["COMERCIAL","ROGERIO","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","HDZGX14","VGA-D.P. / VGA-DVI","DELL/SAMSUNG","NOVO","VENDAS-05","2023","",""],
+  ["COMERCIAL","PATRICIA","I5 12800","8GB","WIN 11","SSD 120","H & B 2021","GHXG7W3","VGA-HDMI / VGA-D.P.","DELL/DELL","NOVO","VENDAS-010","2023","",""],
+  ["SEGURANÇA","JUSSIEUDO","I5 10500","8GB","WIN 11","SSD 120","H & B 2021","","VGA / D.P","DELL","NOVO","SEGURANCA-01","ABRIL 2026","ANTIGO DO FELIPE",""],
+  ["COMERCIAL","BRIELE","I5 12800","8GB","WIN 11","SSD 240","H & B 2021","HHXG7W3","VGA-D.P. / VGA-HDMI-DVI","DELL/SAMSUNG","NOVO","VENDAS-03","2023","","CONCLUIDO"],
+  ["COZINHA","CHEF","I3 3240","8GB","WIN 8.1","500","H & B 2016","5F710Y1","VGA-D.P.","DELL","","COZINHA-01","","","NAO TROCAR"],
+  ["COMPRAS","DANIELLE","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","DDZGX14","VGA-HDMI / VGA-HDMI","DELL/GOLDENTEC","NOVO","COMPRAS-03","2024","",""],
+  ["COMPRAS","JEFFERSON","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","GDZGY14","VGA-HDMI / VGA-D.P.","DELL/GOLDENTEC","NOVO","C-COMPRAS-01","2023","",""],
+  ["COMPRAS","CLAUDIANE","I5 12500","8GB","WIN 11","SSD 256","H & B 2021","FHXG7W3","VGA-D.P. / HDMI-VGA","DELL/AOC","NOVO","COMPRAS-02","2024","",""],
+  ["CONCIERGE","RECEPCAO","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","OKSSV44","AIO","DELL","NOVO","CONCIERGE-01","2024","",""],
+  ["CONTROLADORIA","DRIELE","I5 10500","8GB","WIN 10","SSD 120","H & B 2021","HKJVZQ3","VGA-D.P.","DELL","NOVO","CONTROL-02","2023","","FORMATAR"],
+  ["CONTROLADORIA","LETICIA","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","9HV4874","VGA-D.P. / VGA-HDMI","DELL","NOVO","CONTROL-011","2025","",""],
+  ["CONTROLADORIA","SILVIA","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","CDZGX14","VGA-D.P. / VGA-HDMI","DELL/GOLDENTEC","NOVO","CONTROL-04","ABRIL 2026","",""],
+  ["CONTROLADORIA","GREGORE","I5 10500","8GB","WIN 11","SSD 256","H & B 2021","GKJVZQ3","VGA-D.P. / VGA-HDMI","DELL/DELL","NOVO","CONTROL-05","2024","","CONCLUIDO"],
+  ["BANQUETES","MAIA","I3 3240","6GB","WIN 8","500","H & B 2013","","VGA","DELL","","BANQUETES-04","","",""],
+  ["CONTROLADORIA","MANUEL","I5 12500","8GB","WIN 11","SSD 256","H & B 2021","5S4P4V4","VGA-HDMI","AOC","NOVO","CONTROL-03","2023","",""],
+  ["BUSINESS","BUSINESS","I3 4150","4GB","WIN 8.1","500","","JS5FCP2","AIO","DELL","","BUSINESS 3","","",""],
+  ["CONTROLADORIA","APRENDIZ","I3 3240","8GB","WIN 8.1","500","H & B 2013","B94SZ02","VGA-DVI","DELL","","CONTROL-10","","",""],
+  ["CONTROLADORIA","FELIPE","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA-D.P. / VGA-HDMI","DELL/3M","NOVO","CONTROLE-01","MARÇO 2026","",""],
+  ["CONTROLADORIA","APRENDIZ","I3 3240","6GB","WIN 8.1","500","H & B 2013","HD720Y1","VGA-DVI","DELL","","CONTROL-08","","",""],
+  ["GOVERNANCA","ROUPARIA","I3 3240","6GB","WIN 8.1","1 TB","H & B 2013","B4XGJ82","VGA","DELL","","ROUPARIA-01","","",""],
+  ["DIRETORIA","DIONISIO","I5 8400","8GB","WIN 11","HD 1TB","H & B 2021","","VGA-D.P.","DELL","","DIRETORIA","","TROCAR PARA SSD","CONCLUIDO"],
+  ["EVENTOS SOCIAIS","PRISCILA","I5 12500","8GB","WIN 11","SSD0256","H & B 2021","2S4P4V3","VGA-D.P.","DELL","NOVO","GER-SOCIAIS-01","2023","",""],
+  ["EVENTOS SOCIAIS","EDUARDA","I5 8400","8GB","WIN 11","HD 1TB","H & B 2016","2WTJYR2","VGA","SAMSUNG","","EVENTOS-02","2025","TROCAR PARA SSD","CONCLUIDO"],
+  ["GER EVENTOS","CATARINA","I5 10500","8GB","WIN 11","SSD 256","H & B 2019","","NOTEBOOK","HP","","GER-EVENTOS-01","","",""],
+  ["GERENCIA GERAL","PHILLIPE","I5 12500","8GB","WIN 11","SSD0256","H & B 2021","1S4P4V3","VGA-D.P.","DELL","NOVO","GER-GERAL-02","2023","",""],
+  ["GER-RECEPÇÃO","MARIANA","I5 8500","8GB","WIN 11","SSD 256","H & B 2019","3FT87Z2","VGA-D.P. / VGA-DVI (ADAPTADOR HDMI-VGA)","DELL/LG","","GER-RECEPCAO-01","","","CONCLUIDO"],
+  ["MANUTENÇÃO","OTRS","I3 4160","8GB","WIN 8.1","500","H & B 2013","","VGA","SAMSUNG","","PCM-ATEND-01","","",""],
+  ["NUTRIÇÃO","ESTAGIARIOS","I3 4160","8GB","WIN 10","500","H & B 2016","","VGA","SAMSUNG","","NUTRICAO-03","","TROCAR PARA SSD",""],
+  ["PISCINA","PISCINA","I3 7100","8GB","WIN 8.1","500","H & B 2016","","VGA -DVI","DELL","","PDV-PISCINA","","TROCAR PARA SSD",""],
+  ["GOVERNANCA","PAULA","I5 10500","8GB","WIN 11","SSD 256","H & B 2021","4S4P4V3","VGA-D.P.","DELL","NOVO","GOVERNACA-01","2023","",""],
+  ["GUEST","RODRIGO","I5 8400","8GB","WIN 11","1TB","H & B 2019","","VGA","DELL","","CENTRAL-02","","TROCAR PARA SSD",""],
+  ["RESERVAS","APRENDIZ","I3 3240","6GB","WIN 8","500","H & B 2013","B57ZZX1","VGA","DELL","","RESERVAS-05","","",""],
+  ["RH","RAQUEL","I5 14500T","16GB","WIN 11","SSD 240","H & B 2024","","NOTEBOOK","DELL","NOVO","PROCESSOS-01","MARÇO 2026","",""],
+  ["MAITRE","CHAVES","I5 8400","8GB","WIN 11","SSD 256","H & B 2013","","VGA","DELL","","AEB-01","ABRIL 2026","ESTA COM SSD","CONCLUIDO"],
+  ["MANGOSTIN","MANGOSTIN","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","","AIO","DELL","NOVO","MANGOSTIN-001","2025","",""],
+  ["MANUTENÇÃO","JESSICA","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","","VGA-HDMI / VGA-HDMI","DELL","NOVO","GER-MANUT-01","2025","",""],
+  ["MANUTENÇÃO","RENAN","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","","VGA / HDMI","DELL/ LG","NOVO","MANUT-01","2025","",""],
+  ["STEWARD","STEWARD","I3 3240","8GB","WIN 8.1","500","H & B 2013","","VGA","DELL","","STEWARD-01","","",""],
+  ["MANUTENÇÃO","ANA","I5 12500","8GB","WIN 11","SSD0256","H & B 2021","","VGA-D.P. / VGA-HDMI","DELL","NOVO","","2023","MUDAR HOSTNAME",""],
+  ["ALMOXARIFADO","ESTAGIARIOS","I3 7100","8GB","WIN 11","500","H & B 2016","","VGA-DVI","DELL","","ALMOX-02","","TROCAR PARA SSD","CONCLUIDO"],
+  ["MESA VIP","RECEPCAO","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","1Z143Z3","AIO","DELL","NOVO","MESAVIP-01","2023","",""],
+  ["MUCURIPE","MUCURIPE","I5 8400","8GB","WIN 11","SSD256","H & B 2019","","AIO","DELL","","PDV-MUCURIPE","","","CONCLUIDO"],
+  ["COMERCIAL","FARNEY","I3 7100","8GB","WIN 11","500","H & B 2016","5STMCK2","VGA-HDMI","AOC","","VENDAS-04","","TROCAR PARA SSD","CONCLUIDO"],
+  ["NUTRIÇÃO","GLAUBER","I5 8400","8GB","WIN 11","HD 1TB","H & B 2021","","VGA-DVI","LG","","NUTRICAO-01","2025","TROCAR PARA SSD","CONCLUIDO"],
+  ["OBRA","DIEGO","I5 8400","8GB","WIN 11","HD 1TB","H & B 2016","2XNGYR2","VGA-DVI","DELL","","MANUTENCAO-01","","TROCAR PARA SSD","CONCLUIDO"],
+  ["OBRA","EDEN","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","9DZGX14","VGA-D.P.","DELL","NOVO","ENGENHARIA-01","2024","",""],
+  ["GOVERNANCA","GOV 1","I3 7100","8GB","WIN 11","500","H & B 2019","3FV27Z2","VGA-D.P.","DELL","","GOV-004","","TROCAR PARA SSD","CONCLUIDO"],
+  ["PISCINA 2","PISCINA","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","","AIO","DELL","NOVO","PDV-PISCINA-2","2024","",""],
+  ["RECEPÇÃO 1","RECEPCAO","I5 10500","8GB","WIN 11","SSD 256","H & B 2021","","AIO","DELL","","RECEPCAO-01","","","CONCLUIDO"],
+  ["RECEPÇÃO 2","RECEPCAO","I5 8400","8GB","WIN 11","SSD 256","H & B 2021","","AIO","DELL","","RECEPCAO-052","","","CONCLUIDO"],
+  ["RECEPÇÃO 3","RECEPCAO","I5 10500","8GB","WIN 11","SSD 256","H & B 2016","","AIO","DELL","","RECEPCAO-02","","","CONCLUIDO"],
+  ["RECEPÇÃO 4","RECEPCAO","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","AIO","DELL","","RECEPCAO-050","","","CONCLUIDO"],
+  ["RECEPÇÃO 5","RECEPCAO","I5 8400","8GB","WIN 11","SSD 256","H & B 2019","","AIO","DELL","","RECEPCAO-030","","","CONCLUIDO"],
+  ["RESERVAS","GABRIEL","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","FDZGX14","VGA-D.P. / VGA-DVI","DELL/DELL","NOVO","RESERVAS-02","2023","",""],
+  ["RESERVAS","ROSANA","I5 13500","8GB","WIN 11","SSD 256","H & B 2021","BDZGX14","VGA-D.P. / VGA","DELL/DELL","NOVO","RESERVAS-01","2024","",""],
+  ["LOBBY BAR","LOBBY BAR","I3 7100","8GB","WIN 11","500","H & B 2016","JS5DMN2","AIO","DELL","","TIBKP-03","2025","TROCAR PARA SSD","CONCLUIDO"],
+  ["RESERVAS","APRENDIZ","I3 3240","6GB","WIN 8.1 - 10","500","H & B 2013","FD45Z02","VGA-DVI / VGA","DELL","","RESERVAS-04","","","8.1 PARA WIN 10"],
+  ["REVENUE","JULIA","I5 12800","8GB","WIN 11","SSD 120","H & B 2021","JHXG7W3","VGA-HDMI / VGA-D.P.","DELL/AOC","NOVO","REVENUE-01","2023","",""],
+  ["SALA DE LEITURA 3","CLUBINHO","I3 3240","8GB","WIN 8.1","500","H & B 2013","","VGA-DVI","DELL","","","","MUDAR HOSTNAME",""],
+  ["RH","SAYMON","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA /D.P.","DELL","NOVO","GESTAO-01","ABRIL 2026","",""],
+  ["RH","THAIS","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","354P4V3","VGA-DVI","DELL","NOVO","GP-02","2025","",""],
+  ["TI","CAIO","I3 4160","8GB","WIN 8.1","500","H & B 2016","","VGA","DELL","","","","",""],
+  ["RH","ALINE","I5 12500","8GB","WIN 11","SSD 256","H & B 2021","CB730Y1","VGA-HDMI","DELL","NOVO","GER-RH-01","2023","",""],
+  ["BKP TI","","I3 4160","8GB","WIN 8.1","500","H & B 2016","","AIO","DELL","","","","MUDAR HOSTNAME","RECOLHIDO"],
+  ["BKP AIO","BUSINESS","I3 7100","8GB","WIN 11","500","nao tem","","AIO","DELL","","BKP-05","","TROCAR PARA SSD","CONCLUIDO"],
+  ["BKP AIO","BUSINESS","I3 7100","8GB","WIN 11","500","H & B 2016","","AIO","DELL","","TIBKP-04","2025","TROCAR PARA SSD","CONCLUIDO"],
+  ["GERENCIA GERAL","THAIS","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","59ZRB74","VGA-D.P. / VGA-HDMI-DVI","DELL/SAMSUNG","NOVO","GER-GERAL-02","2025","",""],
+  ["SALA DE LEITURA 1","CLUBINHO","I3 3240","4GB","WIN 8.1","500","H & B 2013","","AIO","LG","","","","",""],
+  ["SALA DE LEITURA 2","CLUBINHO","I3 3240","4GB","WIN 8.1","320","H & B 2013","","AIO","LG","","","","",""],
+  ["SPA","SPA","I5 13500","8GB","WIN 11","SSD 256","H & B 2024","","AIO","DELL","NOVO","SPA-01","2025","",""],
+  ["TI","MARCIO","I5 14500T","8GB","WIN 11","SSD 240","H & B 2024","","VGA- HDMI / VGA - DVI","LENOVO / AOC","NOVO","TI-02","MARÇO 2026","",""],
+  ["TI","RICHARD","I7-1355U","16GB","WIN 11","SSD 256","H & B 2024","","NOTEBOOK","DELL","NOVO","TI-01","2025","",""],
+  ["TOTEM BKP","ADMINISTRADOR","I3 3240","8GB","WIN 7","500","nao tem","","","","","T-BACKUP","","",""],
+  ["TOTEM COBERTURA","ADMINISTRADOR","I5 14500T","8GB","WIN 11","SSD 240","nao tem","","TV 32","SAMSUNG","NOVO","T-COBERTURA","","",""],
+  ["TOTEM MOVEL","ADMINISTRADOR","I3 3240","8GB","WIN 7","500","nao tem","","AIO","DELL","","T-MOVEL","","",""],
+  ["TOTEM RECEPCAO","ADMINISTRADOR","I5 14500T","8GB","WIN 11","SSD 240","nao tem","","TV 43","LG","NOVO","T-RECEPCAO","MARÇO 2026","",""],
+  ["TOTEM SPAZIO","ADMINISTRADOR","I5 14500T","8GB","WIN 11","SSD 240","nao tem","","TV 50","LG","NOVO","T-SPAZIO","MARÇO 2026","",""],
+  ["MARKETING","MARKETING","Apple M4","16GB","macOS Air M4","SSD 256","nao tem","","MACBOOK","APPLE","NOVO","","MARÇO 2026","","USUARIO ADMIN"],
+];
+
+const SEED_ESTOQUE = [
+  { nome: 'RICOH Aficio SP 3510/3500', tipo: 'toner_mono', qtd_preto: 4, urgente: 0 },
+  { nome: 'RICOH SP 3710SF / 320F', tipo: 'toner_mono', qtd_preto: 5, urgente: 0 },
+  { nome: 'Canon iR C3226', tipo: 'toner_color', qtd_preto: 2, qtd_ciano: 2, qtd_magenta: 1, qtd_amarelo: 1, urgente: 0 },
+  { nome: 'Epson C5790', tipo: 'toner_color', qtd_preto: 0, qtd_ciano: 1, qtd_magenta: 2, qtd_amarelo: 2, urgente: 0 },
+  { nome: 'Epson L6490', tipo: 'toner_color', qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, urgente: 1 },
+  { nome: 'HP M479fdw', tipo: 'toner_color', qtd_preto: 1, qtd_ciano: 1, qtd_magenta: 1, qtd_amarelo: 1, urgente: 0 },
+  { nome: 'Epson C5890', tipo: 'toner_color', qtd_preto: 3, qtd_ciano: 3, qtd_magenta: 3, qtd_amarelo: 3, urgente: 0 },
+  { nome: 'Resmas A4', tipo: 'resma', qtd_geral: 13, urgente: 0 },
+];
+
+const SEED_IMPRESSORAS = [
+  { nome: 'RICOH Aficio SP 3710DN', ip: '10.1.7.17', selb: '2IY9', localizacao: 'GER-RECEPCAO' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.87', selb: 'JPD3', localizacao: 'MANUTENCAO' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.219', selb: '2EP2', localizacao: 'RECEPCAO' },
+  { nome: 'Canon iR C3226', ip: '10.1.7.61', selb: '2EP1', localizacao: 'MARKETING' },
+  { nome: 'RICOH M 320F', ip: '10.1.7.82', selb: '2EP7', localizacao: 'CONTROLADORIA' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.16', selb: '2QC9', localizacao: 'ENGENHARIA' },
+  { nome: 'EPSON COLOR A4 WF-C5790', ip: '10.1.7.158', selb: 'RFA2', localizacao: 'BANQUETES' },
+  { nome: 'RICOH Aficio SP 3510DN', ip: '10.1.7.155', selb: '2EQ4', localizacao: 'SPA' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.131', selb: 'JST4', localizacao: 'GUEST' },
+  { nome: 'Epson WF-C5890', ip: '10.1.7.67', selb: '3Y24', localizacao: 'RH' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.95', selb: '2KA7', localizacao: 'STEWARD' },
+  { nome: 'HP M479FDW', ip: '10.1.7.19', selb: '2BL6', localizacao: 'EVENTOS-SOCIAIS' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.40', selb: '2EP5', localizacao: 'GOVERNANCA' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.213', selb: '2EP4', localizacao: 'COMPRAS' },
+  { nome: 'RICOH Aficio SP 3510SF', ip: '10.1.7.21', selb: '2EQ8', localizacao: 'NUTRICAO' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.219', selb: '2EP6', localizacao: 'RECEPCAOBKP' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.107', selb: 'JNI9', localizacao: 'RESERVAS' },
+  { nome: 'EPSON L6490', ip: '10.100.15.15', selb: '08MW', localizacao: 'BUSSINES' },
+  { nome: 'RICOH SP 3710SF', ip: '10.1.7.53', selb: '2EP3', localizacao: 'COZINHA' },
+  { nome: 'RICOH SP 3710SF', ip: '', selb: 'ADE4', localizacao: 'RECEPCAO' },
+];
+
+function seedInventario() {
+  const db = getDb();
+  const count = db.prepare('SELECT COUNT(*) as cnt FROM inventario_micros').get();
+  if (count.cnt > 0) return;
+
+  const stmt = db.prepare(`
+    INSERT INTO inventario_micros
+      (setor, usuario, processador, memoria, sistema_operacional, hd_ssd, office, tag,
+       entradas_monitor, modelo_monitor, status, hostname, data_troca, observacao, atualizacao_win11)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const inserir = db.transaction((rows) => {
+    for (const r of rows) stmt.run(...r);
+  });
+  inserir(SEED_INVENTARIO);
+  console.log(`[DB] Inventário: ${SEED_INVENTARIO.length} registros de seed inseridos.`);
+}
+
+const SEED_PERIFERICOS = [
+  { nome: 'Teclado com Fio',            qtd_geral: 11, observacao: '' },
+  { nome: 'Teclado sem Fio',            qtd_geral:  0, observacao: '' },
+  { nome: 'Mouse com Fio',              qtd_geral: 13, observacao: '' },
+  { nome: 'Mouse sem Fio',              qtd_geral:  0, observacao: '' },
+  { nome: 'Adaptador WiFi',             qtd_geral:  1, observacao: 'em uso Richard' },
+  { nome: 'Adaptador de Rede',          qtd_geral:  1, observacao: 'em uso Marcio' },
+  { nome: 'Monitor VGA',                qtd_geral:  1, observacao: 'VGA' },
+  { nome: 'Monitor VGA-DVI',            qtd_geral:  0, observacao: 'VGA - DVI' },
+  { nome: 'Monitor VGA-HDMI',           qtd_geral:  0, observacao: 'VGA - HDMI' },
+  { nome: 'Monitor VGA-DisplayPort',    qtd_geral:  2, observacao: 'VGA - D.P.' },
+  { nome: 'Memória 8GB DDR4 Note',      qtd_geral:  1, observacao: 'Compatível com notebooks DDR4 e All-in-One DDR4' },
+  { nome: 'Memória 8GB DDR4',           qtd_geral:  0, observacao: '' },
+  { nome: 'Memória 8GB DDR3',           qtd_geral:  0, observacao: '' },
+  { nome: 'Memória 4GB DDR3',           qtd_geral:  0, observacao: '' },
+  { nome: 'Memória 2GB DDR3',           qtd_geral:  0, observacao: '' },
+  { nome: 'Processador Core i5 6ª Gen', qtd_geral:  1, observacao: 'Socket 1151' },
+  { nome: 'Patch Cord Vermelho 1,5 m',  qtd_geral:  5, observacao: '' },
+  { nome: 'Patch Cord Vermelho 2,5 m',  qtd_geral:  1, observacao: '' },
+  { nome: 'Patch Cord Amarelo 1,5 m',   qtd_geral:  5, observacao: '' },
+  { nome: 'Patch Cord Amarelo 2,5 m',   qtd_geral:  0, observacao: '' },
+  { nome: 'Patch Cord Verde 1,5 m',     qtd_geral:  3, observacao: '' },
+  { nome: 'Patch Cord Verde 2,5 m',     qtd_geral:  0, observacao: '' },
+  { nome: 'Patch Cord Azul 1,5 m',      qtd_geral:  5, observacao: '' },
+  { nome: 'Patch Cord Azul 2,5 m',      qtd_geral:  0, observacao: '' },
+  { nome: 'Conector RJ45 Macho',        qtd_geral:  0, observacao: '' },
+  { nome: 'Conector RJ45 Fêmea',        qtd_geral: 20, observacao: '' },
+  { nome: 'Leitor NFC',                 qtd_geral:  2, observacao: '' },
+  { nome: 'Headset com Fio',            qtd_geral:  0, observacao: 'Backup' },
+  { nome: 'Headset sem Fio',            qtd_geral:  0, observacao: '' },
+  { nome: 'Cabo HDMI 10 m',             qtd_geral:  1, observacao: 'Backup' },
+  { nome: 'Cabo USB x USB',             qtd_geral:  1, observacao: '' },
+  { nome: 'Caixinha de Som',            qtd_geral:  1, observacao: '' },
+  { nome: 'Bateria 2032',               qtd_geral: 20, observacao: '' },
+  { nome: 'Bateria 2025',               qtd_geral: 15, observacao: '' },
+  { nome: 'Cabo DisplayPort',           qtd_geral:  0, observacao: '' },
+];
+
+const SEED_RESERVA = [
+  { nome: 'Dell Novo',          qtd_geral:  1, especificacao: 'I5, 13ºG, 8GB, SSD240',       observacao: 'Mini PC de teste' },
+  { nome: 'Dell Usado',         qtd_geral:  2, especificacao: 'I3, 8GB, 3ºG, HD500GB',        observacao: 'no bc AIO' },
+  { nome: 'Dell Usado',         qtd_geral:  8, especificacao: 'I3, 6GB, 3ºG, HD500GB',        observacao: 'bkps' },
+  { nome: 'Câmeras Usadas',     qtd_geral:  3, especificacao: '',                              observacao: '' },
+  { nome: 'Câmeras Novas',      qtd_geral:  3, especificacao: '',                              observacao: '' },
+  { nome: 'Switch Fortinet',    qtd_geral:  1, especificacao: '24P POE',                       observacao: '' },
+  { nome: 'Switch HP',          qtd_geral:  5, especificacao: '',                              observacao: '' },
+  { nome: 'Monitor 40"',        qtd_geral:  1, especificacao: '',                              observacao: 'Totem antigo Recepção, disponibilizado na Casa Amarela' },
+  { nome: 'Nobreak Novo',       qtd_geral:  0, especificacao: '',                              observacao: '' },
+  { nome: 'Nobreak Usado',      qtd_geral:  4, especificacao: '',                              observacao: '' },
+  { nome: 'Impressora Térmica', qtd_geral:  2, especificacao: '',                              observacao: '' },
+  { nome: 'AP Fortinet',        qtd_geral:  1, especificacao: '421E',                          observacao: '' },
+  { nome: 'AP Fortinet',        qtd_geral:  2, especificacao: '221E',                          observacao: 'Backup' },
+  { nome: 'Celulares',          qtd_geral:  2, especificacao: 'Samsung A32, Moto G35',         observacao: '' },
+];
+
+function seedEstoque() {
+  const db = getDb();
+  const countItens = db.prepare('SELECT COUNT(*) as cnt FROM estoque_itens').get();
+  if (countItens.cnt === 0) {
+    const stmtItem = db.prepare(`
+      INSERT INTO estoque_itens (nome, tipo, qtd_preto, qtd_ciano, qtd_magenta, qtd_amarelo, qtd_geral, urgente)
+      VALUES (@nome, @tipo, @qtd_preto, @qtd_ciano, @qtd_magenta, @qtd_amarelo, @qtd_geral, @urgente)
+    `);
+    const inserirItens = db.transaction((rows) => {
+      for (const r of rows) {
+        stmtItem.run({
+          qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, qtd_geral: 0,
+          ...r,
+        });
+      }
+    });
+    inserirItens(SEED_ESTOQUE);
+    console.log(`[DB] Estoque: ${SEED_ESTOQUE.length} itens de seed inseridos.`);
+  }
+
+  // Seed periféricos (tipo='periferico')
+  const countPerif = db.prepare("SELECT COUNT(*) as cnt FROM estoque_itens WHERE tipo = 'periferico'").get();
+  if (countPerif.cnt === 0) {
+    const stmtPerif = db.prepare(`
+      INSERT INTO estoque_itens (nome, tipo, qtd_geral, observacao) VALUES (@nome, 'periferico', @qtd_geral, @observacao)
+    `);
+    const inserirPerif = db.transaction((rows) => { for (const r of rows) stmtPerif.run(r); });
+    inserirPerif(SEED_PERIFERICOS);
+    console.log(`[DB] Periféricos: ${SEED_PERIFERICOS.length} itens de seed inseridos.`);
+  }
+
+  // Migration: split Mouse/Teclado/Headset into com fio / sem fio
+  const splits = [
+    { antigo: 'Mouse',           novo: 'Mouse com Fio',    semFio: 'Mouse sem Fio' },
+    { antigo: 'Teclado',         novo: 'Teclado com Fio',  semFio: 'Teclado sem Fio' },
+    { antigo: 'Headset Logitech',novo: 'Headset com Fio',  semFio: 'Headset sem Fio' },
+  ];
+  for (const s of splits) {
+    const semFioExiste = db.prepare("SELECT id FROM estoque_itens WHERE nome = ? AND tipo = 'periferico'").get(s.semFio);
+    if (!semFioExiste) {
+      const antigo = db.prepare("SELECT id FROM estoque_itens WHERE nome = ? AND tipo = 'periferico'").get(s.antigo);
+      if (antigo) db.prepare("UPDATE estoque_itens SET nome = ? WHERE id = ?").run(s.novo, antigo.id);
+      db.prepare("INSERT INTO estoque_itens (nome, tipo, qtd_geral, observacao) VALUES (?, 'periferico', 0, '')").run(s.semFio);
+    }
+  }
+
+  // Seed reserva (tipo='reserva')
+  const countReserva = db.prepare("SELECT COUNT(*) as cnt FROM estoque_itens WHERE tipo = 'reserva'").get();
+  if (countReserva.cnt === 0) {
+    const stmtRes = db.prepare(`
+      INSERT INTO estoque_itens (nome, tipo, qtd_geral, especificacao, observacao) VALUES (@nome, 'reserva', @qtd_geral, @especificacao, @observacao)
+    `);
+    const inserirRes = db.transaction((rows) => { for (const r of rows) stmtRes.run(r); });
+    inserirRes(SEED_RESERVA);
+    console.log(`[DB] Reserva: ${SEED_RESERVA.length} itens de seed inseridos.`);
+  }
+
+  const countImpressoras = db.prepare('SELECT COUNT(*) as cnt FROM impressoras').get();
+  if (countImpressoras.cnt === 0) {
+    const stmtImp = db.prepare(`
+      INSERT INTO impressoras (nome, ip, selb, localizacao)
+      VALUES (@nome, @ip, @selb, @localizacao)
+    `);
+    const inserirImpressoras = db.transaction((rows) => {
+      for (const r of rows) stmtImp.run(r);
+    });
+    inserirImpressoras(SEED_IMPRESSORAS);
+    console.log(`[DB] Impressoras: ${SEED_IMPRESSORAS.length} registros de seed inseridos.`);
+  }
+
+  // One-time: limpar subscrições sem app_origin (eram de Railway/origem desconhecida)
+  const pushClear = db.prepare("SELECT valor FROM config WHERE chave = 'push_origin_migration_v1'").get();
+  if (!pushClear) {
+    db.prepare('DELETE FROM push_subscriptions').run();
+    db.prepare("INSERT OR REPLACE INTO config (chave, valor) VALUES ('push_origin_migration_v1', '1')").run();
+    console.log('[Push] Migração: subscriptions antigas removidas. Admins devem reativar notificações.');
+  }
+}
+
+// ── Inventário de Micros ──────────────────────────────────
+
+function listarInventario(filtros = {}) {
+  const db = getDb();
+  let sql = 'SELECT * FROM inventario_micros WHERE 1=1';
+  const params = [];
+  if (filtros.setor) { sql += ' AND setor LIKE ?'; params.push(`%${filtros.setor}%`); }
+  if (filtros.status) { sql += ' AND status LIKE ?'; params.push(`%${filtros.status}%`); }
+  if (filtros.search) {
+    sql += ' AND (setor LIKE ? OR usuario LIKE ? OR hostname LIKE ?)';
+    const s = `%${filtros.search}%`;
+    params.push(s, s, s);
+  }
+  sql += ' ORDER BY setor ASC, usuario ASC';
+  return db.prepare(sql).all(...params);
+}
+
+function buscarInventarioPorId(id) {
+  return getDb().prepare('SELECT * FROM inventario_micros WHERE id = ?').get(id);
+}
+
+function criarInventario(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO inventario_micros
+      (setor, usuario, processador, memoria, sistema_operacional, hd_ssd, office, tag,
+       entradas_monitor, modelo_monitor, status, hostname, data_troca, observacao, atualizacao_win11,
+       tipo_equipamento, nobreak)
+    VALUES
+      (@setor, @usuario, @processador, @memoria, @sistema_operacional, @hd_ssd, @office, @tag,
+       @entradas_monitor, @modelo_monitor, @status, @hostname, @data_troca, @observacao, @atualizacao_win11,
+       @tipo_equipamento, @nobreak)
+  `).run({
+    setor: '', usuario: '', processador: '', memoria: '', sistema_operacional: '',
+    hd_ssd: '', office: '', tag: '', entradas_monitor: '', modelo_monitor: '',
+    status: '', hostname: '', data_troca: '', observacao: '', atualizacao_win11: '',
+    tipo_equipamento: '', nobreak: '',
+    ...dados,
+  });
+  return result.lastInsertRowid;
+}
+
+function atualizarInventario(id, dados) {
+  const campos = [];
+  const values = [];
+  const CAMPOS = ['setor','usuario','processador','memoria','sistema_operacional','hd_ssd','office','tag',
+                  'entradas_monitor','modelo_monitor','status','hostname','data_troca','observacao','atualizacao_win11',
+                  'tipo_equipamento','nobreak'];
+  for (const campo of CAMPOS) {
+    if (dados[campo] !== undefined) { campos.push(`${campo} = ?`); values.push(dados[campo]); }
+  }
+  if (campos.length === 0) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  values.push(id);
+  getDb().prepare(`UPDATE inventario_micros SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarInventario(id) {
+  getDb().prepare('DELETE FROM inventario_micros WHERE id = ?').run(id);
+}
+
+// ── Estoque de Itens ──────────────────────────────────────
+
+function listarEstoqueItens() {
+  const db = getDb();
+  const itens = db.prepare('SELECT * FROM estoque_itens ORDER BY nome ASC').all();
+  const alocacoes = db.prepare(`
+    SELECT item_id, setor, cor, SUM(delta) as total
+    FROM (
+      SELECT item_id, setor_destino AS setor, cor, CAST(quantidade AS INTEGER) AS delta
+      FROM estoque_movimentacoes
+      WHERE tipo = 'saida' AND setor_destino IS NOT NULL AND setor_destino != ''
+      UNION ALL
+      SELECT item_id, setor_origem AS setor, cor, -CAST(quantidade AS INTEGER) AS delta
+      FROM estoque_movimentacoes
+      WHERE tipo = 'entrada' AND setor_origem IS NOT NULL AND setor_origem != ''
+    )
+    GROUP BY item_id, setor, cor
+    HAVING SUM(delta) > 0
+  `).all();
+  const alocMap = {};
+  for (const a of alocacoes) {
+    if (!alocMap[a.item_id]) alocMap[a.item_id] = [];
+    alocMap[a.item_id].push({ setor: a.setor, cor: a.cor, total: a.total });
+  }
+  return itens.map(i => ({ ...i, alocacoes: alocMap[i.id] || [] }));
+}
+
+function buscarEstoqueItemPorId(id) {
+  return getDb().prepare('SELECT * FROM estoque_itens WHERE id = ?').get(id);
+}
+
+function criarEstoqueItem(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO estoque_itens (nome, tipo, qtd_preto, qtd_ciano, qtd_magenta, qtd_amarelo, qtd_geral, urgente, observacao, especificacao)
+    VALUES (@nome, @tipo, @qtd_preto, @qtd_ciano, @qtd_magenta, @qtd_amarelo, @qtd_geral, @urgente, @observacao, @especificacao)
+  `).run({
+    tipo: 'outro', qtd_preto: 0, qtd_ciano: 0, qtd_magenta: 0, qtd_amarelo: 0, qtd_geral: 0, urgente: 0, observacao: '', especificacao: '',
+    ...dados,
+  });
+  return result.lastInsertRowid;
+}
+
+function atualizarEstoqueItem(id, dados) {
+  const campos = [];
+  const values = [];
+  if (dados.nome !== undefined)          { campos.push('nome = ?');          values.push(dados.nome); }
+  if (dados.tipo !== undefined)          { campos.push('tipo = ?');          values.push(dados.tipo); }
+  if (dados.urgente !== undefined)       { campos.push('urgente = ?');       values.push(dados.urgente); }
+  if (dados.observacao !== undefined)    { campos.push('observacao = ?');    values.push(dados.observacao); }
+  if (dados.especificacao !== undefined) { campos.push('especificacao = ?'); values.push(dados.especificacao); }
+  if (campos.length === 0) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  values.push(id);
+  getDb().prepare(`UPDATE estoque_itens SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarEstoqueItem(id) {
+  getDb().prepare('DELETE FROM estoque_itens WHERE id = ?').run(id);
+}
+
+function registrarMovimentacao(item_id, tipo, cor, quantidade, admin_nome, observacao, chamado_id, setor_destino, setor_origem) {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO estoque_movimentacoes (item_id, tipo, cor, quantidade, admin_nome, observacao, chamado_id, setor_destino, setor_origem)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(item_id, tipo, cor || '', quantidade, admin_nome || '', observacao || '', chamado_id || null, setor_destino || '', setor_origem || '');
+
+  // Update stock quantity
+  const sinal = tipo === 'entrada' ? 1 : -1;
+  const campo = cor && cor !== 'geral' ? `qtd_${cor}` : 'qtd_geral';
+  db.prepare(`UPDATE estoque_itens SET ${campo} = ${campo} + ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`)
+    .run(sinal * quantidade, item_id);
+}
+
+function listarMovimentacoes(item_id) {
+  return getDb().prepare(`
+    SELECT * FROM estoque_movimentacoes WHERE item_id = ? ORDER BY criado_em DESC
+  `).all(item_id);
+}
+
+// ── Impressoras ───────────────────────────────────────────
+
+function listarImpressoras() {
+  return getDb().prepare('SELECT * FROM impressoras ORDER BY localizacao ASC, nome ASC').all();
+}
+
+function criarImpressora(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO impressoras (nome, ip, selb, localizacao, numero_serie)
+    VALUES (@nome, @ip, @selb, @localizacao, @numero_serie)
+  `).run({ ip: '', selb: '', localizacao: '', numero_serie: '', ...dados });
+  return result.lastInsertRowid;
+}
+
+function atualizarImpressora(id, dados) {
+  const campos = [];
+  const values = [];
+  ['nome','ip','selb','localizacao','numero_serie'].forEach(f => {
+    if (dados[f] !== undefined) { campos.push(`${f} = ?`); values.push(dados[f]); }
+  });
+  if (campos.length === 0) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  values.push(id);
+  getDb().prepare(`UPDATE impressoras SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarImpressora(id) {
+  getDb().prepare('DELETE FROM impressoras WHERE id = ?').run(id);
+}
+
+function salvarPushSubscription(adminId, { endpoint, p256dh, auth, is_mobile, app_origin }) {
+  getDb().prepare(`
+    INSERT OR REPLACE INTO push_subscriptions (admin_id, endpoint, p256dh, auth, is_mobile, app_origin)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(adminId, endpoint, p256dh, auth, is_mobile ? 1 : 0, app_origin || '');
+}
+
+function removerPushSubscription(adminId, endpoint) {
+  getDb().prepare('DELETE FROM push_subscriptions WHERE admin_id = ? AND endpoint = ?').run(adminId, endpoint);
+}
+
+function getChamadosComPrazoPendente() {
+  return getDb().prepare(`
+    SELECT c.*, a.id as admin_id_resp
+    FROM chamados c
+    LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    WHERE c.status IN ('aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar')
+    AND c.prazo IS NOT NULL
+  `).all();
+}
+
+function registrarAlertaPrazo(chamadoId, tipo) {
+  try {
+    getDb().prepare('INSERT INTO prazo_alertas (chamado_id, tipo) VALUES (?, ?)').run(chamadoId, tipo);
+    return true;
+  } catch { return false; }
+}
+
+async function recuperarSenhasPlain() {
+  const db = getDb();
+  const senhasMaster = [
+    process.env.ADMIN_MASTER_PASS,
+    'Admin123!',
+  ].filter(Boolean);
+
+  const adminsNull = db.prepare('SELECT * FROM admins WHERE senha_plain IS NULL').all();
+  for (const admin of adminsNull) {
+    for (const senha of senhasMaster) {
+      const ok = await bcrypt.compare(senha, admin.senha_hash);
+      if (ok) {
+        db.prepare('UPDATE admins SET senha_plain = ? WHERE id = ?').run(senha, admin.id);
+        break;
+      }
+    }
+  }
+
+  const usuariosNull = db.prepare('SELECT * FROM usuarios WHERE senha_plain IS NULL').all();
+  for (const u of usuariosNull) {
+    for (const senha of senhasMaster) {
+      const ok = await bcrypt.compare(senha, u.senha_hash);
+      if (ok) {
+        db.prepare('UPDATE usuarios SET senha_plain = ? WHERE id = ?').run(senha, u.id);
+        break;
+      }
+    }
+  }
 }
 
 async function criarAdminMasterSeNecessario() {
@@ -86,9 +1280,9 @@ async function criarAdminMasterSeNecessario() {
 
   const hash = await bcrypt.hash(senha, 12);
   db.prepare(`
-    INSERT INTO admins (usuario, nome_completo, senha_hash, is_master)
-    VALUES (?, ?, ?, 1)
-  `).run(usuario, nome, hash);
+    INSERT INTO admins (usuario, nome_completo, senha_hash, senha_plain, is_master)
+    VALUES (?, ?, ?, ?, 1)
+  `).run(usuario, nome, hash, senha);
 
   console.log('='.repeat(60));
   console.log('ADMIN MASTER CRIADO (primeiro boot):');
@@ -98,28 +1292,81 @@ async function criarAdminMasterSeNecessario() {
   console.log('='.repeat(60));
 }
 
-// ── Chamados ──────────────────────────────────────────────────
+
 
 function inserirChamado(dados) {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original)
-    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original)
+    INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original, categoria, aberto_por_admin_id, admin_responsavel_id, servico_id, servico_nome)
+    VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria, @aberto_por_admin_id, @admin_responsavel_id, @servico_id, @servico_nome)
   `);
-  const result = stmt.run({ usuario_id: null, ...dados });
-  return result.lastInsertRowid;
+  const result = stmt.run({ usuario_id: null, categoria: null, aberto_por_admin_id: null, admin_responsavel_id: null, servico_id: null, servico_nome: null, ...dados });
+  const id = result.lastInsertRowid;
+  if (dados.admin_responsavel_id) {
+    db.prepare(`INSERT INTO admin_atendimento_log (chamado_id, admin_id) VALUES (?, ?)`)
+      .run(id, dados.admin_responsavel_id);
+  }
+  return id;
 }
 
 function deletarChamado(id) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
+  db.prepare('DELETE FROM mensagens_chamado WHERE chamado_id = ?').run(id);
   db.prepare('DELETE FROM historico_chamados WHERE chamado_id = ?').run(id);
   db.prepare('DELETE FROM chamados WHERE id = ?').run(id);
   return chamado;
 }
 
+function cancelarChamado(id, adminId, motivo) {
+  const db = getDb();
+  _fecharAtendimentoAberto(id, 'cancelado');
+  db.prepare(`
+    UPDATE chamados SET status = 'cancelado', cancelamento_motivo = ?,
+      cancelado_em = CURRENT_TIMESTAMP, concluido_em = NULL, nota = NULL,
+      atualizado_em = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(motivo || null, id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'cancelado', NULL, ?)
+  `).run(id, adminId || null, motivo || null);
+}
+
+function marcarMensagensLidas(adminId, chamadoId) {
+  getDb().prepare(`
+    INSERT INTO mensagens_leitura (admin_id, chamado_id, lido_em)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(admin_id, chamado_id) DO UPDATE SET lido_em = CURRENT_TIMESTAMP
+  `).run(adminId, chamadoId);
+}
+
+function listarMensagensChamado(chamadoId) {
+  return getDb().prepare(
+    'SELECT * FROM mensagens_chamado WHERE chamado_id = ? ORDER BY criado_em ASC'
+  ).all(chamadoId);
+}
+
+function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original }) {
+  const result = getDb().prepare(`
+    INSERT INTO mensagens_chamado (chamado_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original)
+    VALUES (@chamado_id, @autor_tipo, @autor_id, @autor_nome, @mensagem, @chat_anexo_path, @chat_anexo_nome_original)
+  `).run({ chamado_id, autor_tipo, autor_id: autor_id || null, autor_nome, mensagem: mensagem || '', chat_anexo_path: chat_anexo_path || null, chat_anexo_nome_original: chat_anexo_nome_original || null });
+  return result.lastInsertRowid;
+}
+
 function buscarChamadoPorId(id) {
-  return getDb().prepare('SELECT * FROM chamados WHERE id = ?').get(id);
+  return getDb().prepare(`
+    SELECT c.*, c.servico_id, c.servico_nome, a.nome_completo as admin_nome, a.ramal as admin_ramal,
+           u.setor as usuario_setor, u.ramal as usuario_ramal,
+           ab.nome_completo as aberto_por_admin_nome,
+           ab.is_master as aberto_por_admin_is_master
+    FROM chamados c
+    LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    LEFT JOIN usuarios u ON c.usuario_id = u.id
+    LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
+    WHERE c.id = ?
+  `).get(id);
 }
 
 function buscarHistoricoPrazos(chamadoId) {
@@ -142,12 +1389,30 @@ function buscarHistoricoCompleto(chamadoId) {
   `).all(chamadoId);
 }
 
-function listarChamadosAdmin(filtros = {}) {
+function listarChamadosAdmin(filtros = {}, adminId = null) {
   const db = getDb();
+  const adminIdInt = (adminId && parseInt(adminId, 10) > 0) ? parseInt(adminId, 10) : null;
+  const naoLidasCol = adminIdInt
+    ? `(SELECT COUNT(*) FROM mensagens_chamado mc WHERE mc.chamado_id = c.id AND mc.autor_tipo = 'usuario' AND mc.criado_em > COALESCE((SELECT lido_em FROM mensagens_leitura WHERE admin_id = ${adminIdInt} AND chamado_id = c.id), '1970-01-01')) as mensagens_nao_lidas,`
+    : `0 as mensagens_nao_lidas,`;
   let sql = `
-    SELECT c.*, a.nome_completo as admin_nome
+    SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
+           c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
+           c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
+           c.comentario_avaliacao, c.criado_em, c.atualizado_em,
+           c.concluido_em, c.categoria, c.servico_id, c.servico_nome, c.assinado_em,
+           c.aberto_por_admin_id, c.cancelamento_motivo, c.cancelado_em,
+           (SELECT COUNT(*) FROM chamado_infos_adicionais ia WHERE ia.chamado_id = c.id) as infos_adicionais_count,
+           COALESCE(c.novidades_admin, 0) as novidades_admin,
+           ${naoLidasCol}
+           a.nome_completo as admin_nome, a.ramal as admin_ramal,
+           u.setor as usuario_setor, u.ramal as usuario_ramal,
+           ab.nome_completo as aberto_por_admin_nome,
+           ab.is_master as aberto_por_admin_is_master
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    LEFT JOIN usuarios u ON c.usuario_id = u.id
+    LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
     WHERE 1=1
   `;
   const params = [];
@@ -170,6 +1435,14 @@ function listarChamadosAdmin(filtros = {}) {
     sql += ' AND c.admin_responsavel_id = ?';
     params.push(filtros.admin_id);
   }
+  if (filtros.prioridade) {
+    if (filtros.prioridade === 'sem') {
+      sql += ' AND c.prioridade IS NULL';
+    } else {
+      sql += ' AND c.prioridade = ?';
+      params.push(filtros.prioridade);
+    }
+  }
   if (filtros.periodo_inicio) {
     sql += ' AND c.criado_em >= ?';
     params.push(filtros.periodo_inicio);
@@ -178,8 +1451,57 @@ function listarChamadosAdmin(filtros = {}) {
     sql += ' AND c.criado_em <= ?';
     params.push(filtros.periodo_fim + ' 23:59:59');
   }
+  if (filtros.q || filtros.categoria) {
+    const clauses = [];
+    const combParams = [];
+    if (filtros.q) {
+      const q = `%${filtros.q.toLowerCase()}%`;
+      clauses.push(`(
+        CAST(c.id AS TEXT) LIKE ?
+        OR LOWER(COALESCE(c.nome, '')) LIKE ?
+        OR LOWER(COALESCE(c.descricao, '')) LIKE ?
+        OR LOWER(COALESCE(c.setor, '')) LIKE ?
+        OR LOWER(COALESCE(c.ramal, '')) LIKE ?
+        OR LOWER(COALESCE(c.solucao, '')) LIKE ?
+        OR LOWER(COALESCE(c.nota, '')) LIKE ?
+        OR LOWER(COALESCE(c.cancelamento_motivo, '')) LIKE ?
+        OR LOWER(COALESCE(u.setor, '')) LIKE ?
+        OR EXISTS (
+          SELECT 1 FROM chamado_infos_adicionais ia
+          WHERE ia.chamado_id = c.id AND LOWER(ia.texto) LIKE ?
+        )
+      )`);
+      for (let i = 0; i < 10; i++) combParams.push(q);
+    }
+    if (filtros.categoria) {
+      const cats = filtros.categoria.split(',').map(s => s.trim()).filter(Boolean);
+      if (cats.length === 1) {
+        clauses.push('c.categoria = ?');
+        combParams.push(cats[0]);
+      } else if (cats.length > 1) {
+        clauses.push(`c.categoria IN (${cats.map(() => '?').join(',')})`);
+        combParams.push(...cats);
+      }
+    }
+    if (clauses.length) {
+      sql += ` AND (${clauses.join(' OR ')})`;
+      params.push(...combParams);
+    }
+  }
+  if (filtros.data_inicio || filtros.data_fim) {
+    const col = filtros.data_tipo === 'encerramento'
+      ? 'c.prazo'
+      : 'c.criado_em';
+    if (filtros.data_inicio) {
+      sql += ` AND ${col} >= ?`;
+      params.push(filtros.data_inicio);
+    }
+    if (filtros.data_fim) {
+      sql += ` AND ${col} <= ?`;
+      params.push(filtros.data_fim + ' 23:59:59');
+    }
+  }
 
-  // Ordenação: sem prioridade primeiro, depois urgente, alta, media, baixa; dentro do nível, mais antigos primeiro
   sql += `
     ORDER BY
       CASE WHEN c.prioridade IS NULL THEN 0 ELSE 1 END ASC,
@@ -190,6 +1512,8 @@ function listarChamadosAdmin(filtros = {}) {
         WHEN c.prioridade = 'baixa' THEN 4
         ELSE 5
       END ASC,
+      CASE WHEN c.prazo IS NULL THEN 1 ELSE 0 END ASC,
+      c.prazo ASC,
       c.criado_em ASC
   `;
 
@@ -212,30 +1536,116 @@ function atualizarPrazo(id, prazo, adminId) {
   const chamado = buscarChamadoPorId(id);
   const anterior = chamado.prazo;
   db.prepare(`UPDATE chamados SET prazo = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(prazo, id);
+  // Limpa alertas anteriores — sem isso, se 10min/1h/24h já dispararam uma vez,
+  // não disparam de novo mesmo depois do prazo ser alterado.
+  db.prepare(`DELETE FROM prazo_alertas WHERE chamado_id = ?`).run(id);
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'prazo_alterado', ?, ?)
   `).run(id, adminId, anterior || null, prazo);
 }
 
+function atualizarCategoria(id, categoria, adminId, servicoId = null, servicoNome = null) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+  const anterior = chamado.categoria;
+  const sId = categoria === 'servico' ? (servicoId || null) : null;
+  const sNome = categoria === 'servico' ? (servicoNome || null) : null;
+  db.prepare(`UPDATE chamados SET categoria = ?, servico_id = ?, servico_nome = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(categoria, sId, sNome, id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'categoria_alterada', ?, ?)
+  `).run(id, adminId, anterior || null, categoria);
+}
+
+function listarServicos() {
+  return getDb().prepare('SELECT * FROM servicos WHERE ativo = 1 ORDER BY nome ASC').all();
+}
+
+function listarServicosAdmin() {
+  return getDb().prepare('SELECT * FROM servicos ORDER BY nome ASC').all();
+}
+
+function criarServico({ nome, descricao }) {
+  return getDb().prepare('INSERT INTO servicos (nome, descricao) VALUES (?, ?)').run(nome, descricao || null).lastInsertRowid;
+}
+
+function atualizarServico(id, campos) {
+  const sets = [];
+  const vals = [];
+  if (campos.nome !== undefined) { sets.push('nome = ?'); vals.push(campos.nome); }
+  if (campos.descricao !== undefined) { sets.push('descricao = ?'); vals.push(campos.descricao || null); }
+  if (campos.ativo !== undefined) { sets.push('ativo = ?'); vals.push(campos.ativo ? 1 : 0); }
+  if (!sets.length) return;
+  vals.push(id);
+  getDb().prepare(`UPDATE servicos SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+}
+
+function deletarServico(id) {
+  getDb().prepare('UPDATE servicos SET ativo = 0 WHERE id = ?').run(id);
+}
+
+// ── Atendimento (log para tempo médio por admin) ──────────────
+function _fecharAtendimentoAberto(chamadoId, motivo) {
+  const db = getDb();
+  db.prepare(`
+    UPDATE admin_atendimento_log
+    SET encerrado_em = CURRENT_TIMESTAMP,
+        duracao_segundos = CAST((julianday(CURRENT_TIMESTAMP) - julianday(assumido_em)) * 86400 AS INTEGER),
+        motivo = ?
+    WHERE chamado_id = ? AND encerrado_em IS NULL
+  `).run(motivo, chamadoId);
+}
+
+function _iniciarAtendimento(chamadoId, adminId) {
+  if (!adminId) return;
+  _fecharAtendimentoAberto(chamadoId, 'transferido');
+  getDb().prepare(`
+    INSERT INTO admin_atendimento_log (chamado_id, admin_id)
+    VALUES (?, ?)
+  `).run(chamadoId, adminId);
+}
+
 function assumirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
-  db.prepare(`
-    UPDATE chamados SET status = 'em_andamento', admin_responsavel_id = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
-  `).run(adminId, id);
+  if (['aberto', 'aguardando_compra', 'aguardando_chegar'].includes(chamado.status)) {
+    db.prepare(`
+      UPDATE chamados SET status = 'em_andamento', admin_responsavel_id = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(adminId, id);
+  } else {
+    db.prepare(`
+      UPDATE chamados SET admin_responsavel_id = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(adminId, id);
+  }
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'assumido', ?, 'em_andamento')
   `).run(id, adminId, chamado.status);
+  if (Number(chamado.admin_responsavel_id) !== Number(adminId)) {
+    _iniciarAtendimento(id, adminId);
+  }
 }
 
-function concluirChamado(id, solucao, adminId) {
+function concluirChamado(id, solucao, adminId, assinatura = null) {
   const db = getDb();
+  _fecharAtendimentoAberto(id, 'concluido');
   const chamado = buscarChamadoPorId(id);
-  db.prepare(`
-    UPDATE chamados SET status = 'concluido', solucao = ?, atualizado_em = CURRENT_TIMESTAMP, concluido_em = CURRENT_TIMESTAMP WHERE id = ?
-  `).run(solucao, id);
+  if (assinatura) {
+    db.prepare(`
+      UPDATE chamados SET status = 'concluido', solucao = ?, assinatura = ?, assinado_em = CURRENT_TIMESTAMP,
+      atualizado_em = CURRENT_TIMESTAMP, concluido_em = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(solucao, assinatura, id);
+    db.prepare(`
+      INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id)
+      VALUES (?, ?, CURRENT_TIMESTAMP, ?)
+    `).run(id, assinatura, adminId);
+  } else {
+    db.prepare(`
+      UPDATE chamados SET status = 'concluido', solucao = ?,
+      atualizado_em = CURRENT_TIMESTAMP, concluido_em = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(solucao, id);
+  }
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'status_alterado', ?, 'concluido')
@@ -248,9 +1658,11 @@ function concluirChamado(id, solucao, adminId) {
 
 function encerrarChamado(id, motivo, adminId) {
   const db = getDb();
+  _fecharAtendimentoAberto(id, 'encerrado');
   const chamado = buscarChamadoPorId(id);
   db.prepare(`
-    UPDATE chamados SET status = 'encerrado', solucao = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+    UPDATE chamados SET status = 'encerrado', solucao = ?,
+    atualizado_em = CURRENT_TIMESTAMP, concluido_em = CURRENT_TIMESTAMP WHERE id = ?
   `).run(motivo, id);
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
@@ -258,16 +1670,118 @@ function encerrarChamado(id, motivo, adminId) {
   `).run(id, adminId, chamado.status);
 }
 
+function setStatusEspera(id, novoStatus, adminId) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+  db.prepare(`UPDATE chamados SET status = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(novoStatus, id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'status_alterado', ?, ?)
+  `).run(id, adminId, chamado.status, novoStatus);
+}
+
+function transferirChamado(id, adminId, novoAdminId, nomeNovoAdmin) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+  const adminAnterior = chamado.admin_responsavel_id
+    ? db.prepare('SELECT nome_completo FROM admins WHERE id = ?').get(chamado.admin_responsavel_id)
+    : null;
+  db.prepare(`
+    UPDATE chamados SET admin_responsavel_id = ?, status = 'em_andamento', atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+  `).run(novoAdminId, id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'transferido', ?, ?)
+  `).run(id, adminId, adminAnterior ? adminAnterior.nome_completo : null, nomeNovoAdmin);
+  _iniciarAtendimento(id, novoAdminId);
+}
+
 function reabrirChamado(id, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
+  if (chamado.nota !== null && chamado.nota !== undefined) {
+    db.prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'avaliacao_registrada', ?, ?)
+    `).run(id, null, String(chamado.nota), chamado.comentario_avaliacao || null);
+  }
+  // Safety net: preserve signature if not yet saved (e.g. signed before this deploy)
+  if (chamado.assinado_em) {
+    const jaSalva = db.prepare('SELECT id FROM assinaturas_historico WHERE chamado_id = ? AND assinado_em = ?').get(id, chamado.assinado_em);
+    if (!jaSalva) {
+      db.prepare(`INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id) VALUES (?, ?, ?, ?)`).run(id, chamado.assinatura, chamado.assinado_em, adminId);
+    }
+  }
   db.prepare(`
-    UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+    UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL,
+    assinatura = NULL, assinado_em = NULL, nota = NULL, comentario_avaliacao = NULL,
+    atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
   `).run(id);
+  // Limpa alertas de prazo — sem isso, ao reabrir um chamado os alertas 10min/1h/24h
+  // já marcados como disparados nunca mais fariam push
+  db.prepare(`DELETE FROM prazo_alertas WHERE chamado_id = ?`).run(id);
+  const termoAntes = db.prepare('SELECT id FROM termos_aceite WHERE chamado_id = ?').get(id);
+  if (termoAntes) {
+    db.prepare('DELETE FROM termos_aceite WHERE chamado_id = ?').run(id);
+    db.prepare(`INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo) VALUES (?, ?, 'acordo_resetado', NULL, NULL)`).run(id, adminId);
+  }
   db.prepare(`
     INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
     VALUES (?, ?, 'status_alterado', ?, 'aberto')
   `).run(id, adminId, chamado.status);
+}
+
+function reabrirChamadoUsuario(id, novaDescricao) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+
+  if (chamado.nota !== null && chamado.nota !== undefined) {
+    db.prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, NULL, 'avaliacao_registrada', ?, ?)
+    `).run(id, String(chamado.nota), chamado.comentario_avaliacao || null);
+  }
+
+  if (chamado.assinado_em) {
+    const jaSalva = db.prepare('SELECT id FROM assinaturas_historico WHERE chamado_id = ? AND assinado_em = ?').get(id, chamado.assinado_em);
+    if (!jaSalva) {
+      db.prepare(`INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id) VALUES (?, ?, ?, NULL)`).run(id, chamado.assinatura, chamado.assinado_em);
+    }
+  }
+
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, NULL, 'descricao_alterada', ?, ?)
+  `).run(id, chamado.descricao, novaDescricao);
+
+  db.prepare(`
+    UPDATE chamados SET status = 'aberto', solucao = NULL, concluido_em = NULL,
+    assinatura = NULL, assinado_em = NULL, nota = NULL, comentario_avaliacao = NULL,
+    descricao = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+  `).run(novaDescricao, id);
+  // Limpa alertas de prazo (mesma razão do reabrirChamado)
+  db.prepare(`DELETE FROM prazo_alertas WHERE chamado_id = ?`).run(id);
+
+  const termoAntes = db.prepare('SELECT id FROM termos_aceite WHERE chamado_id = ?').get(id);
+  if (termoAntes) {
+    db.prepare('DELETE FROM termos_aceite WHERE chamado_id = ?').run(id);
+    db.prepare(`INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo) VALUES (?, NULL, 'acordo_resetado', NULL, NULL)`).run(id);
+  }
+
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, NULL, 'status_alterado', ?, 'aberto')
+  `).run(id, chamado.status);
+}
+
+function listarAssinaturasHistorico(chamadoId) {
+  return getDb().prepare(`
+    SELECT ah.*, a.nome_completo as admin_nome
+    FROM assinaturas_historico ah
+    LEFT JOIN admins a ON ah.admin_id = a.id
+    WHERE ah.chamado_id = ?
+    ORDER BY ah.criado_em ASC
+  `).all(chamadoId);
 }
 
 function avaliarChamado(id, nota, comentario) {
@@ -276,34 +1790,82 @@ function avaliarChamado(id, nota, comentario) {
   `).run(nota, comentario || null, id);
 }
 
-// ── Usuarios ──────────────────────────────────────────────────
+function assinarChamado(id, assinatura) {
+  const db = getDb();
+  db.prepare(`
+    UPDATE chamados SET assinatura = ?, assinado_em = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
+  `).run(assinatura, id);
+  db.prepare(`
+    INSERT INTO assinaturas_historico (chamado_id, assinatura, assinado_em, admin_id)
+    VALUES (?, ?, CURRENT_TIMESTAMP, NULL)
+  `).run(id, assinatura);
+}
+
+
 
 function registrarUsuario(dados) {
   const result = getDb().prepare(`
-    INSERT INTO usuarios (nome, email, senha_hash) VALUES (@nome, @email, @senha_hash)
-  `).run(dados);
+    INSERT INTO usuarios (nome, email, senha_hash, senha_plain, ramal, setor)
+    VALUES (@nome, @email, @senha_hash, @senha_plain, @ramal, @setor)
+  `).run({ senha_plain: null, ramal: null, setor: null, ...dados });
   return result.lastInsertRowid;
 }
 
 function buscarUsuarioPorEmail(email) {
-  return getDb().prepare('SELECT * FROM usuarios WHERE email = ?').get(email);
+  return getDb().prepare('SELECT * FROM usuarios WHERE email = ? AND ativo = 1').get(email);
 }
 
 function buscarUsuarioPorId(id) {
-  return getDb().prepare('SELECT id, nome, email, criado_em FROM usuarios WHERE id = ?').get(id);
+  return getDb().prepare('SELECT * FROM usuarios WHERE id = ?').get(id);
+}
+
+function listarUsuarios() {
+  return getDb().prepare('SELECT id, nome, email, ativo, senha_plain, ramal, setor, criado_em FROM usuarios ORDER BY criado_em DESC').all();
+}
+
+function atualizarUsuario(id, dados) {
+  const campos = [];
+  const values = [];
+  if (dados.ativo !== undefined) { campos.push('ativo = ?'); values.push(dados.ativo); }
+  if (dados.nome !== undefined) { campos.push('nome = ?'); values.push(dados.nome); }
+  if (dados.email !== undefined) { campos.push('email = ?'); values.push(dados.email); }
+  if (dados.senha_hash !== undefined) { campos.push('senha_hash = ?'); values.push(dados.senha_hash); }
+  if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
+  if (dados.ramal !== undefined) { campos.push('ramal = ?'); values.push(dados.ramal); }
+  if (dados.setor !== undefined) { campos.push('setor = ?'); values.push(dados.setor); }
+  if (campos.length === 0) return;
+  values.push(id);
+  getDb().prepare(`UPDATE usuarios SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarUsuario(id) {
+  const db = getDb();
+  db.prepare('UPDATE chamados SET usuario_id = NULL WHERE usuario_id = ?').run(id);
+  db.prepare('DELETE FROM usuarios WHERE id = ?').run(id);
 }
 
 function listarChamadosPorUsuario(usuario_id) {
   return getDb().prepare(`
-    SELECT c.*, a.nome_completo as admin_nome
+    SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
+           c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
+           c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
+           c.comentario_avaliacao, c.criado_em, c.atualizado_em,
+           c.concluido_em, c.categoria, c.assinado_em, c.requer_acordo, c.acordo_equipamentos,
+           c.cancelamento_motivo, c.cancelado_em,
+           c.aberto_por_admin_id,
+           COALESCE(c.novidades_usuario, 0) as novidades_usuario,
+           a.nome_completo as admin_nome, a.ramal as admin_ramal,
+           ab.nome_completo as aberto_por_admin_nome,
+           ab.is_master as aberto_por_admin_is_master
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
     WHERE c.usuario_id = ?
     ORDER BY c.criado_em DESC
   `).all(usuario_id);
 }
 
-// ── Admins ────────────────────────────────────────────────────
+
 
 function buscarAdminPorUsuario(usuario) {
   return getDb().prepare('SELECT * FROM admins WHERE usuario = ? AND ativo = 1').get(usuario);
@@ -313,15 +1875,23 @@ function buscarAdminPorId(id) {
   return getDb().prepare('SELECT * FROM admins WHERE id = ?').get(id);
 }
 
+function buscarAdminPorEmail(email) {
+  return getDb().prepare('SELECT * FROM admins WHERE email = ? AND ativo = 1').get(email);
+}
+
 function listarAdmins() {
-  return getDb().prepare('SELECT id, usuario, nome_completo, is_master, ativo, criado_em FROM admins ORDER BY criado_em ASC').all();
+  return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, is_master, ativo, senha_plain, criado_em, COALESCE(is_test,0) as is_test FROM admins ORDER BY criado_em ASC').all();
+}
+
+function listarAdminsTransferencia() {
+  return getDb().prepare("SELECT id, usuario, nome_completo, email, ramal, is_master, ativo FROM admins WHERE COALESCE(is_test,0) = 0 ORDER BY criado_em ASC").all();
 }
 
 function criarAdmin(dados) {
   const result = getDb().prepare(`
-    INSERT INTO admins (usuario, nome_completo, senha_hash, is_master)
-    VALUES (@usuario, @nome_completo, @senha_hash, @is_master)
-  `).run(dados);
+    INSERT INTO admins (usuario, nome_completo, email, ramal, senha_hash, senha_plain, is_master)
+    VALUES (@usuario, @nome_completo, @email, @ramal, @senha_hash, @senha_plain, @is_master)
+  `).run({ senha_plain: null, ramal: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -329,35 +1899,139 @@ function atualizarAdmin(id, dados) {
   const campos = [];
   const values = [];
   if (dados.nome_completo !== undefined) { campos.push('nome_completo = ?'); values.push(dados.nome_completo); }
+  if (dados.email !== undefined) { campos.push('email = ?'); values.push(dados.email); }
+  if (dados.ramal !== undefined) { campos.push('ramal = ?'); values.push(dados.ramal); }
   if (dados.senha_hash !== undefined) { campos.push('senha_hash = ?'); values.push(dados.senha_hash); }
+  if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
   if (dados.ativo !== undefined) { campos.push('ativo = ?'); values.push(dados.ativo); }
+  if (dados.is_master !== undefined) { campos.push('is_master = ?'); values.push(dados.is_master); }
   if (campos.length === 0) return;
   values.push(id);
   getDb().prepare(`UPDATE admins SET ${campos.join(', ')} WHERE id = ?`).run(...values);
 }
 
 function deletarAdmin(id) {
-  getDb().prepare('DELETE FROM admins WHERE id = ?').run(id);
+  const db = getDb();
+  db.prepare('UPDATE chamados SET admin_responsavel_id = NULL WHERE admin_responsavel_id = ?').run(id);
+  db.prepare('UPDATE historico_chamados SET admin_id = NULL WHERE admin_id = ?').run(id);
+  db.prepare('DELETE FROM admins WHERE id = ?').run(id);
 }
 
-// ── Relatórios ────────────────────────────────────────────────
+
+
+function listarItens(tipo) {
+  return getDb().prepare('SELECT * FROM itens WHERE tipo = ? ORDER BY nome ASC').all(tipo);
+}
+
+function buscarItemPorId(id) {
+  return getDb().prepare('SELECT * FROM itens WHERE id = ?').get(id);
+}
+
+function criarItem(dados) {
+  const result = getDb().prepare(`
+    INSERT INTO itens (nome, tipo, categoria, quantidade, quantidade_minima, localizacao, descricao, status, numero_serie, fabricante, modelo)
+    VALUES (@nome, @tipo, @categoria, @quantidade, @quantidade_minima, @localizacao, @descricao, @status, @numero_serie, @fabricante, @modelo)
+  `).run({
+    categoria: null, quantidade: 0, quantidade_minima: 0, localizacao: null,
+    descricao: null, status: 'disponivel', numero_serie: null, fabricante: null, modelo: null,
+    ...dados,
+  });
+  return result.lastInsertRowid;
+}
+
+function atualizarItem(id, dados) {
+  const campos = [];
+  const values = [];
+  const CAMPOS = ['nome', 'tipo', 'categoria', 'quantidade', 'quantidade_minima', 'localizacao', 'descricao', 'status', 'numero_serie', 'fabricante', 'modelo'];
+  for (const campo of CAMPOS) {
+    if (dados[campo] !== undefined) { campos.push(`${campo} = ?`); values.push(dados[campo]); }
+  }
+  if (campos.length === 0) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  values.push(id);
+  getDb().prepare(`UPDATE itens SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+}
+
+function deletarItem(id) {
+  getDb().prepare('DELETE FROM itens WHERE id = ?').run(id);
+}
+
+function listarChamadosProcessoCompra({ apenasAbertos = false } = {}) {
+  const cond = apenasAbertos ? `AND c.status IN ('aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar')` : '';
+  return getDb().prepare(`
+    SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
+           c.prioridade, c.status, c.prazo, c.admin_responsavel_id,
+           c.solucao, c.criado_em, c.atualizado_em, c.concluido_em,
+           c.categoria, c.assinado_em,
+           a.nome_completo as admin_nome
+    FROM chamados c
+    LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    WHERE c.categoria = 'processo_compra' ${cond}
+    ORDER BY
+      CASE WHEN c.status IN ('aberto','em_andamento','aguardando_compra','aguardando_chegar') THEN 0 ELSE 1 END ASC,
+      c.criado_em DESC
+  `).all();
+}
+
+function inserirMencoesEquipamentos(chamado_id, equipamentos) {
+  const db = getDb();
+  const stmt = db.prepare('INSERT INTO equipamentos_mencoes (chamado_id, equipamento) VALUES (?, ?)');
+  const inserir = db.transaction((list) => {
+    for (const eq of list) stmt.run(chamado_id, eq);
+  });
+  inserir(equipamentos);
+}
+
+function rankingEquipamentos({ limite = 20 } = {}) {
+  return getDb().prepare(`
+    SELECT
+      em.equipamento,
+      COUNT(*) AS vezes,
+      MAX(c.criado_em) AS ultimo_chamado,
+      GROUP_CONCAT(em.chamado_id ORDER BY em.chamado_id DESC) AS chamado_ids
+    FROM equipamentos_mencoes em
+    JOIN chamados c ON c.id = em.chamado_id
+    GROUP BY em.equipamento
+    ORDER BY vezes DESC, ultimo_chamado DESC
+    LIMIT ?
+  `).all(limite);
+}
+
+
 
 function relatorioMes(mes) {
   const db = getDb();
   const inicio = `${mes}-01`;
   const fim = `${mes}-31`;
+  const mesAntDate = new Date(`${mes}-01T00:00:00Z`);
+  mesAntDate.setUTCMonth(mesAntDate.getUTCMonth() - 1);
+  const mesAnt = mesAntDate.toISOString().slice(0, 7);
+  const inicioAnt = `${mesAnt}-01`;
+  const fimAnt = `${mesAnt}-31`;
 
   const volumeStatus = db.prepare(`
     SELECT status, COUNT(*) as total
     FROM chamados
-    WHERE criado_em BETWEEN ? AND ?
+    WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
     GROUP BY status
   `).all(inicio, fim + ' 23:59:59');
+
+  const volumeStatusAnt = db.prepare(`
+    SELECT status, COUNT(*) as total
+    FROM chamados
+    WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
+    GROUP BY status
+  `).all(inicioAnt, fimAnt + ' 23:59:59');
+
+  const totalMes = db.prepare(`SELECT COUNT(*) as t FROM chamados WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'`)
+    .get(inicio, fim + ' 23:59:59').t;
+  const totalMesAnt = db.prepare(`SELECT COUNT(*) as t FROM chamados WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'`)
+    .get(inicioAnt, fimAnt + ' 23:59:59').t;
 
   const abertosUltimos12 = db.prepare(`
     SELECT strftime('%Y-%m', criado_em) as mes, COUNT(*) as total
     FROM chamados
-    WHERE criado_em >= date(?, '-11 months')
+    WHERE criado_em >= date(?, '-11 months') AND status != 'cancelado'
     GROUP BY mes
     ORDER BY mes ASC
   `).all(inicio);
@@ -365,13 +2039,13 @@ function relatorioMes(mes) {
   const notaMedia = db.prepare(`
     SELECT AVG(nota) as media, COUNT(nota) as total
     FROM chamados
-    WHERE concluido_em BETWEEN ? AND ? AND nota IS NOT NULL
+    WHERE concluido_em BETWEEN ? AND ? AND nota IS NOT NULL AND status != 'cancelado'
   `).get(inicio, fim + ' 23:59:59');
 
   const tendencia6m = db.prepare(`
-    SELECT strftime('%Y-%m', concluido_em) as mes, AVG(nota) as media
+    SELECT strftime('%Y-%m', concluido_em) as mes, AVG(nota) as media, COUNT(nota) as total
     FROM chamados
-    WHERE concluido_em >= date(?, '-5 months') AND nota IS NOT NULL
+    WHERE concluido_em >= date(?, '-11 months') AND nota IS NOT NULL AND status != 'cancelado'
     GROUP BY mes
     ORDER BY mes ASC
   `).all(inicio);
@@ -379,13 +2053,125 @@ function relatorioMes(mes) {
   const top5Setores = db.prepare(`
     SELECT setor, COUNT(*) as total
     FROM chamados
-    WHERE criado_em BETWEEN ? AND ?
+    WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
     GROUP BY setor
     ORDER BY total DESC
     LIMIT 5
   `).all(inicio, fim + ' 23:59:59');
 
-  return { volumeStatus, abertosUltimos12, notaMedia, tendencia6m, top5Setores };
+  const porCategoria = db.prepare(`
+    SELECT COALESCE(categoria, 'outros') as categoria, COUNT(*) as total
+    FROM chamados
+    WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
+    GROUP BY categoria
+    ORDER BY total DESC
+  `).all(inicio, fim + ' 23:59:59');
+
+  // Tempo médio de resposta = média do tempo entre criado_em e primeira mensagem do admin
+  const tempoMedioRespostaRow = db.prepare(`
+    SELECT AVG(
+      (julianday(primeira_resposta) - julianday(c.criado_em)) * 86400
+    ) AS media_seg
+    FROM chamados c
+    JOIN (
+      SELECT chamado_id, MIN(criado_em) AS primeira_resposta
+      FROM mensagens_chamado
+      WHERE autor_tipo = 'admin'
+      GROUP BY chamado_id
+    ) m ON m.chamado_id = c.id
+    WHERE c.criado_em BETWEEN ? AND ?
+  `).get(inicio, fim + ' 23:59:59');
+
+  // SLA = % de concluídos dentro do prazo
+  const slaRow = db.prepare(`
+    SELECT
+      COUNT(*) AS total_com_prazo,
+      SUM(CASE WHEN concluido_em <= prazo THEN 1 ELSE 0 END) AS dentro_prazo
+    FROM chamados
+    WHERE prazo IS NOT NULL
+      AND concluido_em IS NOT NULL
+      AND status != 'cancelado'
+      AND concluido_em BETWEEN ? AND ?
+  `).get(inicio, fim + ' 23:59:59');
+
+  const chamadosReabertos = db.prepare(`
+    SELECT COUNT(DISTINCT chamado_id) as t
+    FROM historico_chamados
+    WHERE acao = 'status_alterado'
+      AND valor_novo = 'aberto'
+      AND valor_anterior IN ('concluido', 'encerrado')
+      AND timestamp BETWEEN ? AND ?
+  `).get(inicio, fim + ' 23:59:59').t;
+
+  return {
+    mes, mesAnterior: mesAnt,
+    volumeStatus, volumeStatusAnt,
+    totalMes, totalMesAnt,
+    abertosUltimos12, notaMedia, tendencia6m,
+    top5Setores, porCategoria,
+    tempoMedioRespostaSeg: tempoMedioRespostaRow?.media_seg || null,
+    chamadosReabertos,
+    sla: {
+      totalComPrazo: slaRow?.total_com_prazo || 0,
+      dentroPrazo: slaRow?.dentro_prazo || 0,
+    },
+  };
+}
+
+function rankingAdminsMes(mes) {
+  const db = getDb();
+  const inicio = `${mes}-01`;
+  const fim = `${mes}-31`;
+
+  // Tempo médio só usa o admin_atendimento_log (preciso, respeita transferências).
+  // Chamados sem log mostram '—' — a contagem começa a partir de novas
+  // ações (assumir, transferir, concluir, encerrar) depois deste deploy.
+  return db.prepare(`
+    SELECT
+      a.id,
+      a.nome_completo,
+      COUNT(DISTINCT CASE WHEN h.valor_novo = 'concluido' THEN h.chamado_id END) AS concluidos,
+      COUNT(DISTINCT CASE WHEN h.valor_novo = 'encerrado' THEN h.chamado_id END) AS encerrados,
+      COUNT(DISTINCT h.chamado_id) AS total,
+      (
+        SELECT AVG(l.duracao_segundos)
+        FROM admin_atendimento_log l
+        WHERE l.admin_id = a.id
+          AND l.encerrado_em IS NOT NULL
+          AND l.encerrado_em BETWEEN ? AND ?
+          AND l.duracao_segundos IS NOT NULL
+      ) AS tempo_medio_seg,
+      (
+        SELECT AVG(c.nota)
+        FROM chamados c
+        WHERE c.admin_responsavel_id = a.id
+          AND c.nota IS NOT NULL
+          AND c.status != 'cancelado'
+          AND c.concluido_em BETWEEN ? AND ?
+      ) AS nota_media,
+      (
+        SELECT COUNT(c.nota)
+        FROM chamados c
+        WHERE c.admin_responsavel_id = a.id
+          AND c.nota IS NOT NULL
+          AND c.status != 'cancelado'
+          AND c.concluido_em BETWEEN ? AND ?
+      ) AS total_avaliacoes
+    FROM admins a
+    LEFT JOIN historico_chamados h
+      ON h.admin_id = a.id
+      AND h.acao = 'status_alterado'
+      AND h.valor_novo IN ('concluido', 'encerrado')
+      AND h.timestamp BETWEEN ? AND ?
+    WHERE a.ativo = 1
+    GROUP BY a.id, a.nome_completo
+    ORDER BY total DESC, concluidos DESC, a.nome_completo ASC
+  `).all(
+    inicio, fim + ' 23:59:59',  // tempo_medio_seg
+    inicio, fim + ' 23:59:59',  // nota_media
+    inicio, fim + ' 23:59:59',  // total_avaliacoes
+    inicio, fim + ' 23:59:59'   // historico ranking
+  );
 }
 
 function exportarCsvMes(mes) {
@@ -401,33 +2187,936 @@ function exportarCsvMes(mes) {
   `).all(inicio, fim + ' 23:59:59');
 }
 
+const FERIADOS_FIXOS = new Set([
+  '01-01','03-19','03-25','04-21','05-01',
+  '08-15','09-07','10-12','11-02','11-15','11-20','12-25',
+]);
+const FERIADOS_MOVEIS = new Set([
+  // 2026 (Páscoa 05/04)
+  '2026-02-16','2026-02-17','2026-04-03','2026-04-13','2026-06-04',
+  // 2027 (Páscoa 28/03)
+  '2027-02-08','2027-02-09','2027-03-26','2027-05-27',
+]);
+function isFeriado(d) {
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const yyyy = d.getUTCFullYear();
+  return FERIADOS_FIXOS.has(`${mm}-${dd}`) || FERIADOS_MOVEIS.has(`${yyyy}-${mm}-${dd}`);
+}
+
+function prazo2DiasUteis() {
+  const fortaleza = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  const hora = fortaleza.getUTCHours();
+  const min  = fortaleza.getUTCMinutes();
+  // ≤20 min → arredonda para baixo, >20 min → para cima (máx 23)
+  const horaFinal = Math.min(23, min <= 20 ? hora : hora + 1);
+  let current = new Date(Date.UTC(fortaleza.getUTCFullYear(), fortaleza.getUTCMonth(), fortaleza.getUTCDate(), 12));
+  let diasUteis = 0;
+  while (diasUteis < 2) {
+    current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
+    const dow = current.getUTCDay();
+    if (dow !== 0 && dow !== 6 && !isFeriado(current)) diasUteis++;
+  }
+  // horaFinal é Fortaleza (UTC-3); UTC = horaFinal + 3
+  return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate(), horaFinal + 3)).toISOString().replace('T', ' ').substring(0, 19);
+}
+
+function registrarTermoAceite({ chamado_id, usuario_id, usuario_nome, usuario_email, cargo, setor, equipamentos }) {
+  const db = getDb();
+  const result = db.prepare(`
+    INSERT OR IGNORE INTO termos_aceite (chamado_id, usuario_id, usuario_nome, usuario_email, cargo, setor, equipamentos)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(chamado_id, usuario_id, usuario_nome, usuario_email, cargo || '', setor || '', equipamentos || '');
+  if (result.changes > 0) {
+    db.prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, NULL, 'acordo_assinado', ?, ?)
+    `).run(chamado_id, usuario_nome, JSON.stringify({ setor: setor || '', cargo: cargo || '', equipamentos: equipamentos || '', usuario_email: usuario_email || '' }));
+  }
+  return result;
+}
+
+function buscarTermoAceite(chamado_id) {
+  return getDb().prepare('SELECT * FROM termos_aceite WHERE chamado_id = ?').get(chamado_id);
+}
+
+function marcarRequerAcordo(chamadoId, valor, equipamentos) {
+  if (valor) {
+    return getDb().prepare('UPDATE chamados SET requer_acordo = 1, acordo_equipamentos = ? WHERE id = ?').run(equipamentos || null, chamadoId);
+  }
+  return getDb().prepare('UPDATE chamados SET requer_acordo = 0, acordo_equipamentos = NULL WHERE id = ?').run(chamadoId);
+}
+
+// ── Reset de senha ────────────────────────────────────────
+
+function criarResetToken(usuario_id, token, expires_at) {
+  getDb().prepare('DELETE FROM reset_tokens WHERE usuario_id = ? AND usado = 0').run(usuario_id);
+  getDb().prepare('INSERT INTO reset_tokens (usuario_id, token, expires_at) VALUES (?, ?, ?)').run(usuario_id, token, expires_at);
+}
+
+function buscarResetToken(token) {
+  return getDb().prepare('SELECT * FROM reset_tokens WHERE token = ?').get(token);
+}
+
+function marcarResetTokenUsado(token) {
+  getDb().prepare('UPDATE reset_tokens SET usado = 1 WHERE token = ?').run(token);
+}
+
+function criarAdminResetToken(admin_id, token, expires_at) {
+  getDb().prepare('DELETE FROM admin_reset_tokens WHERE admin_id = ? AND usado = 0').run(admin_id);
+  getDb().prepare('INSERT INTO admin_reset_tokens (admin_id, token, expires_at) VALUES (?, ?, ?)').run(admin_id, token, expires_at);
+}
+
+function buscarAdminResetToken(token) {
+  return getDb().prepare('SELECT * FROM admin_reset_tokens WHERE token = ?').get(token);
+}
+
+function marcarAdminResetTokenUsado(token) {
+  getDb().prepare('UPDATE admin_reset_tokens SET usado = 1 WHERE token = ?').run(token);
+}
+
+// ── Contatos ──────────────────────────────────────────────
+
+function listarContatos() {
+  const db = getDb();
+  const contatos = db.prepare('SELECT * FROM contatos ORDER BY area ASC').all();
+  const pessoas = db.prepare('SELECT * FROM contato_pessoas ORDER BY id ASC').all();
+  const map = {};
+  for (const p of pessoas) {
+    if (!map[p.contato_id]) map[p.contato_id] = [];
+    map[p.contato_id].push(p);
+  }
+  return contatos.map(c => ({ ...c, pessoas: map[c.id] || [] }));
+}
+
+function criarContato(dados) {
+  const db = getDb();
+  const result = db.prepare(`
+    INSERT INTO contatos (area, wpp, telefone_fixo, email)
+    VALUES (@area, @wpp, @telefone_fixo, @email)
+  `).run({ area: null, wpp: null, telefone_fixo: null, email: null, ...dados });
+  return result.lastInsertRowid;
+}
+
+function atualizarContato(id, dados) {
+  const campos = [];
+  const values = [];
+  for (const c of ['area', 'wpp', 'telefone_fixo', 'email']) {
+    if (dados[c] !== undefined) { campos.push(`${c} = ?`); values.push(dados[c]); }
+  }
+  if (campos.length > 0) {
+    values.push(id);
+    getDb().prepare(`UPDATE contatos SET ${campos.join(', ')} WHERE id = ?`).run(...values);
+  }
+}
+
+function deletarContato(id) {
+  const db = getDb();
+  db.prepare('DELETE FROM contato_pessoas WHERE contato_id = ?').run(id);
+  db.prepare('DELETE FROM contatos WHERE id = ?').run(id);
+}
+
+function sincronizarPessoas(contato_id, pessoas) {
+  const db = getDb();
+  db.prepare('DELETE FROM contato_pessoas WHERE contato_id = ?').run(contato_id);
+  const stmt = db.prepare('INSERT INTO contato_pessoas (contato_id, nome, responsabilidade, celular) VALUES (?, ?, ?, ?)');
+  const inserir = db.transaction((list) => {
+    for (const p of list) stmt.run(contato_id, p.nome || null, p.responsabilidade || null, p.celular || null);
+  });
+  inserir(pessoas || []);
+}
+
+// ── Sugestões ──────────────────────────────────────────────
+
+function initSugestoes() {
+  const db = getDb();
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sugestoes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER REFERENCES usuarios(id),
+      usuario_nome TEXT NOT NULL,
+      texto TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'enviada',
+      campo_extra TEXT,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em DATETIME
+    );
+    CREATE TABLE IF NOT EXISTS sugestao_mensagens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sugestao_id INTEGER NOT NULL REFERENCES sugestoes(id) ON DELETE CASCADE,
+      autor_tipo TEXT NOT NULL CHECK(autor_tipo IN ('usuario','admin')),
+      autor_id INTEGER,
+      autor_nome TEXT NOT NULL,
+      mensagem TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS sugestao_status_historico (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sugestao_id INTEGER NOT NULL REFERENCES sugestoes(id) ON DELETE CASCADE,
+      admin_id INTEGER REFERENCES admins(id),
+      admin_nome TEXT,
+      status_anterior TEXT,
+      status_novo TEXT NOT NULL,
+      campo_extra TEXT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN lida_admin INTEGER NOT NULL DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN lida_usuario INTEGER NOT NULL DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE sugestoes ADD COLUMN vista_admin INTEGER NOT NULL DEFAULT 0') } catch {}
+  try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN chat_anexo_path TEXT') } catch {}
+  try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN chat_anexo_nome_original TEXT') } catch {}
+}
+
+function criarSugestao({ usuario_id, usuario_nome, texto }) {
+  const db = getDb();
+  const r = db.prepare(
+    'INSERT INTO sugestoes (usuario_id, usuario_nome, texto) VALUES (?, ?, ?)'
+  ).run(usuario_id || null, usuario_nome, texto);
+  return r.lastInsertRowid;
+}
+
+function buscarSugestaoPorId(id) {
+  return getDb().prepare('SELECT * FROM sugestoes WHERE id = ?').get(id);
+}
+
+function listarSugestoesPorUsuario(usuario_id) {
+  return getDb().prepare(`
+    SELECT s.*,
+      COALESCE(
+        (SELECT json_group_array(json_object('id', m.id, 'autor_tipo', m.autor_tipo,
+          'autor_nome', m.autor_nome, 'mensagem', m.mensagem, 'criado_em', m.criado_em,
+          'sugestao_id', m.sugestao_id, 'chat_anexo_nome_original', m.chat_anexo_nome_original))
+         FROM sugestao_mensagens m WHERE m.sugestao_id = s.id ORDER BY m.criado_em ASC),
+        '[]'
+      ) AS mensagens_json
+    FROM sugestoes s WHERE s.usuario_id = ?
+    ORDER BY
+      CASE WHEN s.status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
+      s.criado_em DESC
+  `).all(usuario_id);
+}
+
+function listarSugestoesAdmin({ status, usuario_id, busca } = {}) {
+  let sql = `SELECT s.*, COALESCE(mc.cnt, 0) AS msgs_nao_lidas
+    FROM sugestoes s
+    LEFT JOIN (
+      SELECT sugestao_id, COUNT(*) AS cnt FROM sugestao_mensagens
+      WHERE autor_tipo = 'usuario' AND lida_admin = 0 GROUP BY sugestao_id
+    ) mc ON mc.sugestao_id = s.id
+    WHERE 1=1`;
+  const params = [];
+  if (status === 'abertas') { sql += " AND s.status NOT IN ('feita','negada')"; }
+  else if (status) { sql += ' AND s.status = ?'; params.push(status); }
+  if (usuario_id) { sql += ' AND s.usuario_id = ?'; params.push(usuario_id); }
+  if (busca) { const b = `%${busca}%`; sql += ' AND (s.usuario_nome LIKE ? OR s.texto LIKE ?)'; params.push(b, b); }
+  sql += ` ORDER BY
+    CASE WHEN s.status IN ('enviada','em_analise','em_producao') THEN 0 ELSE 1 END ASC,
+    s.criado_em DESC`;
+  return getDb().prepare(sql).all(...params);
+}
+
+function atualizarStatusSugestao(id, status, campo_extra, admin_id, admin_nome) {
+  const db = getDb();
+  const atual = db.prepare('SELECT status FROM sugestoes WHERE id = ?').get(id);
+  db.prepare(
+    'UPDATE sugestoes SET status = ?, campo_extra = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?'
+  ).run(status, campo_extra || null, id);
+  db.prepare(
+    'INSERT INTO sugestao_status_historico (sugestao_id, admin_id, admin_nome, status_anterior, status_novo, campo_extra) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id, admin_id || null, admin_nome || null, atual ? atual.status : null, status, campo_extra || null);
+}
+
+function listarMensagensSugestao(sugestao_id) {
+  return getDb().prepare(
+    'SELECT * FROM sugestao_mensagens WHERE sugestao_id = ? ORDER BY criado_em ASC'
+  ).all(sugestao_id);
+}
+
+function criarMensagemSugestao({ sugestao_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original }) {
+  const db = getDb();
+  const r = db.prepare(
+    'INSERT INTO sugestao_mensagens (sugestao_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(sugestao_id, autor_tipo, autor_id || null, autor_nome, mensagem || '', chat_anexo_path || null, chat_anexo_nome_original || null);
+  return r.lastInsertRowid;
+}
+
+function listarHistoricoSugestao(sugestao_id) {
+  return getDb().prepare(
+    'SELECT * FROM sugestao_status_historico WHERE sugestao_id = ? ORDER BY timestamp ASC'
+  ).all(sugestao_id);
+}
+
+function marcarSugestaoVistaAdmin(id) {
+  const db = getDb();
+  db.prepare('UPDATE sugestoes SET vista_admin = 1 WHERE id = ?').run(id);
+  db.prepare("UPDATE sugestao_mensagens SET lida_admin = 1 WHERE sugestao_id = ? AND autor_tipo = 'usuario'").run(id);
+}
+
+function marcarMensagensLidasUsuario(sugestao_id) {
+  getDb().prepare("UPDATE sugestao_mensagens SET lida_usuario = 1 WHERE sugestao_id = ? AND autor_tipo = 'admin'").run(sugestao_id);
+}
+
+function contarNaoVistaAdmin() {
+  return getDb().prepare(`
+    SELECT COUNT(*) AS total FROM sugestoes WHERE vista_admin = 0
+  `).get().total;
+}
+
+function inserirInfoAdicional({ chamado_id, texto, autor_tipo, autor_id, autor_nome }) {
+  return getDb().prepare(`
+    INSERT INTO chamado_infos_adicionais (chamado_id, texto, autor_tipo, autor_id, autor_nome)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(chamado_id, texto, autor_tipo, autor_id, autor_nome).lastInsertRowid;
+}
+
+function listarInfosAdicionais(chamadoId) {
+  return getDb().prepare(
+    'SELECT * FROM chamado_infos_adicionais WHERE chamado_id = ? ORDER BY criado_em ASC'
+  ).all(chamadoId);
+}
+
+function inserirAnexoExtra({ chamado_id, path, nome_original }) {
+  return getDb().prepare(`
+    INSERT INTO chamado_anexos (chamado_id, path, nome_original)
+    VALUES (?, ?, ?)
+  `).run(chamado_id, path, nome_original).lastInsertRowid;
+}
+
+function listarAnexosExtras(chamadoId) {
+  return getDb().prepare(
+    'SELECT id, path, nome_original, criado_em FROM chamado_anexos WHERE chamado_id = ? ORDER BY id ASC'
+  ).all(chamadoId);
+}
+
+function buscarAnexoExtra(anexoId) {
+  return getDb().prepare(
+    'SELECT * FROM chamado_anexos WHERE id = ?'
+  ).get(anexoId);
+}
+
+// ── Etiquetas dinâmicas ──────────────────────────────────────
+
+function _gerarSlugUnicoEtiqueta(nome) {
+  const db = getDb();
+  let base = (nome || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').trim()
+    .replace(/\s+/g, '_').slice(0, 50) || 'etiqueta';
+  let slug = base, n = 2;
+  while (db.prepare('SELECT id FROM etiquetas WHERE slug = ?').get(slug)) slug = `${base}_${n++}`;
+  return slug;
+}
+
+function listarEtiquetas() {
+  return getDb().prepare(`
+    SELECT * FROM etiquetas WHERE ativo = 1
+    ORDER BY (parent_slug IS NULL) DESC, parent_slug, nome
+  `).all();
+}
+
+function listarEtiquetasAdmin() {
+  return getDb().prepare(`
+    SELECT * FROM etiquetas
+    ORDER BY (parent_slug IS NULL) DESC, parent_slug, nome
+  `).all();
+}
+
+function buscarEtiquetaPorSlug(slug) {
+  return getDb().prepare('SELECT * FROM etiquetas WHERE slug = ?').get(slug);
+}
+
+function criarEtiqueta({ nome, descricao, parent_slug, cor }) {
+  const db = getDb();
+  const slug = _gerarSlugUnicoEtiqueta(nome);
+  const r = db.prepare(
+    'INSERT INTO etiquetas (slug, nome, descricao, parent_slug, cor) VALUES (?, ?, ?, ?, ?)'
+  ).run(slug, nome.trim(), descricao || null, parent_slug || null, cor || '#6B7280');
+  return { id: r.lastInsertRowid, slug };
+}
+
+function atualizarEtiqueta(id, campos) {
+  const db = getDb();
+  const sets = [], vals = [];
+  if (campos.nome !== undefined) { sets.push('nome = ?'); vals.push(campos.nome.trim()); }
+  if (campos.descricao !== undefined) { sets.push('descricao = ?'); vals.push(campos.descricao || null); }
+  if (campos.parent_slug !== undefined) { sets.push('parent_slug = ?'); vals.push(campos.parent_slug || null); }
+  if (campos.cor !== undefined) { sets.push('cor = ?'); vals.push(campos.cor); }
+  if (campos.ativo !== undefined) { sets.push('ativo = ?'); vals.push(campos.ativo ? 1 : 0); }
+  if (!sets.length) return;
+  sets.push('atualizado_em = CURRENT_TIMESTAMP');
+  vals.push(id);
+  db.prepare(`UPDATE etiquetas SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+}
+
+function deletarEtiqueta(id) {
+  const db = getDb();
+  const alvo = db.prepare('SELECT slug, parent_slug FROM etiquetas WHERE id = ?').get(id);
+  if (!alvo) return;
+  const novoPai = alvo.parent_slug || null;
+  db.transaction(() => {
+    db.prepare('UPDATE etiquetas SET parent_slug = ? WHERE parent_slug = ?').run(novoPai, alvo.slug);
+    db.prepare('DELETE FROM etiquetas WHERE id = ?').run(id);
+  })();
+}
+
+function incrementarNovidadesUsuario(chamadoId) {
+  getDb().prepare('UPDATE chamados SET novidades_usuario = COALESCE(novidades_usuario,0) + 1 WHERE id = ? AND usuario_id IS NOT NULL').run(chamadoId);
+}
+
+function zerarNovidadesUsuario(chamadoId, usuarioId) {
+  getDb().prepare('UPDATE chamados SET novidades_usuario = 0 WHERE id = ? AND usuario_id = ?').run(chamadoId, usuarioId);
+}
+
+function incrementarNovidadesAdmin(chamadoId) {
+  getDb().prepare('UPDATE chamados SET novidades_admin = COALESCE(novidades_admin,0) + 1 WHERE id = ?').run(chamadoId);
+}
+
+function zerarNovidadesAdmin(chamadoId) {
+  getDb().prepare('UPDATE chamados SET novidades_admin = 0 WHERE id = ?').run(chamadoId);
+}
+
+function listarEtiquetasDeAdmin(adminId) {
+  return getDb().prepare('SELECT etiqueta_slug FROM admin_etiquetas WHERE admin_id = ?').all(adminId).map(r => r.etiqueta_slug);
+}
+
+function sincronizarEtiquetasAdmin(adminId, slugs) {
+  const db = getDb();
+  db.transaction(() => {
+    db.prepare('DELETE FROM admin_etiquetas WHERE admin_id = ?').run(adminId);
+    const ins = db.prepare('INSERT OR IGNORE INTO admin_etiquetas (admin_id, etiqueta_slug) VALUES (?, ?)');
+    for (const slug of (slugs || [])) ins.run(adminId, slug);
+  })();
+}
+
+function listarSetores() {
+  return getDb().prepare('SELECT id, nome FROM setores ORDER BY nome ASC').all();
+}
+
+function criarSetor(nome) {
+  return getDb().prepare('INSERT INTO setores (nome) VALUES (?)').run(nome).lastInsertRowid;
+}
+
+function editarSetor(id, nome) {
+  getDb().prepare('UPDATE setores SET nome = ? WHERE id = ?').run(nome, id);
+}
+
+function excluirSetor(id) {
+  getDb().prepare('DELETE FROM setores WHERE id = ?').run(id);
+}
+
+// ── Chamados Programados ──────────────────────────────────────────────────────
+function listarChamadosProgramados() {
+  return getDb().prepare(`
+    SELECT p.*, a.nome_completo AS admin_nome
+    FROM chamados_programados p
+    LEFT JOIN admins a ON a.id = p.admin_responsavel_id
+    ORDER BY p.ativo DESC, p.titulo COLLATE NOCASE
+  `).all();
+}
+
+function buscarProgramadoPorId(id) {
+  return getDb().prepare('SELECT * FROM chamados_programados WHERE id = ?').get(id) || null;
+}
+
+function inserirChamadoProgramado(dados) {
+  return getDb().prepare(`
+    INSERT INTO chamados_programados
+      (titulo, nome, setor, ramal, descricao, categoria, prioridade, frequencia,
+       dia_semana, dia_mes, mes, hora, pular_feriados, admin_responsavel_id, proxima_execucao)
+    VALUES
+      (@titulo,@nome,@setor,@ramal,@descricao,@categoria,@prioridade,@frequencia,
+       @dia_semana,@dia_mes,@mes,@hora,@pular_feriados,@admin_responsavel_id,@proxima_execucao)
+  `).run(dados).lastInsertRowid;
+}
+
+function atualizarChamadoProgramado(id, dados) {
+  getDb().prepare(`
+    UPDATE chamados_programados SET
+      titulo=@titulo, nome=@nome, setor=@setor, ramal=@ramal,
+      descricao=@descricao, categoria=@categoria, prioridade=@prioridade,
+      frequencia=@frequencia, dia_semana=@dia_semana, dia_mes=@dia_mes, mes=@mes,
+      hora=@hora, pular_feriados=@pular_feriados,
+      admin_responsavel_id=@admin_responsavel_id, proxima_execucao=@proxima_execucao
+    WHERE id=@id
+  `).run({ ...dados, id });
+}
+
+function toggleChamadoProgramado(id, ativo) {
+  getDb().prepare('UPDATE chamados_programados SET ativo=? WHERE id=?').run(ativo ? 1 : 0, id);
+}
+
+function deletarChamadoProgramado(id) {
+  getDb().prepare('DELETE FROM chamados_programados WHERE id=?').run(id);
+}
+
+function getProgramadosPendentes() {
+  const agora = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  return getDb().prepare(
+    "SELECT * FROM chamados_programados WHERE ativo=1 AND proxima_execucao <= ?"
+  ).all(agora);
+}
+
+function registrarExecucaoProgramado(programadoId, chamadoId, proximaExecucao) {
+  const db = getDb();
+  const agora = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  db.prepare(`
+    INSERT INTO chamados_programados_log (programado_id, chamado_id, executado_em)
+    VALUES (?, ?, ?)
+  `).run(programadoId, chamadoId, agora);
+  db.prepare(`
+    UPDATE chamados_programados
+    SET ultima_execucao=?, proxima_execucao=?, total_gerados=total_gerados+1
+    WHERE id=?
+  `).run(agora, proximaExecucao, programadoId);
+}
+
+function listarLogProgramado(programadoId, limit = 20) {
+  return getDb().prepare(`
+    SELECT l.*, c.nome, c.setor, c.status
+    FROM chamados_programados_log l
+    JOIN chamados c ON c.id = l.chamado_id
+    WHERE l.programado_id = ?
+    ORDER BY l.executado_em DESC LIMIT ?
+  `).all(programadoId, limit);
+}
+
+function listarUltimosGeradosProgramados(limit = 30) {
+  return getDb().prepare(`
+    SELECT l.*, p.titulo AS prog_titulo, c.nome, c.setor, c.status
+    FROM chamados_programados_log l
+    JOIN chamados_programados p ON p.id = l.programado_id
+    JOIN chamados c ON c.id = l.chamado_id
+    ORDER BY l.executado_em DESC LIMIT ?
+  `).all(limit);
+}
+
+// ── Spa Terapeutas ────────────────────────────────────────────────────────────
+
+function listarSpaTerapeutas() {
+  return getDb().prepare('SELECT * FROM spa_terapeutas ORDER BY nome ASC').all();
+}
+
+function criarSpaTerapeuta(nome) {
+  return getDb().prepare('INSERT INTO spa_terapeutas (nome) VALUES (?)').run(nome).lastInsertRowid;
+}
+
+function atualizarSpaTerapeuta(id, nome) {
+  return getDb().prepare('UPDATE spa_terapeutas SET nome = ? WHERE id = ?').run(nome, id);
+}
+
+function toggleSpaTerapeuta(id) {
+  return getDb().prepare('UPDATE spa_terapeutas SET ativo = CASE WHEN ativo=1 THEN 0 ELSE 1 END WHERE id = ?').run(id);
+}
+
+// ── Spa Reservas ──────────────────────────────────────────────────────────────
+
+function listarSpaReservas({ limit = 200 } = {}) {
+  return getDb().prepare(`
+    SELECT r.*, t.nome AS terapeuta_nome
+    FROM spa_reservas r
+    LEFT JOIN spa_terapeutas t ON t.id = r.terapeuta_id
+    ORDER BY r.data_termino DESC LIMIT ?
+  `).all(limit);
+}
+
+function buscarSpaReservaPorId(id) {
+  return getDb().prepare(`
+    SELECT r.*, t.nome AS terapeuta_nome
+    FROM spa_reservas r
+    LEFT JOIN spa_terapeutas t ON t.id = r.terapeuta_id
+    WHERE r.id = ?
+  `).get(id);
+}
+
+function buscarSpaReservaPorToken(token) {
+  return getDb().prepare(`
+    SELECT r.*, t.nome AS terapeuta_nome
+    FROM spa_reservas r
+    LEFT JOIN spa_terapeutas t ON t.id = r.terapeuta_id
+    WHERE r.token = ?
+  `).get(token);
+}
+
+function criarSpaReserva(dados) {
+  return getDb().prepare(`
+    INSERT INTO spa_reservas (hospede_nome, hospede_email, hospede_telefone, terapeuta_id, servico, data_termino, token)
+    VALUES (@hospede_nome, @hospede_email, @hospede_telefone, @terapeuta_id, @servico, @data_termino, @token)
+  `).run(dados).lastInsertRowid;
+}
+
+function atualizarSpaReserva(id, dados) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET hospede_nome=@hospede_nome, hospede_email=@hospede_email,
+      hospede_telefone=@hospede_telefone, terapeuta_id=@terapeuta_id,
+      servico=@servico, data_termino=@data_termino
+    WHERE id=@id
+  `).run({ ...dados, id });
+}
+
+function marcarDocumentoEnviado(id, { token, tokenExpiry, locale, enviadoEm }) {
+  return getDb().prepare(`
+    UPDATE spa_reservas
+    SET documento_token=?, documento_token_expiry=?, documento_pre_enviado=1,
+        idioma_documento=?, documento_enviado_em=?
+    WHERE id=?
+  `).run(token, tokenExpiry, locale, enviadoEm, id);
+}
+
+function buscarDocumentoToken(token) {
+  return getDb().prepare('SELECT * FROM spa_reservas WHERE documento_token = ?').get(token);
+}
+
+function vincularDocumentoAoPerfil(reservaId, perfilId) {
+  return getDb().prepare('UPDATE spa_reservas SET documento_perfil_id=? WHERE id=?').run(perfilId, reservaId);
+}
+
+function deletarSpaReserva(id) {
+  return getDb().prepare('DELETE FROM spa_reservas WHERE id = ?').run(id);
+}
+
+function liberarPesquisaSpa(id, liberadaEm) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET status_pesquisa='LIBERADA', liberada_em=?
+    WHERE id=? AND status_pesquisa='BLOQUEADA'
+  `).run(liberadaEm, id).changes;
+}
+
+function iniciarPesquisaSpa(id, iniciadaEm) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET status_pesquisa='EM_ANDAMENTO', iniciada_em=?
+    WHERE id=? AND status_pesquisa='LIBERADA'
+  `).run(iniciadaEm, id).changes;
+}
+
+function concluirPesquisaSpa(id, concluidaEm) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET status_pesquisa='CONCLUIDA', concluida_em=?
+    WHERE id=? AND status_pesquisa='EM_ANDAMENTO'
+  `).run(concluidaEm, id).changes;
+}
+
+function expirarPesquisaSpa(id) {
+  return getDb().prepare(`
+    UPDATE spa_reservas SET status_pesquisa='NAO_REALIZADA'
+    WHERE id=? AND status_pesquisa IN ('LIBERADA','EM_ANDAMENTO')
+  `).run(id).changes;
+}
+
+function inserirRespostaSpa(dados) {
+  return getDb().prepare(`
+    INSERT INTO spa_pesquisa_respostas
+      (reserva_id, nota_geral, nota_terapeuta, nota_ambiente, nota_custo_beneficio, recomendaria, comentario)
+    VALUES
+      (@reserva_id, @nota_geral, @nota_terapeuta, @nota_ambiente, @nota_custo_beneficio, @recomendaria, @comentario)
+  `).run(dados).lastInsertRowid;
+}
+
+function buscarRespostaSpa(reserva_id) {
+  return getDb().prepare('SELECT * FROM spa_pesquisa_respostas WHERE reserva_id = ?').get(reserva_id);
+}
+
+function inserirHistoricoSpa(reserva_id, evento, detalhes) {
+  return getDb().prepare('INSERT INTO spa_historico (reserva_id, evento, detalhes) VALUES (?,?,?)').run(reserva_id, evento, detalhes || null);
+}
+
+function listarHistoricoSpa(reserva_id) {
+  return getDb().prepare('SELECT * FROM spa_historico WHERE reserva_id = ? ORDER BY criado_em ASC').all(reserva_id);
+}
+
+// ── Spa Perfis ────────────────────────────────────────────────────────────────
+
+function inserirSpaPerfil(dados) {
+  return getDb().prepare(`
+    INSERT INTO spa_perfis
+      (nome, sobrenome, tipo_documento, documento, email, telefone, data_nascimento,
+       rotina_facial, rotina_corporal, produto_especifico, pressao_massagem, info_medica,
+       consentimento_saude, consentimento_marketing, canais_marketing, assinatura_data_url, idioma)
+    VALUES
+      (@nome, @sobrenome, @tipo_documento, @documento, @email, @telefone, @data_nascimento,
+       @rotina_facial, @rotina_corporal, @produto_especifico, @pressao_massagem, @info_medica,
+       @consentimento_saude, @consentimento_marketing, @canais_marketing, @assinatura_data_url, @idioma)
+  `).run(dados).lastInsertRowid;
+}
+
+function getSpaPerfil(id) {
+  return getDb().prepare('SELECT * FROM spa_perfis WHERE id = ?').get(id);
+}
+
+function listarSpaPerfis() {
+  return getDb().prepare(
+    'SELECT id, nome, sobrenome, email, idioma, apto, criado_em FROM spa_perfis ORDER BY criado_em DESC LIMIT 200'
+  ).all();
+}
+
 module.exports = {
   getDb,
   initDb,
   criarAdminMasterSeNecessario,
+  recuperarSenhasPlain,
   inserirChamado,
+  transferirChamado,
   deletarChamado,
+  cancelarChamado,
   buscarChamadoPorId,
   buscarHistoricoPrazos,
   buscarHistoricoCompleto,
   listarChamadosAdmin,
   atualizarPrioridade,
   atualizarPrazo,
+  atualizarCategoria,
   assumirChamado,
   concluirChamado,
   encerrarChamado,
+  setStatusEspera,
   reabrirChamado,
+  reabrirChamadoUsuario,
   avaliarChamado,
+  assinarChamado,
   registrarUsuario,
   buscarUsuarioPorEmail,
   buscarUsuarioPorId,
+  listarUsuarios,
+  atualizarUsuario,
+  deletarUsuario,
   listarChamadosPorUsuario,
   buscarAdminPorUsuario,
   buscarAdminPorId,
+  buscarAdminPorEmail,
   listarAdmins,
+  listarAdminsTransferencia,
   criarAdmin,
   atualizarAdmin,
   deletarAdmin,
   relatorioMes,
+  rankingAdminsMes,
   exportarCsvMes,
+  marcarMensagensLidas,
+  listarMensagensChamado,
+  criarMensagem,
+  inserirMencoesEquipamentos,
+  rankingEquipamentos,
+  salvarPushSubscription,
+  removerPushSubscription,
+  getChamadosComPrazoPendente,
+  registrarAlertaPrazo,
+  listarItens,
+  buscarItemPorId,
+  criarItem,
+  atualizarItem,
+  deletarItem,
+  listarChamadosProcessoCompra,
+  registrarTermoAceite,
+  buscarTermoAceite,
+  marcarRequerAcordo,
+  listarAssinaturasHistorico,
+  listarInventario,
+  buscarInventarioPorId,
+  criarInventario,
+  atualizarInventario,
+  deletarInventario,
+  listarEstoqueItens,
+  buscarEstoqueItemPorId,
+  criarEstoqueItem,
+  atualizarEstoqueItem,
+  deletarEstoqueItem,
+  registrarMovimentacao,
+  listarMovimentacoes,
+  listarImpressoras,
+  criarImpressora,
+  atualizarImpressora,
+  deletarImpressora,
+  prazo2DiasUteis,
+  listarEquipamentos,
+  buscarEquipamentoPorId,
+  criarEquipamento,
+  atualizarEquipamento,
+  deletarEquipamento,
+  registrarMovEquipamento,
+  listarHistoricoEquipamento,
+  vincularEquipamentosDoAcordo,
+  criarResetToken,
+  buscarResetToken,
+  marcarResetTokenUsado,
+  criarAdminResetToken,
+  buscarAdminResetToken,
+  marcarAdminResetTokenUsado,
+  listarContatos,
+  criarContato,
+  atualizarContato,
+  deletarContato,
+  sincronizarPessoas,
+  listarServicos,
+  listarServicosAdmin,
+  criarServico,
+  atualizarServico,
+  deletarServico,
+  listarEtiquetas,
+  listarEtiquetasAdmin,
+  buscarEtiquetaPorSlug,
+  criarEtiqueta,
+  atualizarEtiqueta,
+  deletarEtiqueta,
+  initSugestoes,
+  criarSugestao,
+  buscarSugestaoPorId,
+  listarSugestoesPorUsuario,
+  listarSugestoesAdmin,
+  atualizarStatusSugestao,
+  listarMensagensSugestao,
+  criarMensagemSugestao,
+  listarHistoricoSugestao,
+  marcarSugestaoVistaAdmin,
+  marcarMensagensLidasUsuario,
+  contarNaoVistaAdmin,
+  listarEtiquetasDeAdmin,
+  sincronizarEtiquetasAdmin,
+  listarSetores,
+  criarSetor,
+  editarSetor,
+  excluirSetor,
+  listarChamadosProgramados,
+  buscarProgramadoPorId,
+  inserirChamadoProgramado,
+  atualizarChamadoProgramado,
+  toggleChamadoProgramado,
+  deletarChamadoProgramado,
+  getProgramadosPendentes,
+  registrarExecucaoProgramado,
+  listarLogProgramado,
+  listarUltimosGeradosProgramados,
+  inserirInfoAdicional,
+  listarInfosAdicionais,
+  inserirAnexoExtra,
+  listarAnexosExtras,
+  buscarAnexoExtra,
+  incrementarNovidadesUsuario,
+  zerarNovidadesUsuario,
+  incrementarNovidadesAdmin,
+  zerarNovidadesAdmin,
+  registrarLogUsuario,
+  listarLogsUsuario,
+  registrarLogAdmin,
+  listarLogsAdmin,
+  inserirSpaPerfil,
+  getSpaPerfil,
+  listarSpaPerfis,
+  listarSpaTerapeutas,
+  criarSpaTerapeuta,
+  atualizarSpaTerapeuta,
+  toggleSpaTerapeuta,
+  listarSpaReservas,
+  buscarSpaReservaPorId,
+  buscarSpaReservaPorToken,
+  criarSpaReserva,
+  atualizarSpaReserva,
+  deletarSpaReserva,
+  liberarPesquisaSpa,
+  iniciarPesquisaSpa,
+  concluirPesquisaSpa,
+  expirarPesquisaSpa,
+  inserirRespostaSpa,
+  buscarRespostaSpa,
+  inserirHistoricoSpa,
+  listarHistoricoSpa,
+  marcarDocumentoEnviado,
+  buscarDocumentoToken,
+  vincularDocumentoAoPerfil,
 };
+
+// ── Equipamentos (itens individuais com ID único) ──────────
+
+function listarEquipamentos({ busca, status, categoria } = {}) {
+  let sql = 'SELECT * FROM equipamentos WHERE 1=1';
+  const params = [];
+  if (busca) { sql += ' AND (nome LIKE ? OR categoria LIKE ? OR codigo LIKE ?)'; const b = `%${busca}%`; params.push(b, b, b); }
+  if (status) { sql += ' AND status = ?'; params.push(status); }
+  if (categoria) { sql += ' AND categoria LIKE ?'; params.push(`%${categoria}%`); }
+  sql += ' ORDER BY id ASC';
+  return getDb().prepare(sql).all(...params);
+}
+
+function buscarEquipamentoPorId(id) {
+  return getDb().prepare('SELECT * FROM equipamentos WHERE id = ?').get(id);
+}
+
+function criarEquipamento(dados) {
+  const db = getDb();
+  const insert = db.transaction(() => {
+    const stmt = db.prepare(`INSERT INTO equipamentos (codigo, nome, categoria, status, setor_atual, observacao) VALUES ('__TMP__', ?, ?, ?, ?, ?)`);
+    const r = stmt.run(dados.nome || '', dados.categoria || '', dados.status || 'disponivel', dados.setor_atual || '', dados.observacao || '');
+    const id = r.lastInsertRowid;
+    const codigo = dados.codigo && dados.codigo.trim() ? dados.codigo.trim() : `EQ-${String(id).padStart(4, '0')}`;
+    db.prepare('UPDATE equipamentos SET codigo = ? WHERE id = ?').run(codigo, id);
+    return id;
+  });
+  return insert();
+}
+
+function atualizarEquipamento(id, dados) {
+  const db = getDb();
+  const campos = Object.keys(dados).map(k => `${k} = ?`);
+  if (!campos.length) return;
+  campos.push('atualizado_em = CURRENT_TIMESTAMP');
+  db.prepare(`UPDATE equipamentos SET ${campos.join(', ')} WHERE id = ?`).run(...Object.values(dados), id);
+}
+
+function deletarEquipamento(id) {
+  getDb().prepare('DELETE FROM equipamentos WHERE id = ?').run(id);
+}
+
+function registrarMovEquipamento(id, tipo, setor_origem, setor_destino, admin_nome, observacao, chamado_id) {
+  const db = getDb();
+  db.prepare(`INSERT INTO equipamentos_historico (equipamento_id, tipo, setor_origem, setor_destino, admin_nome, observacao, chamado_id) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(id, tipo, setor_origem || '', setor_destino || '', admin_nome || '', observacao || '', chamado_id || null);
+  const STATUS_MAP = { entrada: 'disponivel', saida: 'em_uso', retorno: 'disponivel', manutencao: 'manutencao', descarte: 'descartado' };
+  const novoStatus = STATUS_MAP[tipo];
+  const novoSetor = tipo === 'saida' ? setor_destino : (tipo === 'retorno' || tipo === 'entrada') ? '' : undefined;
+  const upd = { status: novoStatus };
+  if (novoSetor !== undefined) upd.setor_atual = novoSetor;
+  atualizarEquipamento(id, upd);
+}
+
+function vincularEquipamentosDoAcordo(chamadoId, usuarioNome, setor) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(chamadoId);
+  if (!chamado || !chamado.acordo_equipamentos) return;
+  let itens = [];
+  try { itens = JSON.parse(chamado.acordo_equipamentos); } catch { return; }
+  for (const item of itens) {
+    let eqId = item.equipamento_id ? parseInt(item.equipamento_id, 10) : null;
+    if (!eqId) {
+      const termos = [item.tipo, item.marca, item.modelo].filter(Boolean);
+      if (!termos.length) continue;
+      const auto = db.prepare(
+        "SELECT id FROM equipamentos WHERE status = 'disponivel' AND (" +
+        termos.map(() => 'nome LIKE ?').join(' OR ') + ') LIMIT 1'
+      ).get(...termos.map(t => `%${t}%`));
+      if (auto) eqId = auto.id;
+    }
+    if (!eqId) continue;
+    const eq = db.prepare('SELECT * FROM equipamentos WHERE id = ?').get(eqId);
+    if (!eq || eq.status !== 'disponivel') continue;
+    registrarMovEquipamento(eq.id, 'saida', eq.setor_atual || '', setor || '', usuarioNome, `${usuarioNome} — Chamado #${chamadoId}`, chamadoId);
+  }
+}
+
+function listarHistoricoEquipamento(id) {
+  return getDb().prepare('SELECT * FROM equipamentos_historico WHERE equipamento_id = ? ORDER BY criado_em DESC').all(id);
+}
+
+function registrarLogUsuario(usuario_id, evento, ip, detalhes) {
+  getDb().prepare('INSERT INTO logs_usuarios (usuario_id, evento, ip, detalhes) VALUES (?, ?, ?, ?)').run(usuario_id, evento, ip || null, detalhes || null);
+}
+
+function listarLogsUsuario(usuario_id) {
+  return getDb().prepare('SELECT * FROM logs_usuarios WHERE usuario_id = ? ORDER BY criado_em DESC LIMIT 200').all(usuario_id);
+}
+
+function registrarLogAdmin(admin_id, evento, ip, detalhes) {
+  getDb().prepare('INSERT INTO logs_admins (admin_id, evento, ip, detalhes) VALUES (?, ?, ?, ?)').run(admin_id, evento, ip || null, detalhes || null);
+}
+
+function listarLogsAdmin(admin_id) {
+  return getDb().prepare('SELECT * FROM logs_admins WHERE admin_id = ? ORDER BY criado_em DESC LIMIT 200').all(admin_id);
+}

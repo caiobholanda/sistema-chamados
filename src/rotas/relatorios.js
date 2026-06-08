@@ -15,6 +15,18 @@ router.get('/', requireAdmin, (req, res) => {
   }
 });
 
+// GET /api/admin/relatorios/ranking?mes=YYYY-MM
+router.get('/ranking', requireAdmin, (req, res) => {
+  try {
+    const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(mes)) return res.status(400).json({ erro: 'Formato inválido. Use YYYY-MM' });
+    return res.json(db.rankingAdminsMes(mes));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 // GET /api/admin/relatorios/exportar?mes=YYYY-MM
 router.get('/exportar', requireAdmin, (req, res) => {
   try {
@@ -53,6 +65,17 @@ router.get('/exportar', requireAdmin, (req, res) => {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="chamados_${mes}.csv"`);
     return res.send(csv);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+// GET /api/admin/relatorios/equipamentos?limite=20
+router.get('/equipamentos', requireAdmin, (req, res) => {
+  try {
+    const limite = Math.min(parseInt(req.query.limite) || 20, 50);
+    return res.json(db.rankingEquipamentos({ limite }));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

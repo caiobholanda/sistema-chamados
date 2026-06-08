@@ -1,0 +1,12 @@
+{
+  "name": "Gran Marquise TI — Chamados",
+  "short_name": "Chamados TI",
+  "description": "Sistema de chamados de TI do Hotel Gran Marquise",
+  "start_url": "/mobile",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1a2340",
+  "lang": "pt-BR"
+}

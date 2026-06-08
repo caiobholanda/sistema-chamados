@@ -1,32 +1,502 @@
-let adminInfo = null;
-let chamadoAtual = null;
-let abaAtiva = 'abertos';
-
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 function _decode(s) {
   const ta = document.createElement('textarea');
   ta.innerHTML = s ?? '';
   return ta.value;
 }
-function _esc(s) {
-  return (s ?? '').toString()
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
-}
 function _s(s) { return _esc(_decode(s)); }
 
-const STATUS_ABERTOS = ['aberto', 'em_andamento'];
+let SETORES = [
+  'Banquetes','Bar Rooftop','Comercial / Vendas','Compras / Almoxarifado','Concierge',
+  'Confeitaria / Padaria','Controladoria','Cozinha','Estacionamento','Eventos e Convenções',
+  'Financeiro','Fitness Center','Gerência Geral','Governança','Jurídico','Lavanderia',
+  'Lobby Bar','Manutenção','Marketing','Mensageria / Portaria','Nutrição','Piscina',
+  'Play Gran','Recepção','Recursos Humanos','Reservas','Restaurante Mangostin',
+  'Restaurante Mucuripe','Revenue Management','Room Service','Rouparia','Segurança',
+  "Spa by L'Occitane",'Tecnologia da Informação','Transportes'
+];
+fetch('/api/setores', { credentials: 'include' }).then(r => r.ok ? r.json() : null).then(d => {
+  if (Array.isArray(d) && d.length) SETORES = d.map(x => x.nome);
+}).catch(() => {});
+
+function _addSetorDropdown(inp, onSelect) {
+  if (!inp) return;
+  const wrap = inp.parentElement;
+  if (!document.getElementById('_setor-dd-css')) {
+    const s = document.createElement('style');
+    s.id = '_setor-dd-css';
+    s.textContent = [
+      '._setor-dd{position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:1050;',
+      'background:var(--surface);border:1px solid var(--border-focus,#94a3b8);',
+      'border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);}',
+      '._setor-dd-item{padding:.4rem .75rem;cursor:pointer;font-size:.83rem;color:var(--text);}',
+      '._setor-dd-item:hover,._setor-dd-item.active{background:var(--surface-2);}'
+    ].join('');
+    document.head.appendChild(s);
+  }
+  const dd = document.createElement('div');
+  dd.className = '_setor-dd';
+  dd.style.display = 'none';
+  wrap.appendChild(dd);
+
+  function _render(q) {
+    const list = q ? SETORES.filter(s => s.toLowerCase().includes(q.toLowerCase())) : SETORES;
+    if (!list.length) { dd.style.display = 'none'; return; }
+    dd.innerHTML = list.map(s => `<div class="_setor-dd-item">${s.replace(/&/g,'&amp;')}</div>`).join('');
+    dd.querySelectorAll('._setor-dd-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        inp.value = el.textContent;
+        dd.style.display = 'none';
+        if (onSelect) onSelect();
+      });
+    });
+    dd.style.display = '';
+  }
+
+  inp.addEventListener('focus', () => _render(inp.value));
+  inp.addEventListener('input', () => _render(inp.value));
+  inp.addEventListener('blur', () => setTimeout(() => { dd.style.display = 'none'; }, 150));
+}
+
+let adminInfo = null;
+let _minhasEtiquetas = new Set();
+let chamadoAtual = null;
+let abaAtiva = 'abertos';
+let subAbaMeusAtiva = 'abertos';
+let statusFiltroAtual = '';
+let _ncCombo = null;
+let _selCombo = null;
+let _chatAdminIv = null;
+let _chamadosHash = null;
+let _termoPollingIv = null;
+let _scrollAntesModal = 0;
+function _pararPollingTermo() {
+  if (_termoPollingIv) { clearInterval(_termoPollingIv); _termoPollingIv = null; }
+}
+
+// ── Lightbox ──────────────────────────────────────────────────
+let _lbxEl = null;
+let _lbxZoom = 1, _lbxPanX = 0, _lbxPanY = 0;
+let _lbxDragging = false, _lbxDragged = false;
+let _lbxDragSX = 0, _lbxDragSY = 0, _lbxDragSPX = 0, _lbxDragSPY = 0;
+function _lbxApply() {
+  if (!_lbxEl) return;
+  _lbxEl.querySelector('#lbx-img').style.transform =
+    (_lbxZoom === 1 && !_lbxPanX && !_lbxPanY) ? '' : `translate(${_lbxPanX}px,${_lbxPanY}px) scale(${_lbxZoom})`;
+}
+function _lbxResetZoom() {
+  _lbxZoom = 1; _lbxPanX = 0; _lbxPanY = 0;
+  if (_lbxEl) { _lbxEl.querySelector('#lbx-img').style.transform = ''; _lbxEl.querySelector('#lbx-img').style.cursor = 'default'; }
+}
+function _abrirLightbox(src, nome) {
+  if (!_lbxEl) {
+    _lbxEl = document.createElement('div');
+    _lbxEl.id = 'lbx';
+    _lbxEl.innerHTML = '<button id="lbx-close" aria-label="Fechar">✕</button><img id="lbx-img" alt=""><div id="lbx-nome"></div>';
+    document.body.appendChild(_lbxEl);
+    const img = _lbxEl.querySelector('#lbx-img');
+    _lbxEl.addEventListener('click', e => {
+      if (_lbxDragged) { _lbxDragged = false; return; }
+      if (e.target === _lbxEl || e.target.id === 'lbx-close') { _lbxEl.classList.remove('lbx-open'); _lbxResetZoom(); }
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && _lbxEl) { _lbxEl.classList.remove('lbx-open'); _lbxResetZoom(); }
+    });
+    _lbxEl.addEventListener('wheel', e => {
+      if (!_lbxEl.classList.contains('lbx-open')) return;
+      e.preventDefault();
+      _lbxZoom = Math.min(5, Math.max(0.3, _lbxZoom + (e.deltaY > 0 ? -0.15 : 0.15)));
+      if (_lbxZoom <= 1) { _lbxPanX = 0; _lbxPanY = 0; }
+      img.style.cursor = _lbxZoom > 1 ? 'grab' : 'default';
+      _lbxApply();
+    }, { passive: false });
+    img.addEventListener('mousedown', e => {
+      if (_lbxZoom <= 1) return;
+      _lbxDragging = true; _lbxDragged = false;
+      _lbxDragSX = e.clientX; _lbxDragSY = e.clientY;
+      _lbxDragSPX = _lbxPanX; _lbxDragSPY = _lbxPanY;
+      img.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!_lbxDragging) return;
+      const dx = e.clientX - _lbxDragSX, dy = e.clientY - _lbxDragSY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) _lbxDragged = true;
+      _lbxPanX = _lbxDragSPX + dx; _lbxPanY = _lbxDragSPY + dy;
+      _lbxApply();
+    });
+    document.addEventListener('mouseup', () => {
+      if (!_lbxDragging) return;
+      _lbxDragging = false;
+      if (_lbxEl?.classList.contains('lbx-open')) img.style.cursor = _lbxZoom > 1 ? 'grab' : 'default';
+    });
+  }
+  _lbxResetZoom();
+  _lbxEl.querySelector('#lbx-img').src = src;
+  _lbxEl.querySelector('#lbx-nome').textContent = nome || '';
+  _lbxEl.classList.add('lbx-open');
+}
+document.addEventListener('click', e => {
+  const img = e.target.closest('.lbx-img');
+  if (img) _abrirLightbox(img.src, img.alt);
+});
+
+const _IMGS_EXT = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
+function _isImgAnexo(nome) { return _IMGS_EXT.includes((nome || '').split('.').pop().toLowerCase()); }
+
+function _chatAnexoHtml(url, nome) {
+  if (!nome) return '';
+  const ext = nome.split('.').pop().toLowerCase();
+  const vids = ['mp4','webm','mov','avi','mkv','wmv'];
+  if (_IMGS_EXT.includes(ext))
+    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}" loading="lazy">`;
+  if (vids.includes(ext))
+    return `<video class="chat-msg-video" src="${url}" controls preload="metadata"></video>`;
+  return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
+}
+
+function _renderMsgAdmin(m, chamadoId) {
+  const mine = m.autor_tipo === 'admin';
+  const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+  const anexoHtml = _chatAnexoHtml(`/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
+  return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
+    <div class="chat-msg-author">${_esc(m.autor_nome)}</div>
+    ${textoHtml}${anexoHtml}
+    <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
+  </div>`;
+}
+
+async function _atualizarChatAdmin(chamadoId) {
+  const box = document.getElementById('chat-modal-msgs');
+  if (!box) return;
+  try {
+    const r = await api('/api/admin/chamados/' + chamadoId + '/mensagens?_t=' + Date.now());
+    if (!r.ok) return;
+    // Race-condition guard
+    if (!chamadoAtual || Number(chamadoAtual.id) !== Number(chamadoId)) return;
+    const msgs = await r.json();
+
+    if (!msgs.length) {
+      if (!box.querySelector('[data-msg-id]'))
+        box.innerHTML = '<div class="chat-vazio">Nenhuma mensagem trocada ainda.</div>';
+      return;
+    }
+
+    // Remove placeholder
+    const vazio = box.querySelector('.chat-vazio');
+    if (vazio) vazio.remove();
+
+    // Detect already-rendered messages by ID — never re-render existing ones
+    const rendered = new Set([...box.querySelectorAll('[data-msg-id]')].map(el => +el.dataset.msgId));
+    const novas = msgs.filter(m => !rendered.has(m.id));
+    if (!novas.length) return;
+
+    // Capture scroll state before touching the DOM
+    const atFundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+
+    // Append-only: insert new messages at the bottom
+    const tmp = document.createElement('div');
+    tmp.innerHTML = novas.map(m => _renderMsgAdmin(m, chamadoId)).join('');
+    while (tmp.firstChild) box.appendChild(tmp.firstChild);
+
+    if (atFundo) {
+      box.scrollTop = box.scrollHeight;
+      // Re-anchor after images/videos expand the container
+      novas.forEach(m => {
+        const ext = (m.chat_anexo_nome_original || '').split('.').pop().toLowerCase();
+        if (_IMGS_EXT.includes(ext)) {
+          const img = box.querySelector(`[data-msg-id="${m.id}"] img`);
+          if (img && !img.complete) img.addEventListener('load', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+        } else if (['mp4','webm','mov','avi','mkv','wmv'].includes(ext)) {
+          const vid = box.querySelector(`[data-msg-id="${m.id}"] video`);
+          if (vid) vid.addEventListener('loadedmetadata', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+        }
+      });
+    }
+  } catch {}
+}
+
+const STATUS_ABERTOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
 const STATUS_ENCERRADOS = ['concluido', 'encerrado'];
 
-const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
+const STATUS_CANCELADOS = ['cancelado'];
+const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardando_compra: 'Aguardando compra', aguardando_chegar: 'Aguardando chegar', concluido: 'Concluído', encerrado: 'Encerrado', cancelado: 'Cancelado' };
 const PRIO_LABELS = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+
+const CATEGORIAS_MAP = {
+  software:     { nome: 'Software',        cor: '#6366F1', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>' },
+  hardware:     { nome: 'Hardware',        cor: '#0EA5E9', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 18v3M8 21h8"/></svg>' },
+  impressora:   { nome: 'Impressora',      cor: '#8B5CF6', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>' },
+  ramal:        { nome: 'Ramal',           cor: '#EC4899', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>' },
+  nobreak:      { nome: 'Nobreak',         cor: '#F59E0B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>' },
+  monitor:      { nome: 'Monitor',         cor: '#0891B2', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+  mouse:        { nome: 'Mouse',           cor: '#10B981', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="7"/><path d="M12 2v8M5 10h14"/></svg>' },
+  teclado:      { nome: 'Teclado',         cor: '#EF4444', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>' },
+  rede:         { nome: 'Rede / Internet', cor: '#059669', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' },
+  acesso_senha: { nome: 'Acesso / Senha',  cor: '#DC2626', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' },
+  cameras:      { nome: 'Câmeras / CFTV', cor: '#D97706', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>' },
+  email:        { nome: 'E-mail',          cor: '#64748B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' },
+  tv_projetor:    { nome: 'TV',                  cor: '#7C3AED', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+  projetor:       { nome: 'Projetor',            cor: '#8B5CF6', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="8" width="13" height="8" rx="2"/><circle cx="10" cy="12" r="2"/><path d="M14 10l6-3M14 14l6 3"/></svg>' },
+  tablet:         { nome: 'Tablet',              cor: '#0284C7', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>' },
+  celular:        { nome: 'Celular',             cor: '#15803D', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>' },
+  processo_compra:{ nome: 'Processo de Compra', cor: '#16A34A', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' },
+  outros:         { nome: 'Outros',              cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>' },
+  thex_pos:       { nome: 'THEX POS (TOTVS)',        cor: '#E11D48', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+  thex_pms:       { nome: 'THEX PMS (TOTVS)',        cor: '#2563EB', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>' },
+  modulo_eventos: { nome: 'Módulo Eventos',           cor: '#7C3AED', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' },
+  modulo_cp:      { nome: 'Módulo Contas a Pagar',    cor: '#DC2626', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>' },
+  modulo_cr:      { nome: 'Módulo Contas a Receber',  cor: '#059669', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>' },
+  modulo_rad:     { nome: 'Módulo RAD',                cor: '#9333EA', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>' },
+  modulo_fiscal:  { nome: 'Módulo Fiscal Flex',        cor: '#B45309', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
+  modulo_contab:  { nome: 'Módulo Contabilidade',      cor: '#0369A1', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>' },
+  modulo_compras: { nome: 'Módulo Compras',             cor: '#15803D', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>' },
+  modulo_almox:   { nome: 'Módulo Almoxarifado',        cor: '#92400E', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>' },
+  modulo_caf:     { nome: 'Módulo CAF',                 cor: '#6D28D9', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>' },
+  modulo_cfinan:  { nome: 'Módulo CFINAN',              cor: '#1D4ED8', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
+  modulo_fatura:  { nome: 'Módulo Fatura',              cor: '#BE185D', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
+  app_comanda:    { nome: 'App Comanda Eletrônica',     cor: '#C2410C', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>' },
+  app_governanca: { nome: 'App Minha Governança',       cor: '#0E7490', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg>' },
+  letsbook:       { nome: 'LetsBook (PMWEB)',            cor: '#4338CA', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>' },
+  urmobo:         { nome: 'URMOBO (MDM)',                cor: '#374151', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
+  cardapio_digital:{ nome: 'Cardápio Digital',          cor: '#D97706', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>' },
+  central_ti:     { nome: 'Central de Serviços TI',     cor: '#6B7280', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>' },
+  servico:        { nome: 'Serviço',                    cor: '#0F766E', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>' },
+  // Categorias primárias adicionais
+  backup_restore: { nome: 'Backup/Restore',             cor: '#64748B', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>' },
+  seguranca_info: { nome: 'Segurança da informação',    cor: '#DC2626', icone: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
+};
+
+const CATS_PRIMARIAS = new Set(['software','hardware','cameras','email','processo_compra','backup_restore','seguranca_info']);
+const CATS_SOFTWARE_SUB = ['thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
+
+// Slugs internos (valor do <select>) → slugs reais da API
+const SLUG_CAT_MAP = {
+  backup_restore: 'backuprestore',
+  seguranca_info: 'seguranca_da_informacao',
+};
+// Reverso: slugs da API → slugs internos
+const SLUG_CAT_MAP_REV = Object.fromEntries(Object.entries(SLUG_CAT_MAP).map(([k,v]) => [v,k]));
+
+let _etiquetasDin = [];
+let _etiquetasByParent = {};
+
+function _resolveCatPair(slug) {
+  if (!slug) return ['', ''];
+  if (CATS_PRIMARIAS.has(slug)) return [slug, ''];
+  if (CATS_SOFTWARE_SUB.includes(slug)) return ['software', ''];
+  const et = _etiquetasDin.find(e => e.slug === slug);
+  if (!et || !et.parent_slug) return [slug, ''];
+  const parentInternal = SLUG_CAT_MAP_REV[et.parent_slug] || et.parent_slug;
+  if (CATS_PRIMARIAS.has(parentInternal)) return [parentInternal, slug];
+  if (CATS_PRIMARIAS.has(et.parent_slug)) return [et.parent_slug, slug];
+  const [prim] = _resolveCatPair(et.parent_slug);
+  return [prim, slug];
+}
+
+function _buildCatChain(slug, rootSlug) {
+  const chain = [];
+  let cur = slug;
+  while (cur && cur !== rootSlug) {
+    chain.unshift(cur);
+    const et = _etiquetasDin.find(e => e.slug === cur);
+    cur = et?.parent_slug || null;
+  }
+  return chain;
+}
+
+function _sincronizarSubSelects(cat, preselSub) {
+  const container = document.getElementById('sub-custom-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const rootSlug = SLUG_CAT_MAP[cat] || cat;
+  const chain = (preselSub && preselSub !== rootSlug) ? _buildCatChain(preselSub, rootSlug) : [];
+
+  function addLevel(parentSlug, chainIdx) {
+    const kids = (_etiquetasByParent[parentSlug] || []).filter(e => e.ativo !== 0);
+    if (!kids.length) return;
+    const presel = chain[chainIdx] || '';
+    const sel = document.createElement('select');
+    sel.className = 'form-control form-control-sm sub-cat-sel';
+    sel.innerHTML = '<option value="">— selecionar tipo —</option>'
+      + kids.map(e => `<option value="${e.slug}"${e.slug === presel ? ' selected' : ''}>${e.nome}</option>`).join('');
+    container.appendChild(sel);
+    if (presel) addLevel(presel, chainIdx + 1);
+    sel.addEventListener('change', () => {
+      let next = sel.nextSibling;
+      while (next) { const n = next.nextSibling; next.remove(); next = n; }
+      if (sel.value) addLevel(sel.value, 0);
+    });
+  }
+
+  addLevel(rootSlug, 0);
+}
+
+function _criarComboEtiqueta(wrapEl, cfg = {}) {
+  if (!wrapEl) return null;
+  if (!document.getElementById('_et-combo-css')) {
+    const st = document.createElement('style');
+    st.id = '_et-combo-css';
+    st.textContent = '.et-combo-item:hover{background:var(--surface-2)}.et-combo-sel{background:var(--surface-2)}';
+    document.head.appendChild(st);
+  }
+  const cls = cfg.sm ? 'form-control form-control-sm' : 'form-control';
+  wrapEl.innerHTML = `<div style="position:relative">
+    <input type="text" class="${cls}" data-combo-inp placeholder="${cfg.placeholder || 'Selecionar etiqueta…'}" autocomplete="off">
+    <input type="hidden" data-combo-val>
+    <div data-combo-dd style="display:none;position:absolute;z-index:1050;left:0;right:0;top:calc(100% + 2px);background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);max-height:220px;overflow-y:auto"></div>
+  </div>`;
+  const inp  = wrapEl.querySelector('[data-combo-inp]');
+  const valI = wrapEl.querySelector('[data-combo-val]');
+  const dd   = wrapEl.querySelector('[data-combo-dd]');
+
+  function _bc(et) {
+    const parts = [];
+    let cur = et;
+    while (cur?.parent_slug) {
+      const p = _etiquetasDin.find(x => x.slug === cur.parent_slug);
+      if (!p) break;
+      parts.unshift(p.nome);
+      cur = p;
+    }
+    return parts.join(' › ');
+  }
+
+  function _render(q) {
+    if (!_etiquetasDin.length) {
+      dd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Carregando etiquetas…</div>';
+      dd.style.display = 'block'; return;
+    }
+    const query = (q || '').toLowerCase().trim();
+    let list = _etiquetasDin.filter(e => e.ativo !== 0);
+    if (query) {
+      list = list.filter(e => {
+        const bc = _bc(e);
+        return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query) || e.slug.includes(query);
+      });
+    }
+    list.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+    if (!list.length) {
+      dd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
+    } else {
+      dd.innerHTML = list.map(e => {
+        const bc = _bc(e);
+        const cor = e.cor || '#6B7280';
+        const sel = e.slug === valI.value;
+        return `<div class="et-combo-item${sel ? ' et-combo-sel' : ''}" data-slug="${e.slug}"
+          style="padding:.42rem .75rem;cursor:pointer;display:flex;align-items:center;gap:.45rem;font-size:.83rem">
+          <span style="width:7px;height:7px;border-radius:50%;background:${cor};flex-shrink:0"></span>
+          <span>${bc ? `<span style="color:var(--text-muted);font-size:.74rem">${bc} › </span>` : ''}<strong style="font-weight:600">${e.nome}</strong></span>
+        </div>`;
+      }).join('');
+    }
+    dd.style.display = 'block';
+  }
+
+  function _close() { dd.style.display = 'none'; }
+
+  function _pick(slug) {
+    const et = slug ? _etiquetasDin.find(e => e.slug === slug) : null;
+    valI.value = slug || '';
+    if (et) { const bc = _bc(et); inp.value = bc ? `${bc} › ${et.nome}` : et.nome; }
+    else inp.value = '';
+    _close();
+    cfg.onChange?.(slug, et);
+  }
+
+  inp.addEventListener('focus', () => _render(inp.value));
+  inp.addEventListener('input', () => {
+    if (!inp.value.trim()) { valI.value = ''; cfg.onChange?.('', null); }
+    _render(inp.value);
+  });
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') _close();
+    if (ev.key === 'Enter') { ev.preventDefault(); const f = dd.querySelector('.et-combo-item'); if (f) _pick(f.dataset.slug); }
+  });
+  dd.addEventListener('mousedown', ev => {
+    const item = ev.target.closest('.et-combo-item');
+    if (!item) return;
+    ev.preventDefault();
+    _pick(item.dataset.slug);
+  });
+  document.addEventListener('click', ev => { if (!wrapEl.contains(ev.target)) _close(); }, true);
+
+  return {
+    getValue: () => valI.value,
+    setValue(slug) { _pick(slug); },
+    clear() { valI.value = ''; inp.value = ''; _close(); },
+    get inputEl() { return inp; },
+  };
+}
+
+async function _carregarEtiquetasDinamicas() {
+  try {
+    const data = await fetch('/api/etiquetas', { credentials: 'include' }).then(r => r.ok ? r.json() : []);
+    _etiquetasDin = Array.isArray(data) ? data : [];
+    _etiquetasByParent = {};
+    for (const e of _etiquetasDin) {
+      CATEGORIAS_MAP[e.slug] = { nome: e.nome, cor: e.cor || '#6B7280', icone: '' };
+      const p = e.parent_slug || '';
+      if (!_etiquetasByParent[p]) _etiquetasByParent[p] = [];
+      _etiquetasByParent[p].push(e);
+    }
+  } catch {}
+}
+
+function badgeCategoria(cat) {
+  if (!cat || !CATEGORIAS_MAP[cat]) return '';
+  const { nome, cor, icone } = CATEGORIAS_MAP[cat];
+  return `<span class="badge-categoria" style="--cat-cor:${cor}">${icone} ${nome}</span>`;
+}
 
 function fmtData(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  const iso = d.includes('T') ? d : d.replace(' ', 'T');
+  const date = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
+}
+
+// Converte prazo UTC armazenado → valor para input datetime-local em Fortaleza
+function utcParaInputFortaleza(prazo) {
+  if (!prazo) return '';
+  const iso = prazo.includes('T') ? prazo : prazo.replace(' ', 'T');
+  const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  return new Date(d.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 16);
+}
+
+// Converte valor do input datetime-local (Fortaleza) → UTC para salvar
+function inputFortalezaParaUtc(val) {
+  if (!val) return null;
+  const [dp, tp] = val.split('T');
+  const [y, mo, d] = dp.split('-').map(Number);
+  const [h, m] = (tp || '00:00').split(':').map(Number);
+  return new Date(Date.UTC(y, mo - 1, d, h + 3, m)).toISOString().replace('T', ' ').substring(0, 19);
 }
 
 function badgeStatus(s) {
-  return `<span class="badge badge-${s}">${STATUS_LABELS[s] || s}</span>`;
+  return `<span class="badge badge-${s}" data-status="${s}" title="Filtrar por: ${STATUS_LABELS[s] || s}" style="cursor:pointer">${STATUS_LABELS[s] || s}</span>`;
+}
+
+function filtrarPorStatus(status) {
+  statusFiltroAtual = status;
+  abaAtiva = 'abertos';
+  document.getElementById('tab-meus').classList.remove('ativo');
+  document.getElementById('subtabs-meus').style.display = 'none';
+  // Marca visualmente a pill selecionada
+  const pillMap = { 'aberto,em_andamento': 'cnt-aberto', 'em_andamento': 'cnt-andamento', 'concluido,encerrado': 'cnt-concluido', 'cancelado': 'cnt-cancelado' };
+  document.querySelectorAll('#stats-strip .stat-pill').forEach(p => p.classList.remove('ativo'));
+  const targetId = pillMap[status];
+  if (targetId) document.getElementById(targetId)?.closest('.stat-pill')?.classList.add('ativo');
+  carregarChamados();
 }
 function badgePrio(p) {
   if (!p) return `<span class="badge badge-sem-prioridade">Sem prioridade</span>`;
@@ -39,12 +509,16 @@ async function api(url, opts = {}) {
   return res;
 }
 
-// ── Init ──────────────────────────────────────────────────────
 (async () => {
   try {
     const r = await api('/api/admin/me');
     if (!r.ok) { location.replace('/admin-login.html'); return; }
     adminInfo = await r.json();
+
+    try {
+      const re = await api(`/api/admin/usuarios/${adminInfo.id}/etiquetas`);
+      if (re.ok) { const slugs = await re.json(); _minhasEtiquetas = new Set(Array.isArray(slugs) ? slugs : []); }
+    } catch {}
 
     if (adminInfo.is_master) {
       document.getElementById('nav-usuarios-wrap').innerHTML =
@@ -53,58 +527,93 @@ async function api(url, opts = {}) {
 
     await carregarAdminsParaFiltro();
     atualizarFiltrosDeAba();
-    await Promise.all([carregarChamados(), carregarEstatisticas()]);
+    await Promise.all([carregarChamados(), carregarEstatisticas(), carregarEquipamentos()]);
+
+    // Abre modal diretamente se vier de outra página via ?chamado=ID
+    const urlParams = new URLSearchParams(location.search);
+    const chamadoParam = urlParams.get('chamado');
+    if (chamadoParam && +chamadoParam) {
+      setTimeout(() => abrirModal(+chamadoParam), 200);
+    }
+
+    // Auto-refresh silencioso a cada 5s (não atualiza se o modal estiver aberto)
+    setInterval(() => {
+      if (chamadoAtual) return;
+      carregarChamados(true);
+      carregarEstatisticas();
+    }, 5000);
   } catch {}
 })();
 
-// ── Abas ──────────────────────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+document.getElementById('tab-meus').addEventListener('click', () => {
+  const btn = document.getElementById('tab-meus');
+  const jaAtivo = btn.classList.contains('ativo');
+  if (jaAtivo) {
+    btn.classList.remove('ativo');
+    abaAtiva = 'abertos';
+    document.getElementById('subtabs-meus').style.display = 'none';
+  } else {
     btn.classList.add('ativo');
-    abaAtiva = btn.dataset.tab;
+    abaAtiva = 'meus';
+    document.getElementById('subtabs-meus').style.display = 'inline-flex';
+  }
+  atualizarFiltrosDeAba();
+  carregarChamados();
+});
+
+
+document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    subAbaMeusAtiva = btn.dataset.subtab;
     atualizarFiltrosDeAba();
     carregarChamados();
   });
 });
 
 function atualizarFiltrosDeAba() {
-  const sel = document.getElementById('filtro-status');
-  sel.innerHTML = '';
-  if (abaAtiva === 'abertos') {
-    sel.innerHTML = `
-      <option value="">Todos (abertos)</option>
-      <option value="aberto">Aberto</option>
-      <option value="em_andamento">Em andamento</option>
-    `;
-  } else {
-    sel.innerHTML = `
-      <option value="">Todos (encerrados)</option>
-      <option value="concluido">Concluído</option>
-      <option value="encerrado">Encerrado</option>
-    `;
-  }
+  // Sem select de status: resetar o filtro ao trocar de aba
+  statusFiltroAtual = '';
+  document.querySelectorAll('#stats-strip .stat-pill').forEach(p => p.classList.remove('ativo'));
 }
 
-// ── Estatísticas ──────────────────────────────────────────────
 async function carregarEstatisticas() {
   try {
-    const r = await api('/api/admin/chamados?limit=9999');
-    if (!r.ok) return;
-    const todos = await r.json();
+    const statusAtivosParam = STATUS_ABERTOS.join(',');
+    const [rTodos, rMeus, rCancelados] = await Promise.all([
+      api(`/api/admin/chamados?status=${statusAtivosParam},concluido,encerrado`),
+      adminInfo ? api(`/api/admin/chamados?admin_id=${adminInfo.id}&status=${statusAtivosParam},concluido,encerrado`) : Promise.resolve(null),
+      api('/api/admin/chamados?status=cancelado'),
+    ]);
+    if (!rTodos.ok) return;
+    const todos = await rTodos.json();
 
-    const contagem = { aberto: 0, em_andamento: 0, concluido: 0, encerrado: 0 };
+    const contagem = { aberto: 0, em_andamento: 0, aguardando_compra: 0, aguardando_chegar: 0, concluido: 0, encerrado: 0 };
     todos.forEach(c => { if (contagem[c.status] !== undefined) contagem[c.status]++; });
 
-    document.getElementById('cnt-aberto').textContent = contagem.aberto;
-    document.getElementById('cnt-andamento').textContent = contagem.em_andamento;
-    document.getElementById('cnt-concluido').textContent = contagem.concluido;
-    document.getElementById('cnt-encerrado').textContent = contagem.encerrado;
+    if (rCancelados.ok) {
+      const cancelados = await rCancelados.json();
+      document.getElementById('cnt-cancelado').textContent = cancelados.length || '0';
+    }
 
-    const totalAbertos = contagem.aberto + contagem.em_andamento;
+    const totalAbertos   = STATUS_ABERTOS.reduce((s, k) => s + contagem[k], 0);
     const totalEncerrados = contagem.concluido + contagem.encerrado;
+
+    document.getElementById('cnt-aberto').textContent = totalAbertos;
+    document.getElementById('cnt-andamento').textContent = contagem.em_andamento;
+    document.getElementById('cnt-concluido').textContent = totalEncerrados;
     document.getElementById('badge-abertos').textContent = totalAbertos || '';
     document.getElementById('badge-encerrados').textContent = totalEncerrados || '';
+
+    if (rMeus && rMeus.ok) {
+      const meus = await rMeus.json();
+      const meusAbertos    = meus.filter(c => STATUS_ABERTOS.includes(c.status)).length;
+      const meusEncerrados = meus.filter(c => STATUS_ENCERRADOS.includes(c.status)).length;
+      document.getElementById('badge-meus').textContent = meusAbertos || '';
+      document.getElementById('badge-meus-abertos').textContent = meusAbertos || '';
+      document.getElementById('badge-meus-encerrados').textContent = meusEncerrados || '';
+    }
   } catch {}
 }
 
@@ -118,217 +627,1143 @@ document.getElementById('btn-atualizar').addEventListener('click', () => {
   carregarChamados();
   carregarEstatisticas();
 });
+
+document.querySelectorAll('#stats-strip .stat-pill').forEach(pill => {
+  pill.style.cursor = 'pointer';
+  pill.title = 'Clique para filtrar';
+});
+document.getElementById('stats-strip').addEventListener('click', e => {
+  const pill = e.target.closest('.stat-pill');
+  if (!pill) return;
+  const num = pill.querySelector('.stat-num');
+  if (!num) return;
+  const map = { 'cnt-aberto': 'aberto,em_andamento', 'cnt-andamento': 'em_andamento', 'cnt-concluido': 'concluido,encerrado', 'cnt-cancelado': 'cancelado' };
+  const status = map[num.id];
+  if (status) filtrarPorStatus(status);
+});
 document.getElementById('btn-limpar').addEventListener('click', () => {
-  document.getElementById('filtro-status').value = '';
+  statusFiltroAtual = '';
+  document.querySelectorAll('#stats-strip .stat-pill').forEach(p => p.classList.remove('ativo'));
   document.getElementById('filtro-setor').value = '';
   document.getElementById('filtro-admin').value = '';
-  document.getElementById('filtro-inicio').value = '';
-  document.getElementById('filtro-fim').value = '';
+  const fb = document.getElementById('filtro-busca');
+  if (fb) fb.value = '';
+  _limparFiltroData();
   carregarChamados();
 });
 
-document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
-document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) fecharModal();
+// Filtro por texto — atualização instantânea (debounce de 200ms)
+(() => {
+  const inp = document.getElementById('filtro-busca');
+  if (!inp) return;
+  let t = null;
+  inp.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(() => carregarChamados(), 200);
+  });
+})();
+
+
+// ── Filtro por data ───────────────────────────────────────────
+function _tipoDataAtivo() {
+  return document.querySelector('.filtro-tipo-btn.ativo')?.dataset.tipo || 'criacao';
+}
+
+function _limparChipsAtivos() {
+  document.querySelectorAll('.filtro-periodo-chip').forEach(c => c.classList.remove('ativo'));
+}
+
+function _aplicarPeriodoRapido(tipo) {
+  const hoje = new Date();
+  let ini, fim;
+  if (tipo === 'semana') {
+    const dow = hoje.getDay();
+    const diffIni = dow === 0 ? -6 : 1 - dow;
+    ini = new Date(hoje); ini.setDate(hoje.getDate() + diffIni);
+    fim = new Date(ini);  fim.setDate(ini.getDate() + 6);
+  } else if (tipo === 'mes') {
+    ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+  } else if (tipo === 'trimestre') {
+    const q = Math.floor(hoje.getMonth() / 3);
+    ini = new Date(hoje.getFullYear(), q * 3, 1);
+    fim = new Date(hoje.getFullYear(), q * 3 + 3, 0);
+  }
+  const fmt = d => d.toISOString().split('T')[0];
+  const elIni = document.getElementById('filtro-data-inicio');
+  const elFim = document.getElementById('filtro-data-fim');
+  if (elIni) elIni.value = fmt(ini);
+  if (elFim) elFim.value = fmt(fim);
+  carregarChamados();
+}
+
+function _limparFiltroData() {
+  const ini = document.getElementById('filtro-data-inicio');
+  const fim = document.getElementById('filtro-data-fim');
+  if (ini) ini.value = '';
+  if (fim) fim.value = '';
+  _limparChipsAtivos();
+}
+
+document.getElementById('btn-toggle-data-filtro').addEventListener('click', () => {
+  const row = document.getElementById('filtro-data-row');
+  const btn = document.getElementById('btn-toggle-data-filtro');
+  const aberto = row.style.display !== 'none';
+  row.style.display = aberto ? 'none' : 'flex';
+  btn.classList.toggle('btn-data-ativo', !aberto);
+  if (aberto) { _limparFiltroData(); carregarChamados(); }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+
+document.querySelectorAll('.filtro-tipo-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.classList.contains('ativo')) return;
+    document.querySelectorAll('.filtro-tipo-btn').forEach(b => b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    if (document.getElementById('filtro-data-inicio')?.value || document.getElementById('filtro-data-fim')?.value) carregarChamados();
+  });
+});
+
+document.getElementById('filtro-data-inicio')?.addEventListener('change', () => { _limparChipsAtivos(); carregarChamados(); });
+document.getElementById('filtro-data-fim')?.addEventListener('change', () => { _limparChipsAtivos(); carregarChamados(); });
+
+document.querySelectorAll('.filtro-periodo-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const jaAtivo = chip.classList.contains('ativo');
+    _limparChipsAtivos();
+    if (jaAtivo) {
+      _limparFiltroData();
+      carregarChamados();
+    } else {
+      chip.classList.add('ativo');
+      _aplicarPeriodoRapido(chip.dataset.periodo);
+    }
+  });
+});
+
+document.getElementById('btn-limpar-data')?.addEventListener('click', () => {
+  _limparFiltroData();
+  carregarChamados();
+});
+// ── fim filtro por data ───────────────────────────────────────
+
+document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('modal-cancelar-overlay').classList.contains('open')) fecharModalCancelar();
+    else if (document.getElementById('modal-novo-chamado-overlay').classList.contains('open')) fecharModalNovoChamado();
+    else fecharModal();
+  }
+});
+
+// ── Modal "Cancelar chamado" ──────────────────────────────────────────────────
+function fecharModalCancelar() {
+  document.getElementById('modal-cancelar-overlay').classList.remove('open');
+}
+
+document.getElementById('btn-fechar-cancelar').addEventListener('click', fecharModalCancelar);
+document.getElementById('btn-cancelar-voltar').addEventListener('click', fecharModalCancelar);
+
+document.getElementById('btn-cancelar-confirmar').addEventListener('click', async () => {
+  if (!chamadoAtual) return;
+  const chamadoId = chamadoAtual.id;
+  const motivo = document.getElementById('input-cancelamento-motivo').value.trim();
+  const msgEl = document.getElementById('msg-cancelar');
+  if (!motivo) { msgEl.innerHTML = '<span style="font-size:.8rem;color:#b91c1c">Informe o motivo do cancelamento.</span>'; return; }
+  const btn = document.getElementById('btn-cancelar-confirmar');
+  btn.disabled = true; btn.textContent = 'Cancelando…';
+  msgEl.innerHTML = '';
+  try {
+    const r = await api(`/api/admin/chamados/${chamadoId}/cancelar`, {
+      method: 'PATCH',
+      body: JSON.stringify({ motivo }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      fecharModalCancelar();
+      fecharModal();
+      carregarChamados();
+      carregarEstatisticas();
+      mostrarToast('Chamado cancelado', `Chamado #${chamadoId} cancelado com sucesso.`);
+    } else {
+      msgEl.innerHTML = `<span style="font-size:.8rem;color:#b91c1c">${d.erro}</span>`;
+    }
+  } catch (e) {
+    console.error('[cancelar]', e);
+    msgEl.innerHTML = '<span style="font-size:.8rem;color:#b91c1c">Erro de conexão. Tente novamente.</span>';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Confirmar cancelamento';
+  }
+});
+
+// ── Modal "Abrir chamado" ──────────────────────────────────────────────────
+let _usuariosPortalNc = null;
+
+async function _carregarUsuariosNc() {
+  const wrap = document.getElementById('nc-usuario-wrap');
+  if (!wrap) return;
+  if (!adminInfo || !adminInfo.is_master) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const busca = document.getElementById('nc-usuario-busca');
+  const resultados = document.getElementById('nc-usuario-resultados');
+  const selecionado = document.getElementById('nc-usuario-selecionado');
+  busca.value = '';
+  resultados.style.display = 'none';
+  resultados.innerHTML = '';
+  selecionado.style.display = 'none';
+  selecionado.dataset.usuarioId = '';
+
+  if (!_usuariosPortalNc) {
+    try {
+      const r = await api('/api/admin/portal-usuarios');
+      if (r.ok) _usuariosPortalNc = (await r.json()).filter(u => u.ativo);
+    } catch {}
+  }
+
+  busca.addEventListener('input', function _ncBuscaInput(e) {
+    const f = e.target.value.toLowerCase();
+    selecionado.style.display = 'none';
+    selecionado.dataset.usuarioId = '';
+    if (!f) { resultados.style.display = 'none'; resultados.innerHTML = ''; return; }
+    const filtrados = (_usuariosPortalNc || []).filter(u =>
+      u.nome.toLowerCase().includes(f) ||
+      (u.email && u.email.toLowerCase().includes(f)) ||
+      (u.setor && u.setor.toLowerCase().includes(f)));
+    if (!filtrados.length) {
+      resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
+    } else {
+      resultados.innerHTML = filtrados.map(u => `
+        <div class="nc-usuario-item" data-id="${u.id}" data-nome="${u.nome.replace(/"/g,'&quot;')}" data-setor="${(u.setor||'').replace(/"/g,'&quot;')}"
+          style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">
+          ${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}
+        </div>`).join('');
+      resultados.querySelectorAll('.nc-usuario-item').forEach(el => {
+        el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover,#f3f4f6)');
+        el.addEventListener('mouseleave', () => el.style.background = '');
+        el.addEventListener('click', () => {
+          const setor = el.dataset.setor;
+          selecionado.innerHTML = '✓ ' + el.dataset.nome + (setor ? ' · <span style="color:var(--text-muted);font-weight:400">' + setor + '</span>' : '');
+          selecionado.dataset.usuarioId = el.dataset.id;
+          selecionado.style.display = 'block';
+          busca.value = el.dataset.nome;
+          resultados.style.display = 'none';
+        });
+      });
+    }
+    resultados.style.display = 'block';
+  }, { once: false });
+
+  document.addEventListener('click', function fecharNcResultados(e) {
+    if (!busca.contains(e.target) && !resultados.contains(e.target)) {
+      resultados.style.display = 'none';
+      document.removeEventListener('click', fecharNcResultados);
+    }
+  });
+}
+
+async function _popularAdminsNc() {
+  const sel = document.getElementById('nc-admin-responsavel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Assumir eu mesmo</option>';
+  try {
+    const r = await api('/api/admin/colegas');
+    if (!r.ok) return;
+    const admins = await r.json();
+    admins
+      .filter(a => !adminInfo || String(a.id) !== String(adminInfo.id))
+      .forEach(a => sel.appendChild(new Option(a.nome_completo, a.id)));
+  } catch {}
+}
+
+async function _abrirFormTrocarUsuario(chamadoId) {
+  const wrap = document.getElementById('trocar-usuario-form-wrap');
+  if (!wrap) return;
+  if (wrap.style.display !== 'none') { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+
+  wrap.style.display = '';
+  wrap.innerHTML = `
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:.7rem .8rem;display:flex;flex-direction:column;gap:.5rem">
+      <div style="font-size:.78rem;color:var(--text-secondary);font-weight:600">Trocar para outro usuário do portal</div>
+      <div style="position:relative">
+        <input class="form-control" type="text" id="tu-busca" placeholder="Buscar por nome, setor ou e-mail…" autocomplete="off" style="font-size:.82rem">
+        <div id="tu-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:var(--surface);max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+      </div>
+      <div id="tu-selecionado" style="display:none;font-size:.78rem;color:var(--text-secondary);padding:.35rem .55rem;background:var(--surface);border-radius:5px;border:1px solid var(--border)"></div>
+      <div id="tu-msg" style="min-height:.9rem;font-size:.76rem"></div>
+      <div style="display:flex;gap:.4rem;justify-content:flex-end">
+        <button type="button" class="btn btn-secondary btn-sm" id="tu-cancelar" style="font-size:.74rem">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm" id="tu-confirmar" disabled style="font-size:.74rem">Confirmar troca</button>
+      </div>
+    </div>
+  `;
+
+  const busca = document.getElementById('tu-busca');
+  const resultados = document.getElementById('tu-resultados');
+  const selecionado = document.getElementById('tu-selecionado');
+  const btnConfirmar = document.getElementById('tu-confirmar');
+  const msgEl = document.getElementById('tu-msg');
+
+  document.getElementById('tu-cancelar').addEventListener('click', () => {
+    wrap.style.display = 'none'; wrap.innerHTML = '';
+  });
+
+  if (!_usuariosPortalNc) {
+    try {
+      const r = await api('/api/admin/portal-usuarios');
+      if (r.ok) _usuariosPortalNc = await r.json();
+    } catch {}
+  }
+
+  busca.addEventListener('input', () => {
+    const q = busca.value.trim().toLowerCase();
+    if (!q || !_usuariosPortalNc) { resultados.style.display = 'none'; return; }
+    const filtrados = _usuariosPortalNc.filter(u =>
+      u.ativo && (
+        (u.nome || '').toLowerCase().includes(q) ||
+        (u.setor || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q)
+      )
+    ).slice(0, 30);
+    if (!filtrados.length) {
+      resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
+    } else {
+      resultados.innerHTML = filtrados.map(u => `
+        <div class="tu-item" data-id="${u.id}" data-nome="${(u.nome||'').replace(/"/g,'&quot;')}" data-setor="${(u.setor||'').replace(/"/g,'&quot;')}"
+          style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;color:var(--text);border-bottom:1px solid var(--border)">
+          ${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}
+        </div>`).join('');
+      resultados.querySelectorAll('.tu-item').forEach(el => {
+        el.addEventListener('mouseenter', () => el.style.background = 'var(--surface-2)');
+        el.addEventListener('mouseleave', () => el.style.background = '');
+        el.addEventListener('click', () => {
+          const setor = el.dataset.setor;
+          selecionado.innerHTML = '✓ ' + el.dataset.nome + (setor ? ' · <span style="color:var(--text-muted);font-weight:400">' + setor + '</span>' : '');
+          selecionado.dataset.usuarioId = el.dataset.id;
+          selecionado.style.display = 'block';
+          busca.value = el.dataset.nome;
+          resultados.style.display = 'none';
+          btnConfirmar.disabled = false;
+        });
+      });
+    }
+    resultados.style.display = 'block';
+  });
+
+  btnConfirmar.addEventListener('click', async () => {
+    const novoId = selecionado.dataset.usuarioId;
+    if (!novoId) return;
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = 'Transferindo…';
+    try {
+      const r = await api(`/api/admin/chamados/${chamadoId}/transferir-usuario`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario_id: parseInt(novoId, 10) }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        msgEl.innerHTML = `<span style="color:var(--success)">✓ ${d.mensagem}</span>`;
+        setTimeout(() => { abrirModal(chamadoId); carregarChamados(); }, 700);
+      } else {
+        msgEl.innerHTML = `<span style="color:#b91c1c">${d.erro || 'Erro ao transferir.'}</span>`;
+        btnConfirmar.disabled = false;
+        btnConfirmar.textContent = 'Confirmar troca';
+      }
+    } catch {
+      msgEl.innerHTML = '<span style="color:#b91c1c">Erro de conexão.</span>';
+      btnConfirmar.disabled = false;
+      btnConfirmar.textContent = 'Confirmar troca';
+    }
+  });
+
+  busca.focus();
+}
+
+function abrirModalNovoChamado() {
+  _ncCombo?.clear();
+  document.getElementById('nc-descricao').value = '';
+  _resetNcArquivos();
+  document.getElementById('msg-novo-chamado').innerHTML = '';
+  document.getElementById('nc-admin-responsavel').value = '';
+  document.getElementById('nc-admin-hint').style.display = 'none';
+  _popularAdminsNc();
+  document.getElementById('modal-novo-chamado-overlay').classList.add('open');
+  document.getElementById('nc-descricao').focus();
+  _carregarUsuariosNc();
+}
+
+function fecharModalNovoChamado() {
+  document.getElementById('modal-novo-chamado-overlay').classList.remove('open');
+  const busca = document.getElementById('nc-usuario-busca');
+  if (busca) busca.value = '';
+  const resultados = document.getElementById('nc-usuario-resultados');
+  if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
+  const selecionado = document.getElementById('nc-usuario-selecionado');
+  if (selecionado) { selecionado.style.display = 'none'; selecionado.dataset.usuarioId = ''; }
+  document.getElementById('nc-admin-responsavel').value = '';
+  document.getElementById('nc-admin-hint').style.display = 'none';
+  _resetNcArquivos();
+}
+
+document.getElementById('btn-novo-chamado').addEventListener('click', abrirModalNovoChamado);
+document.getElementById('btn-fechar-novo-chamado').addEventListener('click', fecharModalNovoChamado);
+
+document.getElementById('nc-admin-responsavel').addEventListener('change', function () {
+  const hint = document.getElementById('nc-admin-hint');
+  if (this.value) {
+    hint.textContent = `Você cria o chamado — ${this.options[this.selectedIndex].text} será o responsável atribuído.`;
+    hint.style.display = '';
+  } else {
+    hint.style.display = 'none';
+  }
+});
+
+// ── Uploader de anexos (admin "Abrir chamado") ─────────────
+let _ncArquivos = [];
+const _ANEXO_HINT_DEFAULT = 'Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.';
+const _IMGS_EXT_RE = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i;
+const _VID_EXT_RE  = /\.(mp4|webm|mov|avi|mkv|wmv)$/i;
+
+function _fmtTamanho(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function _renderNcTiles() {
+  const box = document.getElementById('nc-anexo-tiles');
+  const hint = document.getElementById('nc-anexo-hint');
+  if (!box) return;
+
+  if (!_ncArquivos.length) {
+    box.innerHTML = '';
+    if (hint) { hint.textContent = _ANEXO_HINT_DEFAULT; hint.style.color = ''; }
+    return;
+  }
+
+  box.innerHTML = _ncArquivos.map((f, i) => {
+    const nome = f.name.replace(/"/g, '&quot;');
+    let media;
+    if (_IMGS_EXT_RE.test(f.name)) {
+      media = `<img src="${URL.createObjectURL(f)}" alt="${nome}" loading="lazy">`;
+    } else if (_VID_EXT_RE.test(f.name)) {
+      media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`;
+    } else {
+      media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+    }
+    return `<div class="anexo-tile">
+      <button type="button" class="anexo-tile-remove" data-idx="${i}" aria-label="Remover ${nome}" title="Remover">×</button>
+      <div class="anexo-tile-media">${media}</div>
+      <div class="anexo-tile-info">
+        <span class="anexo-tile-name" title="${nome}">${nome}</span>
+        <span class="anexo-tile-size">${_fmtTamanho(f.size)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (hint) {
+    hint.style.color = 'var(--gold-dark)';
+    hint.textContent = `✓ ${_ncArquivos.length} ${_ncArquivos.length === 1 ? 'arquivo selecionado' : 'arquivos selecionados'} · clique em "Adicionar arquivos" para incluir mais`;
+  }
+}
+
+function _resetNcArquivos() {
+  _ncArquivos = [];
+  const inp = document.getElementById('nc-anexo');
+  if (inp) inp.value = '';
+  _renderNcTiles();
+}
+
+document.getElementById('btn-add-anexo-nc')?.addEventListener('click', () => {
+  document.getElementById('nc-anexo')?.click();
+});
+
+document.getElementById('nc-anexo')?.addEventListener('change', function () {
+  Array.from(this.files || []).forEach(f => {
+    const dup = _ncArquivos.some(x => x.name === f.name && x.size === f.size);
+    if (!dup && _ncArquivos.length < 10) _ncArquivos.push(f);
+  });
+  this.value = '';
+  _renderNcTiles();
+});
+
+document.getElementById('nc-anexo-tiles')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.anexo-tile-remove');
+  if (!btn) return;
+  _ncArquivos.splice(+btn.dataset.idx, 1);
+  _renderNcTiles();
+});
+
+_ncCombo = _criarComboEtiqueta(document.getElementById('nc-cat-combo'), { placeholder: '— selecionar etiqueta —' });
+_carregarEtiquetasDinamicas();
+
+document.getElementById('form-novo-chamado').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msgEl = document.getElementById('msg-novo-chamado');
+  const descricao = document.getElementById('nc-descricao').value.trim();
+
+  if (!descricao || descricao.length < 5) { msgEl.innerHTML = '<div class="alert alert-danger">Descreva o problema (mínimo 5 caracteres).</div>'; return; }
+
+  const categoria = _ncCombo?.getValue() || '';
+
+  const btn = document.getElementById('btn-confirmar-novo-chamado');
+  btn.disabled = true; btn.textContent = 'Abrindo...';
+  msgEl.innerHTML = '';
+  try {
+    const fd = new FormData();
+    fd.append('descricao', descricao);
+    fd.append('categoria', categoria);
+    const usuarioId = document.getElementById('nc-usuario-selecionado')?.dataset.usuarioId;
+    if (usuarioId) fd.append('usuario_id', usuarioId);
+    const adminResponsavelId = document.getElementById('nc-admin-responsavel').value;
+    if (adminResponsavelId) fd.append('admin_responsavel_id', adminResponsavelId);
+    if (_ncArquivos.length > 10) { msgEl.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>'; btn.disabled = false; btn.textContent = 'Abrir chamado'; return; }
+    _ncArquivos.forEach(f => fd.append('anexos', f, f.name));
+
+    const r = await fetch('/api/admin/chamados', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (r.ok) {
+      fecharModalNovoChamado();
+      carregarChamados();
+      carregarEstatisticas();
+      mostrarToast('Chamado aberto!', 'O chamado foi criado e já está na lista.');
+    } else {
+      msgEl.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao abrir chamado.'}</div>`;
+    }
+  } catch {
+    msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Abrir chamado';
+  }
+});
 
 async function carregarAdminsParaFiltro() {
   try {
-    const r = await api('/api/admin/usuarios');
+    const r = await api('/api/admin/transferencia-admins');
     if (!r.ok) return;
     const admins = await r.json();
     const sel = document.getElementById('filtro-admin');
-    admins.filter(a => a.ativo).forEach(a => {
+    admins.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = _decode(a.nome_completo);
+      opt.textContent = a.nome_completo;
       sel.appendChild(opt);
     });
   } catch {}
 }
 
-async function carregarChamados() {
+async function carregarChamados(silencioso = false) {
   const lista = document.getElementById('lista-chamados');
-  lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  if (!silencioso) lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
   const params = new URLSearchParams();
-  const statusFiltro = document.getElementById('filtro-status').value;
-  const setor = document.getElementById('filtro-setor').value.trim();
+  const setor = document.getElementById('filtro-setor').value;
   const adminId = document.getElementById('filtro-admin').value;
-  const inicio = document.getElementById('filtro-inicio').value;
-  const fim = document.getElementById('filtro-fim').value;
 
-  if (statusFiltro) {
-    params.set('status', statusFiltro);
+  if (abaAtiva === 'meus') {
+    params.set('admin_id', adminInfo.id);
+    const statusDaSubAba = subAbaMeusAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
+    params.set('status', statusDaSubAba.join(','));
   } else {
-    const statusDaAba = abaAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
-    params.set('status', statusDaAba.join(','));
+    if (statusFiltroAtual) {
+      params.set('status', statusFiltroAtual);
+    } else {
+      params.set('status', STATUS_ABERTOS.join(','));
+    }
+    if (adminId) params.set('admin_id', adminId);
   }
 
   if (setor) params.set('setor', setor);
-  if (adminId) params.set('admin_id', adminId);
-  if (inicio) params.set('periodo_inicio', inicio);
-  if (fim) params.set('periodo_fim', fim);
+
+  const dataInicio = document.getElementById('filtro-data-inicio')?.value;
+  const dataFim = document.getElementById('filtro-data-fim')?.value;
+  if (dataInicio || dataFim) {
+    params.set('data_tipo', _tipoDataAtivo());
+    if (dataInicio) params.set('data_inicio', dataInicio);
+    if (dataFim) params.set('data_fim', dataFim);
+    if (!statusFiltroAtual && abaAtiva !== 'meus') {
+      params.set('status', STATUS_ABERTOS.join(','));
+    }
+  }
+
+  const filtroBusca = (document.getElementById('filtro-busca')?.value || '').trim().replace(/^#/, '');
+  if (filtroBusca) {
+    params.set('q', filtroBusca);
+    if (_etiquetasDin.length) {
+      const txt = filtroBusca.toLowerCase();
+      const matches = _etiquetasDin.filter(e => e.nome.toLowerCase().includes(txt));
+      if (matches.length) {
+        const slugs = new Set();
+        function _coletarDesc(slug) { slugs.add(slug); (_etiquetasByParent[slug] || []).forEach(c => _coletarDesc(c.slug)); }
+        matches.forEach(e => _coletarDesc(e.slug));
+        params.set('categoria', [...slugs].join(','));
+      }
+    }
+  }
 
   try {
     const r = await api('/api/admin/chamados?' + params);
-    const chamados = await r.json();
+    let chamados = await r.json();
+
+    // Silencioso: só re-renderiza se os dados mudaram
+    if (silencioso) {
+      const novoHash = JSON.stringify(chamados.map(c =>
+        [c.id, c.status, c.prioridade, c.admin_responsavel_id, c.nota, c.prazo, c.categoria, c.atualizado_em, c.mensagens_nao_lidas, c.infos_adicionais_count, c.novidades_admin]
+      )) + '|' + filtroBusca;
+      if (novoHash === _chamadosHash) return;
+      _chamadosHash = novoHash;
+    } else {
+      _chamadosHash = null;
+    }
+
     if (!chamados.length) {
-      const msg = abaAtiva === 'abertos'
-        ? 'Nenhum chamado em aberto no momento.'
-        : 'Nenhum chamado encerrado encontrado.';
-      lista.innerHTML = `<div class="empty-state"><div class="empty-icon">${abaAtiva === 'abertos' ? '📭' : '✅'}</div><p>${msg}</p></div>`;
+      const msg = statusFiltroAtual === 'cancelado'
+        ? 'Nenhum chamado cancelado.'
+        : (abaAtiva === 'abertos' || (abaAtiva === 'meus' && subAbaMeusAtiva === 'abertos'))
+          ? 'Nenhum chamado em aberto no momento.'
+          : 'Nenhum chamado encerrado encontrado.';
+      lista.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>
+            </svg>
+          </div>
+          <p>${msg}</p>
+        </div>`;
       return;
     }
+    chamados.sort((a, b) => {
+      const prioDiff = scorePrioridade(a) - scorePrioridade(b);
+      if (prioDiff !== 0) return prioDiff;
+      return new Date(a.criado_em) - new Date(b.criado_em);
+    });
     lista.innerHTML = chamados.map(c => renderChamadoItem(c)).join('');
     lista.querySelectorAll('.chamado-item').forEach(el => {
-      el.addEventListener('click', () => abrirModal(el.dataset.id));
+      el.addEventListener('click', e => {
+        const badge = e.target.closest('.badge[data-status]');
+        if (badge) { filtrarPorStatus(badge.dataset.status); return; }
+        abrirModal(el.dataset.id);
+      });
     });
   } catch (err) {
-    if (err.message !== '401')
+    if (err.message !== '401' && !silencioso)
       lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar chamados.</div>';
   }
 }
 
+function estaAtrasado(c) {
+  if (!c.prazo) return false;
+  if (['concluido', 'encerrado', 'cancelado'].includes(c.status)) return false;
+  const iso = c.prazo.includes('T') ? c.prazo : c.prazo.replace(' ', 'T');
+  return new Date(iso.endsWith('Z') ? iso : iso + 'Z') < new Date();
+}
+
+function scorePrioridade(c) {
+  if (c.prioridade === 'urgente') return 0;
+  if (estaAtrasado(c))           return 1;
+  if (c.prioridade === 'alta')   return 2;
+  if (c.prioridade === 'media')  return 3;
+  if (c.prioridade === 'baixa')  return 4;
+  return 5; // sem prioridade
+}
+
+
 function renderChamadoItem(c) {
-  const encerrado = ['concluido', 'encerrado'].includes(c.status);
+  const encerrado = ['concluido', 'encerrado', 'cancelado'].includes(c.status);
+  const atrasado  = estaAtrasado(c);
+  const ehMinhaArea = _minhasEtiquetas.size > 0 && c.categoria && _minhasEtiquetas.has(c.categoria);
+  const jaResponsavel = adminInfo && c.admin_responsavel_id && Number(c.admin_responsavel_id) === Number(adminInfo.id);
+  const foraArea = _minhasEtiquetas.size > 0 && !ehMinhaArea;
+  const cor = CATEGORIAS_MAP[c.categoria]?.cor || '#C5A55A';
+  const areaClass = ehMinhaArea && !jaResponsavel ? ' chamado-minha-area' : foraArea ? ' chamado-fora-area' : '';
+  const areaStyle = ehMinhaArea && !jaResponsavel ? ` style="--area-cor:${cor};background:linear-gradient(90deg,${cor}14 0%,transparent 320px)"` : '';
   return `
-    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}" data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}">
+    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}${areaClass}"
+         data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"${areaStyle}>
       <div class="chamado-item-header">
-        <span class="chamado-id">#${c.id}</span>
-        ${badgePrio(c.prioridade)}
+        <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
         ${badgeStatus(c.status)}
-        ${c.admin_nome ? `<span class="tag"><span style="opacity:.6">👤</span> ${_s(c.admin_nome)}</span>` : ''}
+        ${atrasado ? `<span class="badge badge-atraso">⚠ Em atraso</span>` : ''}
+        ${badgePrio(c.prioridade)}
+        ${badgeCategoria(c.categoria)}
+        ${ehMinhaArea && !jaResponsavel ? `<span class="badge-para-voce" style="background:${cor}28;border-color:${cor}80;color:${cor}">Minha área</span>` : ''}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
+        ${c.infos_adicionais_count > 0 ? `<span class="badge-info-extra" title="${c.infos_adicionais_count} ${c.infos_adicionais_count === 1 ? 'informação adicional' : 'informações adicionais'}">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          ${c.infos_adicionais_count > 1 ? c.infos_adicionais_count + ' infos' : 'Info extra'}
+        </span>` : ''}
+        ${c.novidades_admin > 0 ? `<span class="badge-novidades-admin" title="${c.novidades_admin} atualização${c.novidades_admin > 1 ? 'ões' : ''} de características">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Atualizado
+        </span>` : ''}
+        ${c.mensagens_nao_lidas > 0 ? `<span class="msg-badge-nao-lidas">${c.mensagens_nao_lidas}</span>` : ''}
       </div>
-      <div class="chamado-nome">${_s(c.nome)}</div>
-      <div class="chamado-meta">${_s(c.setor)} · Ramal ${c.ramal}${c.prazo ? ' · <strong>Prazo:</strong> ' + fmtData(c.prazo) : ''}</div>
+      ${c.usuario_id ? `<div class="chamado-nome"><span style="font-weight:400">Usuário: </span>${_s(c.nome)}</div>` : ''}
       <div class="chamado-desc">${_s(c.descricao)}</div>
+      <div class="chamado-item-footer">
+        ${c.aberto_por_admin_nome ? `<span class="badge-aberto-por-admin" title="Aberto por ${_s(c.aberto_por_admin_nome)} (${c.aberto_por_admin_is_master ? 'Master' : 'Admin'})">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          ${_s(c.aberto_por_admin_nome.split(' ')[0])}${c.aberto_por_admin_is_master ? ' ★' : ''}
+        </span>` : ''}
+        <span class="chamado-footer-meta">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          ${_s(c.usuario_setor || c.setor)}
+        </span>
+        <span class="chamado-footer-meta">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Ramal ${c.ramal}
+        </span>
+        ${c.prazo ? `<span class="chamado-footer-prazo${atrasado ? ' prazo-vencido' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Prazo: ${fmtData(c.prazo)}</span>` : ''}
+        ${c.admin_nome ? `<span class="tag">Administrador responsável: ${_s(c.admin_nome)}</span>` : ''}
+      </div>
     </div>
   `;
 }
 
-// ── Modal ─────────────────────────────────────────────────────
+
 async function abrirModal(id) {
+  _scrollAntesModal = window.scrollY;
+  // Limpa interval de chat de qualquer modal anterior antes de abrir outro
+  if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
   chamadoAtual = null;
-  document.getElementById('modal-title').textContent = `Chamado #${id}`;
+  document.getElementById('modal-title').textContent = 'Chamado';
   document.getElementById('modal-body').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  // Esvazia o chat-box antes de carregar o novo chamado, evitando flash de mensagens antigas
+  const oldChatBox = document.getElementById('chat-modal-msgs');
+  if (oldChatBox) oldChatBox.innerHTML = '';
   document.getElementById('modal-overlay').classList.add('open');
   document.getElementById('btn-fechar-modal').focus();
+  document.querySelector(`.chamado-item[data-id="${id}"] .msg-badge-nao-lidas`)?.remove();
+  document.querySelector(`.chamado-item[data-id="${id}"] .badge-novidades-admin`)?.remove();
 
   try {
     const r = await api(`/api/admin/chamados/${id}`);
     if (!r.ok) { document.getElementById('modal-body').innerHTML = '<div class="alert alert-danger">Erro ao carregar.</div>'; return; }
     chamadoAtual = await r.json();
     renderModalBody(chamadoAtual);
+    _carregarAnexosExtras(chamadoAtual.id);
+  } catch (e) {
+    console.error('[abrirModal] Erro ao montar o modal:', e);
+    document.getElementById('modal-body').innerHTML = '<div class="alert alert-danger">Erro ao montar o chamado. Veja o console.</div>';
+  }
+}
+
+async function _carregarAnexosExtras(chamadoId) {
+  const box = document.getElementById('mv2-anexos-extras');
+  if (!box) return;
+  try {
+    const r = await api(`/api/chamados/${chamadoId}/anexos`);
+    if (!r.ok) return;
+    const lista = await r.json();
+    if (!lista.length) { box.innerHTML = ''; return; }
+    box.innerHTML = lista.map(a => {
+      const url = `/api/chamados/${chamadoId}/anexos/${a.id}`;
+      if (_isImgAnexo(a.nome_original)) {
+        return `<div class="anexo-preview-wrap"><img class="lbx-img anexo-preview-img" src="${url}" alt="${a.nome_original}"><a href="${url}" download class="anexo-preview-dl">⬇ baixar</a></div>`;
+      }
+      return `<a href="${url}" class="mv2-anexo-btn" download><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${a.nome_original}</a>`;
+    }).join('');
   } catch {}
 }
 
-function fecharModal() {
+async function fecharModal() {
+  if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
+  _pararPollingTermo();
   document.getElementById('modal-overlay').classList.remove('open');
   chamadoAtual = null;
-  carregarChamados();
+  await carregarChamados(true);
+  window.scrollTo({ top: _scrollAntesModal, behavior: 'instant' });
   carregarEstatisticas();
 }
 
+function _setupCategoriaToggle() {
+  const comboWrap = document.getElementById('sel-cat-combo');
+  if (!comboWrap) return;
+  const row = comboWrap.closest('.mv2-ctrl-row');
+  if (!row || row.dataset.toggleReady) return;
+  row.dataset.toggleReady = '1';
+  row.classList.add('mv2-cat-row');
+
+  const editWrap = comboWrap.parentElement;
+  editWrap.classList.add('mv2-cat-edit');
+  const btnSalvar = document.getElementById('btn-salvar-categoria');
+
+  const display = document.createElement('div');
+  display.className = 'mv2-cat-display';
+  display.innerHTML = `
+    <div class="mv2-cat-path" id="cat-path-text"><span class="empty">— sem categoria —</span></div>
+    <button type="button" class="btn btn-secondary btn-sm" id="btn-editar-categoria">Alterar</button>`;
+  editWrap.parentNode.insertBefore(display, editWrap);
+
+  const pathEl = display.querySelector('#cat-path-text');
+  const btnEditar = display.querySelector('#btn-editar-categoria');
+
+  function atualizarDisplay() {
+    const slug = _selCombo?.getValue() || '';
+    if (!slug) {
+      pathEl.innerHTML = '<span class="empty">— sem categoria —</span>';
+    } else {
+      const et = _etiquetasDin.find(e => e.slug === slug);
+      pathEl.textContent = et ? et.nome : slug;
+    }
+  }
+
+  function entrarEdicao() { row.classList.add('is-editing'); _selCombo?.inputEl.focus(); }
+  function sairEdicao()   { row.classList.remove('is-editing'); atualizarDisplay(); }
+
+  btnEditar.addEventListener('click', entrarEdicao);
+  if (btnSalvar) btnSalvar.addEventListener('click', () => setTimeout(sairEdicao, 50));
+
+  atualizarDisplay();
+}
+
 function renderModalBody(c) {
-  const historicoPrazos = (c.historico || []).filter(h => h.acao === 'prazo_alterado');
-  const bannerPrazo = historicoPrazos.length > 0
-    ? `<div class="banner-prazo">⚠️ <strong>Prazo alterado ${historicoPrazos.length}x.</strong> Último: ${fmtData(historicoPrazos[historicoPrazos.length-1].timestamp)} por ${historicoPrazos[historicoPrazos.length-1].admin_nome || 'Admin'} — de "${historicoPrazos[historicoPrazos.length-1].valor_anterior ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_anterior) : 'sem prazo'}" para "${historicoPrazos[historicoPrazos.length-1].valor_novo ? fmtData(historicoPrazos[historicoPrazos.length-1].valor_novo) : 'removido'}"</div>`
+  const _statusAtivos    = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
+  const isAberto         = _statusAtivos.includes(c.status);
+  const isEspera         = ['aguardando_compra', 'aguardando_chegar'].includes(c.status);
+  const euSouResponsavel = adminInfo && c.admin_responsavel_id && Number(adminInfo.id) === Number(c.admin_responsavel_id);
+  const podeAssumir      = isAberto && !isEspera && !euSouResponsavel;
+  const podeRetomar      = isEspera;
+  const podeConcluir     = isAberto;
+  const podeReabrir      = ['concluido', 'encerrado'].includes(c.status);
+  const atrasado         = estaAtrasado(c);
+
+  const bannerAtraso = atrasado
+    ? `<div class="banner-atraso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> <strong>Chamado em atraso</strong> — prazo vencido em ${fmtData(c.prazo)}</div>`
     : '';
 
-  const podeAssumir  = c.status === 'aberto';
-  const podeConcluir = c.status === 'em_andamento';
-  const podeEncerrar = ['aberto', 'em_andamento'].includes(c.status);
-  const podeReabrir  = ['concluido', 'encerrado'].includes(c.status);
-
-  const historicoHtml = c.historico && c.historico.length > 0
-    ? c.historico.map(h => `
-        <div class="historico-item">
-          <span class="historico-acao">${traduzirAcao(h.acao)}</span>
-          ${h.valor_anterior !== null ? ` <span class="text-muted">de "${h.valor_anterior || '—'}"</span>` : ''}
-          ${h.valor_novo !== null ? ` <span class="text-muted">para "${h.valor_novo || '—'}"</span>` : ''}
-          <div class="historico-meta">${h.admin_nome || 'Sistema'} · ${fmtData(h.timestamp)}</div>
-        </div>
-      `).join('')
-    : '<p class="text-muted" style="font-size:.85rem">Sem histórico.</p>';
+  const initial = (c.nome || '?').trim().charAt(0).toUpperCase();
+  document.getElementById('modal-title').innerHTML = `${badgeStatus(c.status)} ${badgeCategoria(c.categoria)}`;
 
   document.getElementById('modal-body').innerHTML = `
-    <div style="display:grid;gap:.85rem">
-      ${bannerPrazo}
-      <div class="flex gap-1 flex-wrap">
-        ${badgeStatus(c.status)} ${badgePrio(c.prioridade)}
-        ${c.admin_nome ? `<span class="tag">👤 Responsável: ${_s(c.admin_nome)}</span>` : ''}
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.88rem">
-        <div><span class="text-muted">Solicitante</span><br><strong>${_s(c.nome)}</strong></div>
-        <div><span class="text-muted">Setor / Ramal</span><br>${_s(c.setor)} / ${c.ramal}</div>
-        <div><span class="text-muted">Aberto em</span><br>${fmtData(c.criado_em)}</div>
-        <div><span class="text-muted">Atualizado em</span><br>${fmtData(c.atualizado_em)}</div>
-        ${c.prazo ? `<div><span class="text-muted">Prazo</span><br><strong>${fmtData(c.prazo)}</strong></div>` : ''}
-        ${c.concluido_em ? `<div><span class="text-muted">Concluído em</span><br>${fmtData(c.concluido_em)}</div>` : ''}
-      </div>
-      <div><span class="text-muted" style="font-size:.8rem">Descrição</span><br>${_s(c.descricao)}</div>
-      ${c.anexo_nome_original ? `<div><a href="/api/chamados/${c.id}/anexo" class="btn btn-secondary btn-sm" download>⬇ ${_s(c.anexo_nome_original)}</a></div>` : ''}
-      ${c.solucao ? `<div><span class="text-muted" style="font-size:.8rem">Solução / Motivo</span><br>${_s(c.solucao)}</div>` : ''}
-      ${c.nota !== null ? `<div class="alert alert-success" style="margin:0"><strong>Avaliação do usuário:</strong> ${c.nota}/10${c.comentario_avaliacao ? ' — '+_s(c.comentario_avaliacao) : ''}</div>` : ''}
+    <div class="mv2">
 
-      <hr>
-      <div id="msg-modal"></div>
-
-      <!-- Prioridade -->
-      <div class="form-group" style="margin-bottom:.5rem">
-        <label for="sel-prioridade">Prioridade</label>
-        <select class="form-control" id="sel-prioridade">
-          <option value="">Sem prioridade</option>
-          <option value="baixa" ${c.prioridade==='baixa'?'selected':''}>Baixa</option>
-          <option value="media" ${c.prioridade==='media'?'selected':''}>Média</option>
-          <option value="alta" ${c.prioridade==='alta'?'selected':''}>Alta</option>
-          <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
-        </select>
-      </div>
-      <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar prioridade</button>
-
-      <!-- Prazo -->
-      <div class="form-group mt-2" style="margin-bottom:.5rem">
-        <label for="input-prazo">Prazo (data e hora)</label>
-        <input class="form-control" type="datetime-local" id="input-prazo" value="${c.prazo ? c.prazo.replace(' ','T').slice(0,16) : ''}">
-      </div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar prazo</button>
-        ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo">Remover prazo</button>` : ''}
-      </div>
-
-      <!-- Botões de transição -->
-      <div class="modal-footer" style="margin-top:0;padding-top:0;border:none;flex-wrap:wrap">
-        ${podeAssumir  ? `<button class="btn btn-primary btn-sm" id="btn-assumir">Assumir chamado</button>` : ''}
-        ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir">Concluir</button>` : ''}
-        ${podeEncerrar ? `<button class="btn btn-danger btn-sm"  id="btn-encerrar">Encerrar</button>` : ''}
-        ${podeReabrir  ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir">↩ Reabrir</button>` : ''}
-        ${adminInfo && adminInfo.is_master ? `<button class="btn btn-danger btn-sm" id="btn-deletar" style="margin-left:auto">🗑 Excluir</button>` : ''}
-      </div>
-
-      <div id="area-concluir" style="display:none">
-        <div class="form-group">
-          <label for="txt-solucao">Solução aplicada <span class="req">*</span></label>
-          <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" placeholder="Descreva a solução..."></textarea>
+      <!-- Logo Gran Marquise + info do solicitante -->
+      <div class="mv2-logo-bar">
+        <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise" class="mv2-logo-img">
+        <div class="mv2-logo-user">
+          <div class="mv2-logo-user-nome">${_s(c.nome)}</div>
+          <div class="mv2-logo-user-setor">
+            <span>${_s(c.usuario_setor || c.setor)}</span>
+            ${(c.usuario_ramal || c.ramal) ? `<span class="mv2-sep">·</span><span>Ramal ${c.usuario_ramal || c.ramal}</span>` : ''}
+            ${c.prioridade ? `<span class="mv2-sep">·</span><span>${PRIO_LABELS[c.prioridade]}</span>` : ''}
+          </div>
+          ${c.aberto_por_admin_nome ? `<div style="margin-top:.45rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center">
+            <span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--navy);color:#fff;font-size:.72rem;font-weight:600;padding:.22rem .6rem;border-radius:20px;letter-spacing:.02em">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Aberto por ${c.aberto_por_admin_nome} · ${c.aberto_por_admin_is_master ? 'Master' : 'Admin'}
+            </span>
+            ${adminInfo && adminInfo.is_master ? `<button type="button" id="btn-trocar-usuario" class="btn-trocar-usuario" title="Trocar o usuário deste chamado">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Trocar usuário
+            </button>` : ''}
+          </div>
+          <div id="trocar-usuario-form-wrap" style="display:none;margin-top:.5rem"></div>
+          ` : ''}
         </div>
-        <button class="btn btn-success btn-sm" id="btn-confirmar-concluir">Confirmar conclusão</button>
-      </div>
-      <div id="area-encerrar" style="display:none">
-        <div class="form-group">
-          <label for="txt-motivo">Motivo do encerramento <span class="req">*</span></label>
-          <textarea class="form-control" id="txt-motivo" minlength="3" maxlength="500" placeholder="Informe o motivo..."></textarea>
+        <div style="text-align:right;justify-self:end">
+          <div style="font-family:monospace;font-size:1.05rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.02em">#${c.id}</div>
+          <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.38);margin-top:.2rem">${CATEGORIAS_MAP[c.categoria]?.nome || 'Chamado'}</div>
         </div>
-        <button class="btn btn-danger btn-sm" id="btn-confirmar-encerrar">Confirmar encerramento</button>
       </div>
 
-      <hr>
-      <details>
-        <summary style="cursor:pointer;font-size:.88rem;font-weight:600">Histórico de ações</summary>
-        <div style="margin-top:.75rem">${historicoHtml}</div>
-      </details>
+      ${bannerAtraso}
+
+      <!-- Layout duas colunas -->
+      <div class="mv2-layout">
+
+        <!-- Coluna esquerda: info + controles (scrollável) -->
+        <div class="mv2-main">
+          <div id="msg-modal"></div>
+
+          <!-- Admin responsável -->
+          <div class="mv2-card ${c.admin_nome ? 'mv2-card-ok' : 'mv2-card-vazio'}">
+            <div class="mv2-card-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <div class="mv2-card-label">Administrador responsável</div>
+              <div class="mv2-card-val">${c.admin_nome || 'Não atribuído'}</div>
+            </div>
+          </div>
+
+          <!-- Timestamps -->
+          <div class="mv2-ts-row">
+            <div class="mv2-ts-chip">
+              <span class="mv2-ts-label">Aberto em</span>
+              <span class="mv2-ts-val">${fmtData(c.criado_em)}</span>
+            </div>
+            ${c.prazo ? `<div class="mv2-ts-chip ${atrasado ? 'mv2-ts-danger' : 'mv2-ts-warn'}">
+              <span class="mv2-ts-label">${atrasado ? '⚠ Prazo vencido' : 'Prazo'}</span>
+              <span class="mv2-ts-val">${fmtData(c.prazo)}</span>
+            </div>` : ''}
+            ${c.concluido_em ? `<div class="mv2-ts-chip mv2-ts-ok">
+              <span class="mv2-ts-label">Concluído em</span>
+              <span class="mv2-ts-val">${fmtData(c.concluido_em)}</span>
+            </div>` : ''}
+          </div>
+
+          <!-- Descrição -->
+          <div class="mv2-section">
+            <span class="mv2-field-label">Descrição do problema</span>
+            <div class="mv2-desc">${_s(c.descricao)}</div>
+
+            ${c.infos_adicionais && c.infos_adicionais.length > 0 ? c.infos_adicionais.map(info => `
+              <div style="margin-top:.6rem;padding:.55rem .7rem;background:var(--surface-2);border-left:3px solid var(--gold);border-radius:0 4px 4px 0">
+                <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:.25rem">
+                  <strong style="color:var(--text)">${_s(info.autor_nome)}</strong> &mdash; ${fmtData(info.criado_em)}
+                </div>
+                <div style="font-size:.83rem;white-space:pre-wrap">${_s(info.texto)}</div>
+              </div>
+            `).join('') : ''}
+
+            <div id="mv2-add-info-area" style="margin-top:.55rem">
+              <button class="btn btn-secondary btn-sm" id="btn-add-info" style="font-size:.77rem;padding:.28rem .7rem">+ Adicionar mais informações</button>
+              <div id="mv2-add-info-form" style="display:none;margin-top:.45rem">
+                <textarea class="form-control" id="ta-info-adicional" rows="3" maxlength="2000" placeholder="Descreva informações adicionais sobre este chamado…" style="font-size:.82rem;resize:vertical"></textarea>
+                <div style="display:flex;gap:.4rem;margin-top:.35rem">
+                  <button class="btn btn-primary btn-sm" id="btn-salvar-info">Salvar</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-cancelar-info">Cancelar</button>
+                </div>
+                <div id="msg-info-adicional" style="margin-top:.3rem"></div>
+              </div>
+            </div>
+          </div>
+
+          ${c.anexo_nome_original ? (
+            _isImgAnexo(c.anexo_nome_original)
+            ? `<div class="anexo-preview-wrap"><img class="lbx-img anexo-preview-img" src="/api/chamados/${c.id}/anexo" alt="${c.anexo_nome_original}"><a href="/api/chamados/${c.id}/anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
+            : `<a href="/api/chamados/${c.id}/anexo" class="mv2-anexo-btn" download><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${c.anexo_nome_original}</a>`
+          ) : ''}
+          <div id="mv2-anexos-extras" data-chamado-id="${c.id}"></div>
+
+          <!-- Anexo do admin -->
+          <div class="mv2-admin-anexo-section">
+            <div class="mv2-section-divider" style="margin-top:.6rem">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Anexo do suporte
+            </div>
+            <div id="admin-anexo-atual" style="margin-bottom:.4rem">
+              ${c.admin_anexo_nome_original ? `
+                <div style="display:flex;align-items:flex-start;gap:.4rem;flex-wrap:wrap">
+                  ${_isImgAnexo(c.admin_anexo_nome_original)
+                    ? `<div class="anexo-preview-wrap" style="flex:1"><img class="lbx-img anexo-preview-img" src="/api/admin/chamados/${c.id}/admin-anexo" alt="${c.admin_anexo_nome_original}"><a href="/api/admin/chamados/${c.id}/admin-anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
+                    : `<a href="/api/admin/chamados/${c.id}/admin-anexo" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${c.admin_anexo_nome_original}</a>`
+                  }
+                  <button class="btn btn-danger btn-sm" id="btn-remover-admin-anexo" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo">✕</button>
+                </div>` : `<p style="font-size:.78rem;color:var(--text-muted);margin:0 0 .3rem">Nenhum arquivo anexado.</p>`}
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+              <button type="button" class="anexo-uploader-add" id="btn-add-admin-anexo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Anexar arquivos
+              </button>
+              <input type="file" id="input-admin-anexo" multiple accept="image/*,video/*,.pdf,.txt,.docx,.log" style="display:none">
+              <button class="btn btn-primary btn-sm" id="btn-enviar-admin-anexo" style="display:none">Enviar</button>
+            </div>
+            <div class="anexo-tiles" id="admin-anexo-tiles"></div>
+            <p class="form-hint" id="admin-anexo-hint" style="margin-top:.35rem">Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.</p>
+            <div id="msg-admin-anexo" style="margin-top:.3rem"></div>
+          </div>
+
+          ${isAberto ? `
+            <!-- Configurações + Ações -->
+            <div class="mv2-controls-section">
+              <div class="mv2-section-divider">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Configurações
+              </div>
+              <div class="mv2-ctrl-row" style="align-items:flex-start">
+                <span class="mv2-ctrl-lbl" style="padding-top:.3rem">Categoria</span>
+                <div style="flex:1">
+                  <div id="sel-cat-combo"></div>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-categoria" style="align-self:flex-start">Salvar</button>
+              </div>
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Prioridade</span>
+                <select class="form-control form-control-sm" id="sel-prioridade" style="flex:1">
+                  <option value="">Sem prioridade</option>
+                  <option value="baixa"   ${c.prioridade==='baixa'  ?'selected':''}>Baixa</option>
+                  <option value="media"   ${c.prioridade==='media'  ?'selected':''}>Média</option>
+                  <option value="alta"    ${c.prioridade==='alta'   ?'selected':''}>Alta</option>
+                  <option value="urgente" ${c.prioridade==='urgente'?'selected':''}>Urgente</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-prio">Salvar</button>
+              </div>
+              <div class="mv2-ctrl-row">
+                <span class="mv2-ctrl-lbl">Prazo</span>
+                <input class="form-control form-control-sm" type="datetime-local" id="input-prazo" value="${utcParaInputFortaleza(c.prazo)}" style="flex:1">
+                <button class="btn btn-secondary btn-sm" id="btn-salvar-prazo">Salvar</button>
+                ${c.prazo ? `<button class="btn btn-secondary btn-sm" id="btn-remover-prazo" title="Remover prazo" style="padding:.32rem .5rem">✕</button>` : ''}
+              </div>
+
+              <div class="mv2-section-divider">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Ações
+              </div>
+              <div class="mv2-action-btns">
+                ${(podeAssumir || podeRetomar) ? `<button class="btn btn-primary btn-sm" id="btn-assumir" style="flex:1">${podeRetomar ? 'Retomar' : 'Assumir'}</button>` : ''}
+                ${podeConcluir && c.usuario_id ? `<button class="btn btn-secondary btn-sm" id="btn-toggle-acordo" title="${c.requer_acordo ? 'Clique para remover a exigência de acordo' : 'Exigir assinatura de acordo do usuário antes de concluir'}">${c.requer_acordo ? '📋 Acordo obrigatório' : '📋 Requer acordo'}</button>` : ''}
+                ${podeConcluir ? `<button class="btn btn-success btn-sm" id="btn-concluir" style="flex:1" ${c.requer_acordo ? 'disabled title="Aguardando assinatura do acordo pelo usuário"' : ''}>Concluir</button>` : ''}
+              </div>
+              ${podeConcluir && c.requer_acordo ? `
+              <div id="acordo-aviso" style="display:flex;align-items:center;gap:.4rem;padding:.4rem .55rem;margin-top:.3rem;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.28);font-size:.76rem;color:#92400e">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span id="acordo-aviso-txt" style="flex:1">Aguardando assinatura do usuário no portal…</span>
+                <button id="btn-ver-acordo" style="margin-left:auto;background:none;border:1px solid currentColor;border-radius:3px;padding:.15rem .45rem;font-size:.72rem;cursor:pointer;color:inherit;white-space:nowrap">Ver acordo</button>
+              </div>` : ''}
+              <div id="area-concluir" style="display:none;padding-top:.5rem;border-top:1px solid var(--border)">
+                <div class="form-group" style="margin-bottom:.4rem">
+                  <label for="txt-solucao" style="font-size:.8rem">Solução aplicada <span class="req">*</span></label>
+                  <textarea class="form-control" id="txt-solucao" minlength="5" maxlength="2000" rows="3" placeholder="Descreva a solução aplicada..."></textarea>
+                </div>
+                <button class="btn btn-success btn-sm" id="btn-confirmar-concluir" style="width:100%">Confirmar conclusão</button>
+              </div>
+
+              <div class="mv2-secondary-btns">
+                ${c.status !== 'aguardando_compra' ? `<button class="btn btn-sm pl-btn-compra" id="btn-aguardar-compra">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                  Aguardando compra
+                </button>` : ''}
+                ${c.status !== 'aguardando_chegar' ? `<button class="btn btn-sm pl-btn-chegar" id="btn-aguardar-chegar">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                  Aguardando chegar
+                </button>` : ''}
+              </div>
+
+              <div class="mv2-transfer-block">
+                <button class="btn btn-secondary btn-sm" id="btn-transferir" style="width:100%;font-size:.8rem">Transferir responsável</button>
+                <div id="area-transferir" style="display:none;margin-top:.5rem">
+                  <div class="form-group" style="margin-bottom:.4rem;position:relative">
+                    <label style="font-size:.8rem">Transferir para</label>
+                    <input class="form-control form-control-sm" type="text" id="busca-transferir-admin"
+                      placeholder="Buscar por nome, setor ou ramal…" autocomplete="off">
+                    <div id="transferir-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:var(--surface);max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+                  </div>
+                  <div id="transferir-selecionado" style="display:none;font-size:.8rem;color:var(--text-secondary);margin-bottom:.4rem;padding:.3rem .5rem;background:var(--bg-card);border-radius:5px;border:1px solid var(--border)"></div>
+                  <button class="btn btn-primary btn-sm" id="btn-confirmar-transferir" style="width:100%">Confirmar transferência</button>
+                </div>
+              </div>
+            </div>
+          ` : `
+            ${podeReabrir
+              ? `<button class="btn btn-secondary btn-sm" id="btn-reabrir" style="margin-top:.25rem">Reabrir chamado</button>`
+              : `<p class="text-muted" style="font-size:.83rem;margin:.25rem 0 0">Chamado encerrado.</p>`
+            }
+          `}
+
+          <!-- Histórico + zona de perigo -->
+          <div class="mv2-bottom-strip">
+            <button class="mv2-historico" id="btn-hist-completo" style="flex:1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Histórico de ações
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            ${adminInfo && adminInfo.is_master && c.status !== 'cancelado' ? `
+            <div class="modal-danger-zone mv2-danger-compact" style="margin:0;flex-shrink:0">
+              <div class="modal-danger-label">Zona de perigo</div>
+              <button class="btn btn-danger btn-sm" id="btn-cancelar-chamado">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                Cancelar
+              </button>
+            </div>` : ''}
+          </div>
+        </div>
+
+        <!-- Coluna direita: chat (aberto) ou painel de conclusão (encerrado/cancelado) -->
+        <div class="mv2-right-col">
+          ${c.status === 'cancelado' ? `
+            <div class="mv2-chat-head" style="color:#b91c1c">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              Chamado cancelado
+            </div>
+            <div class="mv2-conclusion-panel">
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">Motivo do cancelamento</div>
+                <div class="mv2-conclusion-text">${c.cancelamento_motivo || '<span style="color:var(--text-muted);font-style:italic">Não informado.</span>'}</div>
+              </div>
+              ${c.cancelado_em ? `<div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">Cancelado em</div>
+                <div style="font-size:.79rem;color:var(--text-muted)">${fmtData(c.cancelado_em)}</div>
+              </div>` : ''}
+            </div>
+          ` : isAberto ? `
+            <div class="mv2-chat-head">
+              <span class="mv2-chat-dot"></span>
+              Conversa em tempo real
+            </div>
+            <div class="chat-messages mv2-chat-msgs" id="chat-modal-msgs" data-cnt="0">
+              <div class="chat-vazio">Carregando...</div>
+            </div>
+            <div class="chat-send-error" id="chat-modal-err"></div>
+            <div id="chat-modal-file-chip" style="display:none;font-size:.75rem;color:var(--text-secondary);padding:.2rem .5rem .1rem;display:none;align-items:center;gap:.35rem">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              <span id="chat-modal-file-name" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+              <button type="button" id="btn-chat-modal-file-clear" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;color:var(--text-muted);font-size:.85rem" title="Remover arquivo">✕</button>
+            </div>
+            <form class="chat-input-row" id="chat-modal-form">
+              <input type="file" id="chat-modal-file" style="display:none" accept="image/*,video/*,.pdf,.txt,.docx">
+              <button type="button" id="btn-chat-modal-anexo" class="btn btn-secondary btn-sm" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </button>
+              <input type="text" class="chat-input" id="chat-modal-input" placeholder="Responder ao usuário..." maxlength="1000" autocomplete="off">
+              <button type="submit" class="btn btn-primary btn-sm">Enviar</button>
+            </form>
+          ` : `
+            <div class="mv2-chat-head">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#16a34a"><polyline points="20 6 9 17 4 12"/></svg>
+              Resolução do chamado
+            </div>
+            <div class="mv2-conclusion-panel">
+
+              ${c.solucao ? `
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Solução aplicada
+                </div>
+                <div class="mv2-conclusion-text">${_s(c.solucao)}</div>
+              </div>` : `
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">Solução aplicada</div>
+                <div class="mv2-conclusion-text" style="color:var(--text-muted);font-style:italic">Não registrada.</div>
+              </div>`}
+
+              ${c.nota !== null ? `
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  Avaliação do usuário
+                </div>
+                <div class="mv2-rating-num">${c.nota}<span style="font-size:.9rem;color:var(--text-muted)">/10</span></div>
+                ${c.comentario_avaliacao ? `<div class="mv2-rating-comment">"${c.comentario_avaliacao}"</div>` : ''}
+              </div>` : ''}
+
+              ${c.assinado_em ? `
+              <div class="mv2-conclusion-block">
+                <div class="mv2-conclusion-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#15803d"><polyline points="20 6 9 17 4 12"/></svg>
+                  Recebimento confirmado
+                </div>
+                <div style="font-size:.79rem;color:var(--text-muted);margin:.1rem 0 .4rem">${fmtData(c.assinado_em)}</div>
+                ${c.assinatura ? `<img src="${c.assinatura}" alt="Assinatura" class="assinatura-img-admin" style="max-height:60px">` : ''}
+              </div>` : ''}
+
+              ${(c.requer_acordo || ['hardware', 'processo_compra'].includes(c.categoria)) ? `
+              <div class="mv2-conclusion-block" id="mv2-termo-status">
+                <div class="mv2-conclusion-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Acordo de responsabilidade
+                </div>
+                <div id="mv2-termo-val" class="mv2-conclusion-text" style="color:var(--text-muted);font-style:italic">Verificando…</div>
+              </div>` : ''}
+
+            </div>
+          `}
+        </div>
+
+      </div>
     </div>
   `;
 
@@ -336,24 +1771,202 @@ function renderModalBody(c) {
 }
 
 function setupModalEventos(c) {
+
   const msg = () => document.getElementById('msg-modal');
   const setMsg = (html) => { msg().innerHTML = html; };
 
-  document.getElementById('btn-salvar-prio').addEventListener('click', async () => {
-    const prio = document.getElementById('sel-prioridade').value;
-    const r = await api(`/api/admin/chamados/${c.id}/prioridade`, { method: 'PATCH', body: JSON.stringify({ prioridade: prio || null }) });
-    const d = await r.json();
-    setMsg(r.ok ? '<div class="alert alert-success">Prioridade salva.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-    if (r.ok) { c.prioridade = prio || null; }
+  const btnAddInfo = document.getElementById('btn-add-info');
+  const addInfoForm = document.getElementById('mv2-add-info-form');
+  if (btnAddInfo && addInfoForm) {
+    btnAddInfo.addEventListener('click', () => {
+      addInfoForm.style.display = 'block';
+      btnAddInfo.style.display = 'none';
+      document.getElementById('ta-info-adicional').focus();
+    });
+    document.getElementById('btn-cancelar-info').addEventListener('click', () => {
+      addInfoForm.style.display = 'none';
+      btnAddInfo.style.display = '';
+      document.getElementById('ta-info-adicional').value = '';
+      document.getElementById('msg-info-adicional').innerHTML = '';
+    });
+    document.getElementById('btn-salvar-info').addEventListener('click', async () => {
+      const texto = document.getElementById('ta-info-adicional').value.trim();
+      const msgEl = document.getElementById('msg-info-adicional');
+      if (!texto || texto.length < 3) { msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Texto muito curto.</span>'; return; }
+      const btnSalvar = document.getElementById('btn-salvar-info');
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = 'Salvando…';
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/info-adicional`, { method: 'POST', body: JSON.stringify({ texto }) });
+        const d = await r.json();
+        if (r.ok) { setTimeout(() => abrirModal(c.id), 300); }
+        else { msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${d.erro}</span>`; }
+      } catch { msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>'; }
+      btnSalvar.disabled = false;
+      btnSalvar.textContent = 'Salvar';
+    });
+  }
+
+  const btnAddAdminAnexo = document.getElementById('btn-add-admin-anexo');
+  const inputAdminAnexo = document.getElementById('input-admin-anexo');
+  const btnEnviarAdminAnexo = document.getElementById('btn-enviar-admin-anexo');
+  const tilesBoxAdmin = document.getElementById('admin-anexo-tiles');
+  const hintAdmin = document.getElementById('admin-anexo-hint');
+  let _adminAnexos = [];
+
+  function _renderAdminAnexoTiles() {
+    if (!tilesBoxAdmin) return;
+    if (!_adminAnexos.length) {
+      tilesBoxAdmin.innerHTML = '';
+      if (btnEnviarAdminAnexo) btnEnviarAdminAnexo.style.display = 'none';
+      if (hintAdmin) { hintAdmin.style.color = ''; hintAdmin.textContent = 'Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.'; }
+      return;
+    }
+    tilesBoxAdmin.innerHTML = _adminAnexos.map((f, i) => {
+      const nome = f.name.replace(/"/g, '&quot;');
+      let media;
+      if (_IMGS_EXT_RE.test(f.name)) media = `<img src="${URL.createObjectURL(f)}" alt="${nome}" loading="lazy">`;
+      else if (_VID_EXT_RE.test(f.name)) media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`;
+      else media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+      return `<div class="anexo-tile">
+        <button type="button" class="anexo-tile-remove" data-idx="${i}" aria-label="Remover" title="Remover">×</button>
+        <div class="anexo-tile-media">${media}</div>
+        <div class="anexo-tile-info">
+          <span class="anexo-tile-name" title="${nome}">${nome}</span>
+          <span class="anexo-tile-size">${_fmtTamanho(f.size)}</span>
+        </div>
+      </div>`;
+    }).join('');
+    if (btnEnviarAdminAnexo) {
+      btnEnviarAdminAnexo.style.display = '';
+      btnEnviarAdminAnexo.textContent = `Enviar ${_adminAnexos.length} ${_adminAnexos.length === 1 ? 'arquivo' : 'arquivos'}`;
+    }
+    if (hintAdmin) {
+      hintAdmin.style.color = 'var(--gold-dark)';
+      hintAdmin.textContent = `✓ ${_adminAnexos.length} pronto${_adminAnexos.length === 1 ? '' : 's'} para enviar · clique em "Anexar arquivos" para adicionar mais`;
+    }
+  }
+
+  if (btnAddAdminAnexo) btnAddAdminAnexo.addEventListener('click', () => inputAdminAnexo.click());
+
+  if (inputAdminAnexo) inputAdminAnexo.addEventListener('change', function () {
+    Array.from(this.files || []).forEach(f => {
+      const dup = _adminAnexos.some(x => x.name === f.name && x.size === f.size);
+      if (!dup && _adminAnexos.length < 10) _adminAnexos.push(f);
+    });
+    this.value = '';
+    _renderAdminAnexoTiles();
   });
 
-  document.getElementById('btn-salvar-prazo').addEventListener('click', async () => {
-    const prazo = document.getElementById('input-prazo').value;
-    const r = await api(`/api/admin/chamados/${c.id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: prazo || null }) });
-    const d = await r.json();
-    setMsg(r.ok ? '<div class="alert alert-success">Prazo atualizado.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-    if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+  if (tilesBoxAdmin) tilesBoxAdmin.addEventListener('click', (e) => {
+    const btn = e.target.closest('.anexo-tile-remove');
+    if (!btn) return;
+    _adminAnexos.splice(+btn.dataset.idx, 1);
+    _renderAdminAnexoTiles();
   });
+
+  if (btnEnviarAdminAnexo) {
+    btnEnviarAdminAnexo.addEventListener('click', async () => {
+      const msgEl = document.getElementById('msg-admin-anexo');
+      if (!_adminAnexos.length) return;
+      btnEnviarAdminAnexo.disabled = true;
+      const originalText = btnEnviarAdminAnexo.textContent;
+      btnEnviarAdminAnexo.textContent = 'Enviando…';
+      const fd = new FormData();
+      _adminAnexos.forEach(f => fd.append('anexos', f, f.name));
+      try {
+        const r = await fetch(`/api/admin/chamados/${c.id}/anexos`, { method: 'POST', body: fd });
+        const d = await r.json();
+        if (r.ok) {
+          _adminAnexos = [];
+          _renderAdminAnexoTiles();
+          if (msgEl) {
+            msgEl.innerHTML = `<span style="font-size:.76rem;color:var(--success)">✓ ${d.adicionados.length} arquivo(s) anexado(s)</span>`;
+            setTimeout(() => { msgEl.innerHTML = ''; }, 2500);
+          }
+          _carregarAnexosExtras(c.id);
+        } else if (msgEl) {
+          msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${d.erro || 'Erro ao enviar.'}</span>`;
+        }
+      } catch {
+        if (msgEl) msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>';
+      }
+      btnEnviarAdminAnexo.disabled = false;
+      btnEnviarAdminAnexo.textContent = originalText;
+    });
+  }
+
+  const btnTrocarUsuario = document.getElementById('btn-trocar-usuario');
+  if (btnTrocarUsuario) {
+    btnTrocarUsuario.addEventListener('click', () => _abrirFormTrocarUsuario(c.id));
+  }
+
+  const btnRemoverAdminAnexo = document.getElementById('btn-remover-admin-anexo');
+  if (btnRemoverAdminAnexo) {
+    btnRemoverAdminAnexo.addEventListener('click', async () => {
+      if (!confirm('Remover o anexo do suporte?')) return;
+      const r = await api(`/api/admin/chamados/${c.id}/admin-anexo`, { method: 'DELETE' });
+      if (r.ok) abrirModal(c.id);
+    });
+  }
+
+  _selCombo = _criarComboEtiqueta(document.getElementById('sel-cat-combo'), { sm: true, placeholder: '— selecionar etiqueta —' });
+  if (_selCombo && c.categoria) _selCombo.setValue(c.categoria);
+
+  // --- Validação e save ---
+  const btnSalvarCategoria = document.getElementById('btn-salvar-categoria');
+  if (btnSalvarCategoria) {
+    function _catErrMostrar(msg) {
+      const inp = document.getElementById('sel-cat-combo')?.querySelector('[data-combo-inp]');
+      if (inp) inp.classList.add('is-invalid');
+      let e = document.getElementById('cat-err-msg');
+      if (!e) {
+        e = document.createElement('div');
+        e.id = 'cat-err-msg';
+        e.style.cssText = 'color:var(--danger,#ef4444);font-size:.8rem;margin-top:.25rem';
+        document.getElementById('sel-cat-combo')?.appendChild(e);
+      }
+      e.textContent = msg;
+    }
+    function _catErrLimpar() {
+      document.getElementById('sel-cat-combo')?.querySelector('[data-combo-inp]')?.classList.remove('is-invalid');
+      const e = document.getElementById('cat-err-msg'); if (e) e.remove();
+    }
+    _selCombo?.inputEl.addEventListener('input', _catErrLimpar);
+
+    btnSalvarCategoria.addEventListener('click', async () => {
+      _catErrLimpar();
+      const cat = _selCombo?.getValue() || '';
+      if (!cat) { _catErrMostrar('Selecione uma etiqueta para o chamado.'); return; }
+      const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
+      const d = await r.json();
+      setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+    });
+  }
+  _setupCategoriaToggle();
+
+  const btnSalvarPrio = document.getElementById('btn-salvar-prio');
+  if (btnSalvarPrio) {
+    btnSalvarPrio.addEventListener('click', async () => {
+      const prio = document.getElementById('sel-prioridade').value;
+      const r = await api(`/api/admin/chamados/${c.id}/prioridade`, { method: 'PATCH', body: JSON.stringify({ prioridade: prio || null }) });
+      const d = await r.json();
+      setMsg(r.ok ? '<div class="alert alert-success">Prioridade salva.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+    });
+  }
+
+  const btnSalvarPrazo = document.getElementById('btn-salvar-prazo');
+  if (btnSalvarPrazo) {
+    btnSalvarPrazo.addEventListener('click', async () => {
+      const prazoUtc = inputFortalezaParaUtc(document.getElementById('input-prazo').value);
+      const r = await api(`/api/admin/chamados/${c.id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: prazoUtc }) });
+      const d = await r.json();
+      setMsg(r.ok ? '<div class="alert alert-success">Prazo atualizado.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+    });
+  }
 
   const btnRemoverPrazo = document.getElementById('btn-remover-prazo');
   if (btnRemoverPrazo) {
@@ -370,8 +1983,84 @@ function setupModalEventos(c) {
     btnAssumir.addEventListener('click', async () => {
       const r = await api(`/api/admin/chamados/${c.id}/assumir`, { method: 'PATCH', body: JSON.stringify({}) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado assumido!</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Chamado assumido.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+    });
+  }
+
+  const btnTransferir = document.getElementById('btn-transferir');
+  if (btnTransferir) {
+    btnTransferir.addEventListener('click', async () => {
+      const area = document.getElementById('area-transferir');
+      if (area.style.display === 'none') {
+        area.style.display = 'block';
+        const r = await api('/api/admin/transferencia-admins');
+        if (r.ok) {
+          const todosAdmins = await r.json();
+          const admins = todosAdmins.filter(a => a.id !== adminInfo.id && (!c.admin_responsavel_id || a.id !== c.admin_responsavel_id));
+          const busca = document.getElementById('busca-transferir-admin');
+          const resultados = document.getElementById('transferir-resultados');
+          const selecionadoEl = document.getElementById('transferir-selecionado');
+          busca.value = '';
+          selecionadoEl.style.display = 'none';
+          selecionadoEl.dataset.adminId = '';
+          resultados.style.display = 'none';
+          busca.focus();
+
+          busca.addEventListener('input', e => {
+            const f = e.target.value.toLowerCase();
+            selecionadoEl.style.display = 'none';
+            selecionadoEl.dataset.adminId = '';
+            if (!f) { resultados.style.display = 'none'; resultados.innerHTML = ''; return; }
+            const filtrados = admins.filter(a =>
+              a.nome_completo.toLowerCase().includes(f) ||
+              (a.ramal && String(a.ramal).includes(f)) ||
+              (a.setor && a.setor.toLowerCase().includes(f)));
+            if (!filtrados.length) {
+              resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
+            } else {
+              resultados.innerHTML = filtrados.map(a => `
+                <div class="transferir-item" data-id="${a.id}" data-nome="${a.nome_completo.replace(/"/g,'&quot;')}"
+                  style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;color:var(--text);border-bottom:1px solid var(--border)">
+                  ${a.nome_completo}${a.is_master ? ' ★' : ''}
+                </div>`).join('');
+              resultados.querySelectorAll('.transferir-item').forEach(el => {
+                el.addEventListener('mouseenter', () => el.style.background = 'var(--surface-2)');
+                el.addEventListener('mouseleave', () => el.style.background = '');
+                el.addEventListener('click', () => {
+                  selecionadoEl.textContent = '✓ ' + el.dataset.nome;
+                  selecionadoEl.dataset.adminId = el.dataset.id;
+                  selecionadoEl.style.display = 'block';
+                  busca.value = el.dataset.nome;
+                  resultados.style.display = 'none';
+                });
+              });
+            }
+            resultados.style.display = 'block';
+          });
+
+          document.addEventListener('click', function fecharResultados(e) {
+            if (!busca.contains(e.target) && !resultados.contains(e.target)) {
+              resultados.style.display = 'none';
+              document.removeEventListener('click', fecharResultados);
+            }
+          });
+        }
+      } else {
+        area.style.display = 'none';
+      }
+    });
+  }
+
+  const btnConfTransferir = document.getElementById('btn-confirmar-transferir');
+  if (btnConfTransferir) {
+    btnConfTransferir.addEventListener('click', async () => {
+      const adminId = document.getElementById('transferir-selecionado')?.dataset.adminId;
+      if (!adminId) { setMsg('<div class="alert alert-danger">Selecione um admin na busca.</div>'); return; }
+      const r = await api(`/api/admin/chamados/${c.id}/transferir`, { method: 'PATCH', body: JSON.stringify({ admin_id: parseInt(adminId) }) });
+      const d = await r.json();
+      setMsg(r.ok ? `<div class="alert alert-success">${d.mensagem}</div>` : `<div class="alert alert-danger">${d.erro}</div>`);
+      if (r.ok) setTimeout(() => abrirModal(c.id), 700);
     });
   }
 
@@ -387,61 +2076,1435 @@ function setupModalEventos(c) {
   if (btnConfConcluir) {
     btnConfConcluir.addEventListener('click', async () => {
       const solucao = document.getElementById('txt-solucao').value.trim();
-      const r = await api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
-      const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado concluído!</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-      if (r.ok) setTimeout(() => abrirModal(c.id), 700);
+      if (!solucao || solucao.length < 5) {
+        setMsg('<div class="alert alert-danger">Informe a solução aplicada (mínimo 5 caracteres).</div>');
+        document.getElementById('txt-solucao').focus();
+        return;
+      }
+      const CATS_WIZARD = ['mouse','monitor','teclado','nobreak'];
+      if (CATS_WIZARD.includes(c.categoria)) {
+        abrirWizardEstoque(c, solucao, (ok) => {
+          if (ok) fecharModal();
+        });
+        return;
+      }
+      btnConfConcluir.disabled = true; btnConfConcluir.textContent = 'Concluindo…';
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
+        const d = await r.json();
+        if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
+      } finally {
+        if (btnConfConcluir.isConnected) { btnConfConcluir.disabled = false; btnConfConcluir.textContent = 'Confirmar conclusão'; }
+      }
     });
   }
 
-  const btnEncerrar = document.getElementById('btn-encerrar');
-  if (btnEncerrar) {
-    btnEncerrar.addEventListener('click', () => {
-      const area = document.getElementById('area-encerrar');
-      area.style.display = area.style.display === 'none' ? 'block' : 'none';
+  const btnAguardarCompra = document.getElementById('btn-aguardar-compra');
+  if (btnAguardarCompra) {
+    btnAguardarCompra.addEventListener('click', async () => {
+      btnAguardarCompra.disabled = true;
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/aguardar-compra`, { method: 'PATCH', body: JSON.stringify({}) });
+        const d = await r.json();
+        setMsg(r.ok ? '<div class="alert alert-success">Status: aguardando compra.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+      } finally {
+        if (btnAguardarCompra.isConnected) btnAguardarCompra.disabled = false;
+      }
     });
   }
 
-  const btnConfEncerrar = document.getElementById('btn-confirmar-encerrar');
-  if (btnConfEncerrar) {
-    btnConfEncerrar.addEventListener('click', async () => {
-      const motivo = document.getElementById('txt-motivo').value.trim();
-      const r = await api(`/api/admin/chamados/${c.id}/encerrar`, { method: 'PATCH', body: JSON.stringify({ motivo }) });
-      const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado encerrado.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
-      if (r.ok) setTimeout(() => abrirModal(c.id), 700);
+  const btnAguardarChegar = document.getElementById('btn-aguardar-chegar');
+  if (btnAguardarChegar) {
+    btnAguardarChegar.addEventListener('click', async () => {
+      btnAguardarChegar.disabled = true;
+      try {
+        const r = await api(`/api/admin/chamados/${c.id}/aguardar-chegar`, { method: 'PATCH', body: JSON.stringify({}) });
+        const d = await r.json();
+        setMsg(r.ok ? '<div class="alert alert-success">Status: aguardando chegar.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        if (r.ok) setTimeout(() => abrirModal(c.id), 600);
+      } finally {
+        if (btnAguardarChegar.isConnected) btnAguardarChegar.disabled = false;
+      }
     });
   }
 
   const btnReabrir = document.getElementById('btn-reabrir');
   if (btnReabrir) {
     btnReabrir.addEventListener('click', async () => {
-      if (!confirm(`Reabrir o chamado #${c.id}? Ele voltará para o status "Aberto".`)) return;
+      if (!confirm(`Reabrir o chamado? Ele voltará para o status "Aberto".`)) return;
       const r = await api(`/api/admin/chamados/${c.id}/reabrir`, { method: 'PATCH', body: JSON.stringify({}) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado reaberto!</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Chamado reaberto.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
 
-  const btnDeletar = document.getElementById('btn-deletar');
-  if (btnDeletar) {
-    btnDeletar.addEventListener('click', async () => {
-      if (!confirm(`Excluir permanentemente o chamado #${c.id}? Esta ação não pode ser desfeita.`)) return;
-      const r = await api(`/api/admin/chamados/${c.id}`, { method: 'DELETE' });
-      const d = await r.json();
-      if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
+  const btnCancelarChamado = document.getElementById('btn-cancelar-chamado');
+  if (btnCancelarChamado) {
+    btnCancelarChamado.addEventListener('click', () => {
+      document.getElementById('input-cancelamento-motivo').value = '';
+      document.getElementById('msg-cancelar').innerHTML = '';
+      document.getElementById('modal-cancelar-overlay').classList.add('open');
+      document.getElementById('input-cancelamento-motivo').focus();
     });
+  }
+
+  const btnHistCompleto = document.getElementById('btn-hist-completo');
+  if (btnHistCompleto) {
+    btnHistCompleto.addEventListener('click', () => window.abrirHistoricoModal(c));
+  }
+
+  const chatForm = document.getElementById('chat-modal-form');
+  if (chatForm) {
+    // Garante que nenhum interval órfão de chamado anterior continue rodando
+    if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
+    _atualizarChatAdmin(c.id);
+    _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 6000);
+
+    const fileInput = document.getElementById('chat-modal-file');
+    const fileChip = document.getElementById('chat-modal-file-chip');
+    const fileName = document.getElementById('chat-modal-file-name');
+    const chatInput = document.getElementById('chat-modal-input');
+    let selectedFile = null;
+
+    function setFile(file) { selectedFile = file; fileName.textContent = file.name; fileChip.style.display = 'flex'; }
+    function clearFile() { selectedFile = null; fileInput.value = ''; fileChip.style.display = 'none'; }
+
+    document.getElementById('btn-chat-modal-anexo').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => { if (fileInput.files.length) setFile(fileInput.files[0]); else clearFile(); });
+    document.getElementById('btn-chat-modal-file-clear').addEventListener('click', clearFile);
+
+    // Colar imagem do clipboard
+    chatInput.addEventListener('paste', (e) => {
+      const item = Array.from(e.clipboardData?.items || []).find(i => i.kind === 'file');
+      if (item) { e.preventDefault(); const f = item.getAsFile(); if (f) setFile(f); }
+    });
+
+    // Arrastar e soltar na área de chat
+    const dropZone = chatForm.closest('.mv2-right-col') || chatForm.parentElement;
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('chat-drop-active'); });
+    dropZone.addEventListener('dragleave', (e) => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('chat-drop-active'); });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('chat-drop-active');
+      const f = e.dataTransfer.files[0];
+      if (f) { setFile(f); chatInput.focus(); }
+    });
+
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('chat-modal-err');
+      const texto = chatInput.value.trim();
+      if (!texto && !selectedFile) return;
+      const btn = chatForm.querySelector('[type="submit"]');
+      btn.disabled = true;
+      if (errEl) errEl.textContent = '';
+      try {
+        let r;
+        if (selectedFile) {
+          const fd = new FormData();
+          if (texto) fd.append('mensagem', texto);
+          fd.append('chat_anexo', selectedFile, selectedFile.name || 'imagem.png');
+          r = await fetch(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: fd, credentials: 'same-origin' });
+        } else {
+          r = await api(`/api/admin/chamados/${c.id}/mensagens`, { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
+        }
+        if (r.ok) {
+          chatInput.value = '';
+          clearFile();
+          await _atualizarChatAdmin(c.id);
+        } else {
+          const d = await r.json().catch(() => ({}));
+          if (errEl) errEl.textContent = d.erro || 'Erro ao enviar mensagem.';
+        }
+      } catch {
+        if (errEl) errEl.textContent = 'Erro de conexão.';
+      }
+      finally { btn.disabled = false; chatInput.focus(); }
+    });
+  }
+
+  const _statusAtivos = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
+  const isAberto = _statusAtivos.includes(c.status);
+
+  // Toggle "Requer Acordo"
+  const btnToggleAcordo = document.getElementById('btn-toggle-acordo');
+  if (btnToggleAcordo) {
+    btnToggleAcordo.addEventListener('click', async () => {
+      if (c.requer_acordo) {
+        // Desativar: envia direto
+        btnToggleAcordo.disabled = true;
+        try {
+          const r = await api(`/api/admin/chamados/${c.id}/requer-acordo`, { method: 'PATCH', body: JSON.stringify({ ativo: false }) });
+          if (!r.ok) { const d = await r.json(); setMsg(`<div class="alert alert-danger">${d.erro}</div>`); return; }
+          await abrirModal(c.id);
+        } finally { if (btnToggleAcordo.isConnected) btnToggleAcordo.disabled = false; }
+      } else {
+        // Ativar: abre modal de equipamentos
+        abrirModalEquipamentosAcordo(c.id);
+      }
+    });
+  }
+
+  // Botão "Ver acordo" — mostra documento pendente ou assinado
+  const btnVerAcordo = document.getElementById('btn-ver-acordo');
+  if (btnVerAcordo) {
+    btnVerAcordo.addEventListener('click', () => abrirModalDocumentoAcordo(c, null));
+  }
+
+  // Verificar / monitorar Acordo de Responsabilidade
+  const deveChecarTermo = c.requer_acordo || (['hardware', 'processo_compra'].includes(c.categoria) && !isAberto);
+  if (deveChecarTermo) {
+    _pararPollingTermo();
+
+    const atualizarTermoUI = async () => {
+      const container = document.getElementById('mv2-termo-status');
+      const avisoEl = document.getElementById('acordo-aviso');
+      if (!container && !avisoEl) { _pararPollingTermo(); return; }
+      const r = await api(`/api/admin/chamados/${c.id}/termo-aceite`);
+      if (!r.ok) {
+        if (c.requer_acordo && isAberto) {
+          const txt = document.getElementById('acordo-aviso-txt');
+          if (txt) txt.textContent = 'Aguardando assinatura do usuário no portal…';
+        }
+        return;
+      }
+      const t = await r.json();
+      const termoVal = document.getElementById('mv2-termo-val');
+      if (t) {
+        _pararPollingTermo();
+        if (container) {
+          container.classList.add('aceito');
+          const label = container.querySelector('.mv2-conclusion-label');
+          if (label) label.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#15803d"><polyline points="20 6 9 17 4 12"/></svg> Acordo assinado`;
+          if (termoVal) {
+            termoVal.style.fontStyle = 'normal';
+            termoVal.style.color = '';
+            const hora = t.aceito_em ? (t.aceito_em.includes('T') ? t.aceito_em : t.aceito_em.replace(' ', 'T') + 'Z') : null;
+            const dataFormatada = hora ? new Date(hora.endsWith('Z') ? hora : hora + 'Z').toLocaleString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+            termoVal.innerHTML = `<div style="font-weight:600;color:var(--text);margin-bottom:.15rem">${t.usuario_nome}</div><div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.75rem;color:var(--text-muted)">${dataFormatada ? `<span>${dataFormatada}</span>` : ''}${t.setor ? `<span>· ${t.setor}</span>` : ''}</div>`;
+          }
+        }
+        if (c.requer_acordo && isAberto) {
+          const btnC = document.getElementById('btn-concluir');
+          if (btnC) { btnC.disabled = false; btnC.removeAttribute('title'); }
+          const aviso = document.getElementById('acordo-aviso');
+          if (aviso) {
+            aviso.style.background = 'rgba(21,128,61,.07)';
+            aviso.style.borderColor = 'rgba(21,128,61,.25)';
+            aviso.style.color = '#166534';
+            const txt = document.getElementById('acordo-aviso-txt');
+            if (txt) txt.textContent = 'Acordo assinado — chamado pode ser concluído agora';
+            const btnVer = document.getElementById('btn-ver-acordo');
+            if (btnVer) btnVer.onclick = () => abrirModalDocumentoAcordo(c, t);
+          }
+        }
+      } else {
+        if (termoVal) termoVal.textContent = c.requer_acordo && isAberto ? 'Aguardando assinatura no portal do usuário…' : 'Pendente — aguardando aceite do solicitante';
+        if (c.requer_acordo && isAberto) {
+          const txt = document.getElementById('acordo-aviso-txt');
+          if (txt) txt.textContent = 'Aguardando assinatura do usuário no portal…';
+        }
+      }
+    };
+
+    atualizarTermoUI().catch(() => {});
+    if (c.requer_acordo && isAberto) {
+      _termoPollingIv = setInterval(() => atualizarTermoUI().catch(() => {}), 6000);
+    }
   }
 }
 
-function traduzirAcao(acao) {
-  const t = {
-    prioridade_definida: 'Prioridade definida',
-    status_alterado: 'Status alterado',
-    prazo_alterado: 'Prazo alterado',
-    solucao_registrada: 'Solução registrada',
-    assumido: 'Chamado assumido',
-  };
-  return t[acao] || acao;
+function abrirModalDocumentoAcordo(c, termo) {
+  const existing = document.getElementById('acordo-doc-overlay');
+  if (existing) existing.remove();
+
+  const equipamentosAdmin = (() => {
+    try { return c.acordo_equipamentos ? JSON.parse(c.acordo_equipamentos) : []; }
+    catch { return []; }
+  })();
+
+  const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  let conteudo;
+  if (termo) {
+    // Acordo assinado
+    const usuarioNome = termo.usuario_nome || '';
+    const setor = termo.setor || '—';
+    const cargo = termo.cargo || '—';
+    const linhasEquip = (() => { try { return JSON.parse(termo.equipamentos || '[]'); } catch { return equipamentosAdmin; } })();
+    const hora = termo.aceito_em ? (termo.aceito_em.includes('T') ? termo.aceito_em : termo.aceito_em.replace(' ', 'T') + 'Z') : null;
+    const dtObj = hora ? new Date(hora.endsWith('Z') ? hora : hora + 'Z') : null;
+    const dataFmt = dtObj ? dtObj.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric' }) : hoje;
+
+    const equipRows = linhasEquip.filter(r => r.tipo || r.marca || r.modelo).map(r =>
+      `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${r.quantidade||1}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.tipo||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.marca||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.modelo||''}</td></tr>`
+    ).join('');
+    const equipSummary = linhasEquip.filter(r => r.tipo || r.marca || r.modelo).map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ');
+
+    conteudo = `
+      <div style="background:var(--success-light);border:1px solid var(--success);border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;font-weight:700;color:var(--success);letter-spacing:.02em">
+        ✓ Acordo assinado em ${dataFmt}
+      </div>
+      <div class="termo-field-row">
+        <span class="termo-label">Eu</span>
+        <span class="termo-value-fixed">${usuarioNome}</span>
+        <span class="termo-label">Empresa:</span>
+        <span class="termo-value-fixed">Hotel Gran Marquise</span>
+      </div>
+      <div class="termo-field-row">
+        <span class="termo-label">Setor:</span>
+        <span class="termo-value-fixed">${setor}</span>
+        <span class="termo-label">Cargo:</span>
+        <span class="termo-value-fixed">${cargo}</span>
+      </div>
+      <div class="termo-texto">
+        estou recebendo emprestado o equipamento abaixo discriminado pelo setor de
+        TI – Tecnologia da Informação. Estou ciente que o mesmo se encontra em perfeito
+        estado de funcionamento. Em caso de quebra, roubo ou avaria estarei me
+        responsabilizando pelo equipamento abaixo.
+      </div>
+      ${equipSummary ? `<div class="termo-texto" style="margin-top:.5rem"><strong>Equipamento: ${equipSummary}</strong></div>` : ''}
+      <table class="termo-table">
+        <thead><tr><th style="width:90px">Quantidade</th><th>Tipo</th><th>Marca</th><th>Modelo</th></tr></thead>
+        <tbody>${equipRows || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:.4rem">Nenhum equipamento registrado</td></tr>'}</tbody>
+      </table>
+      <div class="termo-footer">
+        <div class="termo-date">Fortaleza, ${dataFmt}</div>
+        <div style="display:flex;justify-content:center">
+          <div class="termo-sig" style="text-align:center;min-width:220px">
+            <div style="font-weight:600;font-size:.85rem;margin-bottom:.4rem">${usuarioNome.split(' ')[0]}</div>
+            <div class="termo-sig-line"></div>
+            <div class="termo-sig-label" style="color:#94a3b8">Assinatura do Funcionário</div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    // Acordo pendente — mostra como o usuário vai ver
+    const nomeUsuario = c.usuario_nome || c.nome || '';
+    const equipRows = equipamentosAdmin.filter(r => r.tipo || r.marca || r.modelo).map(r =>
+      `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${r.quantidade||1}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.tipo||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.marca||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.modelo||''}</td></tr>`
+    ).join('');
+    const equipSummary = equipamentosAdmin.filter(r => r.tipo || r.marca || r.modelo).map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ');
+
+    conteudo = `
+      <div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.28);border-radius:4px;padding:.4rem .8rem;margin-bottom:.9rem;font-size:.73rem;color:#92400e">
+        Aguardando assinatura do usuário — este é o acordo que ele verá no portal
+      </div>
+      <div class="termo-field-row">
+        <span class="termo-label">Eu</span>
+        <span class="termo-value-fixed">${nomeUsuario}</span>
+        <span class="termo-label">Empresa:</span>
+        <span class="termo-value-fixed">Hotel Gran Marquise</span>
+      </div>
+      <div class="termo-field-row">
+        <span class="termo-label">Setor:</span>
+        <span class="termo-value-fixed" style="color:#94a3b8;font-style:italic">A preencher pelo usuário</span>
+        <span class="termo-label">Cargo:</span>
+        <span class="termo-value-fixed" style="color:#94a3b8;font-style:italic">A preencher pelo usuário</span>
+      </div>
+      <div class="termo-texto">
+        estou recebendo emprestado o equipamento abaixo discriminado pelo setor de
+        TI – Tecnologia da Informação. Estou ciente que o mesmo se encontra em perfeito
+        estado de funcionamento. Em caso de quebra, roubo ou avaria estarei me
+        responsabilizando pelo equipamento abaixo.
+      </div>
+      ${equipSummary ? `<div class="termo-texto" style="margin-top:.5rem"><strong>Equipamento: ${equipSummary}</strong></div>` : ''}
+      <table class="termo-table">
+        <thead><tr><th style="width:90px">Quantidade</th><th>Tipo</th><th>Marca</th><th>Modelo</th></tr></thead>
+        <tbody>${equipRows || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:.4rem">Nenhum equipamento cadastrado ainda</td></tr>'}</tbody>
+      </table>
+      <div class="termo-footer">
+        <div class="termo-date">Fortaleza, ${hoje}</div>
+        <div style="display:flex;justify-content:center">
+          <div class="termo-sig" style="text-align:center;min-width:220px">
+            <div style="font-weight:600;font-size:.85rem;margin-bottom:.4rem">${nomeUsuario.split(' ')[0]}</div>
+            <div class="termo-sig-line"></div>
+            <div class="termo-sig-label" style="color:#94a3b8">Assinatura do Funcionário</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'acordo-doc-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);max-width:600px;width:94%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid var(--border);border-radius:4px">
+      <div style="padding:.9rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0">
+        <div style="font-weight:700;font-size:.88rem;color:var(--text)">📋 Termo de Responsabilidade de Equipamentos</div>
+        <button id="btn-fechar-acordo-doc" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;line-height:1">✕</button>
+      </div>
+      <div style="padding:1rem 1.25rem;background:var(--surface)">
+        <div class="termo-doc">
+          <div class="termo-doc-header">
+            <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise" class="termo-logo">
+            <div class="termo-empresa">Hotel Gran Marquise</div>
+            <div class="termo-titulo">Termo de Responsabilidade de Equipamentos</div>
+          </div>
+          ${conteudo}
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('btn-fechar-acordo-doc').addEventListener('click', () => overlay.remove());
 }
+
+function abrirModalEquipamentosAcordo(chamadoId) {
+  const existing = document.getElementById('acordo-eq-overlay');
+  if (existing) existing.remove();
+
+  let eqsDisponiveis = [];
+  let rowCounter = 0;
+
+  function filtrar(q, idHidAtual) {
+    const q2 = q.toLowerCase();
+    const jaUsados = new Set(
+      [...document.querySelectorAll('#acordo-interno-lista .eq-id')]
+        .filter(el => el !== idHidAtual && el.value)
+        .map(el => +el.value)
+    );
+    return eqsDisponiveis.filter(e =>
+      !jaUsados.has(e.id) && (
+        e.codigo.toLowerCase().includes(q2) ||
+        e.nome.toLowerCase().includes(q2) ||
+        (e.categoria || '').toLowerCase().includes(q2)
+      )
+    ).slice(0, 30);
+  }
+
+  function bindDropdown(busca, drop, idHid, badge) {
+    function posicionarDrop() {
+      const r = busca.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const maxH = 280;
+      const spaceBelow = vh - r.bottom - 8;
+      const spaceAbove = r.top - 8;
+
+      drop.style.left  = `${r.left}px`;
+      drop.style.width = `${r.width}px`;
+
+      if (spaceBelow >= 150 || spaceBelow >= spaceAbove) {
+        drop.style.top       = `${r.bottom + 1}px`;
+        drop.style.maxHeight = `${Math.min(maxH, Math.max(spaceBelow, 80))}px`;
+      } else {
+        const h = Math.min(maxH, Math.max(spaceAbove, 80));
+        drop.style.top       = `${r.top - h - 1}px`;
+        drop.style.maxHeight = `${h}px`;
+      }
+    }
+
+    function abrir() {
+      posicionarDrop();
+      drop.style.display = 'block';
+    }
+
+    busca.addEventListener('input', () => {
+      const q = busca.value.trim();
+      idHid.value = '';
+      badge.style.display = 'none';
+      if (!q) { drop.style.display = 'none'; return; }
+      const res = filtrar(q, idHid);
+      if (!res.length) {
+        drop.innerHTML = '<div class="eq-drop-empty">Nenhum item disponível com esse termo</div>';
+        abrir(); return;
+      }
+      drop.innerHTML = res.map(e => `
+        <div class="eq-drop-item" data-id="${e.id}">
+          <span class="eq-drop-codigo">${e.codigo}</span>
+          <span class="eq-drop-nome">${e.nome}</span>
+          ${e.categoria ? `<span class="eq-drop-cat">${e.categoria}</span>` : ''}
+        </div>`).join('');
+      abrir();
+      drop.querySelectorAll('.eq-drop-item').forEach(el => {
+        el.addEventListener('mousedown', ev => {
+          ev.preventDefault();
+          const eq = eqsDisponiveis.find(e => e.id === +el.dataset.id);
+          if (!eq) return;
+          busca.value = `${eq.codigo} — ${eq.nome}`;
+          idHid.value = eq.id;
+          badge.innerHTML = `<span class="eq-badge-chip">✓ Vinculado ao estoque: ${eq.codigo} — ${eq.nome}</span>`;
+          badge.style.display = 'block';
+          drop.style.display = 'none';
+        });
+      });
+    });
+    busca.addEventListener('blur', () => setTimeout(() => { drop.style.display = 'none'; }, 150));
+    busca.addEventListener('focus', () => { if (busca.value.trim()) busca.dispatchEvent(new Event('input')); });
+
+    // Reposicionar enquanto o dropdown estiver aberto e o modal rolar
+    const modalBody = document.querySelector('#acordo-eq-overlay .modal-body');
+    if (modalBody) {
+      modalBody.addEventListener('scroll', () => {
+        if (drop.style.display === 'block') posicionarDrop();
+      });
+    }
+  }
+
+  function criarVinculacao() {
+    const div = document.createElement('div');
+    div.classList.add('vinculacao-item');
+    div.innerHTML = `
+      <div class="vinc-search-wrap">
+        <span class="vinc-search-icon">🔍</span>
+        <input type="text" class="eq-busca acordo-input" placeholder="Buscar por código, nome ou categoria…" autocomplete="off">
+        <div class="eq-drop"></div>
+        <input type="hidden" class="eq-id">
+        <div class="eq-badge"></div>
+      </div>
+      <button type="button" class="remover-vinculacao acordo-btn-remove" title="Remover vínculo">✕</button>
+    `;
+    const busca = div.querySelector('.eq-busca');
+    const drop  = div.querySelector('.eq-drop');
+    const idHid = div.querySelector('.eq-id');
+    const badge = div.querySelector('.eq-badge');
+    bindDropdown(busca, drop, idHid, badge);
+    div.querySelector('.remover-vinculacao').addEventListener('click', () => div.remove());
+    return div;
+  }
+
+  function criarLinha() {
+    const rowId = ++rowCounter;
+    const tr = document.createElement('tr');
+    tr.dataset.rowId = rowId;
+    tr.innerHTML = `
+      <td class="cell-qtd"><input class="eq-qtd acordo-input" type="number" min="1" value="1"></td>
+      <td><input class="eq-tipo acordo-input" type="text" placeholder="Notebook, Mouse, Teclado…"></td>
+      <td><input class="eq-marca acordo-input" type="text" placeholder="Dell, Logitech, HP…"></td>
+      <td><input class="eq-modelo acordo-input" type="text" placeholder="G15 5520, MX Master 3…"></td>
+      <td class="cell-action"><button type="button" class="remover-eq-row acordo-btn-remove" title="Remover linha">✕</button></td>
+    `;
+    tr.querySelector('.remover-eq-row').addEventListener('click', () => {
+      const tbody = document.getElementById('acordo-eq-tbody');
+      if (tbody && tbody.querySelectorAll('tr').length > 1) tr.remove();
+    });
+    return tr;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'acordo-eq-overlay';
+  overlay.innerHTML = `
+    <style>
+      #acordo-eq-overlay {
+        position: fixed; inset: 0; background: rgba(13,27,42,.6);
+        z-index: 9999; display: flex; align-items: center; justify-content: center;
+        padding: 1rem; font-family: 'Inter', system-ui, sans-serif;
+      }
+      #acordo-eq-overlay .modal-shell {
+        background: #F7F3ED; max-width: 860px; width: 100%; max-height: 92vh;
+        display: flex; flex-direction: column;
+        box-shadow: 0 8px 40px rgba(13,27,42,.4);
+        border-radius: 2px;
+        border-top: 3px solid #D4AF37;
+        overflow: hidden;
+      }
+      #acordo-eq-overlay .modal-header {
+        padding: .8rem 1.6rem .7rem;
+        background: #fff;
+        display: flex; align-items: flex-start; justify-content: space-between;
+        flex-shrink: 0;
+        border-bottom: 1px solid #C8BAA5;
+      }
+      #acordo-eq-overlay .modal-header-marca {
+        font-size: .72rem; font-weight: 700; letter-spacing: .12em;
+        text-transform: uppercase; color: #D4AF37; margin-bottom: .2rem;
+      }
+      #acordo-eq-overlay .modal-title {
+        font-weight: 700; font-size: 1.05rem; letter-spacing: .01em;
+        margin: 0 0 .15rem; color: #0D1B2A; line-height: 1.3;
+      }
+      #acordo-eq-overlay .modal-subtitle {
+        font-size: .82rem; color: #7A726A;
+      }
+      #acordo-eq-overlay .btn-close {
+        background: transparent; border: 1px solid #C8BAA5;
+        color: #7A726A; font-size: .85rem; line-height: 1;
+        width: 28px; height: 28px; border-radius: 2px;
+        cursor: pointer; display: flex; align-items: center;
+        justify-content: center; transition: background .15s, color .15s;
+        flex-shrink: 0; margin-top: .1rem;
+      }
+      #acordo-eq-overlay .btn-close:hover {
+        background: #F7F3ED; color: #0D1B2A; border-color: #7A726A;
+      }
+      #acordo-eq-overlay .modal-body {
+        flex: 1; overflow-y: auto; padding: .9rem 1.6rem;
+      }
+      #acordo-eq-overlay .modal-footer {
+        padding: .7rem 1.6rem; background: #fff;
+        border-top: 1px solid #C8BAA5;
+        display: flex; gap: .6rem; justify-content: flex-end; flex-shrink: 0;
+      }
+      /* Seções */
+      #acordo-eq-overlay .secao {
+        margin-bottom: .95rem;
+      }
+      #acordo-eq-overlay .secao-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: .6rem; padding-bottom: .4rem;
+        border-bottom: 1px solid #C8BAA5;
+      }
+      #acordo-eq-overlay .secao-titulo {
+        font-size: .76rem; font-weight: 700; letter-spacing: .1em;
+        text-transform: uppercase; color: #0D1B2A;
+      }
+      #acordo-eq-overlay .secao-numero {
+        font-size: .76rem; font-weight: 600; color: #7A726A;
+        letter-spacing: .06em;
+      }
+      #acordo-eq-overlay .secao-badge {
+        font-size: .73rem; font-weight: 700; color: #7A726A;
+        border: 1px solid #C8BAA5; background: #F7F3ED;
+        padding: .17rem .5rem; letter-spacing: .06em; text-transform: uppercase;
+        border-radius: 2px;
+      }
+      #acordo-eq-overlay .secao-desc {
+        font-size: .84rem; color: #7A726A; margin: -.2rem 0 .6rem;
+        line-height: 1.5;
+      }
+      /* Tabela */
+      #acordo-eq-overlay .table-wrap {
+        overflow-x: auto; border: 1px solid #C8BAA5;
+      }
+      #acordo-eq-overlay table.acordo-table {
+        width: 100%; border-collapse: collapse; min-width: 540px;
+        background: #fff;
+      }
+      #acordo-eq-overlay table.acordo-table thead tr {
+        background: #0D1B2A;
+      }
+      #acordo-eq-overlay table.acordo-table th {
+        padding: .55rem .85rem; text-align: left; font-weight: 600;
+        color: #D4AF37; font-size: .72rem; letter-spacing: .1em;
+        text-transform: uppercase; border-right: 1px solid #1a2f4a;
+      }
+      #acordo-eq-overlay table.acordo-table th:last-child { border-right: none; }
+      #acordo-eq-overlay table.acordo-table th.cell-qtd { text-align: center; width: 78px; }
+      #acordo-eq-overlay table.acordo-table th.cell-action { width: 46px; }
+      #acordo-eq-overlay table.acordo-table td {
+        padding: .4rem .55rem;
+        border-bottom: 1px solid #E5DDD0;
+        border-right: 1px solid #EDE8E0;
+        vertical-align: middle; background: #fff;
+      }
+      #acordo-eq-overlay table.acordo-table td:last-child { border-right: none; }
+      #acordo-eq-overlay table.acordo-table tbody tr:last-child td { border-bottom: none; }
+      #acordo-eq-overlay table.acordo-table td.cell-qtd { width: 78px; }
+      #acordo-eq-overlay table.acordo-table td.cell-qtd input { text-align: center; }
+      #acordo-eq-overlay table.acordo-table td.cell-action { text-align: center; width: 46px; }
+      /* Inputs */
+      #acordo-eq-overlay .acordo-input {
+        width: 100%; padding: .45rem .65rem; font-size: .88rem;
+        font-family: inherit; color: #1C1C1C; background: #fff;
+        border: 1px solid #C8BAA5; border-radius: 2px; outline: none;
+        transition: border-color .15s, box-shadow .15s;
+        box-sizing: border-box;
+      }
+      #acordo-eq-overlay .acordo-input:focus {
+        border-color: #D4AF37;
+        box-shadow: 0 0 0 2px rgba(212,175,55,.18);
+      }
+      #acordo-eq-overlay .acordo-input.invalid {
+        border-color: #B91C1C; background: #FEF2F2;
+      }
+      #acordo-eq-overlay .acordo-input.invalid:focus {
+        box-shadow: 0 0 0 2px rgba(185,28,28,.15);
+      }
+      /* Botão adicionar linha */
+      #acordo-eq-overlay .acordo-btn-add {
+        margin-top: .55rem; padding: .42rem .85rem;
+        background: transparent; border: 1px solid #C8BAA5; color: #4A4540;
+        border-radius: 2px; cursor: pointer; font-size: .83rem; font-weight: 500;
+        font-family: inherit; transition: background .15s, border-color .15s, color .15s;
+        display: inline-flex; align-items: center; gap: .35rem;
+      }
+      #acordo-eq-overlay .acordo-btn-add:hover {
+        background: #F8F0CC; border-color: #D4AF37; color: #0D1B2A;
+      }
+      /* Botão remover */
+      #acordo-eq-overlay .acordo-btn-remove {
+        background: transparent; border: 1px solid #C8BAA5; color: #7A726A;
+        cursor: pointer; font-size: .8rem; line-height: 1;
+        width: 26px; height: 26px; border-radius: 2px;
+        transition: background .15s, border-color .15s, color .15s;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      #acordo-eq-overlay .acordo-btn-remove:hover {
+        background: #FEE2E2; border-color: #B91C1C; color: #B91C1C;
+      }
+      /* Botões do footer */
+      #acordo-eq-overlay .acordo-btn-primary {
+        padding: .55rem 1.5rem; background: #D4AF37; color: #0D1B2A;
+        border: 1px solid #B8960C; border-radius: 2px;
+        cursor: pointer; font-size: .82rem; font-weight: 700;
+        font-family: inherit; transition: background .15s;
+        letter-spacing: .04em; text-transform: uppercase;
+      }
+      #acordo-eq-overlay .acordo-btn-primary:hover { background: #C9A227; }
+      #acordo-eq-overlay .acordo-btn-primary:disabled {
+        background: #C8BAA5; border-color: #C8BAA5; color: #7A726A; cursor: not-allowed;
+      }
+      #acordo-eq-overlay .acordo-btn-secondary {
+        padding: .55rem 1.2rem; background: #fff; color: #4A4540;
+        border: 1px solid #C8BAA5; border-radius: 2px;
+        cursor: pointer; font-size: .82rem; font-weight: 600;
+        font-family: inherit; transition: background .15s;
+        letter-spacing: .04em; text-transform: uppercase;
+      }
+      #acordo-eq-overlay .acordo-btn-secondary:hover { background: #F7F3ED; border-color: #7A726A; }
+      /* Vinculação */
+      #acordo-eq-overlay .vinculacao-item {
+        display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .45rem;
+      }
+      #acordo-eq-overlay .vinc-search-wrap { position: relative; flex: 1; }
+      #acordo-eq-overlay .vinc-search-icon {
+        position: absolute; left: .7rem; top: 50%; transform: translateY(-50%);
+        color: #7A726A; pointer-events: none; font-size: .88rem; line-height: 1;
+      }
+      #acordo-eq-overlay .vinc-search-wrap .acordo-input { padding-left: 2.1rem; }
+      /* Dropdown */
+      #acordo-eq-overlay .eq-drop {
+        display: none; position: fixed;
+        max-height: 260px; overflow-y: auto;
+        background: #fff; border: 1px solid #C8BAA5;
+        border-radius: 2px; z-index: 10000;
+        box-shadow: 0 4px 16px rgba(13,27,42,.18);
+      }
+      #acordo-eq-overlay .eq-drop-empty {
+        padding: .8rem 1rem; font-size: .83rem; color: #7A726A;
+        text-align: center; font-style: italic;
+      }
+      #acordo-eq-overlay .eq-drop-item {
+        padding: .55rem .85rem; font-size: .84rem; cursor: pointer;
+        border-bottom: 1px solid #F0EBE3;
+        display: flex; gap: .55rem; align-items: center;
+        transition: background .1s; color: #1C1C1C;
+      }
+      #acordo-eq-overlay .eq-drop-item:last-child { border-bottom: none; }
+      #acordo-eq-overlay .eq-drop-item:hover { background: #F8F0CC; }
+      #acordo-eq-overlay .eq-drop-codigo {
+        font-weight: 700; color: #0D1B2A; background: #F8F0CC;
+        border: 1px solid #D4AF37;
+        padding: .15rem .45rem; border-radius: 2px; font-size: .72rem;
+        min-width: 54px; text-align: center; flex-shrink: 0;
+        font-family: 'Inter', monospace;
+      }
+      #acordo-eq-overlay .eq-drop-nome {
+        color: #1C1C1C; flex: 1; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap;
+        font-weight: 500; font-size: .84rem;
+      }
+      #acordo-eq-overlay .eq-drop-cat {
+        font-size: .71rem; color: #4A4540; background: #F7F3ED;
+        border: 1px solid #C8BAA5;
+        padding: .1rem .45rem; border-radius: 2px;
+        white-space: nowrap; flex-shrink: 0; font-weight: 500;
+      }
+      #acordo-eq-overlay .eq-badge { display: none; margin-top: .35rem; }
+      #acordo-eq-overlay .eq-badge-chip {
+        display: inline-flex; align-items: center; gap: .35rem;
+        background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC;
+        padding: .25rem .6rem; border-radius: 2px;
+        font-size: .79rem; font-weight: 600;
+      }
+      #acordo-eq-overlay .msg-erro {
+        background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B;
+        padding: .7rem 1rem; border-radius: 2px;
+        font-size: .86rem; font-weight: 500;
+        display: flex; align-items: center; gap: .5rem;
+      }
+    </style>
+    <div class="modal-shell">
+      <div class="modal-header">
+        <div>
+          <div class="modal-header-marca">Gran Marquise — T.I.</div>
+          <h2 class="modal-title">Acordo de Entrega de Equipamentos</h2>
+          <div class="modal-subtitle">Chamado #${chamadoId} &nbsp;·&nbsp; Defina os itens que serão entregues ao usuário</div>
+        </div>
+        <button id="btn-fechar-acordo-eq" class="btn-close" title="Fechar">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="secao">
+          <div class="secao-header">
+            <span class="secao-titulo">Itens do Acordo</span>
+            <span class="secao-numero">Seção 1 de 2</span>
+          </div>
+          <p class="secao-desc">Estes itens aparecerão no documento que o usuário irá assinar.</p>
+
+          <div class="table-wrap">
+            <table class="acordo-table">
+              <thead>
+                <tr>
+                  <th class="cell-qtd">Qtd</th>
+                  <th>Tipo *</th>
+                  <th>Marca *</th>
+                  <th>Modelo *</th>
+                  <th class="cell-action"></th>
+                </tr>
+              </thead>
+              <tbody id="acordo-eq-tbody"></tbody>
+            </table>
+          </div>
+          <button id="btn-add-acordo-eq" class="acordo-btn-add">+ Adicionar item</button>
+        </div>
+
+        <div class="secao">
+          <div class="secao-header">
+            <span class="secao-titulo">Vínculo com Estoque</span>
+            <span class="secao-badge">Uso Interno — TI</span>
+          </div>
+
+          <div id="acordo-interno-lista"></div>
+          <button id="btn-add-vinculacao" class="acordo-btn-add">+ Adicionar vínculo de estoque</button>
+        </div>
+
+        <div id="msg-acordo-eq"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-cancelar-acordo-eq" class="acordo-btn-secondary">Cancelar</button>
+        <button id="btn-confirmar-acordo-eq" class="acordo-btn-primary">Confirmar e Enviar Acordo</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const tbody = document.getElementById('acordo-eq-tbody');
+  tbody.appendChild(criarLinha());
+
+  document.getElementById('acordo-interno-lista').appendChild(criarVinculacao());
+
+  api('/api/admin/estoque/equipamentos?status=disponivel')
+    .then(r => r.ok ? r.json() : [])
+    .then(lista => { eqsDisponiveis = lista; })
+    .catch(() => {});
+
+  const fechar = () => overlay.remove();
+  document.getElementById('btn-fechar-acordo-eq').addEventListener('click', fechar);
+  document.getElementById('btn-cancelar-acordo-eq').addEventListener('click', fechar);
+
+  document.getElementById('btn-add-acordo-eq').addEventListener('click', () => {
+    tbody.appendChild(criarLinha());
+  });
+
+  document.getElementById('btn-add-vinculacao').addEventListener('click', () => {
+    document.getElementById('acordo-interno-lista').appendChild(criarVinculacao());
+  });
+
+  document.getElementById('btn-confirmar-acordo-eq').addEventListener('click', async () => {
+    const rows = [];
+    const msgEl = document.getElementById('msg-acordo-eq');
+
+    let linhaInvalida = false;
+    tbody.querySelectorAll('tr').forEach((tr) => {
+      const tipo   = tr.querySelector('.eq-tipo')?.value.trim()  || '';
+      const marca  = tr.querySelector('.eq-marca')?.value.trim() || '';
+      const modelo = tr.querySelector('.eq-modelo')?.value.trim() || '';
+
+      ['eq-tipo', 'eq-marca', 'eq-modelo'].forEach(cls => {
+        const el = tr.querySelector(`.${cls}`);
+        if (el) el.classList.toggle('invalid', !el.value.trim());
+      });
+
+      if (!tipo || !marca || !modelo) {
+        linhaInvalida = true;
+      } else {
+        rows.push({
+          quantidade: tr.querySelector('.eq-qtd')?.value || '1',
+          tipo, marca, modelo,
+        });
+      }
+    });
+
+    if (linhaInvalida) {
+      msgEl.innerHTML = '<div class="msg-erro">⚠ Preencha todos os campos (Tipo, Marca e Modelo) em todas as linhas antes de enviar.</div>';
+      return;
+    }
+    msgEl.innerHTML = '';
+
+    document.querySelectorAll('#acordo-interno-lista .vinculacao-item').forEach(div => {
+      const eqId = div.querySelector('.eq-id')?.value;
+      const eqCodigo = div.querySelector('.eq-busca')?.value.split(' — ')[0]?.trim() || '';
+      if (eqId) rows.push({ equipamento_id: eqId, equipamento_codigo: eqCodigo });
+    });
+
+    const btn = document.getElementById('btn-confirmar-acordo-eq');
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    try {
+      const r = await api(`/api/admin/chamados/${chamadoId}/requer-acordo`, {
+        method: 'PATCH',
+        body: JSON.stringify({ ativo: true, equipamentos: JSON.stringify(rows) }),
+      });
+      if (!r.ok) {
+        const d = await r.json();
+        msgEl.innerHTML = `<div class="msg-erro">⚠ ${d.erro}</div>`;
+        return;
+      }
+      fechar();
+      await abrirModal(chamadoId);
+    } catch {
+      msgEl.innerHTML = '<div class="msg-erro">⚠ Erro de conexão.</div>';
+    } finally {
+      if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Confirmar e Enviar Acordo'; }
+    }
+  });
+}
+
+async function carregarEquipamentos() {
+  try {
+    const r = await api('/api/admin/relatorios/equipamentos');
+    if (!r.ok) return;
+    const lista = await r.json();
+    if (!lista.length) return;
+
+    const widget = document.getElementById('equipamentos-widget');
+    const container = document.getElementById('equipamentos-lista');
+    const max = lista[0].vezes;
+
+    container.innerHTML = lista.map((item, i) => {
+      const pct = max > 0 ? Math.round((item.vezes / max) * 100) : 0;
+      const urgente = item.vezes >= 5;
+      const alerta  = item.vezes >= 3 && item.vezes < 5;
+      const cor = urgente ? 'var(--danger, #EF4444)' : alerta ? 'var(--gold, #C5A55A)' : 'var(--text-muted, #9CA3AF)';
+      return `
+        <div class="eq-item" title="Último chamado: ${fmtData(item.ultimo_chamado)}">
+          <div class="eq-rank">${i + 1}</div>
+          <div class="eq-info">
+            <div class="eq-nome">${item.equipamento}</div>
+            <div class="eq-bar-wrap">
+              <div class="eq-bar" style="width:${pct}%;background:${cor}"></div>
+            </div>
+          </div>
+          <div class="eq-vezes" style="color:${cor}">${item.vezes}×</div>
+        </div>`;
+    }).join('');
+
+    widget.style.display = 'block';
+  } catch {}
+}
+
+let _swReg = null;
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function iniciarPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    // Registra o SW e aguarda até ele estar ativo (ready resolve só quando o SW controla a página)
+    await navigator.serviceWorker.register('/sw.js');
+    _swReg = await navigator.serviceWorker.ready;
+
+    const perm = Notification.permission;
+    if (perm === 'granted') await _subscribePush();
+    atualizarBotaoNotificacao(perm);
+
+    // Re-verifica a subscription a cada 5 minutos (reduz janela de subscription inválida)
+    setInterval(() => {
+      if (Notification.permission === 'granted') _subscribePush();
+    }, 5 * 60 * 1000);
+  } catch (err) {
+    console.warn('[Push] SW registro falhou:', err);
+  }
+}
+
+let _lastSubscribeTs = 0;
+
+async function _subscribePush(force = false) {
+  if (!_swReg) return false;
+  // Throttle: 30s entre tentativas automáticas — ignorado se force=true
+  const now = Date.now();
+  if (!force && now - _lastSubscribeTs < 30_000) return false;
+  _lastSubscribeTs = now;
+
+  try {
+    // 1. Busca a chave VAPID atual do servidor
+    const r = await api('/api/admin/push/vapid-public-key');
+    if (!r.ok) { console.warn('[Push] Falha ao buscar VAPID key, status:', r.status); return false; }
+    const { publicKey } = await r.json();
+    const appKey = urlBase64ToUint8Array(publicKey);
+
+    // 2. Verifica se já existe uma subscription no browser
+    let sub = await _swReg.pushManager.getSubscription();
+
+    if (sub) {
+      // 3. Compara a chave da subscription existente com a chave atual do servidor
+      try {
+        const existingKey = new Uint8Array(sub.options.applicationServerKey);
+        const keysMismatch = existingKey.length !== appKey.length ||
+          existingKey.some((byte, i) => byte !== appKey[i]);
+
+        if (keysMismatch || force) {
+          // VAPID mudou OU revalidação manual — recria a subscription
+          if (keysMismatch) console.warn('[Push] Chave VAPID mudou — atualizando subscription...');
+          await sub.unsubscribe();
+          sub = null;
+        }
+        // Se as chaves batem e não é force, reutiliza a subscription existente (apenas re-salva no servidor)
+      } catch {
+        // Não conseguiu comparar as chaves — força nova subscription por segurança
+        await sub.unsubscribe();
+        sub = null;
+      }
+    }
+
+    // 4. Cria nova subscription se necessário
+    if (!sub) {
+      sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
+    }
+
+    // 5. Sempre salva no servidor (idempotente — garante DB atualizado mesmo após wipe)
+    //    Explicitamente marca is_mobile: false para o painel desktop
+    const saveResp = await api('/api/admin/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ ...sub.toJSON(), is_mobile: false }),
+    });
+    if (!saveResp.ok) console.warn('[Push] Falha ao registrar subscription no servidor:', saveResp.status);
+    return saveResp.ok;
+  } catch (err) {
+    console.warn('[Push] _subscribePush falhou:', err.message || err);
+    return false;
+  }
+}
+
+function atualizarBotaoNotificacao(perm) {
+  const btn = document.getElementById('btn-notificacoes');
+  if (!btn) return;
+  if (perm === 'granted') {
+    btn.textContent = '🔔';
+    btn.title = 'Notificações ativas';
+    btn.style.opacity = '1';
+  } else if (perm === 'denied') {
+    btn.textContent = '🔕';
+    btn.title = 'Notificações bloqueadas pelo navegador';
+    btn.style.opacity = '0.5';
+  } else {
+    btn.textContent = '🔔';
+    btn.title = 'Clique para ativar notificações';
+    btn.style.opacity = '0.6';
+  }
+}
+
+document.getElementById('btn-notificacoes').addEventListener('click', async () => {
+  if (!('Notification' in window)) { alert('Seu navegador não suporta notificações.'); return; }
+  if (Notification.permission === 'denied') {
+    alert('Notificações estão bloqueadas. Libere nas configurações do navegador.'); return;
+  }
+  // Se já tem permissão: clicar revalida a subscription (força nova inscrição)
+  if (Notification.permission === 'granted') {
+    const ok = await _subscribePush(true);
+    mostrarToast(ok ? '🔔 Notificações revalidadas' : '⚠ Falha ao revalidar', ok ? 'Inscrição atualizada no servidor.' : 'Tente novamente em alguns segundos.');
+    return;
+  }
+  // Senão pede permissão
+  const perm = await Notification.requestPermission();
+  atualizarBotaoNotificacao(perm);
+  if (perm === 'granted') await _subscribePush(true);
+});
+
+function mostrarToast(titulo, corpo) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const el = document.createElement('div');
+  el.className = 'toast-notif';
+  el.innerHTML = `<button class="toast-close" aria-label="Fechar">✕</button><strong>${titulo}</strong><span>${corpo}</span>`;
+  el.querySelector('.toast-close').addEventListener('click', () => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 350);
+  });
+  container.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 350);
+  }, 6000);
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'notif') {
+      mostrarToast(event.data.title || 'Chamados TI', event.data.body || '');
+      // Atualiza badges imediatamente quando chega notificação push
+      if (!chamadoAtual) { carregarChamados(true); carregarEstatisticas(); }
+    }
+  });
+}
+
+// Re-valida subscription a cada foco/visibilidade/reconexão
+// (Chrome Memory Saver pode suspender a aba e invalidar push em background)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    if (Notification.permission === 'granted') _subscribePush();
+    // Atualiza badges ao voltar para a aba
+    if (!chamadoAtual) { carregarChamados(true); carregarEstatisticas(); }
+  }
+});
+window.addEventListener('focus', () => {
+  if (Notification.permission === 'granted') _subscribePush();
+  if (!chamadoAtual) { carregarChamados(true); carregarEstatisticas(); }
+});
+window.addEventListener('online', () => {
+  if (Notification.permission === 'granted') _subscribePush();
+  if (!chamadoAtual) { carregarChamados(true); carregarEstatisticas(); }
+});
+
+// ── Wizard de Estoque na Conclusão ─────────────────────────────────────────
+
+async function abrirWizardEstoque(chamado, solucao, onDone) {
+  let todosItens = [];
+  try {
+    const r = await api('/api/admin/estoque/itens');
+    todosItens = await r.json();
+  } catch {}
+
+  const cat = chamado.categoria;
+  const catNome = { mouse:'Mouse', teclado:'Teclado', monitor:'Monitor', nobreak:'Nobreak' }[cat] || cat;
+  const state = {};
+
+  function filtrar(termos) {
+    if (!termos.length) return todosItens;
+    const ts = termos.map(t => t.toLowerCase());
+    return todosItens.filter(i => ts.some(t => (i.nome || '').toLowerCase().includes(t)));
+  }
+
+  function optsHtml(itens) {
+    if (!itens.length) return '<option value="">Nenhum item no estoque</option>';
+    return '<option value="">— selecione —</option>' +
+      itens.map(i => {
+        const qtd = i.qtd_geral ?? 0;
+        return `<option value="${i.id}">${i.nome} — qtd: ${qtd}${qtd === 0 ? ' ⚠' : ''}</option>`;
+      }).join('');
+  }
+
+  function itemSel(key, label, termos = []) {
+    const itens = filtrar(termos);
+    return `<div style="margin-top:.5rem">
+      <div style="font-size:.76rem;color:var(--text-muted);margin-bottom:.2rem">${label}</div>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <select class="form-control form-control-sm" id="wiz-sel-${key}" style="flex:1">${optsHtml(itens)}</select>
+        <span style="font-size:.75rem;color:var(--text-muted);white-space:nowrap">Qtd:</span>
+        <input class="form-control form-control-sm" id="wiz-qtd-${key}" type="number" min="1" value="1" style="width:56px">
+      </div>
+    </div>`;
+  }
+
+  function bloco(id, texto, sub = '') {
+    return `<div class="wiz-bloco" style="padding:.8rem 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:.97rem;font-weight:600;color:var(--text);margin-bottom:.5rem">${texto}</div>
+      <div style="display:flex;gap:.5rem">
+        <button type="button" class="btn btn-secondary btn-sm wiz-sim-btn" data-q="${id}" style="min-width:60px">Sim</button>
+        <button type="button" class="btn btn-secondary btn-sm wiz-nao-btn" data-q="${id}" style="min-width:60px">Não</button>
+      </div>
+      ${sub ? `<div id="wiz-sub-${id}" style="display:none;margin-top:.6rem;padding:.6rem .75rem;background:var(--bg,#f9f8f5);border-radius:6px;border:1px solid var(--border)">${sub}</div>` : ''}
+    </div>`;
+  }
+
+  const configs = {
+    mouse: `
+      ${bloco('troca_mouse', 'Um mouse novo foi instalado?', `
+        ${bloco('saida_mouse', 'Esse mouse saiu do estoque de Suprimentos?',
+          itemSel('saida_mouse', 'Selecione o mouse instalado:', ['mouse']))}
+        ${bloco('entrada_mouse', 'O mouse retirado vai entrar no estoque?',
+          itemSel('entrada_mouse', 'Selecione o mouse devolvido:', ['mouse']))}
+      `)}
+    `,
+    teclado: `
+      ${bloco('troca_teclado', 'Um teclado novo foi instalado?', `
+        ${bloco('saida_teclado', 'Esse teclado saiu do estoque de Suprimentos?',
+          itemSel('saida_teclado', 'Selecione o teclado instalado:', ['teclado']))}
+        ${bloco('entrada_teclado', 'O teclado retirado vai entrar no estoque?',
+          itemSel('entrada_teclado', 'Selecione o teclado devolvido:', ['teclado']))}
+      `)}
+    `,
+    monitor: `
+      ${bloco('troca_monitor', 'Um monitor novo foi instalado?', `
+        ${bloco('saida_monitor', 'Esse monitor saiu do estoque de Equipamentos?',
+          itemSel('saida_monitor', 'Selecione o monitor instalado:', ['monitor']))}
+        ${bloco('entrada_monitor', 'O monitor retirado vai entrar no estoque?',
+          itemSel('entrada_monitor', 'Selecione o monitor devolvido:', ['monitor']))}
+      `)}
+      ${bloco('troca_cabo', 'Um cabo ou adaptador de vídeo foi utilizado?', `
+        ${bloco('saida_cabo', 'Esse cabo/adaptador saiu do estoque de Suprimentos?',
+          itemSel('saida_cabo', 'Selecione o item utilizado:', ['cabo', 'adaptador', 'hdmi', 'displayport']))}
+      `)}
+    `,
+    nobreak: `
+      ${bloco('troca_nobreak', 'Um nobreak novo foi instalado?', `
+        ${bloco('saida_nobreak', 'Esse nobreak saiu do estoque de Equipamentos?',
+          itemSel('saida_nobreak', 'Selecione o nobreak instalado:', ['nobreak']))}
+        ${bloco('entrada_nobreak', 'O nobreak retirado vai entrar no estoque como usado?',
+          `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.3rem">O nobreak antigo será registrado automaticamente como <strong>usado</strong> no estoque.</div>`)}
+      `)}
+    `,
+  };
+
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.style.display = 'flex';
+  ov.innerHTML = `
+    <div class="modal" style="max-width:660px;max-height:90vh;display:flex;flex-direction:column">
+      <div class="modal-header" style="flex-shrink:0">
+        <h2>Movimentação de Estoque — ${catNome}</h2>
+        <button class="modal-close" id="wiz-fechar">&#x2715;</button>
+      </div>
+      <div class="modal-body" style="overflow-y:auto;flex:1;padding-bottom:.5rem">
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem">
+          Responda as perguntas abaixo para registrar entradas e saídas no estoque.
+        </p>
+        ${configs[cat] || ''}
+        <div id="wiz-msg" style="margin-top:.75rem"></div>
+      </div>
+      <div style="padding:1rem;border-top:1px solid var(--border);display:flex;gap:.5rem;flex-shrink:0">
+        <button class="btn btn-success" id="wiz-confirmar" style="flex:1">Registrar e concluir ✓</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+
+  ov.querySelectorAll('.wiz-sim-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = btn.dataset.q;
+      state[q] = 'sim';
+      btn.className = 'btn btn-sm btn-primary wiz-sim-btn';
+      btn.style.minWidth = '60px';
+      const nao = ov.querySelector(`.wiz-nao-btn[data-q="${q}"]`);
+      if (nao) { nao.className = 'btn btn-secondary btn-sm wiz-nao-btn'; nao.style.minWidth = '60px'; }
+      const sub = document.getElementById('wiz-sub-' + q);
+      if (sub) sub.style.display = 'block';
+    });
+  });
+
+  ov.querySelectorAll('.wiz-nao-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = btn.dataset.q;
+      state[q] = 'nao';
+      btn.className = 'btn btn-sm btn-danger wiz-nao-btn';
+      btn.style.minWidth = '60px';
+      const sim = ov.querySelector(`.wiz-sim-btn[data-q="${q}"]`);
+      if (sim) { sim.className = 'btn btn-secondary btn-sm wiz-sim-btn'; sim.style.minWidth = '60px'; }
+      const sub = document.getElementById('wiz-sub-' + q);
+      if (sub) sub.style.display = 'none';
+    });
+  });
+
+  const SAIDAS = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak','saida_bateria','saida_componente','saida_memoria','saida_processador'];
+  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor','entrada_componente'];
+
+  function coletarMovs() {
+    const movs = [];
+    [...SAIDAS.map(k => [k,'saida']), ...ENTRADAS.map(k => [k,'entrada'])].forEach(([key, tipo]) => {
+      if (state[key] !== 'sim') return;
+      const sel = document.getElementById('wiz-sel-' + key);
+      const qtd = document.getElementById('wiz-qtd-' + key);
+      if (!sel || !sel.value) return;
+      movs.push({ itemId: +sel.value, tipo, cor: 'geral', qtd: Math.max(1, +(qtd?.value || 1)), obs: `${chamado.nome} — Chamado #${chamado.id}`, chamadoId: chamado.id });
+    });
+    // nobreak antigo retornando ao estoque: usa o mesmo item da saída, registra como usado
+    if (state['entrada_nobreak'] === 'sim') {
+      const saidaSel = document.getElementById('wiz-sel-saida_nobreak');
+      if (saidaSel && saidaSel.value) {
+        movs.push({ itemId: +saidaSel.value, tipo: 'entrada', cor: 'usado', qtd: 1, obs: `${chamado.nome} — Chamado #${chamado.id}`, chamadoId: chamado.id });
+      }
+    }
+    return movs;
+  }
+
+  async function executar(movs) {
+    const msg = document.getElementById('wiz-msg');
+    const btnConf = document.getElementById('wiz-confirmar');
+    if (btnConf) { btnConf.disabled = true; btnConf.textContent = 'Registrando…'; }
+    try {
+      for (const m of movs) {
+        const r = await api(`/api/admin/estoque/itens/${m.itemId}/movimentacao`, {
+          method: 'POST',
+          body: JSON.stringify({ tipo: m.tipo, cor: m.cor || 'geral', quantidade: m.qtd, observacao: m.obs, chamado_id: m.chamadoId }),
+        });
+        if (!r.ok) {
+          const d = await r.json();
+          if (msg) msg.innerHTML = `<div class="alert alert-danger">Erro no estoque: ${d.erro}</div>`;
+          if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
+          return;
+        }
+      }
+      const r = await api(`/api/admin/chamados/${chamado.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
+      const d = await r.json();
+      if (!r.ok) {
+        if (msg) msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
+        if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
+        return;
+      }
+      ov.remove();
+      onDone(true);
+    } catch {
+      if (msg) msg.innerHTML = '<div class="alert alert-danger">Erro ao processar. Tente novamente.</div>';
+      if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
+    }
+  }
+
+  document.getElementById('wiz-confirmar').addEventListener('click', () => executar(coletarMovs()));
+  document.getElementById('wiz-fechar').addEventListener('click', () => ov.remove());
+}
+
+iniciarPush();
+_addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
+
+// ── Modais rápidos: + Novo usuário e + Nova etiqueta ─────────────────
+
+(function () {
+  const ovUsuario  = document.getElementById('modal-nc-novo-usuario');
+  const ovEtiqueta = document.getElementById('modal-nc-nova-etiqueta');
+
+  function abrirUsuario() {
+    document.getElementById('ncu-nome').value = '';
+    document.getElementById('ncu-setor').value = '';
+    document.getElementById('ncu-email').value = '';
+    document.getElementById('ncu-senha').value = '';
+    document.getElementById('ncu-ramal').value = '';
+    document.getElementById('msg-nc-usuario').innerHTML = '';
+    ovUsuario.classList.add('open');
+    document.getElementById('ncu-nome').focus();
+  }
+  function fecharUsuario() { ovUsuario.classList.remove('open'); }
+
+  function abrirEtiqueta() {
+    document.getElementById('nce-nome').value = '';
+    document.getElementById('nce-descricao').value = '';
+    document.getElementById('msg-nc-etiqueta').innerHTML = '';
+    document.getElementById('nce-cor-valor').value = '#5B6796';
+    document.querySelectorAll('.nce-cor-btn').forEach(b => {
+      const ativo = b.dataset.cor === '#5B6796';
+      b.classList.toggle('ativo', ativo);
+      b.style.border = ativo ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
+      b.style.outline = ativo ? '2px solid white' : '';
+      b.style.outlineOffset = ativo ? '-4px' : '';
+    });
+    // Popular select de etiqueta pai com todas as etiquetas ativas
+    const sel = document.getElementById('nce-parent');
+    sel.innerHTML = '<option value="">— sem pai (etiqueta raiz) —</option>';
+    (_etiquetasDin || []).forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.slug;
+      opt.textContent = e.parent_slug ? `↳ ${e.nome}` : e.nome;
+      sel.appendChild(opt);
+    });
+    // Cor inicial padrão
+    _nceSetCor('#5B6796');
+    ovEtiqueta.classList.add('open');
+    document.getElementById('nce-nome').focus();
+  }
+  function fecharEtiqueta() { ovEtiqueta.classList.remove('open'); }
+
+  document.getElementById('btn-nc-novo-usuario')?.addEventListener('click', abrirUsuario);
+  document.getElementById('btn-fechar-nc-usuario')?.addEventListener('click', fecharUsuario);
+  document.getElementById('btn-ncu-cancelar')?.addEventListener('click', fecharUsuario);
+
+  document.getElementById('btn-nc-nova-etiqueta')?.addEventListener('click', abrirEtiqueta);
+  document.getElementById('btn-fechar-nc-etiqueta')?.addEventListener('click', fecharEtiqueta);
+  document.getElementById('btn-nce-cancelar')?.addEventListener('click', fecharEtiqueta);
+
+  // Helper para setar cor visualmente
+  function _nceSetCor(cor) {
+    document.getElementById('nce-cor-valor').value = cor;
+    document.querySelectorAll('.nce-cor-btn').forEach(b => {
+      const sel = b.dataset.cor === cor;
+      b.style.border = sel ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
+      b.style.outline = sel ? '2px solid white' : '';
+      b.style.outlineOffset = sel ? '-4px' : '';
+    });
+  }
+
+  // Cor da etiqueta — clique manual nos swatches
+  document.getElementById('nce-cores')?.addEventListener('click', e => {
+    const btn = e.target.closest('.nce-cor-btn');
+    if (!btn) return;
+    _nceSetCor(btn.dataset.cor);
+  });
+
+  // Cor automática ao selecionar etiqueta pai
+  document.getElementById('nce-parent')?.addEventListener('change', function () {
+    const slug = this.value;
+    if (!slug) { _nceSetCor('#5B6796'); return; }
+    const pai = (_etiquetasDin || []).find(e => e.slug === slug);
+    if (pai?.cor) _nceSetCor(pai.cor);
+  });
+
+  // Submit: criar usuário
+  document.getElementById('form-nc-usuario')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = document.getElementById('msg-nc-usuario');
+    const btn = document.getElementById('btn-ncu-salvar');
+    const nome  = document.getElementById('ncu-nome').value.trim();
+    const email = document.getElementById('ncu-email').value.trim();
+    const senha = document.getElementById('ncu-senha').value;
+    const setor = document.getElementById('ncu-setor').value.trim();
+    const ramal = document.getElementById('ncu-ramal').value.trim();
+    msg.innerHTML = '';
+    btn.disabled = true; btn.textContent = 'Criando…';
+    try {
+      const r = await api('/api/admin/portal-usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, email, senha, setor: setor || null, ramal: ramal || null }),
+      });
+      const d = await r.json();
+      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao criar.'}</div>`; return; }
+      // Adiciona à lista em memória e auto-seleciona
+      const novoUsuario = { id: d.id, nome, email, setor: setor || null, ativo: 1 };
+      if (!_usuariosPortalNc) _usuariosPortalNc = [];
+      _usuariosPortalNc.push(novoUsuario);
+      const busca = document.getElementById('nc-usuario-busca');
+      const selecionado = document.getElementById('nc-usuario-selecionado');
+      if (busca) busca.value = nome;
+      if (selecionado) {
+        selecionado.innerHTML = '✓ ' + nome + (setor ? ` · <span style="color:var(--text-muted);font-weight:400">${setor}</span>` : '');
+        selecionado.dataset.usuarioId = d.id;
+        selecionado.style.display = 'block';
+      }
+      fecharUsuario();
+      mostrarToast('Usuário criado!', `${nome} já está disponível e selecionado.`);
+    } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
+    finally { btn.disabled = false; btn.textContent = 'Criar usuário'; }
+  });
+
+  // Submit: criar etiqueta
+  document.getElementById('form-nc-etiqueta')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const msg = document.getElementById('msg-nc-etiqueta');
+    const btn = document.getElementById('btn-nce-salvar');
+    const nome      = document.getElementById('nce-nome').value.trim();
+    const cor       = document.getElementById('nce-cor-valor').value;
+    const parent    = document.getElementById('nce-parent').value || null;
+    const descricao = document.getElementById('nce-descricao').value.trim() || null;
+    msg.innerHTML = '';
+    if (!nome) { msg.innerHTML = '<div class="alert alert-danger">Nome é obrigatório.</div>'; return; }
+    btn.disabled = true; btn.textContent = 'Criando…';
+    try {
+      const r = await api('/api/etiquetas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, cor, parent_slug: parent, descricao }),
+      });
+      const d = await r.json();
+      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao criar.'}</div>`; return; }
+      // Recarrega etiquetas e auto-seleciona a nova
+      await _carregarEtiquetasDinamicas();
+      if (_ncCombo && d.slug) _ncCombo.setValue(d.slug);
+      fecharEtiqueta();
+      mostrarToast('Etiqueta criada!', `"${nome}" já está disponível e selecionada.`);
+    } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
+    finally { btn.disabled = false; btn.textContent = 'Criar etiqueta'; }
+  });
+})();
+
