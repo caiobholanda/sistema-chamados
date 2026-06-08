@@ -5114,3 +5114,148 @@ html.modal-aberto {
     /* SVG charts stay visible */
     svg { break-inside: avoid; }
   }
+
+/* ═══════════════════════════════════════════
+   ETIQUETA FILTER DROPDOWN
+═══════════════════════════════════════════ */
+.etiq-dd-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 158px;
+}
+.etiq-dd-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: .6rem .85rem;
+  padding-right: 2rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: .83rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+  position: relative;
+}
+.etiq-dd-trigger:hover { border-color: var(--border-strong); }
+.etiq-dd-trigger[aria-expanded="true"] {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(197,165,90,.12);
+}
+.etiq-dd-trigger.has-value { color: var(--text); }
+.etiq-dd-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.etiq-dd-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: none;
+}
+.etiq-dd-trigger.has-value .etiq-dd-dot { display: inline-block; }
+.etiq-dd-caret {
+  position: absolute;
+  right: .65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  transition: transform .15s;
+  pointer-events: none;
+}
+.etiq-dd-trigger[aria-expanded="true"] .etiq-dd-caret {
+  transform: translateY(-50%) rotate(180deg);
+}
+.etiq-dd-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 1100;
+  min-width: 230px;
+  max-height: 310px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 3px 0 5px;
+}
+.etiq-dd-panel.open {
+  display: block;
+  animation: etiqIn .12s ease;
+}
+@keyframes etiqIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.etiq-dd-panel::before {
+  content: '';
+  display: block;
+  height: 2px;
+  margin: 0 0 3px;
+  background: linear-gradient(90deg, var(--gold), rgba(197,165,90,.1));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.etiq-dd-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: .34rem .85rem;
+  cursor: pointer;
+  font-size: .82rem;
+  color: var(--text-secondary);
+  transition: background .07s;
+  white-space: nowrap;
+}
+.etiq-dd-item:hover { background: var(--surface-2); color: var(--text); }
+.etiq-dd-item.selected {
+  color: var(--text);
+  font-weight: 500;
+  background: rgba(212,175,55,.06);
+}
+.etiq-dd-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.etiq-dd-item-name { flex: 1; }
+.etiq-dd-item.is-child {
+  padding-left: 1.75rem;
+  font-size: .79rem;
+  color: var(--text-muted);
+}
+.etiq-dd-item.is-child .etiq-dd-item-dot {
+  width: 6px;
+  height: 6px;
+  opacity: .9;
+}
+.etiq-dd-item.is-child:hover,
+.etiq-dd-item.is-child.selected { color: var(--text); }
+.etiq-dd-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 8px;
+}
+.etiq-dd-item-clear { font-style: italic; }
+.etiq-dd-empty {
+  padding: .55rem .85rem;
+  font-size: .8rem;
+  color: var(--text-muted);
+}
+[data-theme="dark"] .etiq-dd-trigger { background: var(--surface); color: var(--text-muted); }
+[data-theme="dark"] .etiq-dd-trigger.has-value { color: var(--text); }
+[data-theme="dark"] .etiq-dd-panel { background: var(--surface); border-color: var(--border-strong); }
+[data-theme="dark"] .etiq-dd-item:hover { background: rgba(255,255,255,.05); }
+[data-theme="dark"] .etiq-dd-item.selected { background: rgba(212,175,55,.09); }

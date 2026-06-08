@@ -109,6 +109,18 @@
       <select class="form-control" id="filtro-admin" aria-label="Responsável">
         <option value="">Todos os responsáveis</option>
       </select>
+      <div class="etiq-dd-wrap" id="etiq-dd-wrap">
+        <button type="button" class="etiq-dd-trigger" id="etiq-dd-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Filtrar por etiqueta">
+          <span class="etiq-dd-dot" id="etiq-dd-dot"></span>
+          <span class="etiq-dd-label" id="etiq-dd-label">Todas as etiquetas</span>
+          <svg class="etiq-dd-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="etiq-dd-panel" id="etiq-dd-panel" role="listbox" aria-label="Etiquetas">
+          <div class="etiq-dd-list" id="etiq-dd-list">
+            <div class="etiq-dd-empty">Carregando…</div>
+          </div>
+        </div>
+      </div>
       <button class="btn btn-primary btn-sm" id="btn-filtrar">Filtrar</button>
       <button class="btn btn-secondary btn-sm" id="btn-limpar">Limpar</button>
       <button class="btn btn-secondary btn-sm" id="btn-atualizar" title="Atualizar" aria-label="Atualizar">&#8635;</button>

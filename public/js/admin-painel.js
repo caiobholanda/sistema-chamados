@@ -288,6 +288,7 @@ const SLUG_CAT_MAP_REV = Object.fromEntries(Object.entries(SLUG_CAT_MAP).map(([k
 
 let _etiquetasDin = [];
 let _etiquetasByParent = {};
+let _etiquetaFiltroAtual = null;
 
 function _resolveCatPair(slug) {
   if (!slug) return ['', ''];
@@ -449,7 +450,77 @@ async function _carregarEtiquetasDinamicas() {
       if (!_etiquetasByParent[p]) _etiquetasByParent[p] = [];
       _etiquetasByParent[p].push(e);
     }
+    _popularDropdownEtiquetas();
   } catch {}
+}
+
+function _popularDropdownEtiquetas() {
+  const list = document.getElementById('etiq-dd-list');
+  if (!list) return;
+  const raizes = (_etiquetasByParent[''] || []).filter(e => e.ativo !== 0);
+  if (!raizes.length) { list.innerHTML = '<div class="etiq-dd-empty">Nenhuma etiqueta cadastrada</div>'; return; }
+  const items = [];
+  items.push(`<div class="etiq-dd-item etiq-dd-item-clear" data-slug="" role="option">
+    <span class="etiq-dd-item-dot" style="background:var(--border-strong)"></span>
+    <span class="etiq-dd-item-name">Todas as etiquetas</span>
+  </div>`);
+  items.push('<div class="etiq-dd-sep"></div>');
+  raizes.forEach(pai => {
+    const filhas = (_etiquetasByParent[pai.slug] || []).filter(e => e.ativo !== 0);
+    items.push(`<div class="etiq-dd-item" data-slug="${_esc(pai.slug)}" role="option">
+      <span class="etiq-dd-item-dot" style="background:${_esc(pai.cor || '#6B7280')}"></span>
+      <span class="etiq-dd-item-name">${_esc(pai.nome)}</span>
+    </div>`);
+    filhas.forEach(f => {
+      items.push(`<div class="etiq-dd-item is-child" data-slug="${_esc(f.slug)}" role="option">
+        <span class="etiq-dd-item-dot" style="background:${_esc(f.cor || '#6B7280')}"></span>
+        <span class="etiq-dd-item-name">${_esc(f.nome)}</span>
+      </div>`);
+    });
+  });
+  list.innerHTML = items.join('');
+  list.querySelectorAll('.etiq-dd-item').forEach(el => {
+    el.addEventListener('click', () => _selecionarEtiquetaFiltro(el.dataset.slug || null));
+  });
+  _atualizarDropdownVisual();
+}
+
+function _selecionarEtiquetaFiltro(slug) {
+  _etiquetaFiltroAtual = slug || null;
+  _atualizarDropdownVisual();
+  _fecharDropdownEtiqueta();
+  carregarChamados();
+}
+
+function _atualizarDropdownVisual() {
+  const trigger = document.getElementById('etiq-dd-trigger');
+  const dot = document.getElementById('etiq-dd-dot');
+  const label = document.getElementById('etiq-dd-label');
+  const list = document.getElementById('etiq-dd-list');
+  list?.querySelectorAll('.etiq-dd-item').forEach(el => {
+    el.classList.toggle('selected', (el.dataset.slug || null) === _etiquetaFiltroAtual);
+  });
+  if (_etiquetaFiltroAtual) {
+    const et = _etiquetasDin.find(e => e.slug === _etiquetaFiltroAtual);
+    if (et) {
+      dot.style.background = et.cor || '#6B7280';
+      label.textContent = et.nome;
+      trigger?.classList.add('has-value');
+    }
+  } else {
+    label.textContent = 'Todas as etiquetas';
+    trigger?.classList.remove('has-value');
+  }
+}
+
+function _fecharDropdownEtiqueta() {
+  document.getElementById('etiq-dd-trigger')?.setAttribute('aria-expanded', 'false');
+  document.getElementById('etiq-dd-panel')?.classList.remove('open');
+}
+
+function _resetarEtiquetaFiltro() {
+  _etiquetaFiltroAtual = null;
+  _atualizarDropdownVisual();
 }
 
 function badgeCategoria(cat) {
@@ -623,6 +694,23 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-filtrar').addEventListener('click', carregarChamados);
+
+document.getElementById('etiq-dd-trigger')?.addEventListener('click', e => {
+  e.stopPropagation();
+  const trigger = e.currentTarget;
+  const panel = document.getElementById('etiq-dd-panel');
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    _fecharDropdownEtiqueta();
+  } else {
+    trigger.setAttribute('aria-expanded', 'true');
+    panel.classList.add('open');
+  }
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('#etiq-dd-wrap')) _fecharDropdownEtiqueta();
+});
+
 document.getElementById('btn-atualizar').addEventListener('click', () => {
   carregarChamados();
   carregarEstatisticas();
@@ -649,6 +737,7 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   const fb = document.getElementById('filtro-busca');
   if (fb) fb.value = '';
   _limparFiltroData();
+  _resetarEtiquetaFiltro();
   carregarChamados();
 });
 
@@ -1188,7 +1277,7 @@ async function carregarChamados(silencioso = false) {
   const filtroBusca = (document.getElementById('filtro-busca')?.value || '').trim().replace(/^#/, '');
   if (filtroBusca) {
     params.set('q', filtroBusca);
-    if (_etiquetasDin.length) {
+    if (_etiquetasDin.length && !_etiquetaFiltroAtual) {
       const txt = filtroBusca.toLowerCase();
       const matches = _etiquetasDin.filter(e => e.nome.toLowerCase().includes(txt));
       if (matches.length) {
@@ -1199,10 +1288,24 @@ async function carregarChamados(silencioso = false) {
       }
     }
   }
+  if (_etiquetaFiltroAtual) {
+    const slugsFiltro = new Set([_etiquetaFiltroAtual]);
+    function _coletarDesc2(s) { (_etiquetasByParent[s] || []).forEach(c => { slugsFiltro.add(c.slug); _coletarDesc2(c.slug); }); }
+    _coletarDesc2(_etiquetaFiltroAtual);
+    params.set('categoria', [...slugsFiltro].join(','));
+  }
 
   try {
     const r = await api('/api/admin/chamados?' + params);
     let chamados = await r.json();
+
+    if (_etiquetaFiltroAtual && (_etiquetasByParent[_etiquetaFiltroAtual]?.length ?? 0) > 0) {
+      chamados.sort((a, b) => {
+        const aP = a.categoria === _etiquetaFiltroAtual ? 0 : 1;
+        const bP = b.categoria === _etiquetaFiltroAtual ? 0 : 1;
+        return aP - bP;
+      });
+    }
 
     // Silencioso: só re-renderiza se os dados mudaram
     if (silencioso) {
