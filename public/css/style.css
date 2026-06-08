@@ -5122,10 +5122,8 @@ html.modal-aberto {
   position: relative;
   z-index: 10;
 }
-.etiq-dd-wrap {
+.filtro-servico-wrap {
   position: relative;
-  flex: 0 0 auto;
-  min-width: 130px;
   z-index: 9;
 }
 @media (max-width: 1100px) {

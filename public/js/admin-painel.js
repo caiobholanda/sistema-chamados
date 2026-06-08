@@ -450,77 +450,77 @@ async function _carregarEtiquetasDinamicas() {
       if (!_etiquetasByParent[p]) _etiquetasByParent[p] = [];
       _etiquetasByParent[p].push(e);
     }
-    _popularDropdownEtiquetas();
+    _addServicoDropdown(document.getElementById('filtro-servico'));
   } catch {}
 }
 
-function _popularDropdownEtiquetas() {
-  const list = document.getElementById('etiq-dd-list');
-  if (!list) return;
-  const raizes = (_etiquetasByParent[''] || []).filter(e => e.ativo !== 0);
-  if (!raizes.length) { list.innerHTML = '<div class="etiq-dd-empty">Nenhuma etiqueta cadastrada</div>'; return; }
-  const items = [];
-  items.push(`<div class="etiq-dd-item etiq-dd-item-clear" data-slug="" role="option">
-    <span class="etiq-dd-item-dot" style="background:var(--border-strong)"></span>
-    <span class="etiq-dd-item-name">Todas as etiquetas</span>
-  </div>`);
-  items.push('<div class="etiq-dd-sep"></div>');
-  raizes.forEach(pai => {
-    const filhas = (_etiquetasByParent[pai.slug] || []).filter(e => e.ativo !== 0);
-    items.push(`<div class="etiq-dd-item" data-slug="${_esc(pai.slug)}" role="option">
-      <span class="etiq-dd-item-dot" style="background:${_esc(pai.cor || '#6B7280')}"></span>
-      <span class="etiq-dd-item-name">${_esc(pai.nome)}</span>
-    </div>`);
-    filhas.forEach(f => {
-      items.push(`<div class="etiq-dd-item is-child" data-slug="${_esc(f.slug)}" role="option">
-        <span class="etiq-dd-item-dot" style="background:${_esc(f.cor || '#6B7280')}"></span>
-        <span class="etiq-dd-item-name">${_esc(f.nome)}</span>
-      </div>`);
-    });
-  });
-  list.innerHTML = items.join('');
-  list.querySelectorAll('.etiq-dd-item').forEach(el => {
-    el.addEventListener('click', () => _selecionarEtiquetaFiltro(el.dataset.slug || null));
-  });
-  _atualizarDropdownVisual();
-}
-
-function _selecionarEtiquetaFiltro(slug) {
-  _etiquetaFiltroAtual = slug || null;
-  _atualizarDropdownVisual();
-  _fecharDropdownEtiqueta();
-  carregarChamados();
-}
-
-function _atualizarDropdownVisual() {
-  const trigger = document.getElementById('etiq-dd-trigger');
-  const dot = document.getElementById('etiq-dd-dot');
-  const label = document.getElementById('etiq-dd-label');
-  const list = document.getElementById('etiq-dd-list');
-  list?.querySelectorAll('.etiq-dd-item').forEach(el => {
-    el.classList.toggle('selected', (el.dataset.slug || null) === _etiquetaFiltroAtual);
-  });
-  if (_etiquetaFiltroAtual) {
-    const et = _etiquetasDin.find(e => e.slug === _etiquetaFiltroAtual);
-    if (et) {
-      dot.style.background = et.cor || '#6B7280';
-      label.textContent = et.nome;
-      trigger?.classList.add('has-value');
-    }
-  } else {
-    label.textContent = 'Etiqueta';
-    trigger?.classList.remove('has-value');
+function _addServicoDropdown(inp) {
+  if (!inp) return;
+  const wrap = inp.parentElement;
+  if (!document.getElementById('_serv-dd-css')) {
+    const s = document.createElement('style');
+    s.id = '_serv-dd-css';
+    s.textContent = [
+      '._serv-dd{position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:1050;min-width:210px;',
+      'background:var(--surface);border:1.5px solid var(--gold);border-radius:8px;',
+      'max-height:250px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.14);}',
+      '._serv-dd::before{content:"";display:block;height:2px;',
+      'background:linear-gradient(90deg,var(--gold),rgba(212,175,55,.1));border-radius:8px 8px 0 0;}',
+      '._serv-dd-item{display:flex;align-items:center;gap:7px;padding:.38rem .8rem;',
+      'cursor:pointer;font-size:.82rem;color:var(--text-secondary);}',
+      '._serv-dd-item:hover,._serv-dd-item.active{background:var(--surface-2);color:var(--text);}',
+      '._serv-dd-item.is-child{padding-left:1.65rem;font-size:.79rem;}',
+      '._serv-dd-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}',
+      '._serv-dd-item.is-child ._serv-dd-dot{width:6px;height:6px;}',
+      '._serv-dd-item.is-sel{font-weight:600;color:var(--text);}',
+    ].join('');
+    document.head.appendChild(s);
   }
-}
+  const dd = document.createElement('div');
+  dd.className = '_serv-dd';
+  dd.style.display = 'none';
+  wrap.appendChild(dd);
 
-function _fecharDropdownEtiqueta() {
-  document.getElementById('etiq-dd-trigger')?.setAttribute('aria-expanded', 'false');
-  document.getElementById('etiq-dd-panel')?.classList.remove('open');
-}
+  function _render(q) {
+    if (!_etiquetasDin.length) {
+      dd.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Carregando…</div>';
+      dd.style.display = 'block'; return;
+    }
+    const query = (q || '').toLowerCase().trim();
+    const rows = [];
+    (_etiquetasByParent[''] || []).filter(e => e.ativo !== 0).forEach(pai => {
+      const filhas = (_etiquetasByParent[pai.slug] || []).filter(e => e.ativo !== 0);
+      const paiOk = !query || pai.nome.toLowerCase().includes(query);
+      const filhasVis = filhas.filter(f => !query || f.nome.toLowerCase().includes(query) || paiOk);
+      if (paiOk || filhasVis.length) {
+        rows.push({ et: pai, child: false });
+        (paiOk ? filhas : filhasVis).forEach(f => rows.push({ et: f, child: true }));
+      }
+    });
+    if (!rows.length) { dd.style.display = 'none'; return; }
+    dd.innerHTML = rows.map(({ et, child }) =>
+      `<div class="_serv-dd-item${child ? ' is-child' : ''}${et.slug === _etiquetaFiltroAtual ? ' is-sel' : ''}" data-slug="${_esc(et.slug)}" data-nome="${_esc(et.nome)}">` +
+      `<span class="_serv-dd-dot" style="background:${_esc(et.cor || '#6B7280')}"></span>${_esc(et.nome)}</div>`
+    ).join('');
+    dd.querySelectorAll('._serv-dd-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        inp.value = el.dataset.nome;
+        _etiquetaFiltroAtual = el.dataset.slug || null;
+        dd.style.display = 'none';
+        carregarChamados();
+      });
+    });
+    dd.style.display = '';
+  }
 
-function _resetarEtiquetaFiltro() {
-  _etiquetaFiltroAtual = null;
-  _atualizarDropdownVisual();
+  inp.addEventListener('focus', () => _render(inp.value));
+  inp.addEventListener('input', () => {
+    if (!inp.value.trim() && _etiquetaFiltroAtual) { _etiquetaFiltroAtual = null; carregarChamados(); }
+    _render(inp.value);
+  });
+  inp.addEventListener('blur', () => setTimeout(() => { dd.style.display = 'none'; }, 150));
+  inp.addEventListener('keydown', e => { if (e.key === 'Escape') { dd.style.display = 'none'; inp.blur(); } });
 }
 
 function badgeCategoria(cat) {
@@ -695,22 +695,6 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 
 document.getElementById('btn-filtrar').addEventListener('click', carregarChamados);
 
-document.getElementById('etiq-dd-trigger')?.addEventListener('click', e => {
-  e.stopPropagation();
-  const trigger = e.currentTarget;
-  const panel = document.getElementById('etiq-dd-panel');
-  const isOpen = panel.classList.contains('open');
-  if (isOpen) {
-    _fecharDropdownEtiqueta();
-  } else {
-    trigger.setAttribute('aria-expanded', 'true');
-    panel.classList.add('open');
-  }
-});
-document.addEventListener('click', e => {
-  if (!e.target.closest('#etiq-dd-wrap')) _fecharDropdownEtiqueta();
-});
-
 document.getElementById('btn-atualizar').addEventListener('click', () => {
   carregarChamados();
   carregarEstatisticas();
@@ -737,7 +721,9 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   const fb = document.getElementById('filtro-busca');
   if (fb) fb.value = '';
   _limparFiltroData();
-  _resetarEtiquetaFiltro();
+  _etiquetaFiltroAtual = null;
+  const fsEl = document.getElementById('filtro-servico');
+  if (fsEl) fsEl.value = '';
   carregarChamados();
 });
 
