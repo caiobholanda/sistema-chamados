@@ -2,6 +2,18 @@ const app = document.getElementById('app');
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', concluido: 'Concluído', encerrado: 'Encerrado' };
 
+function _decode(s) {
+  const ta = document.createElement('textarea');
+  ta.innerHTML = s ?? '';
+  return ta.value;
+}
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
+function _s(s) { return _esc(_decode(s)); }
+
 function fmtData(d) {
   if (!d) return '—';
   return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -319,10 +331,10 @@ function renderCardChamado(c) {
         </div>
         <span class="text-muted" style="font-size:.78rem">${fmtData(c.criado_em)}</span>
       </div>
-      <div class="chamado-card-setor">${c.setor} · Ramal ${c.ramal}</div>
-      <div class="chamado-card-desc">${c.descricao}</div>
-      ${c.admin_nome ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.35rem">👤 Responsável: ${c.admin_nome}</div>` : ''}
-      ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${c.solucao}</div>` : ''}
+      <div class="chamado-card-setor">${_s(c.setor)} · Ramal ${c.ramal}</div>
+      <div class="chamado-card-desc">${_s(c.descricao)}</div>
+      ${c.admin_nome ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.35rem">👤 Responsável: ${_s(c.admin_nome)}</div>` : ''}
+      ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${_s(c.solucao)}</div>` : ''}
       ${c.prazo ? `<div style="font-size:.8rem;color:var(--text-muted);margin-top:.25rem">⏰ Prazo: ${fmtData(c.prazo)}</div>` : ''}
       ${avaliacaoHtml()}
     </div>

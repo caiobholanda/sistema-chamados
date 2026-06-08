@@ -2,6 +2,18 @@ let adminInfo = null;
 let chamadoAtual = null;
 let abaAtiva = 'abertos';
 
+function _decode(s) {
+  const ta = document.createElement('textarea');
+  ta.innerHTML = s ?? '';
+  return ta.value;
+}
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
+function _s(s) { return _esc(_decode(s)); }
+
 const STATUS_ABERTOS = ['aberto', 'em_andamento'];
 const STATUS_ENCERRADOS = ['concluido', 'encerrado'];
 
@@ -130,7 +142,7 @@ async function carregarAdminsParaFiltro() {
     admins.filter(a => a.ativo).forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = a.nome_completo;
+      opt.textContent = _decode(a.nome_completo);
       sel.appendChild(opt);
     });
   } catch {}
@@ -187,12 +199,12 @@ function renderChamadoItem(c) {
         <span class="chamado-id">#${c.id}</span>
         ${badgePrio(c.prioridade)}
         ${badgeStatus(c.status)}
-        ${c.admin_nome ? `<span class="tag"><span style="opacity:.6">👤</span> ${c.admin_nome}</span>` : ''}
+        ${c.admin_nome ? `<span class="tag"><span style="opacity:.6">👤</span> ${_s(c.admin_nome)}</span>` : ''}
         <span class="chamado-data-rel">${fmtData(c.criado_em)}</span>
       </div>
-      <div class="chamado-nome">${c.nome}</div>
-      <div class="chamado-meta">${c.setor} · Ramal ${c.ramal}${c.prazo ? ' · <strong>Prazo:</strong> ' + fmtData(c.prazo) : ''}</div>
-      <div class="chamado-desc">${c.descricao}</div>
+      <div class="chamado-nome">${_s(c.nome)}</div>
+      <div class="chamado-meta">${_s(c.setor)} · Ramal ${c.ramal}${c.prazo ? ' · <strong>Prazo:</strong> ' + fmtData(c.prazo) : ''}</div>
+      <div class="chamado-desc">${_s(c.descricao)}</div>
     </div>
   `;
 }
@@ -247,20 +259,20 @@ function renderModalBody(c) {
       ${bannerPrazo}
       <div class="flex gap-1 flex-wrap">
         ${badgeStatus(c.status)} ${badgePrio(c.prioridade)}
-        ${c.admin_nome ? `<span class="tag">👤 Responsável: ${c.admin_nome}</span>` : ''}
+        ${c.admin_nome ? `<span class="tag">👤 Responsável: ${_s(c.admin_nome)}</span>` : ''}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.88rem">
-        <div><span class="text-muted">Solicitante</span><br><strong>${c.nome}</strong></div>
-        <div><span class="text-muted">Setor / Ramal</span><br>${c.setor} / ${c.ramal}</div>
+        <div><span class="text-muted">Solicitante</span><br><strong>${_s(c.nome)}</strong></div>
+        <div><span class="text-muted">Setor / Ramal</span><br>${_s(c.setor)} / ${c.ramal}</div>
         <div><span class="text-muted">Aberto em</span><br>${fmtData(c.criado_em)}</div>
         <div><span class="text-muted">Atualizado em</span><br>${fmtData(c.atualizado_em)}</div>
         ${c.prazo ? `<div><span class="text-muted">Prazo</span><br><strong>${fmtData(c.prazo)}</strong></div>` : ''}
         ${c.concluido_em ? `<div><span class="text-muted">Concluído em</span><br>${fmtData(c.concluido_em)}</div>` : ''}
       </div>
-      <div><span class="text-muted" style="font-size:.8rem">Descrição</span><br>${c.descricao}</div>
-      ${c.anexo_nome_original ? `<div><a href="/api/chamados/${c.id}/anexo" class="btn btn-secondary btn-sm" download>⬇ ${c.anexo_nome_original}</a></div>` : ''}
-      ${c.solucao ? `<div><span class="text-muted" style="font-size:.8rem">Solução / Motivo</span><br>${c.solucao}</div>` : ''}
-      ${c.nota !== null ? `<div class="alert alert-success" style="margin:0"><strong>Avaliação do usuário:</strong> ${c.nota}/10${c.comentario_avaliacao ? ' — '+c.comentario_avaliacao : ''}</div>` : ''}
+      <div><span class="text-muted" style="font-size:.8rem">Descrição</span><br>${_s(c.descricao)}</div>
+      ${c.anexo_nome_original ? `<div><a href="/api/chamados/${c.id}/anexo" class="btn btn-secondary btn-sm" download>⬇ ${_s(c.anexo_nome_original)}</a></div>` : ''}
+      ${c.solucao ? `<div><span class="text-muted" style="font-size:.8rem">Solução / Motivo</span><br>${_s(c.solucao)}</div>` : ''}
+      ${c.nota !== null ? `<div class="alert alert-success" style="margin:0"><strong>Avaliação do usuário:</strong> ${c.nota}/10${c.comentario_avaliacao ? ' — '+_s(c.comentario_avaliacao) : ''}</div>` : ''}
 
       <hr>
       <div id="msg-modal"></div>

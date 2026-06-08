@@ -1,6 +1,18 @@
 let meAdmin = null;
 let editandoId = null;
 
+function _decode(s) {
+  const ta = document.createElement('textarea');
+  ta.innerHTML = s ?? '';
+  return ta.value;
+}
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
+function _s(s) { return _esc(_decode(s)); }
+
 async function api(url, opts = {}) {
   const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
   if (res.status === 401) { location.replace('/admin-login.html'); throw new Error('401'); }
@@ -76,8 +88,8 @@ async function carregarAdmins() {
             <tbody>
               ${admins.map(a => `
                 <tr>
-                  <td><code>${a.usuario}</code></td>
-                  <td>${a.nome_completo}</td>
+                  <td><code>${_s(a.usuario)}</code></td>
+                  <td>${_s(a.nome_completo)}</td>
                   <td>${a.is_master ? '<span class="badge badge-urgente">Master</span>' : 'Admin'}</td>
                   <td>${a.ativo ? '<span class="badge badge-concluido">Ativo</span>' : '<span class="badge badge-encerrado">Inativo</span>'}</td>
                   <td style="font-size:.8rem">${new Date(a.criado_em).toLocaleDateString('pt-BR')}</td>
@@ -117,7 +129,7 @@ async function abrirModal(id) {
     const admin = admins.find(a => a.id === id);
     if (admin) {
       document.getElementById('f-usuario').value = admin.usuario;
-      document.getElementById('f-nome').value = admin.nome_completo;
+      document.getElementById('f-nome').value = _decode(admin.nome_completo);
       document.getElementById('f-master').checked = !!admin.is_master;
     }
   } else {
