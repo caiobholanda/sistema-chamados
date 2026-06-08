@@ -144,11 +144,14 @@ router.post('/chamados', requireAdmin, uploadChamadoMiddleware(), async (req, re
 
     const adminCriador = db.buscarAdminPorId(req.admin.sub);
 
-    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','projetor','tablet','celular','processo_compra','outros','thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti'];
+    const CATEGORIAS_VALIDAS = ['software','hardware','impressora','ramal','nobreak','monitor','mouse','teclado','rede','acesso_senha','cameras','email','tv_projetor','projetor','tablet','celular','processo_compra','outros','thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad','modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf','modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook','urmobo','cardapio_digital','central_ti','servico'];
     const categoriaEnviada = (req.body.categoria || '').trim();
+    const servicoIdEnviado = !!(req.body.servico_id);
     let categoria;
     if (categoriaEnviada && CATEGORIAS_VALIDAS.includes(categoriaEnviada)) {
       categoria = categoriaEnviada;
+    } else if (servicoIdEnviado) {
+      categoria = 'servico';
     } else {
       const cat = await classificarInteligente(descricao);
       categoria = cat ? cat.id : null;
@@ -581,7 +584,7 @@ const CATEGORIAS_VALIDAS = [
   'thex_pos','thex_pms','modulo_eventos','modulo_cp','modulo_cr','modulo_rad',
   'modulo_fiscal','modulo_contab','modulo_compras','modulo_almox','modulo_caf',
   'modulo_cfinan','modulo_fatura','app_comanda','app_governanca','letsbook',
-  'urmobo','cardapio_digital','central_ti',
+  'urmobo','cardapio_digital','central_ti','servico',
 ];
 
 router.patch('/chamados/:id/categoria', requireAdmin, (req, res) => {
