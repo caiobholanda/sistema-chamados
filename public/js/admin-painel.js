@@ -1275,23 +1275,13 @@ async function carregarChamados(silencioso = false) {
     }
   }
   if (_etiquetaFiltroAtual) {
-    const slugsFiltro = new Set([_etiquetaFiltroAtual]);
-    function _coletarDesc2(s) { (_etiquetasByParent[s] || []).forEach(c => { slugsFiltro.add(c.slug); _coletarDesc2(c.slug); }); }
-    _coletarDesc2(_etiquetaFiltroAtual);
-    params.set('categoria', [...slugsFiltro].join(','));
+    params.set('categoria', _etiquetaFiltroAtual);
   }
 
   try {
     const r = await api('/api/admin/chamados?' + params);
     let chamados = await r.json();
 
-    if (_etiquetaFiltroAtual && (_etiquetasByParent[_etiquetaFiltroAtual]?.length ?? 0) > 0) {
-      chamados.sort((a, b) => {
-        const aP = a.categoria === _etiquetaFiltroAtual ? 0 : 1;
-        const bP = b.categoria === _etiquetaFiltroAtual ? 0 : 1;
-        return aP - bP;
-      });
-    }
 
     // Silencioso: só re-renderiza se os dados mudaram
     if (silencioso) {
