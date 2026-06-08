@@ -201,9 +201,23 @@
     const valI = wrapEl.querySelector('[data-pcomb-val]');
     const dd   = wrapEl.querySelector('[data-pcomb-dd]');
 
+    function _getSubtreeSlugs(slug) {
+      const slugs = new Set();
+      const queue = [slug];
+      while (queue.length) {
+        const s = queue.shift();
+        if (!s || slugs.has(s)) continue;
+        slugs.add(s);
+        etiquetas.filter(e => e.parent_slug === s).forEach(e => queue.push(e.slug));
+      }
+      return slugs;
+    }
+
     function _render(q) {
       const query = (q || '').toLowerCase().trim();
-      const candidatos = etiquetas.filter(e => e.ativo && e.id !== editandoId);
+      const editandoSlug = editandoId ? (etiquetas.find(e => e.id === editandoId)?.slug) : null;
+      const subtreeSlugs = editandoSlug ? _getSubtreeSlugs(editandoSlug) : new Set();
+      const candidatos = etiquetas.filter(e => e.ativo && !subtreeSlugs.has(e.slug));
       const filtered = (query
         ? candidatos.filter(e => { const bc = breadcrumb(e); return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query); })
         : candidatos).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
@@ -243,7 +257,7 @@
       _close();
     }
 
-    inp.addEventListener('focus', () => _render(inp.value));
+    inp.addEventListener('focus', () => { inp.select(); _render(''); });
     inp.addEventListener('input', () => { if (!inp.value.trim()) valI.value = ''; _render(inp.value); });
     inp.addEventListener('keydown', ev => {
       if (ev.key === 'Escape') _close();
@@ -266,7 +280,6 @@
 
   function abrirModal(titulo, dados = {}) {
     editandoId = dados.id || null;
-    const eSistema = !!dados.sistema;
     const cor = dados.cor || corAleatoria();
 
     document.getElementById('modal-etiqueta-title').textContent = titulo;
@@ -276,12 +289,8 @@
     document.getElementById('et-cor').value   = cor;
     atualizarPreview(cor, dados.nome || 'Etiqueta');
     const wrap = document.getElementById('et-parent-wrap');
-    if (eSistema) {
-      if (wrap) wrap.style.display = 'none';
-    } else {
-      if (wrap) wrap.style.display = '';
-      _parentCombo?.setValue(dados.parent_slug || '');
-    }
+    if (wrap) wrap.style.display = '';
+    _parentCombo?.setValue(dados.parent_slug || '');
     document.getElementById('modal-etiqueta-overlay').classList.add('open');
     setTimeout(() => document.getElementById('et-nome').focus(), 50);
   }
@@ -305,24 +314,20 @@
     const nome      = document.getElementById('et-nome').value.trim();
     const descricao = document.getElementById('et-descricao').value.trim();
     const cor       = document.getElementById('et-cor').value;
-    const wrap      = document.getElementById('et-parent-wrap');
-    const parent_slug = (wrap && wrap.style.display === 'none')
-      ? undefined
-      : (document.getElementById('et-parent').value || null);
+    const parent_slug = document.getElementById('et-parent').value || null;
 
     if (!nome) { toast('Nome é obrigatório.', 'erro'); document.getElementById('et-nome').focus(); return; }
 
     const btn = document.getElementById('btn-salvar-etiqueta');
     btn.disabled = true;
     try {
-      const body = { nome, descricao, cor };
-      if (parent_slug !== undefined) body.parent_slug = parent_slug;
+      const body = { nome, descricao, cor, parent_slug };
 
       if (editandoId) {
         await api(`/api/etiquetas/${editandoId}`, { method: 'PATCH', body: JSON.stringify(body) });
         toast('Etiqueta atualizada.');
       } else {
-        await api('/api/etiquetas', { method: 'POST', body: JSON.stringify({ ...body, parent_slug: parent_slug ?? null }) });
+        await api('/api/etiquetas', { method: 'POST', body: JSON.stringify(body) });
         toast('Etiqueta criada.');
       }
       fecharModal();
