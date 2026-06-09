@@ -385,7 +385,18 @@ function _criarComboEtiqueta(wrapEl, cfg = {}) {
         return e.nome.toLowerCase().includes(query) || bc.toLowerCase().includes(query) || e.slug.includes(query);
       });
     }
-    list.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+    if (query) {
+      list.sort((a, b) => {
+        const aNm = a.nome.toLowerCase(), bNm = b.nome.toLowerCase();
+        const aExact = aNm === query, bExact = bNm === query;
+        if (aExact !== bExact) return aExact ? -1 : 1;
+        const aNmMatch = aNm.includes(query), bNmMatch = bNm.includes(query);
+        if (aNmMatch !== bNmMatch) return aNmMatch ? -1 : 1;
+        return aNm.localeCompare(bNm, 'pt-BR', { sensitivity: 'base' });
+      });
+    } else {
+      list.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+    }
     if (!list.length) {
       dd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
     } else {
