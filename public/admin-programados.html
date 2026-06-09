@@ -289,6 +289,97 @@
   </div>
 </div>
 
+<!-- Sub-modal: Novo usuário do portal -->
+<div class="modal-overlay" id="modal-prog-novo-usuario" style="z-index:600;display:none">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2>Novo usuário do portal</h2>
+      <button class="modal-close" id="btn-fechar-prog-usuario">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:1.25rem">
+      <div id="msg-prog-usuario"></div>
+      <form id="form-prog-usuario" autocomplete="off">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+          <div class="form-group" style="margin:0">
+            <label style="font-size:.8rem">Nome completo <span class="req">*</span></label>
+            <input class="form-control" type="text" id="pnu-nome" maxlength="100" placeholder="Nome completo">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label style="font-size:.8rem">Setor</label>
+            <input class="form-control" type="text" id="pnu-setor" maxlength="80" placeholder="Ex: Recepção">
+          </div>
+        </div>
+        <div class="form-group" style="margin:.6rem 0 0">
+          <label style="font-size:.8rem">E-mail <span class="req">*</span> <span style="font-weight:400;color:var(--text-muted)">(@granmarquise.com.br)</span></label>
+          <input class="form-control" type="email" id="pnu-email" placeholder="usuario@granmarquise.com.br">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem">
+          <div class="form-group" style="margin:0">
+            <label style="font-size:.8rem">Senha <span class="req">*</span></label>
+            <input class="form-control" type="password" id="pnu-senha" placeholder="Senha forte">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label style="font-size:.8rem">Ramal</label>
+            <input class="form-control" type="text" id="pnu-ramal" maxlength="4" placeholder="4 dígitos">
+          </div>
+        </div>
+        <p style="font-size:.74rem;color:var(--text-muted);margin:.5rem 0 .75rem">Mín. 8 chars · maiúscula + minúscula + número + especial.</p>
+        <div style="display:flex;gap:.5rem">
+          <button type="submit" class="btn btn-primary" style="flex:1" id="btn-pnu-salvar">Criar usuário</button>
+          <button type="button" class="btn btn-secondary" id="btn-pnu-cancelar">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Sub-modal: Nova etiqueta -->
+<div class="modal-overlay" id="modal-prog-nova-etiqueta" style="z-index:600;display:none">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <h2>Nova etiqueta</h2>
+      <button class="modal-close" id="btn-fechar-prog-etiqueta">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:1.25rem">
+      <div id="msg-prog-etiqueta"></div>
+      <form id="form-prog-etiqueta" autocomplete="off">
+        <div class="form-group">
+          <label style="font-size:.8rem">Nome <span class="req">*</span></label>
+          <input class="form-control" type="text" id="pne-nome" maxlength="60" placeholder="Ex: Impressora, VPN…">
+        </div>
+        <div class="form-group">
+          <label style="font-size:.8rem">Etiqueta pai <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <select class="form-control" id="pne-parent" style="font-size:.82rem">
+            <option value="">— sem pai (etiqueta raiz) —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label style="font-size:.8rem">Descrição <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <textarea class="form-control" id="pne-descricao" rows="2" maxlength="500" placeholder="Descreva quando usar esta etiqueta…" style="font-size:.8rem;resize:vertical"></textarea>
+        </div>
+        <div class="form-group">
+          <label style="font-size:.8rem">Cor</label>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.3rem" id="pne-cores">
+            <button type="button" class="pne-cor-btn" data-cor="#5B6796" style="width:26px;height:26px;border-radius:50%;background:#5B6796;border:2px solid #5B6796;cursor:pointer" title="Índigo"></button>
+            <button type="button" class="pne-cor-btn" data-cor="#0F766E" style="width:26px;height:26px;border-radius:50%;background:#0F766E;border:2px solid transparent;cursor:pointer" title="Verde-azulado"></button>
+            <button type="button" class="pne-cor-btn" data-cor="#D4AF37" style="width:26px;height:26px;border-radius:50%;background:#D4AF37;border:2px solid transparent;cursor:pointer" title="Ouro"></button>
+            <button type="button" class="pne-cor-btn" data-cor="#B85450" style="width:26px;height:26px;border-radius:50%;background:#B85450;border:2px solid transparent;cursor:pointer" title="Vermelho"></button>
+            <button type="button" class="pne-cor-btn" data-cor="#6B6B6B" style="width:26px;height:26px;border-radius:50%;background:#6B6B6B;border:2px solid transparent;cursor:pointer" title="Cinza"></button>
+            <button type="button" class="pne-cor-btn" data-cor="#2D7A4F" style="width:26px;height:26px;border-radius:50%;background:#2D7A4F;border:2px solid transparent;cursor:pointer" title="Verde"></button>
+            <button type="button" class="pne-cor-btn" data-cor="#0EA5E9" style="width:26px;height:26px;border-radius:50%;background:#0EA5E9;border:2px solid transparent;cursor:pointer" title="Azul"></button>
+            <button type="button" class="pne-cor-btn" data-cor="#8B5CF6" style="width:26px;height:26px;border-radius:50%;background:#8B5CF6;border:2px solid transparent;cursor:pointer" title="Roxo"></button>
+          </div>
+          <input type="hidden" id="pne-cor-valor" value="#5B6796">
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.25rem">
+          <button type="submit" class="btn btn-primary" style="flex:1" id="btn-pne-salvar">Criar etiqueta</button>
+          <button type="button" class="btn btn-secondary" id="btn-pne-cancelar">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script defer src="/js/nav.js"></script>
 <script defer src="/js/admin-programados.js"></script>
 </body>

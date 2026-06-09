@@ -654,19 +654,152 @@ async function carregarUsuariosPortal() {
   busca.addEventListener('blur', () => setTimeout(() => { resultEl.style.display = 'none'; }, 150));
 }
 
-// ── Botões de atalho ──────────────────────────────────────────────────────────
-document.getElementById('btn-prog-novo-usuario')?.addEventListener('click', () => {
-  window.open('/admin-usuarios.html', '_blank');
+// ── Sub-modal: Novo usuário ───────────────────────────────────────────────────
+function _abrirModalUsuario() {
+  ['pnu-nome','pnu-setor','pnu-email','pnu-senha','pnu-ramal'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('msg-prog-usuario').innerHTML = '';
+  document.getElementById('modal-prog-novo-usuario').style.display = 'flex';
+  document.getElementById('pnu-nome').focus();
+}
+
+function _fecharModalUsuario() {
+  document.getElementById('modal-prog-novo-usuario').style.display = 'none';
+}
+
+document.getElementById('btn-prog-novo-usuario')?.addEventListener('click', _abrirModalUsuario);
+document.getElementById('btn-fechar-prog-usuario')?.addEventListener('click', _fecharModalUsuario);
+document.getElementById('btn-pnu-cancelar')?.addEventListener('click', _fecharModalUsuario);
+
+document.getElementById('form-prog-usuario')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg  = document.getElementById('msg-prog-usuario');
+  const btn  = document.getElementById('btn-pnu-salvar');
+  const nome  = document.getElementById('pnu-nome').value.trim();
+  const email = document.getElementById('pnu-email').value.trim();
+  const senha = document.getElementById('pnu-senha').value;
+  const setor = document.getElementById('pnu-setor').value.trim();
+  const ramal = document.getElementById('pnu-ramal').value.trim();
+  msg.innerHTML = '';
+  btn.disabled = true; btn.textContent = 'Criando…';
+  try {
+    const r = await fetch('/api/admin/portal-usuarios', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, email, senha, setor: setor || null, ramal: ramal || null }),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      msg.innerHTML = `<div style="padding:.5rem .75rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b;margin-bottom:.75rem">${d.erro || 'Erro ao criar.'}</div>`;
+      return;
+    }
+    if (!_usuariosPortal) _usuariosPortal = [];
+    _usuariosPortal.push({ id: d.id, nome, email, setor: setor || null, ativo: 1 });
+    const busca     = document.getElementById('prog-usuario-busca');
+    const selecionado = document.getElementById('prog-usuario-selecionado');
+    if (busca) busca.value = nome;
+    if (selecionado) {
+      selecionado.innerHTML = `✓ ${esc(nome)}${setor ? ` · <span style="color:var(--text-muted);font-weight:400">${esc(setor)}</span>` : ''}`;
+      selecionado.dataset.usuarioId = d.id;
+      selecionado.style.display = '';
+    }
+    _fecharModalUsuario();
+    toast('Usuário criado!');
+  } catch {
+    msg.innerHTML = '<div style="padding:.5rem .75rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b;margin-bottom:.75rem">Erro de conexão.</div>';
+  } finally { btn.disabled = false; btn.textContent = 'Criar usuário'; }
 });
 
-document.getElementById('btn-prog-nova-etiqueta')?.addEventListener('click', () => {
-  window.open('/admin-servicos.html', '_blank');
+// ── Sub-modal: Nova etiqueta ──────────────────────────────────────────────────
+function _pneSetCor(cor) {
+  document.getElementById('pne-cor-valor').value = cor;
+  document.querySelectorAll('.pne-cor-btn').forEach(b => {
+    const sel = b.dataset.cor === cor;
+    b.style.border = sel ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
+    b.style.outline = sel ? '2px solid white' : '';
+    b.style.outlineOffset = sel ? '-4px' : '';
+  });
+}
+
+function _abrirModalEtiqueta() {
+  document.getElementById('pne-nome').value = '';
+  document.getElementById('pne-descricao').value = '';
+  document.getElementById('msg-prog-etiqueta').innerHTML = '';
+  _pneSetCor('#5B6796');
+  const sel = document.getElementById('pne-parent');
+  sel.innerHTML = '<option value="">— sem pai (etiqueta raiz) —</option>';
+  (_etiquetasDin || []).filter(e => e.ativo !== 0).forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e.slug; opt.textContent = e.nome;
+    sel.appendChild(opt);
+  });
+  document.getElementById('modal-prog-nova-etiqueta').style.display = 'flex';
+  document.getElementById('pne-nome').focus();
+}
+
+function _fecharModalEtiqueta() {
+  document.getElementById('modal-prog-nova-etiqueta').style.display = 'none';
+}
+
+document.getElementById('btn-prog-nova-etiqueta')?.addEventListener('click', _abrirModalEtiqueta);
+document.getElementById('btn-fechar-prog-etiqueta')?.addEventListener('click', _fecharModalEtiqueta);
+document.getElementById('btn-pne-cancelar')?.addEventListener('click', _fecharModalEtiqueta);
+
+document.getElementById('pne-cores')?.addEventListener('click', e => {
+  const b = e.target.closest('.pne-cor-btn');
+  if (b) _pneSetCor(b.dataset.cor);
+});
+
+document.getElementById('pne-parent')?.addEventListener('change', function () {
+  const pai = (_etiquetasDin || []).find(e => e.slug === this.value);
+  _pneSetCor(pai?.cor || '#5B6796');
+});
+
+document.getElementById('form-prog-etiqueta')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg  = document.getElementById('msg-prog-etiqueta');
+  const btn  = document.getElementById('btn-pne-salvar');
+  const nome     = document.getElementById('pne-nome').value.trim();
+  const cor      = document.getElementById('pne-cor-valor').value;
+  const parent   = document.getElementById('pne-parent').value || null;
+  const descricao = document.getElementById('pne-descricao').value.trim() || null;
+  msg.innerHTML = '';
+  if (!nome) {
+    msg.innerHTML = '<div style="padding:.5rem .75rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b;margin-bottom:.75rem">Nome é obrigatório.</div>';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Criando…';
+  try {
+    const r = await fetch('/api/etiquetas', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, cor, parent_slug: parent, descricao }),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      msg.innerHTML = `<div style="padding:.5rem .75rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b;margin-bottom:.75rem">${d.erro || 'Erro ao criar.'}</div>`;
+      return;
+    }
+    const rEt = await fetch('/api/etiquetas', { credentials: 'include' });
+    if (rEt.ok) {
+      _etiquetasDin = await rEt.json();
+      if (_catCombo && d.slug) _catCombo.setValue(d.slug);
+    }
+    _fecharModalEtiqueta();
+    toast('Etiqueta criada!');
+  } catch {
+    msg.innerHTML = '<div style="padding:.5rem .75rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b;margin-bottom:.75rem">Erro de conexão.</div>';
+  } finally { btn.disabled = false; btn.textContent = 'Criar etiqueta'; }
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
   const ok = await checkAuth();
   if (!ok) return;
+  if (!_adminInfo?.is_master) {
+    document.getElementById('btn-prog-nova-etiqueta')?.style.setProperty('display', 'none');
+  }
   carregarEtiquetas();
   carregarUsuariosPortal();
   carregarAgendamentos();
