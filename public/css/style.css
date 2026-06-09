@@ -570,7 +570,7 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
 .combo-wrap { position: relative; }
 .combo-input { padding-right: 2.2rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A4540' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right .75rem center; }
 .combo-input.open { border-radius: var(--radius-sm) var(--radius-sm) 0 0; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(197,165,90,.12); }
-.combo-dd { display:none; position:absolute; top:100%; left:0; right:0; background:var(--surface); border:1.5px solid var(--gold); border-top:none; border-radius:0 0 var(--radius-sm) var(--radius-sm); box-shadow:var(--shadow-md); max-height:230px; overflow-y:auto; z-index:300; }
+.combo-dd { display:none; position:absolute; top:100%; left:0; right:0; background:var(--surface); border:1.5px solid var(--gold); border-top:none; border-radius:0 0 var(--radius-sm) var(--radius-sm); box-shadow:var(--shadow-md); max-height:min(230px, 50vh); overflow-y:auto; z-index:300; }
 .combo-dd.open { display:block; }
 .combo-dd-group { padding:5px 11px 2px; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); border-top:1px solid var(--border); margin-top:2px; }
 .combo-dd-group:first-child { border-top:none; margin-top:0; }
@@ -618,7 +618,7 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
 [data-theme="dark"] .ajuda-dica { background: rgba(212,175,55,.1); color: var(--text); }
 
 /* Mini-screenshots SVG dentro dos passos */
-.ajuda-foto { display:block; width:100%; max-width:520px; margin:.6rem 0 .3rem; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); overflow:hidden; box-shadow:var(--shadow-sm); }
+.ajuda-foto { display:block; width:100%; max-width:min(520px, 92vw); margin:.6rem 0 .3rem; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); overflow:hidden; box-shadow:var(--shadow-sm); }
 .ajuda-foto svg { display:block; width:100%; height:auto; }
 
 /* Lightbox da foto ampliada */
@@ -5265,3 +5265,39 @@ html.modal-aberto {
 [data-theme="dark"] .etiq-dd-panel { background: var(--surface); border-color: var(--border-strong); }
 [data-theme="dark"] .etiq-dd-item:hover { background: rgba(255,255,255,.05); }
 [data-theme="dark"] .etiq-dd-item.selected { background: rgba(212,175,55,.09); }
+
+/* ═══════════════════════════════════════════
+   TELAS MUITO PEQUENAS (≤ 375px — iPhone SE, Galaxy S10e)
+═══════════════════════════════════════════ */
+@media (max-width: 375px) {
+  /* Padding geral mais apertado */
+  main, main.wide { padding: .75rem .65rem; }
+  .page-header { margin-bottom: .85rem; }
+  .page-title { font-size: 1.15rem; }
+
+  /* Abas menores */
+  .tab-btn { padding: .55rem .55rem; font-size: .7rem; }
+
+  /* Cards */
+  .chamado-card-usuario { padding: .75rem .75rem; }
+  .card { padding: .85rem .75rem; }
+
+  /* Botões de ação empilhados */
+  .page-header > div:last-child {
+    flex-direction: column;
+  }
+  .page-header > div:last-child .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Modal: padding reduzido */
+  .modal-header { padding: .65rem .9rem; }
+  .modal-footer { padding: .65rem .9rem; }
+
+  /* Stats strip: 2 colunas */
+  #stats-strip-u { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Filtros sem min-width */
+  .filtros .form-control { min-width: 0 !important; width: 100%; }
+}
