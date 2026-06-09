@@ -4,7 +4,8 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
-const { initDb, initSugestoes, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo } = require('./src/db');
+const { initDb, initSugestoes, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo, buscarUsuarioPorEmail, buscarAdminPorEmail } = require('./src/db');
+const jwt = require('jsonwebtoken');
 const push = require('./src/push');
 const { executarChamadosProgramados } = require('./src/scheduler');
 
@@ -85,6 +86,41 @@ app.use('/api/setores', require('./src/rotas/setores'));
 app.use('/api/etiquetas', require('./src/rotas/etiquetas'));
 app.use('/api/admin/programados', require('./src/rotas/programados'));
 app.use('/api/admin', require('./src/rotas/admins'));
+
+app.get('/sso', (req, res) => {
+  const { sso_token } = req.query;
+  if (!sso_token) return res.redirect('/?erro=sem_token');
+
+  try {
+    const payload = jwt.verify(sso_token, process.env.SSO_SECRET);
+    const { email, tipo } = payload;
+
+    if (tipo === 'admin') {
+      const admin = buscarAdminPorEmail(email);
+      if (!admin || admin.ativo === 0) return res.redirect('/admin-login.html?erro=usuario_nao_encontrado');
+      const token = jwt.sign(
+        { sub: admin.id, is_master: admin.is_master === 1, nome: admin.nome_completo },
+        process.env.JWT_SECRET,
+        { expiresIn: 30 * 24 * 60 * 60 }
+      );
+      res.cookie('token', token, { httpOnly: true, sameSite: 'Strict', maxAge: 30 * 24 * 60 * 60 * 1000 });
+      return res.redirect('/admin-painel.html');
+    }
+
+    const usuario = buscarUsuarioPorEmail(email);
+    if (!usuario || usuario.ativo === 0) return res.redirect('/?erro=usuario_inativo');
+    const token = jwt.sign(
+      { sub: usuario.id, nome: usuario.nome, email: usuario.email },
+      process.env.JWT_SECRET,
+      { expiresIn: 30 * 24 * 60 * 60 }
+    );
+    res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    return res.redirect('/');
+  } catch (err) {
+    console.error('[SSO] Erro:', err.message);
+    return res.redirect('/?erro=sso_invalido');
+  }
+});
 
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
