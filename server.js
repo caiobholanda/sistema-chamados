@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
-const { initDb, initSugestoes, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo, buscarUsuarioPorEmail, buscarAdminPorEmail } = require('./src/db');
+const { initDb, initSugestoes, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo, buscarUsuarioPorEmail, buscarAdminPorEmail, listarAdmins, listarUsuarios } = require('./src/db');
 const jwt = require('jsonwebtoken');
 const push = require('./src/push');
 const { executarChamadosProgramados } = require('./src/scheduler');
@@ -86,6 +86,15 @@ app.use('/api/setores', require('./src/rotas/setores'));
 app.use('/api/etiquetas', require('./src/rotas/etiquetas'));
 app.use('/api/admin/programados', require('./src/rotas/programados'));
 app.use('/api/admin', require('./src/rotas/admins'));
+
+app.get('/api/hub/usuarios', (req, res) => {
+  const auth = req.headers.authorization || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!token || token !== process.env.SSO_SECRET) return res.status(403).json({ erro: 'Acesso negado' });
+  const admins = listarAdmins().filter(a => a.ativo && !a.is_test).map(a => ({ email: a.email, nome: a.nome_completo, tipo: 'admin' }));
+  const usuarios = listarUsuarios().filter(u => u.ativo).map(u => ({ email: u.email, nome: u.nome, tipo: 'usuario' }));
+  return res.json({ ok: true, users: [...admins, ...usuarios] });
+});
 
 app.get('/sso', (req, res) => {
   const { sso_token } = req.query;
