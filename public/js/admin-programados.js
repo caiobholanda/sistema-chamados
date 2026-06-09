@@ -146,7 +146,7 @@ async function checkAuth() {
   } catch { window.location.href = '/admin-login.html'; return false; }
 }
 
-// ── Fetch helper ──────────────────────────────────────────────────────────────
+// ── Fetch helper (JSON only) ──────────────────────────────────────────────────
 async function apiFetch(url, opts = {}) {
   const r = await fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...opts });
   if (r.status === 401) { window.location.href = '/admin-login.html'; return null; }
@@ -207,7 +207,6 @@ function renderCards(items) {
       <div class="prog-card-body">
         <div class="prog-meta"><strong>Solicitante:</strong> ${esc(p.nome)}</div>
         <div class="prog-meta"><strong>Categoria:</strong> ${esc(p.categoria||'—')}</div>
-        <div class="prog-meta"><strong>Prioridade:</strong> ${esc(p.prioridade)}</div>
         ${p.admin_nome ? `<div class="prog-meta"><strong>Responsável:</strong> ${esc(p.admin_nome)}</div>` : ''}
         ${p.ultima_execucao ? `<div class="prog-meta"><strong>Última execução:</strong> ${fmtDT(p.ultima_execucao)}</div>` : ''}
       </div>
@@ -269,11 +268,78 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// ── Anexos ────────────────────────────────────────────────────────────────────
+let _progArquivos = [];
+const _IMGS_EXT_RE = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i;
+const _VID_EXT_RE  = /\.(mp4|webm|mov|avi|mkv|wmv)$/i;
+const _HINT_DEFAULT = 'Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.';
+
+function _renderProgTiles() {
+  const box  = document.getElementById('prog-anexo-tiles');
+  const hint = document.getElementById('prog-anexo-hint');
+  if (!box) return;
+  if (!_progArquivos.length) {
+    box.innerHTML = '';
+    if (hint) { hint.textContent = _HINT_DEFAULT; hint.style.color = ''; }
+    return;
+  }
+  box.innerHTML = _progArquivos.map((f, i) => {
+    const nome = f.name.replace(/"/g, '&quot;');
+    let media;
+    if (_IMGS_EXT_RE.test(f.name)) {
+      const url = URL.createObjectURL(f);
+      media = `<img src="${url}" style="max-width:100%;max-height:80px;border-radius:4px;display:block;margin-bottom:.25rem">`;
+    } else if (_VID_EXT_RE.test(f.name)) {
+      media = `<span style="font-size:1.2rem">🎬</span> `;
+    } else {
+      media = `<span style="font-size:1.2rem">📄</span> `;
+    }
+    return `<div class="anexo-tile" style="display:inline-flex;flex-direction:column;align-items:center;padding:.4rem .55rem;border:1px solid var(--border);border-radius:6px;gap:.2rem;max-width:120px;position:relative;background:var(--surface)">
+      ${media}
+      <span style="font-size:.7rem;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px">${nome}</span>
+      <button class="anexo-tile-remove" data-idx="${i}" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:#ef4444;color:#fff;font-size:.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700">✕</button>
+    </div>`;
+  }).join('');
+  if (hint) {
+    hint.style.color = 'var(--gold-dark)';
+    hint.textContent = `✓ ${_progArquivos.length} ${_progArquivos.length===1?'arquivo selecionado':'arquivos selecionados'} · clique em "Adicionar arquivos" para incluir mais`;
+  }
+}
+
+function _resetProgArquivos() {
+  _progArquivos = [];
+  const inp = document.getElementById('prog-anexo');
+  if (inp) inp.value = '';
+  _renderProgTiles();
+}
+
+document.getElementById('btn-prog-adicionar-arquivo')?.addEventListener('click', () => {
+  document.getElementById('prog-anexo')?.click();
+});
+
+document.getElementById('prog-anexo')?.addEventListener('change', function () {
+  Array.from(this.files || []).forEach(f => {
+    const dup = _progArquivos.some(x => x.name === f.name && x.size === f.size);
+    if (!dup && _progArquivos.length < 10) _progArquivos.push(f);
+  });
+  this.value = '';
+  _renderProgTiles();
+});
+
+document.getElementById('prog-anexo-tiles')?.addEventListener('click', e => {
+  const btn = e.target.closest('.anexo-tile-remove');
+  if (!btn) return;
+  _progArquivos.splice(+btn.dataset.idx, 1);
+  _renderProgTiles();
+});
+
 // ── Modal ─────────────────────────────────────────────────────────────────────
 let _editId = null;
 
 function abrirModal(titulo = 'Novo Agendamento') {
   document.getElementById('modal-titulo').textContent = titulo;
+  const btnSalvar = document.getElementById('btn-salvar');
+  if (btnSalvar) btnSalvar.textContent = _editId ? 'Salvar alterações' : 'Criar agendamento';
   document.getElementById('modal-overlay').style.display = 'flex';
   document.getElementById('modal-erro').style.display = 'none';
   document.getElementById('preview-datas').style.display = 'none';
@@ -286,51 +352,42 @@ function fecharModal() {
 }
 
 function limparForm() {
-  ['f-titulo','f-nome','f-setor','f-ramal','f-descricao','f-pessoa-busca'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
   _catCombo?.clear();
-  const selEl = document.getElementById('f-pessoa-selecionada');
-  if (selEl) selEl.style.display = 'none';
-  const resEl = document.getElementById('f-pessoa-resultados');
-  if (resEl) resEl.style.display = 'none';
+  document.getElementById('f-descricao').value = '';
+  document.getElementById('f-admin').value = '';
+  document.getElementById('f-admin-hint').style.display = 'none';
   document.getElementById('f-frequencia').value = '';
   document.getElementById('f-hora').value = '08:00';
-  document.getElementById('f-prioridade').value = 'normal';
-  document.getElementById('f-admin').value = '';
   document.getElementById('f-pular-feriados').checked = true;
   atualizarCamposFreq();
+  _resetProgArquivos();
+  // reset usuario search
+  const busca = document.getElementById('prog-usuario-busca');
+  const resultados = document.getElementById('prog-usuario-resultados');
+  const selecionado = document.getElementById('prog-usuario-selecionado');
+  if (busca) busca.value = '';
+  if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
+  if (selecionado) { selecionado.style.display = 'none'; selecionado.dataset.usuarioId = ''; }
 }
 
-function lerForm() {
+function lerFormAgendamento() {
   const freq = document.getElementById('f-frequencia').value;
   return {
-    titulo:             document.getElementById('f-titulo').value,
-    nome:               document.getElementById('f-nome').value,
-    setor:              document.getElementById('f-setor').value,
-    ramal:              document.getElementById('f-ramal').value,
-    descricao:          document.getElementById('f-descricao').value,
-    categoria:          _catCombo?.getValue() || '',
-    prioridade:         document.getElementById('f-prioridade').value,
-    admin_responsavel_id: document.getElementById('f-admin').value || null,
-    frequencia:         freq,
-    hora:               document.getElementById('f-hora').value,
-    dia_semana:         freq==='semanal'  ? parseInt(document.getElementById('f-dia-semana').value) : null,
-    dia_mes:            ['mensal','bimestral','trimestral','semestral','anual'].includes(freq)
-                          ? parseInt(document.getElementById('f-dia-mes').value) : null,
-    mes:                freq==='anual' ? parseInt(document.getElementById('f-mes').value) : null,
-    pular_feriados:     document.getElementById('f-pular-feriados').checked ? 1 : 0,
+    descricao:    document.getElementById('f-descricao').value,
+    categoria:    _catCombo?.getValue() || '',
+    frequencia:   freq,
+    hora:         document.getElementById('f-hora').value,
+    dia_semana:   freq==='semanal'  ? parseInt(document.getElementById('f-dia-semana').value) : null,
+    dia_mes:      ['mensal','bimestral','trimestral','semestral','anual'].includes(freq)
+                    ? parseInt(document.getElementById('f-dia-mes').value) : null,
+    mes:          freq==='anual' ? parseInt(document.getElementById('f-mes').value) : null,
+    pular_feriados: document.getElementById('f-pular-feriados').checked ? 1 : 0,
   };
 }
 
 function preencherForm(prog) {
-  document.getElementById('f-titulo').value     = prog.titulo || '';
-  document.getElementById('f-nome').value       = prog.nome || '';
-  document.getElementById('f-setor').value      = prog.setor || '';
-  document.getElementById('f-ramal').value      = prog.ramal || '';
   _catCombo?.setValue(prog.categoria || '');
   document.getElementById('f-descricao').value  = prog.descricao || '';
-  document.getElementById('f-prioridade').value = prog.prioridade || 'normal';
   document.getElementById('f-admin').value      = prog.admin_responsavel_id || '';
   document.getElementById('f-frequencia').value = prog.frequencia || '';
   document.getElementById('f-hora').value       = prog.hora || '08:00';
@@ -339,6 +396,24 @@ function preencherForm(prog) {
   if (prog.dia_semana != null) document.getElementById('f-dia-semana').value = prog.dia_semana;
   if (prog.dia_mes != null)    document.getElementById('f-dia-mes').value    = prog.dia_mes;
   if (prog.mes != null)        document.getElementById('f-mes').value        = prog.mes;
+  // show admin hint if admin is set
+  const hint = document.getElementById('f-admin-hint');
+  const sel  = document.getElementById('f-admin');
+  if (hint && sel && sel.value) {
+    hint.textContent = `Você salva o agendamento — ${sel.options[sel.selectedIndex]?.text ?? ''} será o responsável atribuído.`;
+    hint.style.display = '';
+  }
+  // usuario hint
+  if (prog.usuario_id && prog.nome) {
+    const selecionado = document.getElementById('prog-usuario-selecionado');
+    if (selecionado) {
+      selecionado.textContent = `✓ ${prog.nome}${prog.setor ? ` · ${prog.setor}` : ''}`;
+      selecionado.dataset.usuarioId = prog.usuario_id;
+      selecionado.style.display = '';
+    }
+    const busca = document.getElementById('prog-usuario-busca');
+    if (busca) busca.value = prog.nome;
+  }
 }
 
 function atualizarCamposFreq() {
@@ -352,9 +427,20 @@ function atualizarCamposFreq() {
 }
 document.getElementById('f-frequencia').addEventListener('change', atualizarCamposFreq);
 
+document.getElementById('f-admin').addEventListener('change', function () {
+  const hint = document.getElementById('f-admin-hint');
+  if (this.value) {
+    hint.textContent = `Você cria o agendamento — ${this.options[this.selectedIndex].text} será o responsável atribuído.`;
+    hint.style.display = '';
+  } else {
+    hint.style.display = 'none';
+  }
+});
+
 document.getElementById('btn-novo').addEventListener('click', () => {
   _editId = null;
   limparForm();
+  popularAdmins();
   abrirModal('Novo Agendamento');
 });
 document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
@@ -365,7 +451,7 @@ document.getElementById('btn-fechar-log').addEventListener('click', _fecharLogMo
 document.getElementById('btn-fechar-log-2').addEventListener('click', _fecharLogModal);
 
 document.getElementById('btn-preview').addEventListener('click', async () => {
-  const body = lerForm();
+  const body = lerFormAgendamento();
   const r = await apiFetch('/api/admin/programados/preview', { method: 'POST', body: JSON.stringify(body) });
   if (!r) return;
   const d = await r.json();
@@ -381,15 +467,51 @@ document.getElementById('btn-preview').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-salvar').addEventListener('click', async () => {
-  const body = lerForm();
+  const erroEl = document.getElementById('modal-erro');
+  erroEl.style.display = 'none';
+
+  if (_progArquivos.length > 10) {
+    erroEl.textContent = 'Máximo 10 anexos por agendamento.';
+    erroEl.style.display = 'block';
+    return;
+  }
+
+  const agend = lerFormAgendamento();
+  const fd = new FormData();
+  fd.append('descricao',    agend.descricao);
+  fd.append('categoria',    agend.categoria || '');
+  fd.append('frequencia',   agend.frequencia || '');
+  fd.append('hora',         agend.hora || '08:00');
+  fd.append('pular_feriados', agend.pular_feriados ? '1' : '0');
+  if (agend.dia_semana != null) fd.append('dia_semana', agend.dia_semana);
+  if (agend.dia_mes    != null) fd.append('dia_mes',    agend.dia_mes);
+  if (agend.mes        != null) fd.append('mes',        agend.mes);
+
+  const adminId = document.getElementById('f-admin').value;
+  if (adminId) fd.append('admin_responsavel_id', adminId);
+
+  const usuarioId = document.getElementById('prog-usuario-selecionado')?.dataset.usuarioId;
+  if (usuarioId) fd.append('usuario_id', usuarioId);
+
+  _progArquivos.forEach(f => fd.append('anexos', f, f.name));
+
   const url    = _editId ? `/api/admin/programados/${_editId}` : '/api/admin/programados';
   const method = _editId ? 'PUT' : 'POST';
-  const r = await apiFetch(url, { method, body: JSON.stringify(body) });
-  if (!r) return;
+
+  const btn = document.getElementById('btn-salvar');
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = 'Salvando…';
+
+  const r = await fetch(url, { method, body: fd, credentials: 'include' });
+  btn.disabled = false;
+  btn.textContent = label;
+
+  if (r.status === 401) { window.location.href = '/admin-login.html'; return; }
   const d = await r.json();
   if (!d.ok) {
-    document.getElementById('modal-erro').textContent = d.erro || 'Erro ao salvar';
-    document.getElementById('modal-erro').style.display = 'block';
+    erroEl.textContent = d.erro || 'Erro ao salvar';
+    erroEl.style.display = 'block';
     return;
   }
   fecharModal();
@@ -404,11 +526,13 @@ window.editarProg = async (id) => {
   const d = await r.json();
   if (!d.ok) return;
   _editId = id;
+  limparForm();
+  await popularAdmins();
   preencherForm(d.item);
   abrirModal('Editar Agendamento');
 };
 
-window.toggleProg = async (id, ativoAtual) => {
+window.toggleProg = async (id) => {
   const r = await apiFetch(`/api/admin/programados/${id}/toggle`, { method: 'PATCH' });
   if (!r) return;
   const d = await r.json();
@@ -441,110 +565,108 @@ window.verLog = async (id, titulo) => {
   document.getElementById('log-modal-overlay').style.display = 'flex';
 };
 
-// ── Carregar admins para select ───────────────────────────────────────────────
-async function carregarAdmins() {
-  const r = await apiFetch('/api/admin/transferencia-admins');
-  if (!r) return;
-  const lista = await r.json();
+// ── Admins ────────────────────────────────────────────────────────────────────
+async function popularAdmins() {
   const sel = document.getElementById('f-admin');
-  (Array.isArray(lista) ? lista : []).forEach(a => {
-    const opt = document.createElement('option');
-    opt.value = a.id;
-    opt.textContent = a.nome_completo || a.nome || a.usuario;
-    sel.appendChild(opt);
-  });
+  sel.innerHTML = '<option value="">Assumir eu mesmo</option>';
+  try {
+    const r = await fetch('/api/admin/colegas', { credentials: 'include' });
+    if (!r.ok) return;
+    const lista = await r.json();
+    (Array.isArray(lista) ? lista : []).forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.nome_completo;
+      sel.appendChild(opt);
+    });
+  } catch {}
 }
 
-async function carregarSetores() {
-  const r = await apiFetch('/api/setores');
-  if (!r) return;
-  const d = await r.json();
-  const dl = document.getElementById('setores-list');
-  (Array.isArray(d) ? d : (d.setores || d.items || [])).forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.nome || s;
-    dl.appendChild(opt);
-  });
-}
-
+// ── Etiquetas ─────────────────────────────────────────────────────────────────
 async function carregarEtiquetas() {
   const r = await apiFetch('/api/etiquetas');
   if (!r) return;
   const lista = await r.json();
   _etiquetasDin = Array.isArray(lista) ? lista : [];
-  _catCombo = _criarComboEtiqueta(document.getElementById('f-cat-combo'), { placeholder: '— selecionar etiqueta —' });
+  _catCombo = _criarComboEtiqueta(document.getElementById('f-cat-combo'), { placeholder: '— selecionar serviço —' });
 }
 
-// ── Busca de solicitante do portal ────────────────────────────────────────────
-let _portalUsers = [];
+// ── Busca de usuário do portal (master only) ──────────────────────────────────
+let _usuariosPortal = null;
 
 async function carregarUsuariosPortal() {
-  const r = await apiFetch('/api/admin/portal-usuarios');
-  if (!r) return;
-  const lista = await r.json();
-  _portalUsers = Array.isArray(lista) ? lista.filter(u => u.ativo !== 0) : [];
-}
+  const wrap = document.getElementById('prog-usuario-wrap');
+  if (!wrap) return;
+  if (!_adminInfo || !_adminInfo.is_master) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
 
-function setupPessoaBusca() {
-  const busca    = document.getElementById('f-pessoa-busca');
-  const resultEl = document.getElementById('f-pessoa-resultados');
-  const selEl    = document.getElementById('f-pessoa-selecionada');
-  const fSetor   = document.getElementById('f-setor');
+  try {
+    const r = await fetch('/api/admin/portal-usuarios', { credentials: 'include' });
+    if (!r.ok) return;
+    const lista = await r.json();
+    _usuariosPortal = Array.isArray(lista) ? lista.filter(u => u.ativo !== 0) : [];
+  } catch {}
 
-  function getFiltrados() {
-    const setor = fSetor.value.trim().toLowerCase();
-    const q     = busca.value.trim().toLowerCase();
-    return _portalUsers.filter(u => {
-      const okSetor = !setor || (u.setor && u.setor.toLowerCase().includes(setor));
-      const okNome  = !q || u.nome.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q));
-      return okSetor && okNome;
-    }).slice(0, 8);
-  }
+  const busca    = document.getElementById('prog-usuario-busca');
+  const resultEl = document.getElementById('prog-usuario-resultados');
+  const selEl    = document.getElementById('prog-usuario-selecionado');
 
-  function mostrar(lista) {
+  function _mostrar(lista) {
     if (!lista.length) { resultEl.style.display = 'none'; return; }
-    resultEl.innerHTML = lista.map(u => `
-      <div class="pp-opt" data-nome="${esc(u.nome)}" data-ramal="${esc(u.ramal||'')}"
-           style="padding:.55rem .9rem;cursor:pointer;border-bottom:1px solid var(--border-light,#f3f4f6)">
-        <div style="font-size:.85rem;font-weight:600">${esc(u.nome)}</div>
-        <div style="font-size:.74rem;color:var(--text-secondary)">${esc(u.setor||'—')}${u.ramal ? ` · Ramal ${esc(u.ramal)}` : ''}</div>
+    resultEl.innerHTML = lista.slice(0, 8).map(u =>
+      `<div class="prog-usu-item" data-id="${u.id}" data-nome="${esc(u.nome)}"
+        style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">
+        ${esc(u.nome)}${u.setor ? ' · <span style="color:var(--text-muted)">' + esc(u.setor) + '</span>' : ''}
       </div>`).join('');
     resultEl.style.display = 'block';
-    resultEl.querySelectorAll('.pp-opt').forEach(el => {
-      el.addEventListener('mouseenter', () => el.style.background = 'var(--surface-2,#f9fafb)');
+    resultEl.querySelectorAll('.prog-usu-item').forEach(el => {
+      el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover,#f3f4f6)');
       el.addEventListener('mouseleave', () => el.style.background = '');
-      el.addEventListener('mousedown', e => {
-        e.preventDefault();
-        const nome  = el.dataset.nome;
-        const ramal = el.dataset.ramal;
-        document.getElementById('f-nome').value  = nome;
-        document.getElementById('f-ramal').value = ramal;
-        busca.value = nome;
-        selEl.textContent = `${nome}${ramal ? ` · Ramal ${ramal}` : ''}`;
-        selEl.style.display = 'block';
+      el.addEventListener('click', () => {
+        const u = (_usuariosPortal || []).find(x => x.id === +el.dataset.id);
+        if (!u) return;
+        busca.value = u.nome;
+        selEl.innerHTML = `✓ ${esc(u.nome)}${u.setor ? ` · <span style="color:var(--text-muted);font-weight:400">${esc(u.setor)}</span>` : ''}`;
+        selEl.dataset.usuarioId = u.id;
+        selEl.style.display = '';
         resultEl.style.display = 'none';
       });
     });
   }
 
-  busca.addEventListener('input', () => { selEl.style.display = 'none'; mostrar(getFiltrados()); });
-  busca.addEventListener('focus', () => mostrar(getFiltrados()));
-  busca.addEventListener('blur',  () => setTimeout(() => { resultEl.style.display = 'none'; }, 150));
-
-  fSetor.addEventListener('input', () => {
-    busca.value = '';
+  busca.addEventListener('input', () => {
     selEl.style.display = 'none';
-    resultEl.style.display = 'none';
+    selEl.dataset.usuarioId = '';
+    const q = busca.value.trim().toLowerCase();
+    if (!q || !_usuariosPortal) { resultEl.style.display = 'none'; return; }
+    const filtrados = _usuariosPortal.filter(u =>
+      u.nome.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q)) || (u.setor && u.setor.toLowerCase().includes(q))
+    );
+    _mostrar(filtrados);
   });
+  busca.addEventListener('focus', () => {
+    const q = busca.value.trim().toLowerCase();
+    if (q && _usuariosPortal) {
+      const filtrados = _usuariosPortal.filter(u => u.nome.toLowerCase().includes(q));
+      _mostrar(filtrados);
+    }
+  });
+  busca.addEventListener('blur', () => setTimeout(() => { resultEl.style.display = 'none'; }, 150));
 }
+
+// ── Botões de atalho ──────────────────────────────────────────────────────────
+document.getElementById('btn-prog-novo-usuario')?.addEventListener('click', () => {
+  window.open('/admin-usuarios.html', '_blank');
+});
+
+document.getElementById('btn-prog-nova-etiqueta')?.addEventListener('click', () => {
+  window.open('/admin-servicos.html', '_blank');
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
   const ok = await checkAuth();
   if (!ok) return;
-  setupPessoaBusca();
-  carregarAdmins();
-  carregarSetores();
   carregarEtiquetas();
   carregarUsuariosPortal();
   carregarAgendamentos();

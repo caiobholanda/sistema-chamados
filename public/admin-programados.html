@@ -143,108 +143,106 @@
       <button class="modal-close" id="btn-fechar-modal">✕</button>
     </div>
     <div class="modal-body" style="max-height:70vh;overflow-y:auto;padding:1.25rem 1.5rem">
-      <div class="form-grid-2">
-        <div class="field-full">
-          <label class="form-label">Título do agendamento <span class="req">*</span></label>
-          <input class="form-control" id="f-titulo" placeholder="Ex: Verificação semanal dos backups">
-        </div>
-        <div>
-          <label class="form-label">Setor <span class="req">*</span></label>
-          <input class="form-control" id="f-setor" list="setores-list" placeholder="Ex: Tecnologia da Informação" autocomplete="off">
-          <datalist id="setores-list"></datalist>
-        </div>
-        <div>
-          <label class="form-label">Serviço / Etiqueta</label>
-          <div id="f-cat-combo"></div>
-        </div>
-        <div class="field-full" style="position:relative">
-          <label class="form-label">Solicitante do portal <span style="font-size:.75rem;font-weight:400;color:var(--text-secondary)">(opcional — preenche nome e ramal)</span></label>
-          <input class="form-control" id="f-pessoa-busca" placeholder="Buscar pelo nome…" autocomplete="off">
-          <div id="f-pessoa-resultados" style="display:none;position:absolute;z-index:300;left:0;right:0;border:1px solid var(--border);border-radius:8px;background:var(--surface);max-height:180px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
-          <div id="f-pessoa-selecionada" style="display:none;margin-top:.4rem;font-size:.8rem;padding:.3rem .7rem;background:var(--gold-light,#fef3c7);color:var(--gold-dark,#92400e);border-radius:5px;border:1px solid var(--gold,#d4953d)"></div>
-        </div>
-        <div>
-          <label class="form-label">Nome do solicitante <span class="req">*</span></label>
-          <input class="form-control" id="f-nome" placeholder="Ex: Sistema TI">
-        </div>
-        <div>
-          <label class="form-label">Ramal</label>
-          <input class="form-control" id="f-ramal" placeholder="0000" maxlength="4">
-        </div>
-        <div class="field-full">
-          <label class="form-label">Descrição <span class="req">*</span></label>
-          <textarea class="form-control" id="f-descricao" rows="3" placeholder="Descreva a atividade recorrente (mín. 10 caracteres)"></textarea>
-        </div>
-        <div>
-          <label class="form-label">Prioridade</label>
-          <select class="form-control" id="f-prioridade">
-            <option value="normal">Normal</option>
-            <option value="urgente">Urgente</option>
-            <option value="baixa">Baixa</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label">Admin responsável</label>
-          <select class="form-control" id="f-admin">
-            <option value="">— Sem responsável —</option>
-          </select>
-        </div>
+      <p style="font-size:.82rem;color:var(--text-muted,#6b7280);margin:0 0 1.25rem">Chamado será registrado no setor de TI e aberto automaticamente na data configurada.</p>
 
-        <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:.75rem;margin-top:.25rem">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin-bottom:.6rem">⏰ Agendamento</div>
+      <!-- Direcionar para usuário (master only) -->
+      <div class="form-group" id="prog-usuario-wrap" style="display:none">
+        <label>Direcionar para usuário <span style="font-weight:400;color:var(--text-muted,#6b7280)">(opcional)</span></label>
+        <div style="display:flex;gap:.4rem;align-items:center">
+          <div style="flex:1;position:relative">
+            <input class="form-control" type="text" id="prog-usuario-busca" placeholder="Buscar por nome, setor ou e-mail…" autocomplete="off">
+            <div id="prog-usuario-resultados" style="display:none;position:absolute;z-index:300;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:var(--surface);max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+          </div>
+          <button type="button" id="btn-prog-novo-usuario" title="Cadastrar novo usuário" style="flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;font-size:1.2rem;line-height:1;color:var(--gold-dark,#92400e);font-weight:600">+</button>
         </div>
+        <div id="prog-usuario-selecionado" style="display:none;font-size:.8rem;color:var(--text-secondary,#6b7280);margin-top:.35rem;padding:.3rem .5rem;background:var(--bg-card,#f9fafb);border-radius:5px;border:1px solid var(--border)"></div>
+      </div>
 
-        <div>
-          <label class="form-label">Frequência <span class="req">*</span></label>
-          <select class="form-control" id="f-frequencia">
-            <option value="">Selecione…</option>
-            <option value="diario">Diário</option>
-            <option value="semanal">Semanal</option>
-            <option value="mensal">Mensal</option>
-            <option value="bimestral">Bimestral</option>
-            <option value="trimestral">Trimestral</option>
-            <option value="semestral">Semestral</option>
-            <option value="anual">Anual</option>
-          </select>
+      <!-- Serviço / Etiqueta -->
+      <div class="form-group">
+        <label>Serviço <span style="font-weight:400;color:var(--text-muted,#6b7280)">(opcional)</span></label>
+        <div style="display:flex;gap:.4rem;align-items:center">
+          <div style="flex:1" id="f-cat-combo"></div>
+          <button type="button" id="btn-prog-nova-etiqueta" title="Criar nova etiqueta" style="flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;font-size:1.2rem;line-height:1;color:var(--gold-dark,#92400e);font-weight:600">+</button>
         </div>
-        <div>
-          <label class="form-label">Horário</label>
-          <input class="form-control" id="f-hora" type="time" value="08:00">
-        </div>
+      </div>
 
-        <div id="campo-dia-semana" style="display:none">
-          <label class="form-label">Dia da semana</label>
-          <select class="form-control" id="f-dia-semana">
-            <option value="1">Segunda-feira</option>
-            <option value="2">Terça-feira</option>
-            <option value="3">Quarta-feira</option>
-            <option value="4">Quinta-feira</option>
-            <option value="5">Sexta-feira</option>
-            <option value="6">Sábado</option>
-            <option value="0">Domingo</option>
-          </select>
-        </div>
-        <div id="campo-dia-mes" style="display:none">
-          <label class="form-label">Dia do mês</label>
-          <input class="form-control" id="f-dia-mes" type="number" min="1" max="31" placeholder="Ex: 1">
-        </div>
-        <div id="campo-mes" style="display:none">
-          <label class="form-label">Mês</label>
-          <select class="form-control" id="f-mes">
-            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
-            <option value="3">Março</option><option value="4">Abril</option>
-            <option value="5">Maio</option><option value="6">Junho</option>
-            <option value="7">Julho</option><option value="8">Agosto</option>
-            <option value="9">Setembro</option><option value="10">Outubro</option>
-            <option value="11">Novembro</option><option value="12">Dezembro</option>
-          </select>
-        </div>
+      <!-- Atribuir para admin -->
+      <div class="form-group">
+        <label>Atribuir para admin <span style="font-weight:400;color:var(--text-muted,#6b7280)">(opcional)</span></label>
+        <select class="form-control" id="f-admin">
+          <option value="">Assumir eu mesmo</option>
+        </select>
+        <p class="form-hint" id="f-admin-hint" style="display:none"></p>
+      </div>
 
-        <div class="field-full" style="display:flex;align-items:center;gap:.6rem">
-          <input type="checkbox" id="f-pular-feriados" checked style="width:1rem;height:1rem;cursor:pointer">
-          <label for="f-pular-feriados" style="font-size:.83rem;cursor:pointer;margin:0">
-            Pular feriados e fins de semana (cria no próximo dia útil)
-          </label>
+      <!-- Descrição -->
+      <div class="form-group">
+        <label>Descrição <span class="req">*</span></label>
+        <textarea class="form-control" id="f-descricao" rows="4" maxlength="2000" placeholder="Descreva a atividade recorrente (mín. 10 caracteres)"></textarea>
+      </div>
+
+      <!-- Anexos -->
+      <div class="form-group">
+        <label>Anexos <span style="font-weight:400;color:var(--text-muted,#6b7280)">(opcional)</span></label>
+        <button type="button" id="btn-prog-adicionar-arquivo" class="btn btn-ghost btn-sm" style="margin-bottom:.4rem">Adicionar arquivos</button>
+        <input type="file" id="prog-anexo" multiple accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv" style="display:none">
+        <div class="anexo-tiles" id="prog-anexo-tiles"></div>
+        <p class="form-hint" id="prog-anexo-hint">Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.</p>
+      </div>
+
+      <!-- Agendamento -->
+      <div style="border-top:1px solid var(--border);padding-top:.75rem;margin-top:.25rem">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary,#6b7280);margin-bottom:.75rem">⏰ Agendamento</div>
+        <div class="form-grid-2">
+          <div>
+            <label class="form-label">Frequência <span class="req">*</span></label>
+            <select class="form-control" id="f-frequencia">
+              <option value="">Selecione…</option>
+              <option value="diario">Diário</option>
+              <option value="semanal">Semanal</option>
+              <option value="mensal">Mensal</option>
+              <option value="bimestral">Bimestral</option>
+              <option value="trimestral">Trimestral</option>
+              <option value="semestral">Semestral</option>
+              <option value="anual">Anual</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Horário</label>
+            <input class="form-control" id="f-hora" type="time" value="08:00">
+          </div>
+          <div id="campo-dia-semana" style="display:none">
+            <label class="form-label">Dia da semana</label>
+            <select class="form-control" id="f-dia-semana">
+              <option value="1">Segunda-feira</option>
+              <option value="2">Terça-feira</option>
+              <option value="3">Quarta-feira</option>
+              <option value="4">Quinta-feira</option>
+              <option value="5">Sexta-feira</option>
+              <option value="6">Sábado</option>
+              <option value="0">Domingo</option>
+            </select>
+          </div>
+          <div id="campo-dia-mes" style="display:none">
+            <label class="form-label">Dia do mês</label>
+            <input class="form-control" id="f-dia-mes" type="number" min="1" max="31" placeholder="Ex: 1">
+          </div>
+          <div id="campo-mes" style="display:none">
+            <label class="form-label">Mês</label>
+            <select class="form-control" id="f-mes">
+              <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+              <option value="3">Março</option><option value="4">Abril</option>
+              <option value="5">Maio</option><option value="6">Junho</option>
+              <option value="7">Julho</option><option value="8">Agosto</option>
+              <option value="9">Setembro</option><option value="10">Outubro</option>
+              <option value="11">Novembro</option><option value="12">Dezembro</option>
+            </select>
+          </div>
+          <div class="field-full" style="display:flex;align-items:center;gap:.6rem">
+            <input type="checkbox" id="f-pular-feriados" checked style="width:1rem;height:1rem;cursor:pointer">
+            <label for="f-pular-feriados" style="font-size:.83rem;cursor:pointer;margin:0">Pular feriados e fins de semana (cria no próximo dia útil)</label>
+          </div>
         </div>
       </div>
 
@@ -259,7 +257,7 @@
       <button class="btn btn-ghost" id="btn-preview">🔍 Ver datas</button>
       <div style="flex:1"></div>
       <button class="btn btn-ghost" id="btn-cancelar-modal">Cancelar</button>
-      <button class="btn btn-primary" id="btn-salvar">Salvar Agendamento</button>
+      <button class="btn btn-primary" id="btn-salvar">Criar agendamento</button>
     </div>
   </div>
 </div>

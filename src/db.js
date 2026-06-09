@@ -270,6 +270,8 @@ function initDb() {
   }
   try { db.exec("ALTER TABLE inventario_micros ADD COLUMN tipo_equipamento TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE inventario_micros ADD COLUMN nobreak TEXT DEFAULT ''"); } catch {}
+  try { db.exec('ALTER TABLE chamados_programados ADD COLUMN usuario_id INTEGER'); } catch {}
+  try { db.exec('ALTER TABLE chamados_programados ADD COLUMN anexos_json TEXT'); } catch {}
   try { db.exec(`
     CREATE TABLE IF NOT EXISTS mensagens_leitura (
       admin_id INTEGER NOT NULL,
@@ -2627,10 +2629,12 @@ function inserirChamadoProgramado(dados) {
   return getDb().prepare(`
     INSERT INTO chamados_programados
       (titulo, nome, setor, ramal, descricao, categoria, prioridade, frequencia,
-       dia_semana, dia_mes, mes, hora, pular_feriados, admin_responsavel_id, proxima_execucao)
+       dia_semana, dia_mes, mes, hora, pular_feriados, admin_responsavel_id, proxima_execucao,
+       usuario_id, anexos_json)
     VALUES
       (@titulo,@nome,@setor,@ramal,@descricao,@categoria,@prioridade,@frequencia,
-       @dia_semana,@dia_mes,@mes,@hora,@pular_feriados,@admin_responsavel_id,@proxima_execucao)
+       @dia_semana,@dia_mes,@mes,@hora,@pular_feriados,@admin_responsavel_id,@proxima_execucao,
+       @usuario_id,@anexos_json)
   `).run(dados).lastInsertRowid;
 }
 
@@ -2641,7 +2645,8 @@ function atualizarChamadoProgramado(id, dados) {
       descricao=@descricao, categoria=@categoria, prioridade=@prioridade,
       frequencia=@frequencia, dia_semana=@dia_semana, dia_mes=@dia_mes, mes=@mes,
       hora=@hora, pular_feriados=@pular_feriados,
-      admin_responsavel_id=@admin_responsavel_id, proxima_execucao=@proxima_execucao
+      admin_responsavel_id=@admin_responsavel_id, proxima_execucao=@proxima_execucao,
+      usuario_id=@usuario_id, anexos_json=@anexos_json
     WHERE id=@id
   `).run({ ...dados, id });
 }
