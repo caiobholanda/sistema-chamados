@@ -542,7 +542,7 @@ function renderPainel(usuario) {
     </div>
 
     <div class="stats-strip" id="stats-strip-u">
-      <div class="stat-pill" id="pill-abertos-u" style="cursor:pointer" title="Ver abertos">
+      <div class="stat-pill" id="pill-abertos-u" style="cursor:pointer" title="Ver em aberto">
         <div class="stat-dot dot-aberto">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>
@@ -550,18 +550,7 @@ function renderPainel(usuario) {
         </div>
         <div class="stat-info">
           <div class="stat-num" id="cnt-u-aberto">—</div>
-          <div class="stat-label">Abertos</div>
-        </div>
-      </div>
-      <div class="stat-pill" id="pill-andamento-u" style="cursor:pointer" title="Ver em andamento">
-        <div class="stat-dot dot-andamento">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </div>
-        <div class="stat-info">
-          <div class="stat-num" id="cnt-u-andamento">—</div>
-          <div class="stat-label">Em andamento</div>
+          <div class="stat-label">Em aberto</div>
         </div>
       </div>
       <div class="stat-pill" id="pill-concluidos-u" style="cursor:pointer" title="Ver concluídos">
@@ -945,7 +934,6 @@ function renderPainel(usuario) {
   document.getElementById('tab-cancelados-u').addEventListener('click', _ativarCancelados);
   document.getElementById('pill-cancelados-u').addEventListener('click', _ativarCancelados);
   document.getElementById('pill-abertos-u').addEventListener('click', () => document.getElementById('tab-abertos').click());
-  document.getElementById('pill-andamento-u').addEventListener('click', () => document.getElementById('tab-abertos').click());
   document.getElementById('pill-concluidos-u').addEventListener('click', () => document.getElementById('tab-encerrados').click());
   document.getElementById('pill-sugestoes-u').addEventListener('click', () => document.getElementById('tab-sugestoes-u').click());
 
@@ -1002,8 +990,7 @@ function renderPainel(usuario) {
     todosChamados.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
 
     const el = id => document.getElementById(id);
-    if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = qtd.aberto;
-    if (el('cnt-u-andamento')) el('cnt-u-andamento').textContent = qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
+    if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = qtd.aberto + qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
     if (el('cnt-u-concluido')) el('cnt-u-concluido').textContent = qtd.concluido + qtd.encerrado;
 
     const abertos = qtd.aberto + qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
