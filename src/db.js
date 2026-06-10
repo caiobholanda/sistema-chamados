@@ -207,6 +207,8 @@ function initDb() {
   `); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN servico_id INTEGER'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN servico_nome TEXT'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN avaliado_por_usuario_id INTEGER REFERENCES usuarios(id)'); } catch {}
+  try { db.exec('ALTER TABLE chamados ADD COLUMN avaliado_por_nome TEXT'); } catch {}
   try { db.exec(`
     CREATE TABLE IF NOT EXISTS etiquetas (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1801,10 +1803,36 @@ function listarAssinaturasHistorico(chamadoId) {
   `).all(chamadoId);
 }
 
-function avaliarChamado(id, nota, comentario) {
+function encerrarChamadoAposAvaliacao(id) {
   getDb().prepare(`
-    UPDATE chamados SET nota = ?, comentario_avaliacao = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?
-  `).run(nota, comentario || null, id);
+    UPDATE chamados SET status = 'encerrado', atualizado_em = CURRENT_TIMESTAMP
+     WHERE id = ? AND status = 'concluido'
+  `).run(id);
+}
+
+function usuarioPodeAcessarChamado(usuarioId, chamado) {
+  if (!chamado) return false;
+  if (Number(chamado.usuario_id) === Number(usuarioId)) return true;
+  const u = buscarUsuarioPorId(usuarioId);
+  if (!u || !u.setor) return false;
+  const setorNorm = String(u.setor).trim().toLowerCase();
+  if (String(chamado.setor || '').trim().toLowerCase() === setorNorm) return true;
+  if (chamado.usuario_id) {
+    const creator = buscarUsuarioPorId(chamado.usuario_id);
+    if (creator && String(creator.setor || '').trim().toLowerCase() === setorNorm) return true;
+  }
+  return false;
+}
+
+function avaliarChamado(id, nota, comentario, autorId = null, autorNome = null) {
+  const r = getDb().prepare(`
+    UPDATE chamados
+       SET nota = ?, comentario_avaliacao = ?,
+           avaliado_por_usuario_id = ?, avaliado_por_nome = ?,
+           atualizado_em = CURRENT_TIMESTAMP
+     WHERE id = ? AND nota IS NULL
+  `).run(nota, comentario || null, autorId, autorNome, id);
+  return r.changes > 0;
 }
 
 function assinarChamado(id, assinatura) {
@@ -1867,7 +1895,8 @@ function listarChamadosPorUsuario(usuario_id, setor = null) {
     SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
            c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
            c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
-           c.comentario_avaliacao, c.criado_em, c.atualizado_em,
+           c.comentario_avaliacao, c.avaliado_por_usuario_id, c.avaliado_por_nome,
+           c.criado_em, c.atualizado_em,
            c.concluido_em, c.categoria, c.assinado_em, c.requer_acordo, c.acordo_equipamentos,
            c.cancelamento_motivo, c.cancelado_em,
            c.aberto_por_admin_id,
@@ -1887,8 +1916,9 @@ function listarChamadosPorUsuario(usuario_id, setor = null) {
   const setor_chamados = db.prepare(`
     SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
            c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
-           c.prazo, c.admin_responsavel_id, NULL as solucao, NULL as nota,
-           NULL as comentario_avaliacao, c.criado_em, c.atualizado_em,
+           c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
+           c.comentario_avaliacao, c.avaliado_por_usuario_id, c.avaliado_por_nome,
+           c.criado_em, c.atualizado_em,
            c.concluido_em, c.categoria, c.assinado_em, c.requer_acordo, c.acordo_equipamentos,
            c.cancelamento_motivo, c.cancelado_em,
            c.aberto_por_admin_id,
@@ -1902,7 +1932,7 @@ function listarChamadosPorUsuario(usuario_id, setor = null) {
     LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
     LEFT JOIN usuarios uc ON c.usuario_id = uc.id
     WHERE (c.usuario_id IS NULL OR c.usuario_id <> ?)
-      AND c.status IN ('aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar')
+      AND c.status <> 'cancelado'
       AND (
         LOWER(TRIM(COALESCE(uc.setor, ''))) = ?
         OR LOWER(TRIM(COALESCE(c.setor,  ''))) = ?
@@ -2924,6 +2954,8 @@ module.exports = {
   reabrirChamado,
   reabrirChamadoUsuario,
   avaliarChamado,
+  encerrarChamadoAposAvaliacao,
+  usuarioPodeAcessarChamado,
   assinarChamado,
   registrarUsuario,
   buscarUsuarioPorEmail,

@@ -110,17 +110,23 @@ router.get('/:id', (req, res) => {
 
 router.post('/:id/avaliar', (req, res) => {
   try {
+    const usuario_id = getUsuarioIdFromCookie(req);
+    if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (!db.usuarioPodeAcessarChamado(usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
     if (chamado.status !== 'concluido') return res.status(400).json({ erro: 'Só é possível avaliar chamados concluídos' });
-    if (chamado.nota !== null) return res.status(400).json({ erro: 'Chamado já avaliado' });
+    if (chamado.nota !== null) return res.status(409).json({ erro: 'Este chamado já foi avaliado por outra pessoa do setor' });
 
     const nota = parseInt(req.body.nota, 10);
     if (!nota || nota < 1 || nota > 10) return res.status(400).json({ erro: 'Nota deve ser um inteiro entre 1 e 10' });
 
     const comentario = sanitizarTexto(req.body.comentario_avaliacao || '');
-    db.avaliarChamado(chamado.id, nota, comentario || null);
-    return res.json({ mensagem: 'Avaliação registrada com sucesso' });
+    const usuario = db.buscarUsuarioPorId(usuario_id);
+    const ok = db.avaliarChamado(chamado.id, nota, comentario || null, usuario_id, usuario ? usuario.nome : null);
+    if (!ok) return res.status(409).json({ erro: 'Este chamado já foi avaliado por outra pessoa do setor' });
+    db.encerrarChamadoAposAvaliacao(chamado.id);
+    return res.json({ mensagem: 'Avaliação registrada e chamado encerrado' });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });
@@ -178,7 +184,7 @@ router.get('/:id/mensagens', (req, res) => {
     if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (Number(chamado.usuario_id) !== Number(usuario_id)) return res.status(403).json({ erro: 'Acesso negado' });
+    if (!db.usuarioPodeAcessarChamado(usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
     return res.json(db.listarMensagensChamado(chamado.id));
   } catch (err) {
     console.error(err);
@@ -198,7 +204,7 @@ router.post('/:id/mensagens', uploadMiddleware('chat_anexo'), (req, res) => {
       if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
       return res.status(404).json({ erro: 'Chamado não encontrado' });
     }
-    if (Number(chamado.usuario_id) !== Number(usuario_id)) {
+    if (!db.usuarioPodeAcessarChamado(usuario_id, chamado)) {
       if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
       return res.status(403).json({ erro: 'Acesso negado' });
     }
@@ -262,7 +268,7 @@ router.get('/:id/mensagens/:msgId/chat-anexo', (req, res) => {
     const usuario_id = getUsuarioIdFromCookie(req);
     if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
-    if (!chamado || Number(chamado.usuario_id) !== Number(usuario_id)) return res.status(403).json({ erro: 'Acesso negado' });
+    if (!chamado || !db.usuarioPodeAcessarChamado(usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
     const msg = db.getDb().prepare('SELECT * FROM mensagens_chamado WHERE id = ? AND chamado_id = ?').get(req.params.msgId, req.params.id);
     if (!msg || !msg.chat_anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
     const filePath = path.join(UPLOADS_DIR, msg.chat_anexo_path);

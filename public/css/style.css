@@ -1984,8 +1984,58 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe;
   border-radius: 6px; padding: .15rem .45rem; font-size: .7rem; font-weight: 600;
 }
+.filtro-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius);
+  padding: .75rem 1rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+.filtro-bar-titulo {
+  display: flex; align-items: center; gap: .35rem;
+  font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+  color: var(--gold-dark); text-transform: uppercase;
+  margin-bottom: .55rem;
+}
+.filtro-bar-titulo svg { opacity: .85; }
+.filtro-bar-row {
+  display: flex; gap: .9rem; align-items: center; flex-wrap: wrap;
+}
 .filtro-escopo-row {
-  display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .75rem;
+  display: flex; gap: .4rem; flex-wrap: wrap;
+}
+.filtro-busca-wrap {
+  position: relative; flex: 1; min-width: 220px;
+}
+.filtro-busca-icon {
+  position: absolute; left: .65rem; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); pointer-events: none;
+}
+.filtro-busca-input {
+  width: 100%; padding: .5rem .75rem .5rem 2rem;
+  background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: .85rem; color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+}
+.filtro-busca-input:focus {
+  outline: none; border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(197,165,90,.15);
+}
+.filtro-busca-input::placeholder { color: var(--text-muted); }
+.filtro-busca-clear {
+  position: absolute; right: .35rem; top: 50%; transform: translateY(-50%);
+  background: var(--border); border: none; color: var(--text-secondary);
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+  font-size: .7rem; display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.filtro-busca-clear:hover { background: var(--text-muted); color: var(--surface); }
+@media (max-width: 540px) {
+  .filtro-bar-row { gap: .6rem; }
+  .filtro-busca-wrap { min-width: 100%; }
 }
 .chip-escopo {
   display: inline-flex; align-items: center; gap: .35rem;
