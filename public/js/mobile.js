@@ -699,8 +699,8 @@ async function renderDetalhe(c) {
         <div id="mob-fotos-grid" class="mob-fotos-grid"><span style="font-size:.78rem;color:var(--text-muted)">Carregando…</span></div>
         <div style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem">
           <label class="mob-btn mob-btn-ghost mob-btn-sm" style="cursor:pointer;flex-shrink:0;margin:0">
-            + Foto
-            <input type="file" id="mob-input-foto" accept="image/*" capture="environment" style="display:none" multiple>
+            + Anexar
+            <input type="file" id="mob-input-foto" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.log,.zip,.mov,.avi,.mkv,.wmv" style="display:none" multiple>
           </label>
           <div id="mob-fotos-msg" style="font-size:.78rem;color:var(--text-muted)"></div>
         </div>
