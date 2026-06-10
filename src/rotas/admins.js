@@ -452,6 +452,7 @@ router.patch('/chamados/:id/descricao', requireAdmin, (req, res) => {
     if (!descricao || descricao.trim().length < 5)
       return res.status(400).json({ erro: 'Descrição muito curta (mín. 5 caracteres)' });
     db.atualizarDescricao(chamado.id, descricao.trim(), req.admin.sub);
+    notificarUsuario(chamado);
     return res.json({ mensagem: 'Descrição atualizada' });
   } catch (err) {
     console.error(err);
