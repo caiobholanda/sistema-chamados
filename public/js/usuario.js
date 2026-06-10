@@ -553,6 +553,17 @@ function renderPainel(usuario) {
           <div class="stat-label">Em aberto</div>
         </div>
       </div>
+      <div class="stat-pill" id="pill-avaliacao-u" style="cursor:pointer" title="Ver avaliações pendentes">
+        <div class="stat-dot dot-avaliacao">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-num" id="cnt-u-avaliacao">0</div>
+          <div class="stat-label">Avaliação pendente</div>
+        </div>
+      </div>
       <div class="stat-pill" id="pill-concluidos-u" style="cursor:pointer" title="Ver concluídos">
         <div class="stat-dot dot-concluido">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -936,6 +947,7 @@ function renderPainel(usuario) {
   document.getElementById('tab-cancelados-u').addEventListener('click', _ativarCancelados);
   document.getElementById('pill-cancelados-u').addEventListener('click', _ativarCancelados);
   document.getElementById('pill-abertos-u').addEventListener('click', () => document.getElementById('tab-abertos').click());
+  document.getElementById('pill-avaliacao-u').addEventListener('click', () => document.getElementById('tab-avaliacao-pendente').click());
   document.getElementById('pill-concluidos-u').addEventListener('click', () => document.getElementById('tab-encerrados').click());
   document.getElementById('pill-sugestoes-u').addEventListener('click', () => document.getElementById('tab-sugestoes-u').click());
 
@@ -992,12 +1004,13 @@ function renderPainel(usuario) {
     todosChamados.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
 
     const el = id => document.getElementById(id);
+    const pendentes = todosChamados.filter(c => c.status === 'concluido' && c.nota === null).length;
     if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = qtd.aberto + qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
+    if (el('cnt-u-avaliacao')) el('cnt-u-avaliacao').textContent = pendentes;
     if (el('cnt-u-concluido')) el('cnt-u-concluido').textContent = qtd.concluido + qtd.encerrado;
 
     const abertos = qtd.aberto + qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
     const encerrados = qtd.concluido + qtd.encerrado;
-    const pendentes = todosChamados.filter(c => c.status === 'concluido' && c.nota === null).length;
     el('badge-abertos-u').textContent = abertos || '';
     el('badge-encerrados-u').textContent = encerrados || '';
     if (el('badge-avaliacao-u')) el('badge-avaliacao-u').textContent = pendentes || '';
