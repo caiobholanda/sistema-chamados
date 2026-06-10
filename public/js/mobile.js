@@ -416,96 +416,179 @@ async function renderLista() {
   carregarChamados();
 }
 
-function abrirFormNovoChamado() {
+async function abrirFormNovoChamado() {
   const overlay = document.createElement('div');
   overlay.id = 'mob-novo-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.5);display:flex;align-items:flex-end';
 
   overlay.innerHTML = `
-    <div style="background:#fff;width:100%;border-radius:16px 16px 0 0;max-height:90vh;overflow-y:auto;padding:1.2rem 1rem 2rem">
+    <div style="background:var(--card,#fff);width:100%;border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto;padding:1.25rem 1rem 2rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
         <div style="font-size:1rem;font-weight:700;color:var(--navy)">Abrir chamado</div>
         <button id="mob-novo-fechar" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted);padding:.1rem .3rem;line-height:1">&#x2715;</button>
       </div>
       <div id="mob-novo-msg"></div>
       <form id="mob-novo-form" novalidate>
+
+        ${adminInfo && adminInfo.is_master ? `
         <div class="mob-field">
-          <label class="mob-label">Servi&ccedil;o <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-          <select class="mob-input" id="mob-novo-categoria">
+          <label class="mob-label">Direcionar para usu&aacute;rio <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+          <div style="position:relative">
+            <input class="mob-input" type="text" id="mob-nc-usuario-busca" placeholder="Buscar por nome ou setor&hellip;" autocomplete="off">
+            <div id="mob-nc-usuario-resultados" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--card,#fff);border:1px solid var(--border);border-radius:var(--radius);max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+          </div>
+          <div id="mob-nc-usuario-selecionado" style="display:none;font-size:.8rem;margin-top:.3rem;padding:.3rem .6rem;background:var(--surface-2);border-radius:var(--radius)"></div>
+          <input type="hidden" id="mob-nc-usuario-id">
+        </div>` : '<input type="hidden" id="mob-nc-usuario-id">'}
+
+        <div class="mob-field">
+          <label class="mob-label">Servi&ccedil;o <span style="color:var(--text-muted);font-size:.78rem">(opcional &mdash; IA escolhe se vazio)</span></label>
+          <select class="mob-input" id="mob-nc-categoria">
             <option value="">Classificar automaticamente</option>
-            <option value="software">Software</option>
-            <option value="hardware">Hardware</option>
-            <option value="impressora">Impressora</option>
-            <option value="ramal">Ramal / Telefone</option>
-            <option value="nobreak">Nobreak</option>
-            <option value="monitor">Monitor</option>
-            <option value="mouse">Mouse</option>
-            <option value="teclado">Teclado</option>
-            <option value="rede">Rede / Internet</option>
-            <option value="acesso_senha">Acesso / Senha</option>
-            <option value="cameras">C&acirc;meras / CFTV</option>
-            <option value="email">E-mail</option>
-            <option value="tv_projetor">TV / Projetor</option>
-            <option value="processo_compra">Processo de Compra</option>
-            <option value="outros">Outros</option>
           </select>
         </div>
+
         <div class="mob-field">
-          <label class="mob-label">Descri&ccedil;&atilde;o <span style="color:#dc2626">*</span></label>
-          <textarea class="mob-input mob-textarea" id="mob-novo-descricao" placeholder="Descreva o problema&hellip;" maxlength="2000" rows="5"></textarea>
+          <label class="mob-label">Atribuir para admin <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+          <select class="mob-input" id="mob-nc-admin">
+            <option value="">Assumir eu mesmo</option>
+          </select>
         </div>
+
         <div class="mob-field">
-          <label class="mob-label">Foto / V&iacute;deo <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-          <input type="file" id="mob-novo-anexo" accept="image/*,video/*,.pdf,.txt,.docx"
-            style="display:none" capture="environment">
-          <button type="button" id="mob-btn-anexo"
-            style="display:flex;align-items:center;gap:.5rem;background:var(--bg,#F7F3ED);border:1.5px dashed var(--border,#E5DDD0);border-radius:8px;padding:.65rem .9rem;width:100%;cursor:pointer;font-size:.83rem;color:var(--text-muted,#7A726A)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-            <span id="mob-anexo-label">Selecionar arquivo&hellip;</span>
+          <label class="mob-label">Descri&ccedil;&atilde;o do problema <span style="color:#dc2626">*</span></label>
+          <textarea class="mob-input mob-textarea" id="mob-nc-descricao" placeholder="Descreva o problema&hellip;" maxlength="2000" rows="5"></textarea>
+        </div>
+
+        <div class="mob-field">
+          <label class="mob-label">Anexos <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+          <input type="file" id="mob-nc-anexos" accept="image/*,video/*,.pdf,.txt,.docx,.log" style="display:none" multiple>
+          <button type="button" id="mob-nc-btn-anexo" style="display:flex;align-items:center;gap:.5rem;background:var(--bg,#F7F3ED);border:1.5px dashed var(--border,#E5DDD0);border-radius:8px;padding:.65rem .9rem;width:100%;cursor:pointer;font-size:.83rem;color:var(--text-muted)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Selecionar arquivos&hellip;
           </button>
+          <div id="mob-nc-tiles" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.4rem"></div>
         </div>
+
         <button class="mob-btn mob-btn-primary" type="submit" id="mob-novo-submit" style="margin-top:.5rem">Abrir chamado</button>
       </form>
     </div>
   `;
 
   document.body.appendChild(overlay);
-
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.getElementById('mob-novo-fechar').addEventListener('click', () => overlay.remove());
 
-  const inputAnexo = document.getElementById('mob-novo-anexo');
-  document.getElementById('mob-btn-anexo').addEventListener('click', () => inputAnexo.click());
-  inputAnexo.addEventListener('change', () => {
-    const label = document.getElementById('mob-anexo-label');
-    label.textContent = inputAnexo.files[0] ? inputAnexo.files[0].name : 'Selecionar arquivo…';
-  });
+  // Carregar serviços/etiquetas dinamicamente
+  try {
+    const etiquetas = await fetch('/api/etiquetas', { credentials: 'include' }).then(r => r.ok ? r.json() : []);
+    const sel = document.getElementById('mob-nc-categoria');
+    const pais = etiquetas.filter(e => !e.parent_slug);
+    const filhos = etiquetas.filter(e => e.parent_slug);
+    for (const p of pais) {
+      sel.appendChild(new Option(p.nome, p.slug));
+      filhos.filter(f => f.parent_slug === p.slug).forEach(f => sel.appendChild(new Option('  └ ' + f.nome, f.slug)));
+    }
+    filhos.filter(f => !pais.find(p => p.slug === f.parent_slug)).forEach(f => sel.appendChild(new Option(f.nome, f.slug)));
+  } catch {}
 
-  document.getElementById('mob-novo-form').addEventListener('submit', async (e) => {
+  // Carregar admins
+  try {
+    const r = await api('/api/admin/colegas');
+    if (r.ok) {
+      const admins = await r.json();
+      const sel = document.getElementById('mob-nc-admin');
+      admins.filter(a => !adminInfo || String(a.id) !== String(adminInfo.id))
+            .forEach(a => sel.appendChild(new Option(a.nome_completo, a.id)));
+    }
+  } catch {}
+
+  // Busca de usuários (só master)
+  const buscaEl = document.getElementById('mob-nc-usuario-busca');
+  if (buscaEl) {
+    let _usuarios = null;
+    try {
+      const r = await api('/api/admin/portal-usuarios');
+      if (r.ok) _usuarios = (await r.json()).filter(u => u.ativo);
+    } catch {}
+
+    buscaEl.addEventListener('input', () => {
+      const f = buscaEl.value.toLowerCase();
+      const res = document.getElementById('mob-nc-usuario-resultados');
+      const sel = document.getElementById('mob-nc-usuario-selecionado');
+      document.getElementById('mob-nc-usuario-id').value = '';
+      sel.style.display = 'none';
+      if (!f || !_usuarios) { res.style.display = 'none'; return; }
+      const filtrados = _usuarios.filter(u =>
+        u.nome.toLowerCase().includes(f) ||
+        (u.setor && u.setor.toLowerCase().includes(f)) ||
+        (u.email && u.email.toLowerCase().includes(f)));
+      res.innerHTML = filtrados.length
+        ? filtrados.map(u => `<div class="mob-nc-user-item" data-id="${u.id}" data-nome="${u.nome.replace(/"/g,'&quot;')}" data-setor="${(u.setor||'').replace(/"/g,'&quot;')}" style="padding:.4rem .7rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}</div>`).join('')
+        : '<div style="padding:.4rem .7rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
+      res.style.display = 'block';
+      res.querySelectorAll('.mob-nc-user-item').forEach(el => {
+        el.addEventListener('click', () => {
+          document.getElementById('mob-nc-usuario-id').value = el.dataset.id;
+          buscaEl.value = el.dataset.nome;
+          sel.textContent = '✓ ' + el.dataset.nome + (el.dataset.setor ? ' · ' + el.dataset.setor : '');
+          sel.style.display = 'block';
+          res.style.display = 'none';
+        });
+      });
+    });
+  }
+
+  // Gerenciar anexos múltiplos
+  let _arquivos = [];
+  const inputAnexos = document.getElementById('mob-nc-anexos');
+  document.getElementById('mob-nc-btn-anexo').addEventListener('click', () => inputAnexos.click());
+  inputAnexos.addEventListener('change', () => {
+    for (const f of inputAnexos.files) {
+      if (_arquivos.length < 10 && !_arquivos.find(x => x.name === f.name && x.size === f.size)) _arquivos.push(f);
+    }
+    inputAnexos.value = '';
+    _renderTilesNc();
+  });
+  function _renderTilesNc() {
+    const box = document.getElementById('mob-nc-tiles');
+    box.innerHTML = _arquivos.map((f, i) =>
+      `<div style="display:inline-flex;align-items:center;gap:.3rem;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:.2rem .5rem;font-size:.75rem;max-width:200px">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+        <button type="button" data-idx="${i}" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;padding:0;flex-shrink:0;line-height:1">✕</button>
+      </div>`).join('');
+    box.querySelectorAll('button[data-idx]').forEach(btn => {
+      btn.addEventListener('click', () => { _arquivos.splice(+btn.dataset.idx, 1); _renderTilesNc(); });
+    });
+  }
+
+  // Submit
+  document.getElementById('mob-novo-form').addEventListener('submit', async e => {
     e.preventDefault();
     const msg = document.getElementById('mob-novo-msg');
     const btn = document.getElementById('mob-novo-submit');
-    const descricao = document.getElementById('mob-novo-descricao').value.trim();
-    const categoria = document.getElementById('mob-novo-categoria').value;
+    const descricao = document.getElementById('mob-nc-descricao').value.trim();
+    const categoria = document.getElementById('mob-nc-categoria').value;
+    const adminId = document.getElementById('mob-nc-admin').value;
+    const usuarioId = document.getElementById('mob-nc-usuario-id').value;
 
     msg.innerHTML = '';
+    if (!descricao || descricao.length < 5) {
+      msg.innerHTML = '<div class="mob-alert mob-alert-danger">Descrição obrigatória (mín. 5 caracteres).</div>';
+      document.getElementById('mob-nc-descricao').focus();
+      return;
+    }
     btn.disabled = true; btn.textContent = 'Abrindo…';
-
     try {
       const fd = new FormData();
       fd.append('descricao', descricao);
       if (categoria) fd.append('categoria', categoria);
-      if (inputAnexo.files[0]) fd.append('anexo', inputAnexo.files[0]);
-
+      if (adminId) fd.append('admin_responsavel_id', adminId);
+      if (usuarioId) fd.append('usuario_id', usuarioId);
+      _arquivos.forEach(f => fd.append('anexos', f, f.name));
       const r = await fetch('/api/admin/chamados', { method: 'POST', body: fd });
       const d = await r.json();
-      if (!r.ok) {
-        msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`;
-        return;
-      }
+      if (!r.ok) { msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`; return; }
       overlay.remove();
       mostrarToastMob('✅ Chamado aberto!', d.mensagem || `#${d.id}`);
       carregarChamados();
