@@ -78,7 +78,9 @@ router.get('/me', requireUsuario, (req, res) => {
 // GET /api/usuarios/meus-chamados
 router.get('/meus-chamados', requireUsuario, (req, res) => {
   try {
-    const chamados = db.listarChamadosPorUsuario(req.usuario.sub);
+    const u = db.buscarUsuarioPorId(req.usuario.sub);
+    const setor = u && u.setor ? u.setor : null;
+    const chamados = db.listarChamadosPorUsuario(req.usuario.sub, setor);
     return res.json(chamados);
   } catch (err) {
     console.error(err);

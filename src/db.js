@@ -1861,8 +1861,9 @@ function deletarUsuario(id) {
   db.prepare('DELETE FROM usuarios WHERE id = ?').run(id);
 }
 
-function listarChamadosPorUsuario(usuario_id) {
-  return getDb().prepare(`
+function listarChamadosPorUsuario(usuario_id, setor = null) {
+  const db = getDb();
+  const meus = db.prepare(`
     SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
            c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
            c.prazo, c.admin_responsavel_id, c.solucao, c.nota,
@@ -1873,13 +1874,37 @@ function listarChamadosPorUsuario(usuario_id) {
            COALESCE(c.novidades_usuario, 0) as novidades_usuario,
            a.nome_completo as admin_nome, a.ramal as admin_ramal,
            ab.nome_completo as aberto_por_admin_nome,
-           ab.is_master as aberto_por_admin_is_master
+           ab.is_master as aberto_por_admin_is_master,
+           1 as eh_meu
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
     LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
     WHERE c.usuario_id = ?
     ORDER BY c.criado_em DESC
   `).all(usuario_id);
+  if (!setor) return meus;
+  const setor_chamados = db.prepare(`
+    SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
+           c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
+           c.prazo, c.admin_responsavel_id, NULL as solucao, NULL as nota,
+           NULL as comentario_avaliacao, c.criado_em, c.atualizado_em,
+           c.concluido_em, c.categoria, c.assinado_em, c.requer_acordo, c.acordo_equipamentos,
+           c.cancelamento_motivo, c.cancelado_em,
+           c.aberto_por_admin_id,
+           0 as novidades_usuario,
+           a.nome_completo as admin_nome, a.ramal as admin_ramal,
+           ab.nome_completo as aberto_por_admin_nome,
+           ab.is_master as aberto_por_admin_is_master,
+           0 as eh_meu
+    FROM chamados c
+    LEFT JOIN admins a ON c.admin_responsavel_id = a.id
+    LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
+    WHERE c.setor = ?
+      AND (c.usuario_id IS NULL OR c.usuario_id <> ?)
+      AND c.status IN ('aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar')
+    ORDER BY c.criado_em DESC
+  `).all(setor, usuario_id);
+  return [...meus, ...setor_chamados];
 }
 
 

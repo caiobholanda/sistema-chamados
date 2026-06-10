@@ -624,6 +624,7 @@ function renderPainel(usuario) {
   `;
 
   let abaAtiva = 'abertos';
+  let escopoAbertos = 'todos'; // 'todos' | 'meus' | 'setor'
   let todosChamados = [];
   let _chamadosHash = null;
 
@@ -986,8 +987,9 @@ function renderPainel(usuario) {
 
     todosChamados = novos;
 
+    const meus = todosChamados.filter(c => c.eh_meu !== 0);
     const qtd = { aberto: 0, em_andamento: 0, aguardando_compra: 0, aguardando_chegar: 0, concluido: 0, encerrado: 0, cancelado: 0 };
-    todosChamados.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
+    meus.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
 
     const el = id => document.getElementById(id);
     if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = qtd.aberto + qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
@@ -995,7 +997,7 @@ function renderPainel(usuario) {
 
     const abertos = qtd.aberto + qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
     const encerrados = qtd.concluido + qtd.encerrado;
-    const pendentes = todosChamados.filter(c => c.status === 'concluido' && c.nota === null).length;
+    const pendentes = meus.filter(c => c.status === 'concluido' && c.nota === null).length;
     el('badge-abertos-u').textContent = abertos || '';
     el('badge-encerrados-u').textContent = encerrados || '';
     if (el('badge-avaliacao-u')) el('badge-avaliacao-u').textContent = pendentes || '';
@@ -1059,9 +1061,20 @@ function renderPainel(usuario) {
   function renderListaChamados(todos, aba) {
     const lista = document.getElementById('lista-usuario');
 
+    function _ligarChipsEscopo() {
+      document.querySelectorAll('#filtro-escopo-row .chip-escopo').forEach(b => {
+        b.addEventListener('click', () => {
+          const novo = b.dataset.escopo;
+          if (novo === escopoAbertos) return;
+          escopoAbertos = novo;
+          renderListaChamados(todosChamados, abaAtiva);
+        });
+      });
+    }
+
     if (aba === 'cancelados') {
       _limparChats();
-      const cancelados = todos.filter(c => c.status === 'cancelado')
+      const cancelados = todos.filter(c => c.eh_meu !== 0 && c.status === 'cancelado')
         .sort((a, b) => new Date(b.cancelado_em || b.atualizado_em || b.criado_em) - new Date(a.cancelado_em || a.atualizado_em || a.criado_em));
       if (!cancelados.length) {
         lista.innerHTML = `<div class="empty-state"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><p>Nenhum chamado cancelado.</p></div>`;
@@ -1087,11 +1100,17 @@ function renderPainel(usuario) {
       return;
     }
 
+    const _abertosBase = todos.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status));
+    const _meusAbertos = _abertosBase.filter(c => c.eh_meu !== 0);
+    const _setorAbertos = _abertosBase.filter(c => c.eh_meu === 0);
+    const _abertosVisiveis = escopoAbertos === 'meus' ? _meusAbertos
+      : escopoAbertos === 'setor' ? _setorAbertos
+      : _abertosBase;
     const filtrados = (aba === 'abertos'
-      ? todos.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status))
+      ? _abertosVisiveis
       : aba === 'avaliacao'
-      ? todos.filter(c => c.status === 'concluido' && c.nota === null)
-      : todos.filter(c => ['concluido', 'encerrado'].includes(c.status)))
+      ? todos.filter(c => c.eh_meu !== 0 && c.status === 'concluido' && c.nota === null)
+      : todos.filter(c => c.eh_meu !== 0 && ['concluido', 'encerrado'].includes(c.status)))
       .sort((a, b) => {
         const prioDiff = _scorePrio(a) - _scorePrio(b);
         if (prioDiff !== 0) return prioDiff;
@@ -1103,10 +1122,20 @@ function renderPainel(usuario) {
         return new Date(b.criado_em) - new Date(a.criado_em);
       });
 
+    const chipsAbertosHtml = aba === 'abertos' ? `
+      <div class="filtro-escopo-row" id="filtro-escopo-row">
+        <button type="button" class="chip-escopo${escopoAbertos === 'todos' ? ' ativo' : ''}" data-escopo="todos">Todos <span class="chip-cnt">${_abertosBase.length}</span></button>
+        <button type="button" class="chip-escopo${escopoAbertos === 'meus' ? ' ativo' : ''}" data-escopo="meus">Meus <span class="chip-cnt">${_meusAbertos.length}</span></button>
+        <button type="button" class="chip-escopo${escopoAbertos === 'setor' ? ' ativo' : ''}" data-escopo="setor">Do meu setor <span class="chip-cnt">${_setorAbertos.length}</span></button>
+      </div>
+    ` : '';
+
     if (!filtrados.length) {
       _limparChats();
-      const msg = aba === 'abertos' ? 'Nenhum chamado em aberto.' : aba === 'avaliacao' ? 'Nenhuma avaliação pendente. Tudo em dia!' : 'Nenhum chamado encerrado ainda.';
-      lista.innerHTML = `
+      const msg = aba === 'abertos'
+        ? (escopoAbertos === 'setor' ? 'Nenhum chamado em aberto no seu setor.' : escopoAbertos === 'meus' ? 'Você não tem chamados em aberto.' : 'Nenhum chamado em aberto.')
+        : aba === 'avaliacao' ? 'Nenhuma avaliação pendente. Tudo em dia!' : 'Nenhum chamado encerrado ainda.';
+      lista.innerHTML = chipsAbertosHtml + `
         <div class="empty-state">
           <div class="empty-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1115,6 +1144,7 @@ function renderPainel(usuario) {
           </div>
           <p>${msg}</p>
         </div>`;
+      _ligarChipsEscopo();
       return;
     }
 
@@ -1131,7 +1161,8 @@ function renderPainel(usuario) {
       if (inp) chatState[c.id] = { value: inp.value, focused: document.activeElement === inp };
     });
 
-    lista.innerHTML = filtrados.map(c => renderCardChamado(c)).join('');
+    lista.innerHTML = chipsAbertosHtml + filtrados.map(c => renderCardChamado(c)).join('');
+    _ligarChipsEscopo();
 
     // Restaurar texto e foco depois de re-renderizar
     Object.entries(chatState).forEach(([id, s]) => {
@@ -1189,9 +1220,9 @@ function renderPainel(usuario) {
       if (btn) btn.addEventListener('click', () => abrirModalTermo(c.id, c));
     });
 
-    filtrados.filter(c => ativosIds.has(c.id)).forEach(c => _iniciarChat(c.id));
+    filtrados.filter(c => c.eh_meu !== 0 && ativosIds.has(c.id)).forEach(c => _iniciarChat(c.id));
 
-    filtrados.filter(c => c.novidades_usuario > 0).forEach(c => {
+    filtrados.filter(c => c.eh_meu !== 0 && c.novidades_usuario > 0).forEach(c => {
       const card = document.querySelector(`.chamado-card-usuario[data-cid="${c.id}"]`);
       if (!card) return;
       let _timer = null;
@@ -1425,6 +1456,7 @@ function renderPainel(usuario) {
 
 function renderCardChamado(c) {
   const encerrado = ['concluido', 'encerrado'].includes(c.status);
+  const setor = c.eh_meu === 0;
 
   const avaliacaoHtml = () => {
     if (c.status !== 'concluido') return '';
@@ -1501,7 +1533,7 @@ function renderCardChamado(c) {
     </button>`;
   };
 
-  const chatHtml = !encerrado ? `
+  const chatHtml = !encerrado && !setor ? `
     <div class="chat-wrap">
       <div class="chat-header">Conversa com o Suporte</div>
       <div class="chat-messages" id="chat-msgs-${c.id}" data-cnt="0">
@@ -1525,27 +1557,31 @@ function renderCardChamado(c) {
   ` : '';
 
   return `
-    <div class="chamado-card-usuario${encerrado ? ' encerrado' : ''}" data-cid="${c.id}">
+    <div class="chamado-card-usuario${encerrado ? ' encerrado' : ''}${setor ? ' card-setor' : ''}" data-cid="${c.id}">
       <div class="chamado-card-header">
         <div class="flex gap-1 flex-wrap" style="align-items:center">
           <span title="Informe este ID ao suporte para identificar seu chamado" style="font-family:monospace;font-size:.78rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.05);padding:.18rem .45rem;border-radius:4px;cursor:help">#${c.id}</span>
           ${badgeStatus(c.status)}
-          ${c.novidades_usuario > 0 ? `<span class="badge-novidades-usuario" data-cid="${c.id}" title="${c.novidades_usuario} atualização${c.novidades_usuario > 1 ? 'ões' : ''} nova${c.novidades_usuario > 1 ? 's' : ''}">${c.novidades_usuario} novo${c.novidades_usuario > 1 ? 's' : ''}</span>` : ''}
+          ${setor ? `<span class="badge-setor-aviso" title="Chamado aberto por um colega do seu setor">Do setor</span>` : ''}
+          ${!setor && c.novidades_usuario > 0 ? `<span class="badge-novidades-usuario" data-cid="${c.id}" title="${c.novidades_usuario} atualização${c.novidades_usuario > 1 ? 'ões' : ''} nova${c.novidades_usuario > 1 ? 's' : ''}">${c.novidades_usuario} novo${c.novidades_usuario > 1 ? 's' : ''}</span>` : ''}
         </div>
         <span class="text-muted" style="font-size:.76rem">${fmtData(c.criado_em)}</span>
       </div>
-      ${c.aberto_por_admin_id ? `<div class="badge-criado-por-admin">
+      ${setor ? `<div class="badge-criado-por-admin" style="background:#eef2ff;border-color:#c7d2fe;color:#3730a3">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Aberto por <strong>${_s(c.nome)}</strong>${c.ramal ? ` · Ramal ${c.ramal}` : ''}
+      </div>` : (c.aberto_por_admin_id ? `<div class="badge-criado-por-admin">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         ${c.aberto_por_admin_is_master ? 'Admin Master' : 'Administrador'} <strong>${_s(c.aberto_por_admin_nome)}</strong> criou esse chamado por você
-      </div>` : ''}
+      </div>` : '')}
       <div class="chamado-card-setor">${_s(c.setor)} <span style="color:var(--text-muted);font-family:Inter,sans-serif;font-size:.8rem;font-weight:400">· Ramal ${c.ramal}</span></div>
       <div class="chamado-card-desc">${_s(c.descricao)}</div>
       ${c.admin_nome ? `<div style="font-size:.75rem;color:var(--gold-dark);font-weight:600;margin-top:.4rem;letter-spacing:.02em">Responsável: <span style="color:var(--text-secondary);font-weight:400">${_s(c.admin_nome)}</span>${c.admin_ramal ? `<span style="color:var(--text-muted);font-weight:400"> · Ramal <strong style="color:var(--text-secondary);font-weight:600">${c.admin_ramal}</strong></span>` : ''}</div>` : ''}
       ${c.prazo ? `<div style="font-size:.74rem;color:var(--text-muted);margin-top:.2rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
-      ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${_s(c.solucao)}</div>` : ''}
-      ${termoHtml()}
-      ${avaliacaoHtml()}
-      ${reabrirHtml()}
+      ${c.solucao && !setor ? `<div class="solucao-box"><strong>Solução:</strong> ${_s(c.solucao)}</div>` : ''}
+      ${setor ? '' : termoHtml()}
+      ${setor ? '' : avaliacaoHtml()}
+      ${setor ? '' : reabrirHtml()}
       ${chatHtml}
     </div>
   `;

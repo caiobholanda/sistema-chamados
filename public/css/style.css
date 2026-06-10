@@ -1974,6 +1974,33 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border-left-color: rgba(197,165,90,.28);
   opacity: .75;
 }
+.chamado-card-usuario.card-setor {
+  border-left-color: #6366f1;
+  background: linear-gradient(to right, rgba(99,102,241,.04), var(--surface) 40%);
+}
+.chamado-card-usuario.card-setor:hover { border-left-color: #4f46e5; }
+.badge-setor-aviso {
+  display: inline-flex; align-items: center; gap: .25rem;
+  background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe;
+  border-radius: 6px; padding: .15rem .45rem; font-size: .7rem; font-weight: 600;
+}
+.filtro-escopo-row {
+  display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .75rem;
+}
+.chip-escopo {
+  display: inline-flex; align-items: center; gap: .35rem;
+  background: var(--surface); color: var(--text-secondary);
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: .35rem .75rem; font-size: .8rem; font-weight: 500;
+  cursor: pointer; transition: all .15s;
+}
+.chip-escopo:hover { border-color: var(--gold); color: var(--text); }
+.chip-escopo.ativo { background: var(--gold); color: #fff; border-color: var(--gold); }
+.chip-escopo .chip-cnt {
+  font-size: .7rem; background: rgba(0,0,0,.08);
+  padding: 0 .35rem; border-radius: 999px; font-weight: 700;
+}
+.chip-escopo.ativo .chip-cnt { background: rgba(255,255,255,.25); }
 .chamado-card-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem; }
 .badge-criado-por-admin { display: inline-flex; align-items: center; gap: .4rem; background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; border-radius: 8px; font-size: .78rem; font-weight: 500; padding: .42rem .7rem; margin-bottom: .55rem; line-height: 1.3; }
 .badge-criado-por-admin svg { flex-shrink: 0; opacity: .8; }
