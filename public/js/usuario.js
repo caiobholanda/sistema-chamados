@@ -542,7 +542,7 @@ function renderPainel(usuario) {
     </div>
 
     <div class="stats-strip" id="stats-strip-u">
-      <div class="stat-pill">
+      <div class="stat-pill" id="pill-abertos-u" style="cursor:pointer" title="Ver abertos">
         <div class="stat-dot dot-aberto">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>
@@ -553,7 +553,7 @@ function renderPainel(usuario) {
           <div class="stat-label">Abertos</div>
         </div>
       </div>
-      <div class="stat-pill">
+      <div class="stat-pill" id="pill-andamento-u" style="cursor:pointer" title="Ver em andamento">
         <div class="stat-dot dot-andamento">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -564,7 +564,7 @@ function renderPainel(usuario) {
           <div class="stat-label">Em andamento</div>
         </div>
       </div>
-      <div class="stat-pill">
+      <div class="stat-pill" id="pill-concluidos-u" style="cursor:pointer" title="Ver concluídos">
         <div class="stat-dot dot-concluido">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"/>
@@ -584,6 +584,17 @@ function renderPainel(usuario) {
         <div class="stat-info">
           <div class="stat-num" id="cnt-u-cancelado">0</div>
           <div class="stat-label">Cancelados</div>
+        </div>
+      </div>
+      <div class="stat-pill" id="pill-sugestoes-u" style="cursor:pointer" title="Ver sugestões">
+        <div class="stat-dot dot-sugestao">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.5 4.5-3 6H8c-1.5-1.5-3-3.5-3-6a7 7 0 0 1 7-7z"/><line x1="9" y1="18" x2="15" y2="18"/><line x1="12" y1="22" x2="12" y2="18"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-num" id="cnt-u-sugestoes">0</div>
+          <div class="stat-label">Sugestões</div>
         </div>
       </div>
     </div>
@@ -711,6 +722,8 @@ function renderPainel(usuario) {
         _sugestoesUsuario = lista;
         const badgeEl = document.getElementById('badge-sugestoes-u');
         if (badgeEl) { const a = lista.filter(s => !['feita','negada'].includes(s.status)).length; badgeEl.textContent = a || ''; }
+        const cntSugEl = document.getElementById('cnt-u-sugestoes');
+        if (cntSugEl) cntSugEl.textContent = lista.length;
         if (abaAtiva === 'sugestoes') _atualizarSilencioso(lista);
         return;
       }
@@ -719,6 +732,8 @@ function renderPainel(usuario) {
       _sugestoesUsuario = lista;
       const badgeEl = document.getElementById('badge-sugestoes-u');
       if (badgeEl) { const a = lista.filter(s => !['feita','negada'].includes(s.status)).length; badgeEl.textContent = a || ''; }
+      const cntSugEl2 = document.getElementById('cnt-u-sugestoes');
+      if (cntSugEl2) cntSugEl2.textContent = lista.length;
       if (abaAtiva === 'sugestoes') _renderSugestoesUsuario(lista);
     } catch {}
   }
@@ -929,6 +944,10 @@ function renderPainel(usuario) {
   };
   document.getElementById('tab-cancelados-u').addEventListener('click', _ativarCancelados);
   document.getElementById('pill-cancelados-u').addEventListener('click', _ativarCancelados);
+  document.getElementById('pill-abertos-u').addEventListener('click', () => document.getElementById('tab-abertos').click());
+  document.getElementById('pill-andamento-u').addEventListener('click', () => document.getElementById('tab-abertos').click());
+  document.getElementById('pill-concluidos-u').addEventListener('click', () => document.getElementById('tab-encerrados').click());
+  document.getElementById('pill-sugestoes-u').addEventListener('click', () => document.getElementById('tab-sugestoes-u').click());
 
   async function carregarChamados(silencioso = false) {
     const lista = document.getElementById('lista-usuario');
