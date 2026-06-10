@@ -704,11 +704,12 @@ async function renderDetalhe(c) {
 
       <div class="mob-fotos-section">
         <div class="mob-fotos-head">Fotos e Anexos</div>
+        ${c.anexo_nome_original ? `<div class="mob-fotos-grid" style="margin-bottom:.4rem">${_isImgAnexo(c.anexo_nome_original) ? `<div class="mob-foto-thumb-wrap"><img src="/api/chamados/${c.id}/anexo" class="mob-foto-thumb lbx-img" loading="lazy" alt="${c.anexo_nome_original}"><a href="/api/chamados/${c.id}/anexo" download class="mob-foto-dl" title="Baixar">⬇</a></div>` : `<a href="/api/chamados/${c.id}/anexo" download class="mob-btn mob-btn-ghost mob-btn-sm" style="font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">⬇ ${c.anexo_nome_original}</a>`}</div>` : ''}
         <div id="mob-fotos-grid" class="mob-fotos-grid"><span style="font-size:.78rem;color:var(--text-muted)">Carregando…</span></div>
         <div style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem">
           <label class="mob-btn mob-btn-ghost mob-btn-sm" style="cursor:pointer;flex-shrink:0;margin:0">
             + Anexar
-            <input type="file" id="mob-input-foto" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.log,.zip,.mov,.avi,.mkv,.wmv" style="display:none" multiple>
+            <input type="file" id="mob-input-foto" accept="image/*,video/*,.pdf,.txt,.docx,.log" style="display:none" multiple>
           </label>
           <div id="mob-fotos-msg" style="font-size:.78rem;color:var(--text-muted)"></div>
         </div>
@@ -824,13 +825,8 @@ async function renderDetalhe(c) {
       });
       const d = await r.json();
       if (r.ok) {
-        const lista = document.getElementById('mob-infos-adicionais-lista');
-        const div = document.createElement('div');
-        div.className = 'mob-info-adicional';
-        div.innerHTML = `<div class="mob-info-adicional-meta"><strong>Você</strong> &mdash; agora</div><div class="mob-info-adicional-texto">${texto.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
-        lista.appendChild(div);
-        document.getElementById('mob-info-form').style.display = 'none';
-        document.getElementById('mob-info-editar-btn').style.display = '';
+        const resp = await api(`/api/admin/chamados/${c.id}`);
+        if (resp.ok) { renderDetalhe(await resp.json()); return; }
       } else {
         alert(d.erro || 'Erro ao salvar');
       }
@@ -1124,7 +1120,7 @@ function _abrirLightbox(src, nome) {
     _lbxEl.innerHTML = '<button id="lbx-close" aria-label="Fechar">✕</button><img id="lbx-img" alt=""><div id="lbx-nome"></div>';
     document.body.appendChild(_lbxEl);
     _lbxEl.addEventListener('click', e => {
-      if (e.target === _lbxEl || e.target.id === 'lbx-close') _lbxEl.classList.remove('lbx-open');
+      if (e.target === _lbxEl || e.target.id === 'lbx-close' || e.target.id === 'lbx-img') _lbxEl.classList.remove('lbx-open');
     });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && _lbxEl) _lbxEl.classList.remove('lbx-open');
@@ -1136,7 +1132,7 @@ function _abrirLightbox(src, nome) {
 }
 document.addEventListener('click', e => {
   const img = e.target.closest('.lbx-img');
-  if (img) _abrirLightbox(img.src, img.alt);
+  if (img) { e.preventDefault(); _abrirLightbox(img.src, img.alt); }
 });
 
 const _IMGS_EXT = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
@@ -1152,7 +1148,7 @@ async function _carregarFotosMob(chamadoId) {
     grid.innerHTML = lista.map(a => {
       const url = `/api/chamados/${chamadoId}/anexos/${a.id}`;
       if (_isImgAnexo(a.nome_original)) {
-        return `<a href="${url}" target="_blank" class="mob-foto-thumb-wrap"><img src="${url}" class="mob-foto-thumb" alt="${a.nome_original}" loading="lazy"></a>`;
+        return `<div class="mob-foto-thumb-wrap"><img src="${url}" class="mob-foto-thumb lbx-img" alt="${a.nome_original}" loading="lazy"><a href="${url}" download class="mob-foto-dl" title="Baixar">⬇</a></div>`;
       }
       return `<a href="${url}" download class="mob-btn mob-btn-ghost mob-btn-sm" style="font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">⬇ ${a.nome_original}</a>`;
     }).join('');

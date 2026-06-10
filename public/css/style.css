@@ -3742,8 +3742,9 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
 .mob-fotos-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
 .mob-fotos-head { font-size: .82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .5rem; }
 .mob-fotos-grid { display: flex; flex-wrap: wrap; gap: .4rem; min-height: 1.5rem; }
-.mob-foto-thumb-wrap { display: block; width: 90px; height: 90px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); flex-shrink: 0; }
+.mob-foto-thumb-wrap { position: relative; display: inline-block; width: 90px; height: 90px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); flex-shrink: 0; }
 .mob-foto-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mob-foto-dl { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,.55); color: #fff; font-size: .65rem; padding: 1px 4px; border-radius: 3px; text-decoration: none; line-height: 1.6; }
 .mob-admin-anexo-section { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
 .mob-assin-section { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
 .mob-assin-titulo { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: .25rem; }
