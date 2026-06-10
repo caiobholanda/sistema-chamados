@@ -684,7 +684,15 @@ async function renderDetalhe(c) {
       <div style="font-family:monospace;font-size:.78rem;font-weight:700;color:var(--text-muted);margin-bottom:.3rem">Chamado #${c.id}</div>
       <div class="mob-detalhe-nome">${c.nome}</div>
       <div class="mob-detalhe-setor">${c.usuario_setor || c.setor} · Ramal ${c.usuario_ramal || c.ramal}</div>
-      <div class="mob-detalhe-desc">${c.descricao}</div>
+      <div class="mob-detalhe-desc" id="mob-detalhe-desc-txt">${c.descricao}</div>
+      <div id="mob-desc-form" style="display:none;margin-top:.5rem">
+        <textarea class="mob-input mob-textarea" id="mob-desc-nova" rows="4" maxlength="2000" placeholder="Nova descrição…" style="margin-bottom:.4rem"></textarea>
+        <div style="display:flex;gap:.5rem">
+          <button type="button" class="mob-btn mob-btn-primary mob-btn-sm" id="mob-desc-salvar">Salvar</button>
+          <button type="button" class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-desc-cancelar">Cancelar</button>
+        </div>
+      </div>
+      <button type="button" class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-desc-editar-btn" style="margin-top:.4rem;font-size:.78rem">+ Nova descrição</button>
 
       ${podeChat ? `
       <div class="mob-chat-section" id="mob-chat-section">
@@ -769,6 +777,42 @@ async function renderDetalhe(c) {
   });
   document.getElementById('mob-ok-solucao').addEventListener('click', () => {
     document.getElementById('mob-solucao').blur();
+  });
+
+  document.getElementById('mob-desc-editar-btn').addEventListener('click', () => {
+    document.getElementById('mob-desc-form').style.display = 'block';
+    document.getElementById('mob-desc-editar-btn').style.display = 'none';
+    const ta = document.getElementById('mob-desc-nova');
+    ta.value = '';
+    ta.focus();
+  });
+  document.getElementById('mob-desc-cancelar').addEventListener('click', () => {
+    document.getElementById('mob-desc-form').style.display = 'none';
+    document.getElementById('mob-desc-editar-btn').style.display = '';
+  });
+  document.getElementById('mob-desc-salvar').addEventListener('click', async () => {
+    const nova = document.getElementById('mob-desc-nova').value.trim();
+    if (nova.length < 5) { alert('Descrição muito curta (mín. 5 caracteres)'); return; }
+    const btn = document.getElementById('mob-desc-salvar');
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      const r = await fetch(`/api/admin/chamados/${c.id}/descricao`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descricao: nova })
+      });
+      const d = await r.json();
+      if (r.ok) {
+        document.getElementById('mob-detalhe-desc-txt').textContent = nova;
+        document.getElementById('mob-desc-form').style.display = 'none';
+        document.getElementById('mob-desc-editar-btn').style.display = '';
+      } else {
+        alert(d.erro || 'Erro ao salvar');
+      }
+    } catch { alert('Erro de rede'); }
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
   });
 
   document.getElementById('mob-btn-enviar-admin-anexo').addEventListener('click', async () => {

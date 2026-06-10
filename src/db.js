@@ -1525,6 +1525,17 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
   return db.prepare(sql).all(...params);
 }
 
+function atualizarDescricao(id, novaDescricao, adminId) {
+  const db = getDb();
+  const chamado = buscarChamadoPorId(id);
+  const anterior = chamado.descricao;
+  db.prepare(`UPDATE chamados SET descricao = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?`).run(novaDescricao, id);
+  db.prepare(`
+    INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+    VALUES (?, ?, 'descricao_atualizada', ?, ?)
+  `).run(id, adminId, anterior, novaDescricao);
+}
+
 function atualizarPrioridade(id, prioridade, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
@@ -2871,6 +2882,7 @@ module.exports = {
   buscarHistoricoPrazos,
   buscarHistoricoCompleto,
   listarChamadosAdmin,
+  atualizarDescricao,
   atualizarPrioridade,
   atualizarPrazo,
   atualizarCategoria,

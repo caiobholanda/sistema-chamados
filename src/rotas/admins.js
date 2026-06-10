@@ -444,6 +444,21 @@ router.post('/chamados/:id/info-adicional', requireAdmin, (req, res) => {
   }
 });
 
+router.patch('/chamados/:id/descricao', requireAdmin, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    const { descricao } = req.body || {};
+    if (!descricao || descricao.trim().length < 5)
+      return res.status(400).json({ erro: 'Descrição muito curta (mín. 5 caracteres)' });
+    db.atualizarDescricao(chamado.id, descricao.trim(), req.admin.sub);
+    return res.json({ mensagem: 'Descrição atualizada' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.patch('/chamados/:id/prioridade', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
