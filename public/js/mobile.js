@@ -804,7 +804,8 @@ async function renderDetalhe(c) {
       });
       const d = await r.json();
       if (r.ok) {
-        document.getElementById('mob-detalhe-desc-txt').textContent = nova;
+        const descEl = document.getElementById('mob-detalhe-desc-txt');
+        descEl.textContent = (descEl.textContent ? descEl.textContent + '\n\n' : '') + nova;
         document.getElementById('mob-desc-form').style.display = 'none';
         document.getElementById('mob-desc-editar-btn').style.display = '';
       } else {

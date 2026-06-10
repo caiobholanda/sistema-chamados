@@ -3689,7 +3689,7 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
   font-size: .88rem; color: var(--text-secondary); line-height: 1.55;
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: var(--radius); padding: .7rem .85rem;
-  word-break: break-word;
+  word-break: break-word; white-space: pre-wrap;
   overflow-wrap: break-word;
   white-space: pre-wrap;
   max-width: 100%;
