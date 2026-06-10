@@ -3736,6 +3736,9 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
 .mob-wiz-sel-wrap { padding: .5rem; background: var(--bg); border-radius: 6px; border: 1px solid var(--border); }
 .mob-wiz-sel-label { font-size: .76rem; color: var(--text-muted); margin-bottom: .3rem; }
 
+.mob-info-adicional { margin-top: .5rem; padding: .55rem .7rem; background: var(--surface-2); border-left: 3px solid var(--gold); border-radius: 0 4px 4px 0; }
+.mob-info-adicional-meta { font-size: .72rem; color: var(--text-muted); margin-bottom: .2rem; }
+.mob-info-adicional-texto { font-size: .83rem; white-space: pre-wrap; color: var(--text); }
 .mob-fotos-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
 .mob-fotos-head { font-size: .82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .5rem; }
 .mob-fotos-grid { display: flex; flex-wrap: wrap; gap: .4rem; min-height: 1.5rem; }

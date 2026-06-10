@@ -684,15 +684,23 @@ async function renderDetalhe(c) {
       <div style="font-family:monospace;font-size:.78rem;font-weight:700;color:var(--text-muted);margin-bottom:.3rem">Chamado #${c.id}</div>
       <div class="mob-detalhe-nome">${c.nome}</div>
       <div class="mob-detalhe-setor">${c.usuario_setor || c.setor} · Ramal ${c.usuario_ramal || c.ramal}</div>
-      <div class="mob-detalhe-desc" id="mob-detalhe-desc-txt">${c.descricao}</div>
-      <div id="mob-desc-form" style="display:none;margin-top:.5rem">
-        <textarea class="mob-input mob-textarea" id="mob-desc-nova" rows="4" maxlength="2000" placeholder="Nova descrição…" style="margin-bottom:.4rem"></textarea>
+      <div class="mob-detalhe-desc">${c.descricao}</div>
+      <div id="mob-infos-adicionais-lista">
+        ${(c.infos_adicionais || []).map(info => `
+          <div class="mob-info-adicional">
+            <div class="mob-info-adicional-meta"><strong>${info.autor_nome}</strong> &mdash; ${fmtData(info.criado_em)}</div>
+            <div class="mob-info-adicional-texto">${info.texto}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div id="mob-info-form" style="display:none;margin-top:.5rem">
+        <textarea class="mob-input mob-textarea" id="mob-info-nova" rows="4" maxlength="2000" placeholder="Nova informação…" style="margin-bottom:.4rem"></textarea>
         <div style="display:flex;gap:.5rem">
-          <button type="button" class="mob-btn mob-btn-primary mob-btn-sm" id="mob-desc-salvar">Salvar</button>
-          <button type="button" class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-desc-cancelar">Cancelar</button>
+          <button type="button" class="mob-btn mob-btn-primary mob-btn-sm" id="mob-info-salvar">Salvar</button>
+          <button type="button" class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-info-cancelar">Cancelar</button>
         </div>
       </div>
-      <button type="button" class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-desc-editar-btn" style="margin-top:.4rem;font-size:.78rem">+ Nova descrição</button>
+      <button type="button" class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-info-editar-btn" style="margin-top:.4rem;font-size:.78rem">+ Nova informação</button>
 
       <div class="mob-fotos-section">
         <div class="mob-fotos-head">Fotos e Anexos</div>
@@ -791,35 +799,38 @@ async function renderDetalhe(c) {
     document.getElementById('mob-solucao').blur();
   });
 
-  document.getElementById('mob-desc-editar-btn').addEventListener('click', () => {
-    document.getElementById('mob-desc-form').style.display = 'block';
-    document.getElementById('mob-desc-editar-btn').style.display = 'none';
-    const ta = document.getElementById('mob-desc-nova');
+  document.getElementById('mob-info-editar-btn').addEventListener('click', () => {
+    document.getElementById('mob-info-form').style.display = 'block';
+    document.getElementById('mob-info-editar-btn').style.display = 'none';
+    const ta = document.getElementById('mob-info-nova');
     ta.value = '';
     ta.focus();
   });
-  document.getElementById('mob-desc-cancelar').addEventListener('click', () => {
-    document.getElementById('mob-desc-form').style.display = 'none';
-    document.getElementById('mob-desc-editar-btn').style.display = '';
+  document.getElementById('mob-info-cancelar').addEventListener('click', () => {
+    document.getElementById('mob-info-form').style.display = 'none';
+    document.getElementById('mob-info-editar-btn').style.display = '';
   });
-  document.getElementById('mob-desc-salvar').addEventListener('click', async () => {
-    const nova = document.getElementById('mob-desc-nova').value.trim();
-    if (nova.length < 5) { alert('Descrição muito curta (mín. 5 caracteres)'); return; }
-    const btn = document.getElementById('mob-desc-salvar');
+  document.getElementById('mob-info-salvar').addEventListener('click', async () => {
+    const texto = document.getElementById('mob-info-nova').value.trim();
+    if (texto.length < 3) { alert('Texto muito curto (mín. 3 caracteres)'); return; }
+    const btn = document.getElementById('mob-info-salvar');
     btn.disabled = true;
     btn.textContent = '…';
     try {
-      const r = await fetch(`/api/admin/chamados/${c.id}/descricao`, {
-        method: 'PATCH',
+      const r = await fetch(`/api/admin/chamados/${c.id}/info-adicional`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ descricao: nova })
+        body: JSON.stringify({ texto })
       });
       const d = await r.json();
       if (r.ok) {
-        const descEl = document.getElementById('mob-detalhe-desc-txt');
-        descEl.textContent = (descEl.textContent ? descEl.textContent + '\n\n' : '') + nova;
-        document.getElementById('mob-desc-form').style.display = 'none';
-        document.getElementById('mob-desc-editar-btn').style.display = '';
+        const lista = document.getElementById('mob-infos-adicionais-lista');
+        const div = document.createElement('div');
+        div.className = 'mob-info-adicional';
+        div.innerHTML = `<div class="mob-info-adicional-meta"><strong>Você</strong> &mdash; agora</div><div class="mob-info-adicional-texto">${texto.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+        lista.appendChild(div);
+        document.getElementById('mob-info-form').style.display = 'none';
+        document.getElementById('mob-info-editar-btn').style.display = '';
       } else {
         alert(d.erro || 'Erro ao salvar');
       }
