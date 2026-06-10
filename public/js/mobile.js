@@ -694,6 +694,18 @@ async function renderDetalhe(c) {
       </div>
       <button type="button" class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-desc-editar-btn" style="margin-top:.4rem;font-size:.78rem">+ Nova descrição</button>
 
+      <div class="mob-fotos-section">
+        <div class="mob-fotos-head">Fotos e Anexos</div>
+        <div id="mob-fotos-grid" class="mob-fotos-grid"><span style="font-size:.78rem;color:var(--text-muted)">Carregando…</span></div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem">
+          <label class="mob-btn mob-btn-ghost mob-btn-sm" style="cursor:pointer;flex-shrink:0;margin:0">
+            + Foto
+            <input type="file" id="mob-input-foto" accept="image/*" capture="environment" style="display:none" multiple>
+          </label>
+          <div id="mob-fotos-msg" style="font-size:.78rem;color:var(--text-muted)"></div>
+        </div>
+      </div>
+
       ${podeChat ? `
       <div class="mob-chat-section" id="mob-chat-section">
         <div class="mob-chat-head">
@@ -814,6 +826,28 @@ async function renderDetalhe(c) {
     } catch { alert('Erro de rede'); }
     btn.disabled = false;
     btn.textContent = 'Salvar';
+  });
+
+  _carregarFotosMob(c.id);
+  document.getElementById('mob-input-foto').addEventListener('change', async function() {
+    if (!this.files.length) return;
+    const msgEl = document.getElementById('mob-fotos-msg');
+    const grid = document.getElementById('mob-fotos-grid');
+    msgEl.textContent = 'Enviando…';
+    const fd = new FormData();
+    for (const f of this.files) fd.append('anexos', f);
+    try {
+      const r = await fetch(`/api/admin/chamados/${c.id}/anexos`, { method: 'POST', body: fd });
+      const d = await r.json();
+      if (r.ok) {
+        msgEl.textContent = 'Enviado!';
+        await _carregarFotosMob(c.id);
+        setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 2000);
+      } else {
+        msgEl.textContent = d.erro || 'Erro ao enviar.';
+      }
+    } catch { msgEl.textContent = 'Erro de conexão.'; }
+    this.value = '';
   });
 
   document.getElementById('mob-btn-enviar-admin-anexo').addEventListener('click', async () => {
@@ -1096,6 +1130,23 @@ document.addEventListener('click', e => {
 
 const _IMGS_EXT = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
 function _isImgAnexo(nome) { return _IMGS_EXT.includes((nome || '').split('.').pop().toLowerCase()); }
+
+async function _carregarFotosMob(chamadoId) {
+  const grid = document.getElementById('mob-fotos-grid');
+  if (!grid) return;
+  try {
+    const r = await fetch(`/api/chamados/${chamadoId}/anexos`);
+    const lista = r.ok ? await r.json() : [];
+    if (!lista.length) { grid.innerHTML = '<span style="font-size:.78rem;color:var(--text-muted)">Nenhum anexo ainda.</span>'; return; }
+    grid.innerHTML = lista.map(a => {
+      const url = `/api/chamados/${chamadoId}/anexos/${a.id}`;
+      if (_isImgAnexo(a.nome_original)) {
+        return `<a href="${url}" target="_blank" class="mob-foto-thumb-wrap"><img src="${url}" class="mob-foto-thumb" alt="${a.nome_original}" loading="lazy"></a>`;
+      }
+      return `<a href="${url}" download class="mob-btn mob-btn-ghost mob-btn-sm" style="font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">⬇ ${a.nome_original}</a>`;
+    }).join('');
+  } catch { grid.innerHTML = '<span style="font-size:.78rem;color:var(--text-muted)">Erro ao carregar.</span>'; }
+}
 
 // ── Chat mobile ───────────────────────────────────────────────
 function _renderMsgMob(m, chamadoId) {
