@@ -1883,6 +1883,7 @@ function listarChamadosPorUsuario(usuario_id, setor = null) {
     ORDER BY c.criado_em DESC
   `).all(usuario_id);
   if (!setor) return meus;
+  const setorNorm = String(setor).trim().toLowerCase();
   const setor_chamados = db.prepare(`
     SELECT c.id, c.usuario_id, c.nome, c.setor, c.ramal, c.descricao,
            c.anexo_path, c.anexo_nome_original, c.prioridade, c.status,
@@ -1899,11 +1900,15 @@ function listarChamadosPorUsuario(usuario_id, setor = null) {
     FROM chamados c
     LEFT JOIN admins a ON c.admin_responsavel_id = a.id
     LEFT JOIN admins ab ON c.aberto_por_admin_id = ab.id
-    WHERE c.setor = ?
-      AND (c.usuario_id IS NULL OR c.usuario_id <> ?)
+    LEFT JOIN usuarios uc ON c.usuario_id = uc.id
+    WHERE (c.usuario_id IS NULL OR c.usuario_id <> ?)
       AND c.status IN ('aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar')
+      AND (
+        LOWER(TRIM(COALESCE(uc.setor, ''))) = ?
+        OR LOWER(TRIM(COALESCE(c.setor,  ''))) = ?
+      )
     ORDER BY c.criado_em DESC
-  `).all(setor, usuario_id);
+  `).all(usuario_id, setorNorm, setorNorm);
   return [...meus, ...setor_chamados];
 }
 

@@ -624,7 +624,7 @@ function renderPainel(usuario) {
   `;
 
   let abaAtiva = 'abertos';
-  let escopoAbertos = 'todos'; // 'todos' | 'meus' | 'setor'
+  let escopoAbertos = 'meus'; // 'meus' | 'setor'
   let todosChamados = [];
   let _chamadosHash = null;
 
@@ -1102,10 +1102,7 @@ function renderPainel(usuario) {
 
     const _abertosBase = todos.filter(c => ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'].includes(c.status));
     const _meusAbertos = _abertosBase.filter(c => c.eh_meu !== 0);
-    const _setorAbertos = _abertosBase.filter(c => c.eh_meu === 0);
-    const _abertosVisiveis = escopoAbertos === 'meus' ? _meusAbertos
-      : escopoAbertos === 'setor' ? _setorAbertos
-      : _abertosBase;
+    const _abertosVisiveis = escopoAbertos === 'meus' ? _meusAbertos : _abertosBase;
     const filtrados = (aba === 'abertos'
       ? _abertosVisiveis
       : aba === 'avaliacao'
@@ -1124,16 +1121,15 @@ function renderPainel(usuario) {
 
     const chipsAbertosHtml = aba === 'abertos' ? `
       <div class="filtro-escopo-row" id="filtro-escopo-row">
-        <button type="button" class="chip-escopo${escopoAbertos === 'todos' ? ' ativo' : ''}" data-escopo="todos">Todos <span class="chip-cnt">${_abertosBase.length}</span></button>
         <button type="button" class="chip-escopo${escopoAbertos === 'meus' ? ' ativo' : ''}" data-escopo="meus">Meus <span class="chip-cnt">${_meusAbertos.length}</span></button>
-        <button type="button" class="chip-escopo${escopoAbertos === 'setor' ? ' ativo' : ''}" data-escopo="setor">Do meu setor <span class="chip-cnt">${_setorAbertos.length}</span></button>
+        <button type="button" class="chip-escopo${escopoAbertos === 'setor' ? ' ativo' : ''}" data-escopo="setor">Do meu setor <span class="chip-cnt">${_abertosBase.length}</span></button>
       </div>
     ` : '';
 
     if (!filtrados.length) {
       _limparChats();
       const msg = aba === 'abertos'
-        ? (escopoAbertos === 'setor' ? 'Nenhum chamado em aberto no seu setor.' : escopoAbertos === 'meus' ? 'Você não tem chamados em aberto.' : 'Nenhum chamado em aberto.')
+        ? (escopoAbertos === 'setor' ? 'Nenhum chamado em aberto no seu setor.' : 'Você não tem chamados em aberto.')
         : aba === 'avaliacao' ? 'Nenhuma avaliação pendente. Tudo em dia!' : 'Nenhum chamado encerrado ainda.';
       lista.innerHTML = chipsAbertosHtml + `
         <div class="empty-state">
