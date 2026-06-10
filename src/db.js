@@ -1492,7 +1492,7 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
   }
   if (filtros.data_inicio || filtros.data_fim) {
     const col = filtros.data_tipo === 'encerramento'
-      ? 'c.prazo'
+      ? 'c.concluido_em'
       : 'c.criado_em';
     if (filtros.data_inicio) {
       sql += ` AND ${col} >= ?`;
