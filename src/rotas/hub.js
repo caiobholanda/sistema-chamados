@@ -224,4 +224,41 @@ router.delete('/portal-usuarios/:id', (req, res) => {
   }
 });
 
+// ─── Etiquetas de admin ──────────────────────────────────────────────────────
+router.get('/etiquetas', (_req, res) => {
+  res.json({ ok: true, etiquetas: db.listarEtiquetas() });
+});
+router.get('/admins/:id/etiquetas', (req, res) => {
+  const alvo = db.buscarAdminPorId(req.params.id);
+  if (!alvo) return res.status(404).json({ ok: false, erro: 'Admin não encontrado' });
+  res.json({ ok: true, slugs: db.listarEtiquetasDeAdmin(alvo.id) });
+});
+router.put('/admins/:id/etiquetas', (req, res) => {
+  try {
+    const alvo = db.buscarAdminPorId(req.params.id);
+    if (!alvo) return res.status(404).json({ ok: false, erro: 'Admin não encontrado' });
+    const slugs = Array.isArray(req.body.slugs) ? req.body.slugs.filter(s => typeof s === 'string' && s.trim()) : [];
+    db.sincronizarEtiquetasAdmin(alvo.id, slugs);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[hub admins/etiquetas PUT]', err);
+    res.status(500).json({ ok: false, erro: 'Erro interno' });
+  }
+});
+
+// ─── Setores e logs/historico do usuario do portal ──────────────────────────
+router.get('/setores', (_req, res) => {
+  res.json({ ok: true, setores: db.listarSetores() });
+});
+router.get('/portal-usuarios/:id/logs', (req, res) => {
+  const u = db.buscarUsuarioPorId(req.params.id);
+  if (!u) return res.status(404).json({ ok: false, erro: 'Usuário não encontrado' });
+  res.json({ ok: true, logs: db.listarLogsUsuario(u.id) });
+});
+router.get('/portal-usuarios/:id/chamados', (req, res) => {
+  const u = db.buscarUsuarioPorId(req.params.id);
+  if (!u) return res.status(404).json({ ok: false, erro: 'Usuário não encontrado' });
+  res.json({ ok: true, chamados: db.listarChamadosPorUsuario(u.id) });
+});
+
 module.exports = router;

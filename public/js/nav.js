@@ -51,11 +51,8 @@
 
   let html = link('/admin-painel.html', 'Chamados');
 
-  if (path === '/admin-usuarios.html') {
-    html += '<a href="/admin-usuarios.html" class="ativo">Usuários</a>';
-  } else {
-    html += '<span id="nav-usuarios-wrap"></span>';
-  }
+  // Botao "Usuarios" removido: gerenciamento de contas migrou para o Hub
+  // (engrenagem -> aba Contas em hub-granmarquise.fly.dev).
 
   html += link('/admin-relatorios.html', 'Relatórios');
 
@@ -112,15 +109,7 @@
       });
     }
 
-    const wrap = document.getElementById('nav-usuarios-wrap');
-    if (wrap) {
-      fetch('/api/admin/me', { credentials: 'same-origin' })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (info) {
-          if (info && info.is_master) wrap.innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
-        })
-        .catch(function () {});
-    }
+    // (Aba "Usuários" desativada — gerenciamento ficou no Hub.)
 
     const dropdown = document.getElementById('nav-admin-dropdown');
     const trigger = document.getElementById('nav-admin-trigger');
