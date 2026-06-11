@@ -98,32 +98,7 @@ app.use('/api/setores', require('./src/rotas/setores'));
 app.use('/api/etiquetas', require('./src/rotas/etiquetas'));
 app.use('/api/admin/programados', require('./src/rotas/programados'));
 app.use('/api/admin', require('./src/rotas/admins'));
-
-app.get('/api/hub/usuarios', (req, res) => {
-  const auth = req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  if (!token || token !== process.env.SSO_SECRET) return res.status(403).json({ erro: 'Acesso negado' });
-  const admins = listarAdmins().filter(a => a.ativo && !a.is_test).map(a => ({
-    email: a.email,
-    nome: a.nome_completo,
-    usuario: a.usuario,
-    setor: 'TI',
-    ramal: a.ramal || '',
-    tipo: 'admin',
-    is_master: a.is_master === 1,
-    ativo: a.ativo === 1,
-  }));
-  const usuarios = listarUsuarios().filter(u => u.ativo).map(u => ({
-    email: u.email,
-    nome: u.nome,
-    setor: u.setor || '',
-    ramal: u.ramal || '',
-    tipo: 'usuario',
-    is_master: false,
-    ativo: u.ativo === 1,
-  }));
-  return res.json({ ok: true, users: [...admins, ...usuarios] });
-});
+app.use('/api/hub', require('./src/rotas/hub'));
 
 const HUB_URL = process.env.HUB_URL || 'https://hub-granmarquise.fly.dev';
 
