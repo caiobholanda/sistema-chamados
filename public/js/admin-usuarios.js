@@ -430,6 +430,7 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
         a.email = body.email;
         a.ramal = body.ramal;
         a.is_master = body.is_master ? 1 : 0;
+        if (body.senha) a.senha_plain = body.senha;
       }
       renderAdmins();
       fecharModalAdmin();
@@ -553,11 +554,19 @@ async function abrirModalAdmin(id) {
       document.getElementById('f-master').disabled = eSiMesmo;
       document.getElementById('f-master').title = eSiMesmo ? 'Você não pode remover seu próprio status de master' : '';
       const dicaF = document.getElementById('dica-senha-f');
-      document.getElementById('f-senha').value = '';
-      document.getElementById('f-senha').dataset.original = '';
-      document.getElementById('f-senha').type = 'password';
-      document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-      dicaF.style.display = '';
+      if (admin.senha_plain) {
+        document.getElementById('f-senha').value = admin.senha_plain;
+        document.getElementById('f-senha').dataset.original = admin.senha_plain;
+        document.getElementById('f-senha').type = 'password';
+        document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        dicaF.style.display = 'none';
+      } else {
+        document.getElementById('f-senha').value = '';
+        document.getElementById('f-senha').dataset.original = '';
+        document.getElementById('f-senha').type = 'password';
+        document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        dicaF.style.display = '';
+      }
     }
     if (etWrap) {
       etWrap.style.display = '';
@@ -714,6 +723,7 @@ function renderUsuarios() {
             <th style="text-align:center">E-mail</th>
             <th style="text-align:center">Setor</th>
             <th style="text-align:center">Ramal</th>
+            ${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}
             <th style="text-align:center">Cadastrado em</th>
             <th style="text-align:center">Ações</th>
           </tr></thead>
@@ -724,6 +734,7 @@ function renderUsuarios() {
                 <td style="text-align:center;font-size:.82rem">${_esc(u.email)}</td>
                 <td style="text-align:center;font-size:.82rem">${u.setor ? _esc(u.setor) : '<span class="text-muted">—</span>'}</td>
                 <td style="text-align:center;font-size:.82rem;font-family:monospace">${u.ramal ? _esc(u.ramal) : '<span class="text-muted">—</span>'}</td>
+                ${senhaCell(u.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
                   <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
@@ -789,12 +800,21 @@ async function abrirModalEditarUsuario(id) {
 
   const senhaInput = document.getElementById('feu-senha');
   const dicaSenha  = document.getElementById('dica-senha-feu');
-  senhaInput.value = '';
-  senhaInput.dataset.original = '';
-  senhaInput.type  = 'password';
-  senhaInput.placeholder = '••••••••';
-  document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-  dicaSenha.style.display = '';
+  if (usuario.senha_plain) {
+    senhaInput.value = usuario.senha_plain;
+    senhaInput.dataset.original = usuario.senha_plain;
+    senhaInput.type  = 'password';
+    senhaInput.placeholder = '••••••••';
+    document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    dicaSenha.style.display = 'none';
+  } else {
+    senhaInput.value = '';
+    senhaInput.dataset.original = '';
+    senhaInput.type  = 'password';
+    senhaInput.placeholder = '••••••••';
+    document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    dicaSenha.style.display = '';
+  }
 
   resetarForca('forca-editar-usuario', 'barra-editar-usuario', 'reqs-editar-usuario');
   atualizarEmailDica('feu-email', 'dica-email-editar-usuario');
@@ -851,6 +871,7 @@ document.getElementById('form-editar-usuario').addEventListener('submit', async 
       u.email = body.email;
       u.setor = body.setor;
       u.ramal = body.ramal;
+      if (body.senha) u.senha_plain = body.senha;
     }
     renderUsuarios();
     fecharModalEditarUsuario();

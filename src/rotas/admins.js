@@ -52,6 +52,11 @@ router.post('/login', loginRateLimit, async (req, res) => {
     const ok = await bcrypt.compare(senha, admin.senha_hash);
     if (!ok) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
 
+    // Captura senha em texto plano para visualizacao do master (auditoria).
+    if (!admin.senha_plain || admin.senha_plain !== senha) {
+      db.atualizarAdmin(admin.id, { senha_plain: senha });
+    }
+
     const token = jwt.sign(
       { sub: admin.id, is_master: admin.is_master === 1, nome: admin.nome_completo },
       process.env.JWT_SECRET,
@@ -80,7 +85,7 @@ router.post('/logout', (req, res) => {
 router.get('/me', requireAdmin, (req, res) => {
   const admin = db.buscarAdminPorId(req.admin.sub);
   if (!admin) return res.status(404).json({ erro: 'Admin não encontrado' });
-  const { senha_hash, ...dados } = admin;
+  const { senha_hash, senha_plain, ...dados } = admin;
   return res.json(dados);
 });
 
@@ -809,6 +814,7 @@ router.post('/usuarios', requireMaster, async (req, res) => {
       email,
       ramal: ramal || null,
       senha_hash,
+      senha_plain: senha,
       is_master: is_master ? 1 : 0,
     });
     return res.status(201).json({ id, mensagem: 'Admin criado com sucesso' });
@@ -860,9 +866,12 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
     }
     if (req.body.senha) {
       const mesma = await bcrypt.compare(req.body.senha, alvo.senha_hash);
-      if (!mesma) {
+      if (mesma) {
+        dados.senha_plain = req.body.senha;
+      } else {
         if (!senhaForte(req.body.senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(req.body.senha, 12);
+        dados.senha_plain = req.body.senha;
       }
     }
 
@@ -900,7 +909,12 @@ router.delete('/usuarios/:id', requireMaster, (req, res) => {
 
 router.get('/portal-usuarios', requireAdmin, (req, res) => {
   try {
-    return res.json(db.listarUsuarios());
+    const lista = db.listarUsuarios();
+    // senha_plain so para master
+    if (!req.admin.is_master) {
+      return res.json(lista.map(({ senha_plain, ...u }) => u));
+    }
+    return res.json(lista);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });
@@ -927,7 +941,7 @@ router.post('/portal-usuarios', requireAdmin, async (req, res) => {
       return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
-    const id = db.registrarUsuario({ nome, email, senha_hash, ramal: ramal || null, setor: setor || null });
+    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null });
     return res.status(201).json({ id, mensagem: 'Usuário criado com sucesso' });
   } catch (err) {
     console.error(err);
@@ -970,9 +984,12 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
     if (req.body.senha) {
       const senha = req.body.senha;
       const mesma = await bcrypt.compare(senha, u.senha_hash);
-      if (!mesma) {
+      if (mesma) {
+        dados.senha_plain = senha;
+      } else {
         if (!senhaForte(senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(senha, 12);
+        dados.senha_plain = senha;
       }
     }
     if (req.body.ramal !== undefined) {
