@@ -246,9 +246,42 @@ router.put('/admins/:id/etiquetas', (req, res) => {
   }
 });
 
-// ─── Setores e logs/historico do usuario do portal ──────────────────────────
+// ─── Setores (CRUD) ──────────────────────────────────────────────────────────
 router.get('/setores', (_req, res) => {
   res.json({ ok: true, setores: db.listarSetores() });
+});
+router.post('/setores', (req, res) => {
+  const nome = sanit(req.body.nome || '');
+  if (!nome) return res.status(400).json({ ok: false, erro: 'Nome obrigatório' });
+  try {
+    const id = db.criarSetor(nome);
+    res.status(201).json({ ok: true, id, nome });
+  } catch (e) {
+    if (e.message && e.message.includes('UNIQUE')) return res.status(409).json({ ok: false, erro: 'Setor já existe' });
+    console.error('[hub setores POST]', e);
+    res.status(500).json({ ok: false, erro: 'Erro interno' });
+  }
+});
+router.put('/setores/:id', (req, res) => {
+  const nome = sanit(req.body.nome || '');
+  if (!nome) return res.status(400).json({ ok: false, erro: 'Nome obrigatório' });
+  try {
+    db.editarSetor(+req.params.id, nome);
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.message && e.message.includes('UNIQUE')) return res.status(409).json({ ok: false, erro: 'Setor já existe' });
+    console.error('[hub setores PUT]', e);
+    res.status(500).json({ ok: false, erro: 'Erro interno' });
+  }
+});
+router.delete('/setores/:id', (req, res) => {
+  try {
+    db.excluirSetor(+req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[hub setores DELETE]', e);
+    res.status(500).json({ ok: false, erro: 'Erro interno' });
+  }
 });
 router.get('/portal-usuarios/:id/logs', (req, res) => {
   const u = db.buscarUsuarioPorId(req.params.id);
