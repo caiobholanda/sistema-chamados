@@ -1,4 +1,9 @@
 // ── Relatórios v2 — layout profissional ────────────────────
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 const MESES_LABEL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const CAT_COLORS = {
   software: '#6366F1', hardware: '#0EA5E9', impressora: '#8B5CF6',
@@ -449,7 +454,7 @@ function setoresList(setores) {
     <div class="sector-row ${i === 0 ? 'top' : ''}">
       <div class="sector-rank">${i + 1}</div>
       <div class="sector-body">
-        <div class="sector-name">${s.setor}</div>
+        <div class="sector-name">${_esc(s.setor)}</div>
         <div class="sector-bar"><div class="sector-fill" style="width:${(s.total / maxT * 100).toFixed(0)}%"></div></div>
       </div>
       <div class="sector-count">${s.total}${i === 0 ? ' <small>chamados</small>' : ''}</div>
@@ -507,7 +512,7 @@ function rankingRows(ranking) {
         <div class="rank-pos"><div class="rank-medal ${medal}">${i + 1}</div></div>
         <div class="rank-name">
           <div class="rank-avatar" ${semAtividade ? 'style="background:var(--bg);color:var(--text-muted);border-color:var(--border)"' : ''}>${iniciais}</div>
-          <span ${semAtividade ? 'style="color:var(--text-muted)"' : ''}>${a.nome_completo}</span>
+          <span ${semAtividade ? 'style="color:var(--text-muted)"' : ''}>${_esc(a.nome_completo)}</span>
           ${isVoce ? '<span class="rank-you-tag">Você</span>' : ''}
         </div>
         <div class="rank-num ${semAtividade ? 'muted' : ''}" style="justify-content:flex-end">${tot}</div>

@@ -1,6 +1,12 @@
 (function () {
   'use strict';
 
+  function _esc(s) {
+    return (s ?? '').toString()
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   let contatos = [];
   let excluirId = null;
 
@@ -53,8 +59,8 @@
   function chipWpp(n) {
     if (!n) return '<span style="color:var(--text-muted)">—</span>';
     const limpo = n.replace(/\D/g, '');
-    return `<a class="chip-contato chip-wpp" href="https://wa.me/55${limpo}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp">
-      <span class="chip-icon">💬</span>${n}
+    return `<a class="chip-contato chip-wpp" href="https://wa.me/55${encodeURIComponent(limpo)}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp">
+      <span class="chip-icon">💬</span>${_esc(n)}
     </a>`;
   }
   function chipTel(n, label) {
@@ -62,17 +68,17 @@
     const limpo = n.replace(/\D/g, '');
     const tip = label === 'fixo' ? 'Ligar para o telefone fixo' : 'Ligar para o celular';
     const icon = label === 'fixo' ? '☎️' : '📞';
-    return `<a class="chip-contato chip-tel" href="tel:+55${limpo}" title="${tip}">
-      <span class="chip-icon">${icon}</span>${n}
+    return `<a class="chip-contato chip-tel" href="tel:+55${encodeURIComponent(limpo)}" title="${tip}">
+      <span class="chip-icon">${icon}</span>${_esc(n)}
     </a>`;
   }
   function chipEmail(e) {
     if (!e) return '<span style="color:var(--text-muted)">—</span>';
-    return `<a class="chip-contato chip-email" href="mailto:${e}" title="Enviar e-mail">
-      <span class="chip-icon">✉️</span>${e}
+    return `<a class="chip-contato chip-email" href="mailto:${encodeURIComponent(e)}" title="Enviar e-mail">
+      <span class="chip-icon">✉️</span>${_esc(e)}
     </a>`;
   }
-  function dash(v) { return v || '<span style="color:var(--text-muted)">—</span>'; }
+  function dash(v) { return v ? _esc(v) : '<span style="color:var(--text-muted)">—</span>'; }
 
   /* ── Renderizar lista ── */
   function renderizar() {
@@ -91,11 +97,11 @@
         <div class="card" style="margin-bottom:1.25rem;overflow:hidden">
           <div class="contato-card-header">
             <span style="color:var(--gold);font-size:.82rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase">
-              ${c.area || '<span style="opacity:.5">Sem nome</span>'}
+              ${c.area ? _esc(c.area) : '<span style="opacity:.5">Sem nome</span>'}
             </span>
             <div style="display:flex;gap:.3rem;flex-shrink:0">
               <button class="btn btn-ghost btn-sm" data-edit="${c.id}" style="color:rgba(255,255,255,.7)">✏️ Editar</button>
-              <button class="btn btn-ghost btn-sm" data-del="${c.id}" data-nome="${c.area || 'este contato'}" style="color:#f87171">🗑</button>
+              <button class="btn btn-ghost btn-sm" data-del="${c.id}" data-nome="${_esc(c.area || 'este contato')}" style="color:#f87171">🗑</button>
             </div>
           </div>
           ${temMeta ? `
@@ -128,7 +134,7 @@
     const dl = document.getElementById('areas-datalist');
     if (!dl) return;
     const areas = [...new Set(contatos.map(c => c.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    dl.innerHTML = areas.map(a => `<option value="${a}">`).join('');
+    dl.innerHTML = areas.map(a => `<option value="${_esc(a)}">`).join('');
   }
 
   /* ── Gerenciar pessoas no modal ── */
@@ -152,9 +158,9 @@
     const cel  = (p && p.celular) ? p.celular : '';
 
     row.innerHTML =
-      '<input class="form-control p-nome" type="text" placeholder="Nome" maxlength="80" autocomplete="off" value="' + nome + '">' +
-      '<input class="form-control p-resp" type="text" placeholder="Responsabilidade" maxlength="80" autocomplete="off" value="' + resp + '">' +
-      '<input class="form-control p-cel" type="tel" placeholder="(85) 9 0000-0000" maxlength="20" inputmode="tel" value="' + cel + '">' +
+      '<input class="form-control p-nome" type="text" placeholder="Nome" maxlength="80" autocomplete="off" value="' + _esc(nome) + '">' +
+      '<input class="form-control p-resp" type="text" placeholder="Responsabilidade" maxlength="80" autocomplete="off" value="' + _esc(resp) + '">' +
+      '<input class="form-control p-cel" type="tel" placeholder="(85) 9 0000-0000" maxlength="20" inputmode="tel" value="' + _esc(cel) + '">' +
       '<button type="button" class="btn-remover-pessoa" title="Remover">✕</button>';
 
     row.querySelector('.btn-remover-pessoa').addEventListener('click', function () {
@@ -247,7 +253,7 @@
       fecharModal();
       carregar();
     } catch (err) {
-      msgEl.innerHTML = '<div class="alert alert-danger" style="margin-bottom:.75rem">' + err.message + '</div>';
+      msgEl.innerHTML = '<div class="alert alert-danger" style="margin-bottom:.75rem">' + _esc(err.message) + '</div>';
     }
   }
 

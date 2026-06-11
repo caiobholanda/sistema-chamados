@@ -1,3 +1,9 @@
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // Redireciona se já autenticado
 fetch('/api/admin/me').then(r => {
   if (r.ok) location.replace('/admin-painel.html');
@@ -29,7 +35,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
     });
     const data = await res.json();
     if (!res.ok) {
-      msg.innerHTML = `<div class="alert alert-danger">${data.erro || 'Erro ao fazer login.'}</div>`;
+      msg.innerHTML = `<div class="alert alert-danger">${_esc(data.erro || 'Erro ao fazer login.')}</div>`;
       return;
     }
     location.replace('/admin-painel.html');

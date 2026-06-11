@@ -1,3 +1,9 @@
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 const STATUS_LABELS = {
   enviada: 'Enviada',
   em_analise: 'Em Análise',
@@ -208,8 +214,8 @@ function renderLista(lista) {
           ${lista.map(s => `
             <tr class="clickable" data-id="${s.id}" style="cursor:pointer">
               <td><strong>#${s.id}</strong>${!s.vista_admin ? ' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e53e3e;vertical-align:middle" title="Não visualizada"></span>' : ''}</td>
-              <td>${s.usuario_nome || '<em style="color:var(--text-muted)">Interno</em>'}</td>
-              <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.texto.replace(/"/g,'&quot;')}">${s.texto.slice(0, 80)}${s.texto.length > 80 ? '…' : ''}</td>
+              <td>${s.usuario_nome ? _esc(s.usuario_nome) : '<em style="color:var(--text-muted)">Interno</em>'}</td>
+              <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(s.texto)}">${_esc(s.texto.slice(0, 80))}${s.texto.length > 80 ? '…' : ''}</td>
               <td>${badge(s.status)}${s.msgs_nao_lidas > 0 ? ` <span style="display:inline-block;background:#e53e3e;color:#fff;border-radius:50%;font-size:.62rem;font-weight:700;padding:1px 5px;margin-left:.3rem;vertical-align:middle;line-height:1.5" title="${s.msgs_nao_lidas} mensagem(ns) não lida(s)">${s.msgs_nao_lidas}</span>` : ''}</td>
               <td>${fmtData(s.criado_em)}</td>
               <td>${fmtData(s.atualizado_em)}</td>
@@ -280,7 +286,7 @@ function renderDetalhe(s) {
       <div style="display:flex;gap:1rem;flex-wrap:wrap">
         <div style="flex:1;min-width:120px">
           <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.3rem">Usuário</div>
-          <div style="font-size:.9rem">${s.usuario_nome || '<em style="color:var(--text-muted)">Sugestão interna</em>'}</div>
+          <div style="font-size:.9rem">${s.usuario_nome ? _esc(s.usuario_nome) : '<em style="color:var(--text-muted)">Sugestão interna</em>'}</div>
         </div>
         <div style="flex:1;min-width:120px">
           <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.3rem">Criado em</div>
@@ -290,7 +296,7 @@ function renderDetalhe(s) {
 
       <div>
         <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.4rem">Sugestão</div>
-        <div style="font-size:.88rem;line-height:1.6;white-space:pre-wrap">${s.texto}</div>
+        <div style="font-size:.88rem;line-height:1.6;white-space:pre-wrap">${_esc(s.texto)}</div>
         ${campoExtra}
       </div>
 
@@ -464,7 +470,7 @@ async function _salvarStatus(sugId, status, campo_extra) {
         await abrirDetalhe(sugId);
       }
     } else {
-      if (msgEl) msgEl.innerHTML = `<span style="color:var(--danger)">${d.erro}</span>`;
+      if (msgEl) msgEl.innerHTML = `<span style="color:var(--danger)">${_esc(d.erro)}</span>`;
     }
   } catch { if (msgEl) msgEl.innerHTML = '<span style="color:var(--danger)">Erro de conexão</span>'; }
 }
@@ -474,7 +480,7 @@ function _renderMsgChat(m) {
   const texto = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
   const anexoHtml = m.chat_anexo_nome_original ? _chatAnexoHtmlSug(`/api/sugestoes/admin/${m.sugestao_id}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original) : '';
   return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
-    <div class="chat-msg-author">${m.autor_nome}</div>
+    <div class="chat-msg-author">${_esc(m.autor_nome)}</div>
     ${texto}${anexoHtml}
     <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
   </div>`;
@@ -558,7 +564,13 @@ async function init() {
   });
 
   // Polling lista em tempo real
+  if (_listaInterval) clearInterval(_listaInterval);
   _listaInterval = setInterval(() => carregarSugestoes(true), 8000);
+  window.addEventListener('beforeunload', () => {
+    if (_listaInterval) clearInterval(_listaInterval);
+    if (_chatInterval) clearInterval(_chatInterval);
+    if (_statusInterval) clearInterval(_statusInterval);
+  }, { once: true });
 
   document.getElementById('btn-fechar-detalhe').addEventListener('click', fecharDetalhe);
   document.getElementById('modal-detalhe-overlay').addEventListener('click', e => {
@@ -596,7 +608,7 @@ async function init() {
         showToast('Sugestão criada com sucesso');
         carregarSugestoes();
       } else {
-        msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
+        msgEl.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`;
       }
     } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão</div>'; }
     finally { btn.disabled = false; }

@@ -222,7 +222,7 @@ function renderCards(items) {
 }
 
 function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // ── Carregar dados ────────────────────────────────────────────────────────────
@@ -691,7 +691,7 @@ document.getElementById('form-prog-usuario')?.addEventListener('submit', async e
     });
     const d = await r.json();
     if (!r.ok) {
-      msg.innerHTML = `<div style="padding:.5rem .75rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b;margin-bottom:.75rem">${d.erro || 'Erro ao criar.'}</div>`;
+      msg.innerHTML = `<div style="padding:.5rem .75rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b;margin-bottom:.75rem">${esc(d.erro || 'Erro ao criar.')}</div>`;
       return;
     }
     if (!_usuariosPortal) _usuariosPortal = [];
@@ -778,7 +778,7 @@ document.getElementById('form-prog-etiqueta')?.addEventListener('submit', async 
     });
     const d = await r.json();
     if (!r.ok) {
-      msg.innerHTML = `<div style="padding:.5rem .75rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b;margin-bottom:.75rem">${d.erro || 'Erro ao criar.'}</div>`;
+      msg.innerHTML = `<div style="padding:.5rem .75rem;background:#fee2e2;border-radius:6px;font-size:.82rem;color:#991b1b;margin-bottom:.75rem">${esc(d.erro || 'Erro ao criar.')}</div>`;
       return;
     }
     const rEt = await fetch('/api/etiquetas', { credentials: 'include' });
