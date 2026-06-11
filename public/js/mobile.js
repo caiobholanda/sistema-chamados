@@ -239,7 +239,7 @@ async function api(url, opts = {}) {
 // Login centralizado no Hub: qualquer chamada a renderLogin redireciona para la.
 function renderLogin() {
   adminInfo = null;
-  location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href));
+  location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href));
   return;
 }
 

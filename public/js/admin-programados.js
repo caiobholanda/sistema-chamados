@@ -140,16 +140,16 @@ let _adminInfo = null;
 async function checkAuth() {
   try {
     const r = await fetch('/api/admin/me', { credentials: 'include' });
-    if (!r.ok) { window.location.href = 'https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href); return false; }
+    if (!r.ok) { window.location.href = '/acesso-hub.html?next=' + encodeURIComponent(location.href); return false; }
     _adminInfo = await r.json();
     return true;
-  } catch { window.location.href = 'https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href); return false; }
+  } catch { window.location.href = '/acesso-hub.html?next=' + encodeURIComponent(location.href); return false; }
 }
 
 // ── Fetch helper (JSON only) ──────────────────────────────────────────────────
 async function apiFetch(url, opts = {}) {
   const r = await fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...opts });
-  if (r.status === 401) { window.location.href = 'https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href); return null; }
+  if (r.status === 401) { window.location.href = '/acesso-hub.html?next=' + encodeURIComponent(location.href); return null; }
   return r;
 }
 
@@ -507,7 +507,7 @@ document.getElementById('btn-salvar').addEventListener('click', async () => {
   btn.disabled = false;
   btn.textContent = label;
 
-  if (r.status === 401) { window.location.href = 'https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href); return; }
+  if (r.status === 401) { window.location.href = '/acesso-hub.html?next=' + encodeURIComponent(location.href); return; }
   const d = await r.json();
   if (!d.ok) {
     erroEl.textContent = d.erro || 'Erro ao salvar';

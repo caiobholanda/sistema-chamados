@@ -301,7 +301,7 @@ function renderAuth() {
   if (_visibilityController) { _visibilityController.abort(); _visibilityController = null; }
   if (_sseSource) { _sseSource.close(); _sseSource = null; }
   // Login centralizado no Hub: redireciona para la imediatamente.
-  location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href));
+  location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href));
 }
 
 function _renderAuth_legacy_unused() {

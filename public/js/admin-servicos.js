@@ -58,7 +58,7 @@
       }
       return true;
     } catch {
-      window.location.href = 'https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href);
+      window.location.href = '/acesso-hub.html?next=' + encodeURIComponent(location.href);
       return false;
     }
   }

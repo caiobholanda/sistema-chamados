@@ -587,14 +587,14 @@ function badgePrio(p) {
 
 async function api(url, opts = {}) {
   const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
-  if (res.status === 401) { location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href)); throw new Error('401'); }
+  if (res.status === 401) { location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href)); throw new Error('401'); }
   return res;
 }
 
 (async () => {
   try {
     const r = await api('/api/admin/me');
-    if (!r.ok) { location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href)); return; }
+    if (!r.ok) { location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href)); return; }
     adminInfo = await r.json();
 
     try {
@@ -701,7 +701,7 @@ async function carregarEstatisticas() {
 
 document.getElementById('btn-logout')?.addEventListener('click', async () => {
   await api('/api/admin/logout', { method: 'POST' });
-  location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href));
+  location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href));
 });
 
 document.getElementById('btn-filtrar').addEventListener('click', carregarChamados);

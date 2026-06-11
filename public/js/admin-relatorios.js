@@ -40,7 +40,7 @@ function isDark() { return document.documentElement.getAttribute('data-theme') =
 
 async function api(url, opts = {}) {
   const res = await fetch(url, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
-  if (res.status === 401) { location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href)); throw new Error('401'); }
+  if (res.status === 401) { location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href)); throw new Error('401'); }
   return res;
 }
 

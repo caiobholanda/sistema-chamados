@@ -122,7 +122,7 @@ async function apiFetch(url, opts = {}) {
 
 async function checarAuth() {
   const r = await apiFetch('/api/admin/me');
-  if (!r.ok) { location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href)); return null; }
+  if (!r.ok) { location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href)); return null; }
   return r.json();
 }
 
@@ -151,7 +151,7 @@ async function carregarSugestoes(silencioso = false) {
 
   try {
     const r = await apiFetch('/api/sugestoes/admin?' + params.toString());
-    if (!r.ok) { if (r.status === 401) location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href)); return; }
+    if (!r.ok) { if (r.status === 401) location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href)); return; }
     const lista = await r.json();
 
     if (silencioso) {
@@ -622,7 +622,7 @@ async function init() {
   if (btnLogout) {
     btnLogout.addEventListener('click', async () => {
       await apiFetch('/api/admin/logout', { method: 'POST' });
-      location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href));
+      location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href));
     });
   }
 }
