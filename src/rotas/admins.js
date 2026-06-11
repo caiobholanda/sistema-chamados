@@ -70,7 +70,15 @@ router.post('/login', loginRateLimit, async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    return res.json({ mensagem: 'Login realizado', is_master: admin.is_master === 1, nome: admin.nome_completo });
+    return res.json({
+      mensagem: 'Login realizado',
+      is_master: admin.is_master === 1,
+      nome: admin.nome_completo,
+      email: admin.email,
+      usuario: admin.usuario,
+      ramal: admin.ramal || '',
+      setor: 'TI',
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });

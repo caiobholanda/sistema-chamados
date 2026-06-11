@@ -103,8 +103,25 @@ app.get('/api/hub/usuarios', (req, res) => {
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
   if (!token || token !== process.env.SSO_SECRET) return res.status(403).json({ erro: 'Acesso negado' });
-  const admins = listarAdmins().filter(a => a.ativo && !a.is_test).map(a => ({ email: a.email, nome: a.nome_completo, setor: 'TI', tipo: 'admin' }));
-  const usuarios = listarUsuarios().filter(u => u.ativo).map(u => ({ email: u.email, nome: u.nome, setor: u.setor || '', tipo: 'usuario' }));
+  const admins = listarAdmins().filter(a => a.ativo && !a.is_test).map(a => ({
+    email: a.email,
+    nome: a.nome_completo,
+    usuario: a.usuario,
+    setor: 'TI',
+    ramal: a.ramal || '',
+    tipo: 'admin',
+    is_master: a.is_master === 1,
+    ativo: a.ativo === 1,
+  }));
+  const usuarios = listarUsuarios().filter(u => u.ativo).map(u => ({
+    email: u.email,
+    nome: u.nome,
+    setor: u.setor || '',
+    ramal: u.ramal || '',
+    tipo: 'usuario',
+    is_master: false,
+    ativo: u.ativo === 1,
+  }));
   return res.json({ ok: true, users: [...admins, ...usuarios] });
 });
 

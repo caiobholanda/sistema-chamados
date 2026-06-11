@@ -49,7 +49,13 @@ router.post('/login', loginRateLimit, async (req, res) => {
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
     try { db.registrarLogUsuario(usuario.id, 'login_sucesso', normIp(req.ip)); } catch {}
 
-    return res.json({ mensagem: 'Login realizado', nome: usuario.nome });
+    return res.json({
+      mensagem: 'Login realizado',
+      nome: usuario.nome,
+      email: usuario.email,
+      ramal: usuario.ramal || '',
+      setor: usuario.setor || '',
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });
