@@ -290,11 +290,11 @@
         const wrap = document.getElementById('nav-usuarios-wrap');
         if (wrap) wrap.innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
       }
-    }).catch(function () { location.replace('/admin-login.html'); });
+    }).catch(function () { location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href)); });
 
-    document.getElementById('btn-logout').addEventListener('click', async function () {
+    document.getElementById('btn-logout')?.addEventListener('click', async function () {
       await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
-      location.replace('/admin-login.html');
+      location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href));
     });
 
     carregar();

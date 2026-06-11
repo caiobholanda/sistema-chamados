@@ -42,7 +42,7 @@
       }
       return true;
     } catch {
-      window.location.href = '/admin-login.html';
+      window.location.href = 'https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href);
       return false;
     }
   }

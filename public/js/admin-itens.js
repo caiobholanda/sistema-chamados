@@ -81,7 +81,7 @@ function fmtDataHora(d) {
 
 async function api(url, opts = {}) {
   const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
-  if (res.status === 401) { location.replace('/admin-login.html'); throw new Error('401'); }
+  if (res.status === 401) { location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href)); throw new Error('401'); }
   return res;
 }
 
@@ -2107,16 +2107,16 @@ async function confirmarDeletarReservaLegado(id, nome) {
 (async () => {
   try {
     const r = await api('/api/admin/me');
-    if (!r.ok) { location.replace('/admin-login.html'); return; }
+    if (!r.ok) { location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href)); return; }
     adminInfo = await r.json();
 
     if (adminInfo.is_master) {
       document.getElementById('nav-usuarios-wrap').innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
     }
 
-    document.getElementById('btn-logout').addEventListener('click', async () => {
+    document.getElementById('btn-logout')?.addEventListener('click', async () => {
       await api('/api/admin/logout', { method: 'POST' });
-      location.replace('/admin-login.html');
+      location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href));
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {

@@ -236,7 +236,14 @@ async function api(url, opts = {}) {
 })();
 
 // ── Login ─────────────────────────────────────────────────────
+// Login centralizado no Hub: qualquer chamada a renderLogin redireciona para la.
 function renderLogin() {
+  adminInfo = null;
+  location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href));
+  return;
+}
+
+function _renderLogin_legacy_unused() {
   adminInfo = null;
   app.innerHTML = `
     <div class="mob-login">
@@ -386,7 +393,6 @@ async function renderLista() {
           style="background:var(--gold);color:var(--navy);border:none;border-radius:4px;padding:.35rem .65rem;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">
           + Abrir
         </button>
-        <button class="mob-sair-btn" id="mob-sair">Sair</button>
       </div>
     </div>
     <div class="mob-filtro-bar">
@@ -395,11 +401,6 @@ async function renderLista() {
     </div>
     <div id="mob-lista" class="mob-lista"><div class="mob-loading">Carregando…</div></div>
   `;
-
-  document.getElementById('mob-sair').addEventListener('click', async () => {
-    await fetch('/api/admin/logout', { method: 'POST' });
-    renderLogin();
-  });
 
   atualizarBotaoPush();
 

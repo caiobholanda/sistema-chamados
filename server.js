@@ -108,9 +108,18 @@ app.get('/api/hub/usuarios', (req, res) => {
   return res.json({ ok: true, users: [...admins, ...usuarios] });
 });
 
+const HUB_URL = process.env.HUB_URL || 'https://hub-granmarquise.fly.dev';
+
+// Retorna o `next` somente se for um path interno seguro (comeca com / e nao //).
+// Evita open redirect.
+function destinoSeguro(next, fallback) {
+  if (typeof next !== 'string' || !next.startsWith('/') || next.startsWith('//')) return fallback;
+  return next;
+}
+
 app.get('/sso', (req, res) => {
-  const { sso_token } = req.query;
-  if (!sso_token) return res.redirect('/?erro=sem_token');
+  const { sso_token, next } = req.query;
+  if (!sso_token) return res.redirect(HUB_URL + '/?erro=sem_token');
 
   try {
     const payload = jwt.verify(sso_token, process.env.SSO_SECRET);
@@ -118,28 +127,28 @@ app.get('/sso', (req, res) => {
 
     if (tipo === 'admin') {
       const admin = buscarAdminPorEmail(email);
-      if (!admin || admin.ativo === 0) return res.redirect('/admin-login.html?erro=usuario_nao_encontrado');
+      if (!admin || admin.ativo === 0) return res.redirect(HUB_URL + '/?erro=usuario_nao_encontrado');
       const token = jwt.sign(
         { sub: admin.id, is_master: admin.is_master === 1, nome: admin.nome_completo },
         process.env.JWT_SECRET,
         { expiresIn: 30 * 24 * 60 * 60 }
       );
       res.cookie('token', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
-      return res.redirect('/admin-painel.html');
+      return res.redirect(destinoSeguro(next, '/admin-painel.html'));
     }
 
     const usuario = buscarUsuarioPorEmail(email);
-    if (!usuario || usuario.ativo === 0) return res.redirect('/?erro=usuario_inativo');
+    if (!usuario || usuario.ativo === 0) return res.redirect(HUB_URL + '/?erro=usuario_inativo');
     const token = jwt.sign(
       { sub: usuario.id, nome: usuario.nome, email: usuario.email },
       process.env.JWT_SECRET,
       { expiresIn: 30 * 24 * 60 * 60 }
     );
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
-    return res.redirect('/');
+    return res.redirect(destinoSeguro(next, '/'));
   } catch (err) {
     console.error('[SSO] Erro:', err.message);
-    return res.redirect('/?erro=sso_invalido');
+    return res.redirect(HUB_URL + '/?erro=sso_invalido');
   }
 });
 

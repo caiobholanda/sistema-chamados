@@ -300,68 +300,11 @@ function renderAuth() {
   _limparChats();
   if (_visibilityController) { _visibilityController.abort(); _visibilityController = null; }
   if (_sseSource) { _sseSource.close(); _sseSource = null; }
-  const header = document.querySelector('header');
-  if (header) header.style.display = 'none';
-  document.body.classList.add('auth-mode');
+  // Login centralizado no Hub: redireciona para la imediatamente.
+  location.replace('https://hub-granmarquise.fly.dev/?next=' + encodeURIComponent(location.href));
+}
 
-  app.innerHTML = `
-    <div class="login-page">
-
-      <div class="login-left">
-        <img src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png"
-             alt="Gran Marquise"
-             style="width:220px;margin-bottom:2.5rem;position:relative;z-index:1;filter:brightness(0) invert(1)">
-        <div class="login-badge">Portal de Chamados</div>
-        <h2>Suporte de TI<br>Gran Marquise</h2>
-        <p>Registre e acompanhe suas solicitações ao setor de Tecnologia da Informação do Hotel Gran Marquise.</p>
-      </div>
-
-      <div class="login-right">
-        <div class="login-card">
-          <div class="login-card-title">Entrar no portal</div>
-          <div class="login-card-sub">Utilize seu e-mail e senha para acessar</div>
-
-          <div id="msg-auth"></div>
-
-          <form id="form-login" novalidate>
-            <div class="form-group">
-              <label for="login-email">E-mail</label>
-              <input class="form-control" type="email" id="login-email" placeholder="seu@granmarquise.com.br" autocomplete="email" required>
-            </div>
-            <div class="form-group">
-              <label for="login-senha">Senha</label>
-              <div class="input-senha-wrap">
-                <input class="form-control" type="password" id="login-senha" autocomplete="current-password" required placeholder="••••••••">
-                <button type="button" class="btn-eye" id="btn-eye-login-senha" title="Mostrar/ocultar senha">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
-              </div>
-            </div>
-            <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Entrar</button>
-            <div style="text-align:center;margin-top:.75rem">
-              <button type="button" id="btn-esqueci-senha" style="background:none;border:none;cursor:pointer;font-size:.8rem;color:var(--text-muted);text-decoration:underline;padding:0">Esqueci minha senha</button>
-            </div>
-          </form>
-
-          <!-- Painel esqueci senha (oculto inicialmente) -->
-          <div id="painel-esqueci" style="display:none;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-            <p style="font-size:.85rem;color:var(--text-secondary);margin:0 0 .75rem">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
-            <div id="msg-esqueci"></div>
-            <form id="form-esqueci" novalidate>
-              <div class="form-group">
-                <label for="esqueci-email">E-mail</label>
-                <input class="form-control" type="email" id="esqueci-email" placeholder="seu@granmarquise.com.br" autocomplete="email">
-              </div>
-              <button type="submit" class="btn btn-primary btn-full">Enviar link de redefinição</button>
-            </form>
-          </div>
-
-        </div>
-      </div>
-
-    </div>
-  `;
-
+function _renderAuth_legacy_unused() {
   document.getElementById('btn-eye-login-senha').addEventListener('click', () => {
     const inp = document.getElementById('login-senha');
     const btn = document.getElementById('btn-eye-login-senha');
@@ -519,7 +462,6 @@ function renderPainel(usuario) {
         <span class="ajuda-label">Guia rápido</span>
         ${ajudaVista ? '' : '<span class="ajuda-pulse"></span>'}
       </button>
-      <button id="btn-logout-usuario" class="btn btn-ghost btn-sm" style="margin-left:.25rem">Sair</button>
     `;
   }
   document.body.classList.remove('auth-mode');
@@ -639,14 +581,6 @@ function renderPainel(usuario) {
   let filtroNome = '';
   let todosChamados = [];
   let _chamadosHash = null;
-
-  document.getElementById('btn-logout-usuario').addEventListener('click', async () => {
-    _pararRefresh();
-    _limparChats();
-    if (_sseSource) { _sseSource.close(); _sseSource = null; }
-    await apiFetch('/api/usuarios/logout', { method: 'POST' });
-    renderAuth();
-  });
 
   document.getElementById('btn-ajuda-usuario')?.addEventListener('click', () => {
     _abrirAjuda();
