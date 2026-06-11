@@ -493,7 +493,7 @@ function renderAdmins() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Ramal</th><th style="text-align:center">Tipo</th><th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
+            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Ramal</th><th style="text-align:center">Tipo</th>${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
           </tr></thead>
           <tbody>
             ${filtrados.map(a => `
@@ -503,6 +503,7 @@ function renderAdmins() {
                 <td style="text-align:center;font-size:.82rem">${a.email ? _esc(a.email) : '<span class="text-muted">—</span>'}</td>
                 <td style="text-align:center;font-size:.85rem">${a.ramal ? `<code>${_esc(a.ramal)}</code>` : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="text-align:center">${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
+                ${senhaCell(a.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
                   <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
