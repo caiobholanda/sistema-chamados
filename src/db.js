@@ -1502,6 +1502,23 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
   return db.prepare(sql).all(...params);
 }
 
+// Contagem leve para alimentar os "stat pills" do painel admin.
+// Em vez de baixar SELECT * (centenas de KB) so para .filter().length,
+// devolve { aberto, em_andamento, aguardando_compra, aguardando_chegar,
+// concluido, encerrado, cancelado }. Aceita opcionalmente admin_id e setor.
+function contarChamadosPorStatus({ admin_id = null, setor = null } = {}) {
+  const db = getDb();
+  let sql = `SELECT status, COUNT(*) as n FROM chamados WHERE 1=1`;
+  const params = [];
+  if (admin_id) { sql += ' AND admin_responsavel_id = ?'; params.push(admin_id); }
+  if (setor) { sql += ' AND setor LIKE ?'; params.push(`%${setor}%`); }
+  sql += ' GROUP BY status';
+  const rows = db.prepare(sql).all(...params);
+  const out = { aberto: 0, em_andamento: 0, aguardando_compra: 0, aguardando_chegar: 0, concluido: 0, encerrado: 0, cancelado: 0 };
+  for (const r of rows) if (out[r.status] !== undefined) out[r.status] = r.n;
+  return out;
+}
+
 function atualizarDescricao(id, novaDescricao, adminId) {
   const db = getDb();
   const chamado = buscarChamadoPorId(id);
@@ -2917,6 +2934,7 @@ module.exports = {
   buscarHistoricoPrazos,
   buscarHistoricoCompleto,
   listarChamadosAdmin,
+  contarChamadosPorStatus,
   atualizarDescricao,
   atualizarPrioridade,
   atualizarPrazo,

@@ -123,6 +123,20 @@ router.patch('/chamados/:id/requer-acordo', requireAdmin, (req, res) => {
   }
 });
 
+// Contagem leve para alimentar os stat pills sem baixar a lista inteira.
+router.get('/chamados/contagem', requireAdmin, (req, res) => {
+  try {
+    const contagem = db.contarChamadosPorStatus({
+      admin_id: req.query.admin_id || null,
+      setor: req.query.setor || null,
+    });
+    return res.json(contagem);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.get('/chamados', requireAdmin, (req, res) => {
   try {
     const filtros = {

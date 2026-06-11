@@ -631,28 +631,17 @@ function atualizarFiltrosDeAba() {
 
 async function carregarEstatisticas() {
   try {
-    const statusAtivosParam = STATUS_ABERTOS.join(',');
-    const [rTodos, rCancelados] = await Promise.all([
-      api(`/api/admin/chamados?status=${statusAtivosParam},concluido,encerrado`),
-      api('/api/admin/chamados?status=cancelado'),
-    ]);
-    if (!rTodos.ok) return;
-    const todos = await rTodos.json();
-
-    const contagem = { aberto: 0, em_andamento: 0, aguardando_compra: 0, aguardando_chegar: 0, concluido: 0, encerrado: 0 };
-    todos.forEach(c => { if (contagem[c.status] !== undefined) contagem[c.status]++; });
-
-    if (rCancelados.ok) {
-      const cancelados = await rCancelados.json();
-      document.getElementById('cnt-cancelado').textContent = cancelados.length || '0';
-    }
-
-    const totalAbertos   = STATUS_ABERTOS.reduce((s, k) => s + contagem[k], 0);
-    const totalEncerrados = contagem.concluido + contagem.encerrado;
-
+    // Usa o endpoint leve de contagem (poucos bytes) em vez de baixar a lista
+    // inteira so para .filter().length. Roda no boot e no auto-refresh de 5s.
+    const r = await api('/api/admin/chamados/contagem');
+    if (!r.ok) return;
+    const c = await r.json();
+    const totalAbertos    = STATUS_ABERTOS.reduce((s, k) => s + (c[k] || 0), 0);
+    const totalEncerrados = (c.concluido || 0) + (c.encerrado || 0);
     document.getElementById('cnt-aberto').textContent = totalAbertos;
-    document.getElementById('cnt-andamento').textContent = contagem.em_andamento;
+    document.getElementById('cnt-andamento').textContent = c.em_andamento || 0;
     document.getElementById('cnt-concluido').textContent = totalEncerrados;
+    document.getElementById('cnt-cancelado').textContent = c.cancelado || 0;
     document.getElementById('badge-abertos').textContent = totalAbertos || '';
     document.getElementById('badge-encerrados').textContent = totalEncerrados || '';
   } catch {}
