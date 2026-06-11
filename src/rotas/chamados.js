@@ -18,6 +18,19 @@ function getUsuarioIdFromCookie(req) {
   } catch { return null; }
 }
 
+// Admin (cookie 'token') tem acesso a todos os chamados.
+// Usuario (cookie 'token_usuario') precisa de usuarioPodeAcessarChamado.
+// Retorna { admin: true } | { admin: false, usuario_id: N } | null
+function getAuthChamado(req) {
+  try {
+    const t = req.cookies && req.cookies.token;
+    if (t) { jwt.verify(t, process.env.JWT_SECRET); return { admin: true }; }
+  } catch {}
+  const usuario_id = getUsuarioIdFromCookie(req);
+  if (usuario_id) return { admin: false, usuario_id };
+  return null;
+}
+
 const STATUS_VALIDOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar', 'concluido', 'encerrado'];
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
 
@@ -98,11 +111,11 @@ router.post('/', uploadChamadoMiddleware(), async (req, res) => {
 
 router.get('/:id', (req, res) => {
   try {
-    const usuario_id = getUsuarioIdFromCookie(req);
-    if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
+    const auth = getAuthChamado(req);
+    if (!auth) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!db.usuarioPodeAcessarChamado(usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
+    if (!auth.admin && !db.usuarioPodeAcessarChamado(auth.usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
     const historicoPrazos = db.buscarHistoricoPrazos(chamado.id);
     return res.json({ ...chamado, historicoPrazos });
   } catch (err) {
@@ -138,11 +151,11 @@ router.post('/:id/avaliar', (req, res) => {
 
 router.get('/:id/anexo', (req, res) => {
   try {
-    const usuario_id = getUsuarioIdFromCookie(req);
-    if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
+    const auth = getAuthChamado(req);
+    if (!auth) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado || !chamado.anexo_path) return res.status(404).json({ erro: 'Anexo não encontrado' });
-    if (!db.usuarioPodeAcessarChamado(usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
+    if (!auth.admin && !db.usuarioPodeAcessarChamado(auth.usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
     const filePath = path.join(UPLOADS_DIR, chamado.anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado no servidor' });
     const nomeAnexo = chamado.anexo_nome_original || chamado.anexo_path;
@@ -158,11 +171,11 @@ router.get('/:id/anexo', (req, res) => {
 router.get('/:id/anexos', (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store');
-    const usuario_id = getUsuarioIdFromCookie(req);
-    if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
+    const auth = getAuthChamado(req);
+    if (!auth) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!db.usuarioPodeAcessarChamado(usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
+    if (!auth.admin && !db.usuarioPodeAcessarChamado(auth.usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
     return res.json(db.listarAnexosExtras(chamado.id));
   } catch (err) {
     console.error(err);
@@ -172,11 +185,11 @@ router.get('/:id/anexos', (req, res) => {
 
 router.get('/:id/anexos/:anexoId', (req, res) => {
   try {
-    const usuario_id = getUsuarioIdFromCookie(req);
-    if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
+    const auth = getAuthChamado(req);
+    if (!auth) return res.status(401).json({ erro: 'Não autenticado' });
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!db.usuarioPodeAcessarChamado(usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
+    if (!auth.admin && !db.usuarioPodeAcessarChamado(auth.usuario_id, chamado)) return res.status(403).json({ erro: 'Acesso negado' });
     const anexo = db.buscarAnexoExtra(req.params.anexoId);
     if (!anexo || Number(anexo.chamado_id) !== Number(req.params.id))
       return res.status(404).json({ erro: 'Anexo não encontrado' });
