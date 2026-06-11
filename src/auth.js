@@ -2,11 +2,12 @@ const jwt = require('jsonwebtoken');
 
 const DURACAO = 30 * 24 * 60 * 60;        // 30 dias em segundos
 const COOKIE_MAX_AGE = DURACAO * 1000;     // em milissegundos
+const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 function _renovar(payload, res, nome) {
   const { iat, exp, ...claims } = payload;
   const novoToken = jwt.sign(claims, process.env.JWT_SECRET, { expiresIn: DURACAO });
-  res.cookie(nome, novoToken, { httpOnly: true, sameSite: 'Strict', maxAge: COOKIE_MAX_AGE });
+  res.cookie(nome, novoToken, { httpOnly: true, sameSite: 'Strict', secure: COOKIE_SECURE, maxAge: COOKIE_MAX_AGE });
 }
 
 function requireAdmin(req, res, next) {
@@ -15,6 +16,15 @@ function requireAdmin(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
+    // Revalida no banco: admin pode ter sido desativado/excluído depois do login.
+    // Também ressincroniza is_master para evitar privilégio congelado no JWT.
+    const db = require('./db');
+    const admin = db.buscarAdminPorId(payload.sub);
+    if (!admin || !admin.ativo) {
+      res.clearCookie('token');
+      return res.status(401).json({ erro: 'Conta desativada ou removida' });
+    }
+    payload.is_master = admin.is_master === 1;
     req.admin = payload;
     _renovar(payload, res, 'token');
     next();
@@ -26,13 +36,7 @@ function requireAdmin(req, res, next) {
 
 function requireMaster(req, res, next) {
   requireAdmin(req, res, () => {
-    try {
-      const db = require('./db');
-      const admin = db.buscarAdminPorId(req.admin.sub);
-      if (!admin || !admin.is_master) {
-        return res.status(403).json({ erro: 'Acesso restrito ao master' });
-      }
-    } catch {
+    if (!req.admin || !req.admin.is_master) {
       return res.status(403).json({ erro: 'Acesso restrito ao master' });
     }
     next();

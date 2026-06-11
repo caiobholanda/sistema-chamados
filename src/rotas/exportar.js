@@ -5,7 +5,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const { getDb } = require('../db');
 
-const EXPORT_KEY = process.env.EXPORT_KEY || 'gM3f9xK7vQ2pL8nR4wE6';
+const EXPORT_KEY = process.env.EXPORT_KEY;
 
 function checkKey(req, res, next) {
   if (req.query.key !== EXPORT_KEY) return res.status(403).json({ erro: 'Chave inválida' });
