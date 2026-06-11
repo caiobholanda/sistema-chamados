@@ -69,8 +69,6 @@ function _addSetorDropdown(inp, onSelect) {
 let adminInfo = null;
 let _minhasEtiquetas = new Set();
 let chamadoAtual = null;
-let abaAtiva = 'abertos';
-let subAbaMeusAtiva = 'abertos';
 let statusFiltroAtual = '';
 let _ncCombo = null;
 let _selCombo = null;
@@ -570,9 +568,6 @@ function badgeStatus(s) {
 
 function filtrarPorStatus(status) {
   statusFiltroAtual = status;
-  abaAtiva = 'abertos';
-  document.getElementById('tab-meus').classList.remove('ativo');
-  document.getElementById('subtabs-meus').style.display = 'none';
   // Marca visualmente a pill selecionada
   const pillMap = { 'aberto,em_andamento': 'cnt-aberto', 'em_andamento': 'cnt-andamento', 'concluido,encerrado': 'cnt-concluido', 'cancelado': 'cnt-cancelado' };
   document.querySelectorAll('#stats-strip .stat-pill').forEach(p => p.classList.remove('ativo'));
@@ -627,32 +622,6 @@ async function api(url, opts = {}) {
   } catch {}
 })();
 
-document.getElementById('tab-meus').addEventListener('click', () => {
-  const btn = document.getElementById('tab-meus');
-  const jaAtivo = btn.classList.contains('ativo');
-  if (jaAtivo) {
-    btn.classList.remove('ativo');
-    abaAtiva = 'abertos';
-    document.getElementById('subtabs-meus').style.display = 'none';
-  } else {
-    btn.classList.add('ativo');
-    abaAtiva = 'meus';
-    document.getElementById('subtabs-meus').style.display = 'inline-flex';
-  }
-  atualizarFiltrosDeAba();
-  carregarChamados();
-});
-
-
-document.querySelectorAll('.sub-tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('ativo'));
-    btn.classList.add('ativo');
-    subAbaMeusAtiva = btn.dataset.subtab;
-    atualizarFiltrosDeAba();
-    carregarChamados();
-  });
-});
 
 function atualizarFiltrosDeAba() {
   // Sem select de status: resetar o filtro ao trocar de aba
@@ -663,9 +632,8 @@ function atualizarFiltrosDeAba() {
 async function carregarEstatisticas() {
   try {
     const statusAtivosParam = STATUS_ABERTOS.join(',');
-    const [rTodos, rMeus, rCancelados] = await Promise.all([
+    const [rTodos, rCancelados] = await Promise.all([
       api(`/api/admin/chamados?status=${statusAtivosParam},concluido,encerrado`),
-      adminInfo ? api(`/api/admin/chamados?admin_id=${adminInfo.id}&status=${statusAtivosParam},concluido,encerrado`) : Promise.resolve(null),
       api('/api/admin/chamados?status=cancelado'),
     ]);
     if (!rTodos.ok) return;
@@ -687,15 +655,6 @@ async function carregarEstatisticas() {
     document.getElementById('cnt-concluido').textContent = totalEncerrados;
     document.getElementById('badge-abertos').textContent = totalAbertos || '';
     document.getElementById('badge-encerrados').textContent = totalEncerrados || '';
-
-    if (rMeus && rMeus.ok) {
-      const meus = await rMeus.json();
-      const meusAbertos    = meus.filter(c => STATUS_ABERTOS.includes(c.status)).length;
-      const meusEncerrados = meus.filter(c => STATUS_ENCERRADOS.includes(c.status)).length;
-      document.getElementById('badge-meus').textContent = meusAbertos || '';
-      document.getElementById('badge-meus-abertos').textContent = meusAbertos || '';
-      document.getElementById('badge-meus-encerrados').textContent = meusEncerrados || '';
-    }
   } catch {}
 }
 
@@ -1245,18 +1204,12 @@ async function carregarChamados(silencioso = false) {
   const setor = document.getElementById('filtro-setor').value;
   const adminId = document.getElementById('filtro-admin').value;
 
-  if (abaAtiva === 'meus') {
-    params.set('admin_id', adminInfo.id);
-    const statusDaSubAba = subAbaMeusAtiva === 'abertos' ? STATUS_ABERTOS : STATUS_ENCERRADOS;
-    params.set('status', statusDaSubAba.join(','));
+  if (statusFiltroAtual) {
+    params.set('status', statusFiltroAtual);
   } else {
-    if (statusFiltroAtual) {
-      params.set('status', statusFiltroAtual);
-    } else {
-      params.set('status', STATUS_ABERTOS.join(','));
-    }
-    if (adminId) params.set('admin_id', adminId);
+    params.set('status', STATUS_ABERTOS.join(','));
   }
+  if (adminId) params.set('admin_id', adminId);
 
   if (setor) params.set('setor', setor);
 
@@ -1266,7 +1219,7 @@ async function carregarChamados(silencioso = false) {
     params.set('data_tipo', _tipoDataAtivo());
     if (dataInicio) params.set('data_inicio', dataInicio);
     if (dataFim) params.set('data_fim', dataFim);
-    if (!statusFiltroAtual && abaAtiva !== 'meus') {
+    if (!statusFiltroAtual) {
       params.set('status', STATUS_ABERTOS.join(','));
     }
   }
@@ -1308,7 +1261,7 @@ async function carregarChamados(silencioso = false) {
     if (!chamados.length) {
       const msg = statusFiltroAtual === 'cancelado'
         ? 'Nenhum chamado cancelado.'
-        : (abaAtiva === 'abertos' || (abaAtiva === 'meus' && subAbaMeusAtiva === 'abertos'))
+        : (!statusFiltroAtual || statusFiltroAtual === 'aberto,em_andamento' || statusFiltroAtual === 'em_andamento')
           ? 'Nenhum chamado em aberto no momento.'
           : 'Nenhum chamado encerrado encontrado.';
       lista.innerHTML = `
