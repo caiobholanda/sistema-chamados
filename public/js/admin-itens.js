@@ -2105,20 +2105,43 @@ async function confirmarDeletarReservaLegado(id, nome) {
 // ── Init ──────────────────────────────────────────────────
 
 (async () => {
+  // Helper: instala event listener com guard de null e isolamento (uma falha
+  // num listener nao derruba os outros nem trava o carregamento dos dados).
+  const on = (id, evento, fn) => {
+    try {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener(evento, fn);
+    } catch (err) { console.error('[init] addEventListener', id, err); }
+  };
+
+  let adminOk = false;
   try {
     const r = await api('/api/admin/me');
     if (!r.ok) { location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href)); return; }
     adminInfo = await r.json();
+    // Expoe adminInfo para chamado-modal.js
+    window.adminInfo = adminInfo;
+    adminOk = true;
+  } catch (err) {
+    console.error('[init] /api/admin/me falhou:', err && err.message || err);
+  }
 
-    if (adminInfo.is_master) {
-      document.getElementById('nav-usuarios-wrap').innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
-    }
+  // Dispara o carregamento dos dados IMEDIATAMENTE, em paralelo com o setup
+  // dos listeners. Se um listener individual falhar, nao impede o carregamento.
+  const pCarregar = adminOk ? carregarItens().catch(err => {
+    console.error('[init] carregarItens falhou:', err && err.message || err);
+  }) : null;
 
-    document.getElementById('btn-logout')?.addEventListener('click', async () => {
-      await api('/api/admin/logout', { method: 'POST' });
-      location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href));
-    });
+  // ── Setup de listeners (cada um isolado) ─────────────────────────────────
+  // OBS: o elemento "nav-usuarios-wrap" nao existe mais — gerenciamento de
+  // contas migrou para o Hub. Removido o acesso direto que lancava TypeError.
 
+  on('btn-logout', 'click', async () => {
+    try { await api('/api/admin/logout', { method: 'POST' }); } catch (e) { console.error('[logout]', e); }
+    location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href));
+  });
+
+  try {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
@@ -2129,46 +2152,38 @@ async function confirmarDeletarReservaLegado(id, nome) {
         carregarItens();
       });
     });
+  } catch (err) { console.error('[init] tab-btn listeners:', err); }
 
-    // Expõe adminInfo para chamado-modal.js
-    window.adminInfo = adminInfo;
+  on('btn-novo-item', 'click', abrirModalNovo);
 
-    document.getElementById('btn-novo-item').addEventListener('click', abrirModalNovo);
+  // Modal generico (estoque/inventario legado)
+  on('btn-fechar-modal', 'click', fecharModal);
+  // Modal chamado
+  on('cm-btn-fechar-modal', 'click', () => window.fecharChamadoModal && window.fecharChamadoModal());
+  // Modal micros
+  on('micros-btn-fechar', 'click', fecharModalMicros);
+  // Modal movimentacao
+  on('mov-btn-fechar', 'click', fecharMovModal);
+  // Modal historico movimentacoes
+  on('hist-mov-btn-fechar', 'click', fecharHistMovModal);
+  // Modal impressoras
+  on('imp-btn-fechar', 'click', fecharModalImpressora);
+  // Modal movimentacao equipamento — fecha so pelo X
+  on('eq-mov-fechar', 'click', fecharEqMov);
+  // Modal historico/unidades equipamento — fecha so pelo X
+  on('eq-hist-fechar', 'click', fecharEqHist);
+  // Filtros equipamentos
+  on('btn-buscar-eq', 'click', () => carregarItens());
+  on('btn-limpar-eq', 'click', () => {
+    const busca = document.getElementById('eq-busca');
+    const status = document.getElementById('eq-status');
+    if (busca) busca.value = '';
+    if (status) status.value = '';
+    carregarItens();
+  });
+  on('eq-busca', 'keydown', e => { if (e.key === 'Enter') carregarItens(); });
 
-    // Modal genérico (estoque/inventario legado)
-    document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
-    // Modal chamado
-    document.getElementById('cm-btn-fechar-modal').addEventListener('click', () => window.fecharChamadoModal());
-
-    // Modal micros
-    document.getElementById('micros-btn-fechar').addEventListener('click', fecharModalMicros);
-
-    // Modal movimentação
-    document.getElementById('mov-btn-fechar').addEventListener('click', fecharMovModal);
-
-    // Modal histórico movimentações
-    document.getElementById('hist-mov-btn-fechar').addEventListener('click', fecharHistMovModal);
-
-    // Modal impressoras
-    document.getElementById('imp-btn-fechar').addEventListener('click', fecharModalImpressora);
-
-    // Modal movimentação equipamento — fecha só pelo X
-    document.getElementById('eq-mov-fechar')?.addEventListener('click', fecharEqMov);
-
-    // Modal histórico/unidades equipamento — fecha só pelo X
-    document.getElementById('eq-hist-fechar')?.addEventListener('click', fecharEqHist);
-
-    // Filtros equipamentos
-    document.getElementById('btn-buscar-eq')?.addEventListener('click', () => carregarItens());
-    document.getElementById('btn-limpar-eq')?.addEventListener('click', () => {
-      const busca = document.getElementById('eq-busca');
-      const status = document.getElementById('eq-status');
-      if (busca) busca.value = '';
-      if (status) status.value = '';
-      carregarItens();
-    });
-    document.getElementById('eq-busca')?.addEventListener('keydown', e => { if (e.key === 'Enter') carregarItens(); });
-
-    await carregarItens();
-  } catch {}
+  // Aguarda o carregamento da lista finalizar (apenas para que erros tardios
+  // apareçam no console; nao bloqueia nada da UI).
+  if (pCarregar) await pCarregar;
 })();
