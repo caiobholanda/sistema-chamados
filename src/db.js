@@ -116,8 +116,9 @@ function initDb() {
   try { db.exec('ALTER TABLE usuarios ADD COLUMN ativo INTEGER DEFAULT 1'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN email TEXT'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN categoria TEXT'); } catch {}
-  try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
-  try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
+  // Drop senha_plain (texto plano não deve mais existir; bcrypt é a fonte da verdade)
+  try { db.exec('ALTER TABLE usuarios DROP COLUMN senha_plain'); } catch {}
+  try { db.exec('ALTER TABLE admins DROP COLUMN senha_plain'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN ramal TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN is_test INTEGER DEFAULT 0'); } catch {}
   try { db.exec("UPDATE admins SET is_test = 1 WHERE email = 'estagioadmin@granmarquise.com.br'"); } catch {}
@@ -357,13 +358,12 @@ function initDb() {
             senha_hash TEXT NOT NULL,
             criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
             ativo INTEGER DEFAULT 1,
-            senha_plain TEXT,
             ramal TEXT,
             setor TEXT
           );
-          INSERT INTO usuarios_v2 (id, nome, email, senha_hash, criado_em, ativo, senha_plain, ramal, setor)
+          INSERT INTO usuarios_v2 (id, nome, email, senha_hash, criado_em, ativo, ramal, setor)
             SELECT id, nome, email, senha_hash, COALESCE(criado_em, CURRENT_TIMESTAMP),
-                   COALESCE(ativo, 1), senha_plain, ramal, setor FROM usuarios;
+                   COALESCE(ativo, 1), ramal, setor FROM usuarios;
           DROP TABLE usuarios;
           ALTER TABLE usuarios_v2 RENAME TO usuarios;
           CREATE UNIQUE INDEX idx_usuarios_email_ativo ON usuarios(email) WHERE ativo = 1;
@@ -386,12 +386,11 @@ function initDb() {
             is_master INTEGER DEFAULT 0,
             ativo INTEGER DEFAULT 1,
             criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-            email TEXT,
-            senha_plain TEXT
+            email TEXT
           );
-          INSERT INTO admins_v2 (id, usuario, nome_completo, senha_hash, is_master, ativo, criado_em, email, senha_plain)
+          INSERT INTO admins_v2 (id, usuario, nome_completo, senha_hash, is_master, ativo, criado_em, email)
             SELECT id, usuario, nome_completo, senha_hash, COALESCE(is_master, 0), COALESCE(ativo, 1),
-                   COALESCE(criado_em, CURRENT_TIMESTAMP), email, senha_plain FROM admins;
+                   COALESCE(criado_em, CURRENT_TIMESTAMP), email FROM admins;
           DROP TABLE admins;
           ALTER TABLE admins_v2 RENAME TO admins;
           CREATE UNIQUE INDEX idx_admins_usuario_ativo ON admins(usuario) WHERE ativo = 1;
@@ -1036,7 +1035,7 @@ function seedEstoque() {
     console.log(`[DB] Impressoras: ${SEED_IMPRESSORAS.length} registros de seed inseridos.`);
   }
 
-  // One-time: limpar subscrições sem app_origin (eram de Railway/origem desconhecida)
+  // One-time: limpar subscrições sem app_origin (origem desconhecida)
   const pushClear = db.prepare("SELECT valor FROM config WHERE chave = 'push_origin_migration_v1'").get();
   if (!pushClear) {
     db.prepare('DELETE FROM push_subscriptions').run();
@@ -1243,50 +1242,20 @@ function registrarAlertaPrazo(chamadoId, tipo) {
   } catch { return false; }
 }
 
-async function recuperarSenhasPlain() {
-  const db = getDb();
-  const senhasMaster = [
-    process.env.ADMIN_MASTER_PASS,
-    'Admin123!',
-  ].filter(Boolean);
-
-  const adminsNull = db.prepare('SELECT * FROM admins WHERE senha_plain IS NULL').all();
-  for (const admin of adminsNull) {
-    for (const senha of senhasMaster) {
-      const ok = await bcrypt.compare(senha, admin.senha_hash);
-      if (ok) {
-        db.prepare('UPDATE admins SET senha_plain = ? WHERE id = ?').run(senha, admin.id);
-        break;
-      }
-    }
-  }
-
-  const usuariosNull = db.prepare('SELECT * FROM usuarios WHERE senha_plain IS NULL').all();
-  for (const u of usuariosNull) {
-    for (const senha of senhasMaster) {
-      const ok = await bcrypt.compare(senha, u.senha_hash);
-      if (ok) {
-        db.prepare('UPDATE usuarios SET senha_plain = ? WHERE id = ?').run(senha, u.id);
-        break;
-      }
-    }
-  }
-}
-
 async function criarAdminMasterSeNecessario() {
   const db = getDb();
   const count = db.prepare('SELECT COUNT(*) as cnt FROM admins').get();
   if (count.cnt > 0) return;
 
   const usuario = process.env.ADMIN_MASTER_USER || 'admin';
-  const senha = process.env.ADMIN_MASTER_PASS || 'Admin123!';
+  const senha = process.env.ADMIN_MASTER_PASS;
   const nome = process.env.ADMIN_MASTER_NOME || 'Administrador Master';
 
   const hash = await bcrypt.hash(senha, 12);
   db.prepare(`
-    INSERT INTO admins (usuario, nome_completo, senha_hash, senha_plain, is_master)
-    VALUES (?, ?, ?, ?, 1)
-  `).run(usuario, nome, hash, senha);
+    INSERT INTO admins (usuario, nome_completo, senha_hash, is_master)
+    VALUES (?, ?, ?, 1)
+  `).run(usuario, nome, hash);
 
   console.log('='.repeat(60));
   console.log('ADMIN MASTER CRIADO (primeiro boot):');
@@ -1850,9 +1819,9 @@ function assinarChamado(id, assinatura) {
 
 function registrarUsuario(dados) {
   const result = getDb().prepare(`
-    INSERT INTO usuarios (nome, email, senha_hash, senha_plain, ramal, setor)
-    VALUES (@nome, @email, @senha_hash, @senha_plain, @ramal, @setor)
-  `).run({ senha_plain: null, ramal: null, setor: null, ...dados });
+    INSERT INTO usuarios (nome, email, senha_hash, ramal, setor)
+    VALUES (@nome, @email, @senha_hash, @ramal, @setor)
+  `).run({ ramal: null, setor: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -1865,7 +1834,7 @@ function buscarUsuarioPorId(id) {
 }
 
 function listarUsuarios() {
-  return getDb().prepare('SELECT id, nome, email, ativo, senha_plain, ramal, setor, criado_em FROM usuarios ORDER BY criado_em DESC').all();
+  return getDb().prepare('SELECT id, nome, email, ativo, ramal, setor, criado_em FROM usuarios ORDER BY criado_em DESC').all();
 }
 
 function atualizarUsuario(id, dados) {
@@ -1875,7 +1844,6 @@ function atualizarUsuario(id, dados) {
   if (dados.nome !== undefined) { campos.push('nome = ?'); values.push(dados.nome); }
   if (dados.email !== undefined) { campos.push('email = ?'); values.push(dados.email); }
   if (dados.senha_hash !== undefined) { campos.push('senha_hash = ?'); values.push(dados.senha_hash); }
-  if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
   if (dados.ramal !== undefined) { campos.push('ramal = ?'); values.push(dados.ramal); }
   if (dados.setor !== undefined) { campos.push('setor = ?'); values.push(dados.setor); }
   if (campos.length === 0) return;
@@ -1957,7 +1925,7 @@ function buscarAdminPorEmail(email) {
 }
 
 function listarAdmins() {
-  return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, is_master, ativo, senha_plain, criado_em, COALESCE(is_test,0) as is_test FROM admins ORDER BY criado_em ASC').all();
+  return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, is_master, ativo, criado_em, COALESCE(is_test,0) as is_test FROM admins ORDER BY criado_em ASC').all();
 }
 
 function listarAdminsTransferencia() {
@@ -1966,9 +1934,9 @@ function listarAdminsTransferencia() {
 
 function criarAdmin(dados) {
   const result = getDb().prepare(`
-    INSERT INTO admins (usuario, nome_completo, email, ramal, senha_hash, senha_plain, is_master)
-    VALUES (@usuario, @nome_completo, @email, @ramal, @senha_hash, @senha_plain, @is_master)
-  `).run({ senha_plain: null, ramal: null, ...dados });
+    INSERT INTO admins (usuario, nome_completo, email, ramal, senha_hash, is_master)
+    VALUES (@usuario, @nome_completo, @email, @ramal, @senha_hash, @is_master)
+  `).run({ ramal: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -1979,7 +1947,6 @@ function atualizarAdmin(id, dados) {
   if (dados.email !== undefined) { campos.push('email = ?'); values.push(dados.email); }
   if (dados.ramal !== undefined) { campos.push('ramal = ?'); values.push(dados.ramal); }
   if (dados.senha_hash !== undefined) { campos.push('senha_hash = ?'); values.push(dados.senha_hash); }
-  if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
   if (dados.ativo !== undefined) { campos.push('ativo = ?'); values.push(dados.ativo); }
   if (dados.is_master !== undefined) { campos.push('is_master = ?'); values.push(dados.is_master); }
   if (campos.length === 0) return;
@@ -2934,7 +2901,6 @@ module.exports = {
   getDb,
   initDb,
   criarAdminMasterSeNecessario,
-  recuperarSenhasPlain,
   inserirChamado,
   transferirChamado,
   deletarChamado,
