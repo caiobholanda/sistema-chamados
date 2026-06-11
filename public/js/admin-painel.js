@@ -581,12 +581,50 @@ function badgePrio(p) {
 }
 
 async function api(url, opts = {}) {
-  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
-  if (res.status === 401) { location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href)); throw new Error('401'); }
-  return res;
+  // Timeout de 15s via AbortController para evitar fetch pendurado durante
+  // cold-start do Fly. Se o servidor demora demais, abortamos e lancamos
+  // 'timeout' (ou 'network' para outros erros).
+  const timeoutMs = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : 15000;
+  const externalSignal = opts.signal;
+  const ac = new AbortController();
+  const onAbortExt = () => ac.abort('external');
+  if (externalSignal) {
+    if (externalSignal.aborted) ac.abort('external');
+    else externalSignal.addEventListener('abort', onAbortExt, { once: true });
+  }
+  const timer = setTimeout(() => ac.abort('timeout'), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      ...opts,
+      signal: ac.signal,
+    });
+    if (res.status === 401) { location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href)); throw new Error('401'); }
+    return res;
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      if (ac.signal.reason === 'timeout') throw new Error('timeout');
+      throw new Error('aborted');
+    }
+    // TypeError do fetch == falha de rede
+    if (err instanceof TypeError) throw new Error('network');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+    if (externalSignal) externalSignal.removeEventListener('abort', onAbortExt);
+  }
 }
 
 (async () => {
+  // Dispara o carregamento dos chamados IMEDIATAMENTE e em paralelo ao setup
+  // de etiquetas/admins/equipamentos. Se a cadeia de setup falhar (cold-start,
+  // 502, JSON ruim) o carregarChamados nao trava junto.
+  atualizarFiltrosDeAba();
+  const pChamados = carregarChamados(false, { retries: 2, baseDelayMs: 800 });
+  const pEstat = carregarEstatisticas();
+  const pEquip = carregarEquipamentos();
+
+  // Setup que depende de /api/admin/me. Falhas aqui nao impedem a tela principal.
   try {
     const r = await api('/api/admin/me');
     if (!r.ok) { location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href)); return; }
@@ -595,31 +633,34 @@ async function api(url, opts = {}) {
     try {
       const re = await api(`/api/admin/usuarios/${adminInfo.id}/etiquetas`);
       if (re.ok) { const slugs = await re.json(); _minhasEtiquetas = new Set(Array.isArray(slugs) ? slugs : []); }
-    } catch {}
+    } catch (e) { console.error('[boot] etiquetas:', e && e.message || e); }
 
-    if (adminInfo.is_master) {
-      document.getElementById('nav-usuarios-wrap').innerHTML =
-        '<a href="/admin-usuarios.html">Usuários</a>';
-    }
+    try { await carregarAdminsParaFiltro(); }
+    catch (e) { console.error('[boot] adminsParaFiltro:', e && e.message || e); }
 
-    await carregarAdminsParaFiltro();
-    atualizarFiltrosDeAba();
-    await Promise.all([carregarChamados(), carregarEstatisticas(), carregarEquipamentos()]);
-
-    // Abre modal diretamente se vier de outra página via ?chamado=ID
+    // ?chamado=ID na URL abre o modal direto
     const urlParams = new URLSearchParams(location.search);
     const chamadoParam = urlParams.get('chamado');
     if (chamadoParam && +chamadoParam) {
       setTimeout(() => abrirModal(+chamadoParam), 200);
     }
+  } catch (err) {
+    console.error('[boot] setup falhou:', err && err.message || err);
+    // Nao silencia: avisa o usuario sem bloquear a lista de chamados, que ja
+    // esta carregando em paralelo.
+    try { msgGlobal && msgGlobal('<div class="alert alert-warning">Sua sessão pode estar instável. Se o painel não carregar, recarregue a página.</div>'); } catch {}
+  }
 
-    // Auto-refresh silencioso a cada 5s (não atualiza se o modal estiver aberto)
-    setInterval(() => {
-      if (chamadoAtual) return;
-      carregarChamados(true);
-      carregarEstatisticas();
-    }, 5000);
-  } catch {}
+  // Espera os 3 paralelos sem que uma falha derrube as outras (mantem a UX
+  // visivel mesmo se equipamentos cair, por exemplo).
+  await Promise.allSettled([pChamados, pEstat, pEquip]);
+
+  // Auto-refresh silencioso a cada 5s (nao atualiza se o modal estiver aberto)
+  setInterval(() => {
+    if (chamadoAtual) return;
+    carregarChamados(true);
+    carregarEstatisticas();
+  }, 5000);
 })();
 
 
@@ -1185,7 +1226,12 @@ async function carregarAdminsParaFiltro() {
   } catch {}
 }
 
-async function carregarChamados(silencioso = false) {
+// Carrega a lista de chamados. Garante:
+// - res.ok antes de res.json() (evita parse de respostas 500/502/503)
+// - finally que SEMPRE remove o spinner mesmo em falha
+// - estado de erro com botao "Tentar novamente" em caso de falha visivel
+// - retry com backoff opcional (default 2 tentativas) na primeira carga
+async function carregarChamados(silencioso = false, { retries = 2, baseDelayMs = 800 } = {}) {
   const lista = document.getElementById('lista-chamados');
   if (!silencioso) lista.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
@@ -1242,8 +1288,42 @@ async function carregarChamados(silencioso = false) {
     params.set('categoria', _etiquetaFiltroAtual);
   }
 
+  // Spinner sera removido SEMPRE (finally). Em caso de falha, lista mostra estado de erro
+  // com botao "Tentar novamente".
+  let _carregouComSucesso = false;
   try {
-    const r = await api('/api/admin/chamados?' + params);
+    // Tentativas: 1 inicial + (retries) re-tentativas com backoff exponencial.
+    // Trata HTTP 5xx, timeout e erros de rede como retentaveis. 401 continua redirect.
+    let r = null;
+    let lastErr = null;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        r = await api('/api/admin/chamados?' + params, { timeoutMs: 15000 });
+        if (!r.ok) {
+          // 4xx (exceto 429) nao re-tenta; 5xx e 429 sim
+          if (r.status >= 500 || r.status === 429) {
+            lastErr = new Error('http ' + r.status);
+            r = null;
+          } else {
+            throw new Error('http ' + r.status);
+          }
+        } else {
+          break;
+        }
+      } catch (e) {
+        // Erros de timeout/aborted/network retentaveis; 401 ja redirecionou
+        if (e && e.message === '401') throw e;
+        lastErr = e;
+        r = null;
+      }
+      if (r) break;
+      if (i < retries) {
+        const delay = baseDelayMs * Math.pow(2, i); // 800, 1600, 3200...
+        await new Promise(res => setTimeout(res, delay));
+      }
+    }
+    if (!r) throw lastErr || new Error('Falha ao buscar chamados');
+
     let chamados = await r.json();
 
 
@@ -1295,9 +1375,38 @@ async function carregarChamados(silencioso = false) {
         abrirModal(el.dataset.id);
       });
     });
+    _carregouComSucesso = true;
   } catch (err) {
-    if (err.message !== '401' && !silencioso)
-      lista.innerHTML = '<div class="alert alert-danger">Erro ao carregar chamados.</div>';
+    if (err && err.message === '401') return; // ja foi redirecionado pelo api()
+    console.error('[carregarChamados] falhou:', err && err.message || err);
+    if (!silencioso) {
+      const reason = err && err.message === 'timeout' ? 'A requisição demorou demais (15s).'
+        : err && err.message === 'network' ? 'Sem conexão com o servidor.'
+        : err && err.message && err.message.startsWith('http ') ? `Servidor respondeu ${err.message.slice(5)}.`
+        : 'Não foi possível carregar a lista.';
+      lista.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <p>${reason}</p>
+          <button id="btn-tentar-novamente" class="btn btn-primary" style="margin-top:.75rem">Tentar novamente</button>
+        </div>`;
+      const btn = document.getElementById('btn-tentar-novamente');
+      if (btn) btn.addEventListener('click', () => { carregarChamados(false); carregarEstatisticas(); });
+    }
+  } finally {
+    // Garante que o spinner some sempre. Quando _carregouComSucesso === true o
+    // HTML ja foi reescrito; quando false e silencioso, deixamos como estava
+    // (auto-refresh nao deve apagar a tela ao falhar).
+    if (!_carregouComSucesso && !silencioso) {
+      const ainda = lista && lista.querySelector && lista.querySelector('.loading');
+      if (ainda && !lista.innerHTML.includes('Tentar novamente')) {
+        lista.innerHTML = '<div class="empty-state"><p>Não foi possível carregar agora.</p></div>';
+      }
+    }
   }
 }
 
