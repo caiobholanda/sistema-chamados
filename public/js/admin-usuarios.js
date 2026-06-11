@@ -129,23 +129,6 @@ function _addSetorDropdown(inp) {
 }
 
 
-function toggleSenha(el) {
-  if (el.dataset.shown === '1') {
-    el.textContent = '••••••••';
-    el.dataset.shown = '0';
-  } else {
-    el.textContent = el.dataset.senha || '—';
-    el.dataset.shown = '1';
-  }
-}
-
-function senhaCell(senhaPlain) {
-  if (!meAdmin || !meAdmin.is_master) return '';
-  const safe = (senhaPlain || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-  const display = senhaPlain ? '••••••••' : '—';
-  return `<td style="text-align:center"><span data-senha="${safe}" data-shown="0" style="font-family:monospace;font-size:.82rem;cursor:pointer;user-select:all" title="Clique para revelar" onclick="toggleSenha(this)">${display}</span></td>`;
-}
-
 function verificarSenha(senha) {
   return {
     len:     senha.length >= 8,
@@ -447,7 +430,6 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
         a.email = body.email;
         a.ramal = body.ramal;
         a.is_master = body.is_master ? 1 : 0;
-        if (body.senha) a.senha_plain = body.senha;
       }
       renderAdmins();
       fecharModalAdmin();
@@ -510,7 +492,7 @@ function renderAdmins() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Ramal</th><th style="text-align:center">Tipo</th>${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
+            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Ramal</th><th style="text-align:center">Tipo</th><th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
           </tr></thead>
           <tbody>
             ${filtrados.map(a => `
@@ -520,7 +502,6 @@ function renderAdmins() {
                 <td style="text-align:center;font-size:.82rem">${a.email ? _esc(a.email) : '<span class="text-muted">—</span>'}</td>
                 <td style="text-align:center;font-size:.85rem">${a.ramal ? `<code>${_esc(a.ramal)}</code>` : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="text-align:center">${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
-                ${senhaCell(a.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
                   <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
@@ -572,19 +553,11 @@ async function abrirModalAdmin(id) {
       document.getElementById('f-master').disabled = eSiMesmo;
       document.getElementById('f-master').title = eSiMesmo ? 'Você não pode remover seu próprio status de master' : '';
       const dicaF = document.getElementById('dica-senha-f');
-      if (admin.senha_plain) {
-        document.getElementById('f-senha').value = admin.senha_plain;
-        document.getElementById('f-senha').dataset.original = admin.senha_plain;
-        document.getElementById('f-senha').type = 'password';
-        document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-        dicaF.style.display = 'none';
-      } else {
-        document.getElementById('f-senha').value = '';
-        document.getElementById('f-senha').dataset.original = '';
-        document.getElementById('f-senha').type = 'password';
-        document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-        dicaF.style.display = '';
-      }
+      document.getElementById('f-senha').value = '';
+      document.getElementById('f-senha').dataset.original = '';
+      document.getElementById('f-senha').type = 'password';
+      document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+      dicaF.style.display = '';
     }
     if (etWrap) {
       etWrap.style.display = '';
@@ -741,7 +714,6 @@ function renderUsuarios() {
             <th style="text-align:center">E-mail</th>
             <th style="text-align:center">Setor</th>
             <th style="text-align:center">Ramal</th>
-            ${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}
             <th style="text-align:center">Cadastrado em</th>
             <th style="text-align:center">Ações</th>
           </tr></thead>
@@ -752,7 +724,6 @@ function renderUsuarios() {
                 <td style="text-align:center;font-size:.82rem">${_esc(u.email)}</td>
                 <td style="text-align:center;font-size:.82rem">${u.setor ? _esc(u.setor) : '<span class="text-muted">—</span>'}</td>
                 <td style="text-align:center;font-size:.82rem;font-family:monospace">${u.ramal ? _esc(u.ramal) : '<span class="text-muted">—</span>'}</td>
-                ${senhaCell(u.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
                   <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
@@ -818,21 +789,12 @@ async function abrirModalEditarUsuario(id) {
 
   const senhaInput = document.getElementById('feu-senha');
   const dicaSenha  = document.getElementById('dica-senha-feu');
-  if (usuario.senha_plain) {
-    senhaInput.value = usuario.senha_plain;
-    senhaInput.dataset.original = usuario.senha_plain;
-    senhaInput.type  = 'password';
-    senhaInput.placeholder = '••••••••';
-    document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-    dicaSenha.style.display = 'none';
-  } else {
-    senhaInput.value = '';
-    senhaInput.dataset.original = '';
-    senhaInput.type  = 'password';
-    senhaInput.placeholder = '••••••••';
-    document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-    dicaSenha.style.display = '';
-  }
+  senhaInput.value = '';
+  senhaInput.dataset.original = '';
+  senhaInput.type  = 'password';
+  senhaInput.placeholder = '••••••••';
+  document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  dicaSenha.style.display = '';
 
   resetarForca('forca-editar-usuario', 'barra-editar-usuario', 'reqs-editar-usuario');
   atualizarEmailDica('feu-email', 'dica-email-editar-usuario');
@@ -889,7 +851,6 @@ document.getElementById('form-editar-usuario').addEventListener('submit', async 
       u.email = body.email;
       u.setor = body.setor;
       u.ramal = body.ramal;
-      if (body.senha) u.senha_plain = body.senha;
     }
     renderUsuarios();
     fecharModalEditarUsuario();

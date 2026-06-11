@@ -1,10 +1,19 @@
 require('dotenv').config();
+
+// Boot guards: secrets obrigatórios — sem fallback, recusa subir se ausentes
+for (const k of ['JWT_SECRET', 'EXPORT_KEY', 'ADMIN_MASTER_PASS']) {
+  if (!process.env[k] || process.env[k].length < 16) {
+    console.error(`[FATAL] env ${k} ausente ou fraca. Defina via Fly secrets (mínimo 16 chars).`);
+    process.exit(1);
+  }
+}
+
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
-const { initDb, initSugestoes, criarAdminMasterSeNecessario, recuperarSenhasPlain, getChamadosComPrazoPendente, registrarAlertaPrazo, buscarUsuarioPorEmail, buscarAdminPorEmail, listarAdmins, listarUsuarios } = require('./src/db');
+const { initDb, initSugestoes, criarAdminMasterSeNecessario, getChamadosComPrazoPendente, registrarAlertaPrazo, buscarUsuarioPorEmail, buscarAdminPorEmail, listarAdmins, listarUsuarios } = require('./src/db');
 const jwt = require('jsonwebtoken');
 const push = require('./src/push');
 const { executarChamadosProgramados } = require('./src/scheduler');
@@ -13,9 +22,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const BUILD_TS = Date.now(); // deploy-test
 
-// Prevent process crash on unhandled errors
+// uncaughtException: estado possivelmente corrompido — log e reinicia (Fly reinicia).
+// unhandledRejection: log apenas (não obrigatório derrubar).
 process.on('uncaughtException', err => {
   console.error('[FATAL uncaughtException]', err);
+  process.exit(1);
 });
 process.on('unhandledRejection', (reason) => {
   console.error('[WARN unhandledRejection]', reason);
@@ -112,7 +123,7 @@ app.get('/sso', (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: 30 * 24 * 60 * 60 }
       );
-      res.cookie('token', token, { httpOnly: true, sameSite: 'Strict', maxAge: 30 * 24 * 60 * 60 * 1000 });
+      res.cookie('token', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
       return res.redirect('/admin-painel.html');
     }
 
@@ -123,7 +134,7 @@ app.get('/sso', (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: 30 * 24 * 60 * 60 }
     );
-    res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', maxAge: 30 * 24 * 60 * 60 * 1000 });
+    res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
     return res.redirect('/');
   } catch (err) {
     console.error('[SSO] Erro:', err.message);
@@ -209,7 +220,6 @@ async function main() {
   initDb();
   initSugestoes();
   await criarAdminMasterSeNecessario();
-  await recuperarSenhasPlain();
   push.init();
   setInterval(checarPrazos, 2 * 60 * 1000); // a cada 2 minutos (necessário para capturar a janela de 10min)
   setInterval(executarChamadosProgramados, 60 * 1000); // a cada minuto

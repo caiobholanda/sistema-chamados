@@ -6,19 +6,24 @@ const path = require('path');
 const router = express.Router();
 const db = require('../db');
 const { requireAdmin, requireMaster } = require('../auth');
+const { loginRateLimit } = require('../ratelimit');
 const push = require('../push');
 const { upload, uploadMiddleware, uploadChamadoMiddleware, renomearAnexoComId, renomearAnexoExtra } = require('../upload');
 const sse = require('../sse');
 
-const STATUS_VALIDOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar', 'concluido', 'encerrado'];
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
-const TRANSICOES_VALIDAS = {
-  aberto: ['em_andamento'],
-  em_andamento: ['concluido', 'encerrado', 'aguardando_compra', 'aguardando_chegar'],
-  aguardando_compra: ['em_andamento', 'aguardando_chegar', 'concluido', 'encerrado'],
-  aguardando_chegar: ['em_andamento', 'concluido', 'encerrado'],
-};
 const STATUS_ATIVOS = ['aberto', 'em_andamento', 'aguardando_compra', 'aguardando_chegar'];
+// Transições permitidas — validadas em cada endpoint de mudança de status logo abaixo.
+const TRANSICOES_VALIDAS = {
+  aberto:             ['em_andamento', 'aguardando_compra', 'aguardando_chegar', 'concluido', 'encerrado'],
+  em_andamento:       ['concluido', 'encerrado', 'aguardando_compra', 'aguardando_chegar'],
+  aguardando_compra:  ['em_andamento', 'aguardando_chegar', 'concluido', 'encerrado'],
+  aguardando_chegar:  ['em_andamento', 'aguardando_compra', 'concluido', 'encerrado'],
+};
+function podeTransicionar(de, para) {
+  const permitidos = TRANSICOES_VALIDAS[de];
+  return Array.isArray(permitidos) && permitidos.includes(para);
+}
 
 const DOMINIO_EMAIL = '@granmarquise.com.br';
 function senhaForte(s) {
@@ -36,7 +41,7 @@ function notificarUsuario(chamado) {
   sse.notify(chamado.usuario_id, 'chamado:atualizado', { chamado_id: chamado.id });
 }
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginRateLimit, async (req, res) => {
   try {
     const { email, senha } = req.body;
     if (!email || !senha) return res.status(400).json({ erro: 'E-mail e senha obrigatórios' });
@@ -47,10 +52,6 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(senha, admin.senha_hash);
     if (!ok) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
 
-    if (!admin.senha_plain || admin.senha_plain !== senha) {
-      db.atualizarAdmin(admin.id, { senha_plain: senha });
-    }
-
     const token = jwt.sign(
       { sub: admin.id, is_master: admin.is_master === 1, nome: admin.nome_completo },
       process.env.JWT_SECRET,
@@ -60,6 +61,7 @@ router.post('/login', async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       sameSite: 'Strict',
+      secure: process.env.NODE_ENV === 'production',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -78,7 +80,7 @@ router.post('/logout', (req, res) => {
 router.get('/me', requireAdmin, (req, res) => {
   const admin = db.buscarAdminPorId(req.admin.sub);
   if (!admin) return res.status(404).json({ erro: 'Admin não encontrado' });
-  const { senha_hash, senha_plain, ...dados } = admin;
+  const { senha_hash, ...dados } = admin;
   return res.json(dados);
 });
 
@@ -514,8 +516,8 @@ router.patch('/chamados/:id/concluir', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!STATUS_ATIVOS.includes(chamado.status)) {
-      return res.status(400).json({ erro: 'Só é possível concluir chamados em aberto' });
+    if (!podeTransicionar(chamado.status, 'concluido')) {
+      return res.status(400).json({ erro: `Não é possível concluir um chamado com status "${chamado.status}"` });
     }
 
     if (chamado.requer_acordo) {
@@ -529,8 +531,14 @@ router.patch('/chamados/:id/concluir', requireAdmin, (req, res) => {
     }
 
     const { assinatura = null } = req.body;
-    if (assinatura !== null && (typeof assinatura !== 'string' || !assinatura.startsWith('data:image/png;base64,'))) {
-      return res.status(400).json({ erro: 'Assinatura inválida' });
+    if (assinatura !== null) {
+      if (typeof assinatura !== 'string' || !assinatura.startsWith('data:image/png;base64,')) {
+        return res.status(400).json({ erro: 'Assinatura inválida' });
+      }
+      // Limite: 500 KB de payload base64 (~ 375 KB de imagem real)
+      if (assinatura.length > 500 * 1024) {
+        return res.status(413).json({ erro: 'Assinatura muito grande (máx. 500 KB)' });
+      }
     }
 
     db.concluirChamado(chamado.id, solucao, req.admin.sub, assinatura);
@@ -546,7 +554,7 @@ router.patch('/chamados/:id/encerrar', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!STATUS_ATIVOS.includes(chamado.status)) {
+    if (!podeTransicionar(chamado.status, 'encerrado')) {
       return res.status(400).json({ erro: `Não é possível encerrar um chamado com status "${chamado.status}"` });
     }
 
@@ -568,7 +576,7 @@ router.patch('/chamados/:id/aguardar-compra', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!['aberto', 'em_andamento', 'aguardando_chegar'].includes(chamado.status)) {
+    if (!podeTransicionar(chamado.status, 'aguardando_compra')) {
       return res.status(400).json({ erro: `Não é possível usar este status com o chamado atual (${chamado.status})` });
     }
     db.setStatusEspera(chamado.id, 'aguardando_compra', req.admin.sub);
@@ -584,7 +592,7 @@ router.patch('/chamados/:id/aguardar-chegar', requireAdmin, (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);
     if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
-    if (!['aberto', 'em_andamento', 'aguardando_compra'].includes(chamado.status)) {
+    if (!podeTransicionar(chamado.status, 'aguardando_chegar')) {
       return res.status(400).json({ erro: `Não é possível usar este status com o chamado atual (${chamado.status})` });
     }
     db.setStatusEspera(chamado.id, 'aguardando_chegar', req.admin.sub);
@@ -801,7 +809,6 @@ router.post('/usuarios', requireMaster, async (req, res) => {
       email,
       ramal: ramal || null,
       senha_hash,
-      senha_plain: senha,
       is_master: is_master ? 1 : 0,
     });
     return res.status(201).json({ id, mensagem: 'Admin criado com sucesso' });
@@ -853,12 +860,9 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
     }
     if (req.body.senha) {
       const mesma = await bcrypt.compare(req.body.senha, alvo.senha_hash);
-      if (mesma) {
-        dados.senha_plain = req.body.senha;
-      } else {
+      if (!mesma) {
         if (!senhaForte(req.body.senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(req.body.senha, 12);
-        dados.senha_plain = req.body.senha;
       }
     }
 
@@ -923,7 +927,7 @@ router.post('/portal-usuarios', requireAdmin, async (req, res) => {
       return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
-    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null });
+    const id = db.registrarUsuario({ nome, email, senha_hash, ramal: ramal || null, setor: setor || null });
     return res.status(201).json({ id, mensagem: 'Usuário criado com sucesso' });
   } catch (err) {
     console.error(err);
@@ -966,12 +970,9 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
     if (req.body.senha) {
       const senha = req.body.senha;
       const mesma = await bcrypt.compare(senha, u.senha_hash);
-      if (mesma) {
-        dados.senha_plain = senha;
-      } else {
+      if (!mesma) {
         if (!senhaForte(senha)) return res.status(400).json({ erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(senha, 12);
-        dados.senha_plain = senha;
       }
     }
     if (req.body.ramal !== undefined) {
@@ -1140,8 +1141,11 @@ router.get('/chamados/:id/historico-anexo/:filename', requireAdmin, (req, res) =
   try {
     const { UPLOADS_DIR } = require('../upload');
     const filename = req.params.filename;
-    // Validação de segurança: só arquivos que pertencem a este chamado
-    if (!filename || !/^admin_\d+__[a-zA-Z0-9._-]+$/.test(filename)) {
+    const chamadoId = parseInt(req.params.id, 10);
+    if (!chamadoId) return res.status(400).json({ erro: 'ID inválido' });
+    // Validação: o arquivo precisa pertencer EXATAMENTE a este chamado
+    const filenameRegex = new RegExp(`^admin_${chamadoId}__[a-zA-Z0-9._-]+$`);
+    if (!filename || !filenameRegex.test(filename)) {
       return res.status(400).json({ erro: 'Nome de arquivo inválido' });
     }
     const filePath = path.join(UPLOADS_DIR, filename);
