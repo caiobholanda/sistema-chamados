@@ -1249,6 +1249,9 @@ async function criarAdminMasterSeNecessario() {
 
   const usuario = process.env.ADMIN_MASTER_USER || 'admin';
   const senha = process.env.ADMIN_MASTER_PASS;
+  if (!senha || senha.length < 8) {
+    throw new Error('ADMIN_MASTER_PASS ausente ou fraca para criar o admin master (mínimo 8 chars).');
+  }
   const nome = process.env.ADMIN_MASTER_NOME || 'Administrador Master';
 
   const hash = await bcrypt.hash(senha, 12);

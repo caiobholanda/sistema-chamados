@@ -1,12 +1,13 @@
 require('dotenv').config();
 
 // Boot guards: secrets obrigatórios — sem fallback, recusa subir se ausentes
-for (const k of ['JWT_SECRET', 'EXPORT_KEY', 'ADMIN_MASTER_PASS']) {
+for (const k of ['JWT_SECRET', 'EXPORT_KEY']) {
   if (!process.env[k] || process.env[k].length < 16) {
     console.error(`[FATAL] env ${k} ausente ou fraca. Defina via Fly secrets (mínimo 16 chars).`);
     process.exit(1);
   }
 }
+// ADMIN_MASTER_PASS é validada em criarAdminMasterSeNecessario (só obrigatória no primeiro boot).
 
 const express = require('express');
 const cookieParser = require('cookie-parser');
