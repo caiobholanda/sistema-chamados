@@ -152,6 +152,7 @@
 
     window._navBadgeSugRefresh = _buscarContadoresSug;
     _buscarContadoresSug();
-    setInterval(_buscarContadoresSug, 15000);
+    const _sugInterval = setInterval(_buscarContadoresSug, 15000);
+    window.addEventListener('beforeunload', () => clearInterval(_sugInterval), { once: true });
   });
 })();
