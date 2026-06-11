@@ -12,8 +12,8 @@ Sistema interno de suporte de TI do Hotel Gran Marquise (Fortaleza). Usuários d
 ## Estrutura de arquivos
 
 ```
+server.js            — entry point na raiz, monta rotas
 src/
-  server.js          — entry point, monta rotas
   db.js              — todas as queries SQLite
   auth.js            — middleware JWT (requireAdmin, requireMaster)
   rotas/
@@ -55,13 +55,18 @@ npm install
 
 Crie `.env` na raiz:
 ```
-SESSION_SECRET=qualquer_string_secreta
 PORT=3000
+JWT_SECRET=<gere com: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))">
+EXPORT_KEY=<gere com: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))">
+ADMIN_MASTER_PASS=<senha forte para o admin master no primeiro boot>
+ADMIN_MASTER_USER=admin
+ADMIN_MASTER_NOME=Administrador Master
 ```
+Em produção, defina os secrets via `fly secrets set` em vez do `.env`.
 
 Inicie:
 ```bash
-node src/server.js
+node server.js
 ```
 
 Acesse: http://localhost:3000

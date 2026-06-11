@@ -7,3 +7,11 @@ data/uploads/*
 .env
 chamados_b64.txt
 chamados_backup.db
+
+# Arquivos lixo (dumps temporários e exports locais)
+Ctempgh_runs.json
+Tempruns.json
+Usersestagio.tiDesktopClaudeCode*
+*.db
+*.db-wal
+*.db-shm
