@@ -1466,8 +1466,10 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
     }
   }
   if (filtros.data_inicio || filtros.data_fim) {
+    // Modo encerramento usa a data EFETIVA de fechamento (concluido_em para
+    // concluidos/encerrados; cancelado_em para cancelados). Modo criacao usa criado_em.
     const col = filtros.data_tipo === 'encerramento'
-      ? 'c.concluido_em'
+      ? 'COALESCE(c.concluido_em, c.cancelado_em)'
       : 'c.criado_em';
     if (filtros.data_inicio) {
       sql += ` AND ${col} >= ?`;
@@ -1480,7 +1482,7 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
   }
 
   const _statusArr = (filtros.status || '').split(',').map(s => s.trim()).filter(Boolean);
-  const _isEncerrados = _statusArr.length > 0 && _statusArr.every(s => s === 'concluido' || s === 'encerrado');
+  const _isEncerrados = _statusArr.length > 0 && _statusArr.every(s => s === 'concluido' || s === 'encerrado' || s === 'cancelado');
 
   sql += `
     ORDER BY
@@ -1494,7 +1496,7 @@ function listarChamadosAdmin(filtros = {}, adminId = null) {
       END ASC,
       CASE WHEN c.prazo IS NULL THEN 1 ELSE 0 END ASC,
       c.prazo ASC,
-      ${_isEncerrados ? 'COALESCE(c.concluido_em, c.atualizado_em) DESC' : 'c.criado_em ASC'}
+      ${_isEncerrados ? 'COALESCE(c.concluido_em, c.cancelado_em, c.atualizado_em) DESC' : 'c.criado_em ASC'}
   `;
 
   return db.prepare(sql).all(...params);

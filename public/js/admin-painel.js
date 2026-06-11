@@ -1216,11 +1216,22 @@ async function carregarChamados(silencioso = false) {
   const dataInicio = document.getElementById('filtro-data-inicio')?.value;
   const dataFim = document.getElementById('filtro-data-fim')?.value;
   if (dataInicio || dataFim) {
-    params.set('data_tipo', _tipoDataAtivo());
+    const tipoData = _tipoDataAtivo();
+    params.set('data_tipo', tipoData);
     if (dataInicio) params.set('data_inicio', dataInicio);
     if (dataFim) params.set('data_fim', dataFim);
+    // O status default no caso "filtro de data sem card de status" depende do data_tipo:
+    // - encerramento: so faz sentido olhar para chamados que tem data de fechamento (concluido,
+    //   encerrado, cancelado). Forcar STATUS_ABERTOS aqui devolvia 0 resultados.
+    // - criacao: nao restringe status (deixa o backend devolver todos os status do periodo).
+    // - Se o usuario ja clicou num card de status, statusFiltroAtual esta preenchido e
+    //   respeitamos a escolha (nao caimos neste else if).
     if (!statusFiltroAtual) {
-      params.set('status', STATUS_ABERTOS.join(','));
+      if (tipoData === 'encerramento') {
+        params.set('status', [...STATUS_ENCERRADOS, ...STATUS_CANCELADOS].join(','));
+      } else {
+        params.delete('status');
+      }
     }
   }
 
