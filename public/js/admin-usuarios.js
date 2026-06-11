@@ -129,6 +129,23 @@ function _addSetorDropdown(inp) {
 }
 
 
+function toggleSenha(el) {
+  if (el.dataset.shown === '1') {
+    el.textContent = '••••••••';
+    el.dataset.shown = '0';
+  } else {
+    el.textContent = el.dataset.senha || '—';
+    el.dataset.shown = '1';
+  }
+}
+
+function senhaCell(senhaPlain) {
+  if (!meAdmin || !meAdmin.is_master) return '';
+  const safe = (senhaPlain || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  const display = senhaPlain ? '••••••••' : '—';
+  return `<td style="text-align:center"><span data-senha="${safe}" data-shown="0" style="font-family:monospace;font-size:.82rem;cursor:pointer;user-select:all" title="Clique para revelar" onclick="toggleSenha(this)">${display}</span></td>`;
+}
+
 function verificarSenha(senha) {
   return {
     len:     senha.length >= 8,
