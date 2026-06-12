@@ -106,8 +106,10 @@ router.patch('/admins/:id', async (req, res) => {
         if (!senhaForte(req.body.senha)) return res.status(400).json({ ok: false, erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(req.body.senha, 12);
         dados.senha_plain = req.body.senha;
-        // Senha redefinida pelo admin via Hub vira temporaria: usuario precisa trocar no proximo login.
-        dados.precisa_trocar_senha = 1;
+        // Senha redefinida pelo admin para OUTRA conta vira temporaria (target deve trocar no proximo login).
+        // Se for auto-edicao (_self_edit), nao marcar - ele acabou de escolher essa senha.
+        if (!req.body._self_edit) dados.precisa_trocar_senha = 1;
+        else dados.precisa_trocar_senha = 0;
       }
     }
 
@@ -199,7 +201,8 @@ router.patch('/portal-usuarios/:id', async (req, res) => {
         if (!senhaForte(senha)) return res.status(400).json({ ok: false, erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(senha, 12);
         dados.senha_plain = senha;
-        dados.precisa_trocar_senha = 1;
+        if (!req.body._self_edit) dados.precisa_trocar_senha = 1;
+        else dados.precisa_trocar_senha = 0;
       }
     }
     if (req.body.ramal !== undefined) {
