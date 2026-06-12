@@ -309,7 +309,6 @@ router.post('/trocar-primeira-senha', async (req, res) => {
     const senha_nova = (req.body.senha_nova || '').trim();
     if (!email || !senha_atual || !senha_nova) return res.status(400).json({ ok: false, erro: 'Dados incompletos' });
     if (!senhaForte(senha_nova)) return res.status(400).json({ ok: false, erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
-    if (senha_atual === senha_nova) return res.status(400).json({ ok: false, erro: 'A nova senha deve ser diferente da atual' });
 
     const admin = db.buscarAdminPorEmail(email);
     const usuario = !admin ? db.buscarUsuarioPorEmail(email) : null;
