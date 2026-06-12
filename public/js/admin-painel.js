@@ -3620,6 +3620,21 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
   const ovUsuario  = document.getElementById('modal-nc-novo-usuario');
   const ovEtiqueta = document.getElementById('modal-nc-nova-etiqueta');
 
+  // Paleta padrao Gran Marquise — exatamente as 8 cores dos swatches no HTML.
+  // Isolada para facilitar trocar a logica de geracao de cor depois (ex: HSL).
+  const NCE_PALETA = ['#5B6796','#0F766E','#D4AF37','#B85450','#6B6B6B','#2D7A4F','#0EA5E9','#8B5CF6'];
+  function _nceCorAleatoria() {
+    return NCE_PALETA[Math.floor(Math.random() * NCE_PALETA.length)];
+  }
+  // Normaliza para busca case-insensitive sem acentos.
+  function _nceNorm(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+  // True enquanto a cor for aleatoria/herdada — escolha manual do usuario
+  // (clique num swatch) seta false e impede a heranca automatica da pai.
+  let _nceCorEhAleatoriaAtual = true;
+  let _nceIdx = -1; // indice destacado para navegacao com setas do autocomplete
+
   function abrirUsuario() {
     document.getElementById('ncu-nome').value = '';
     document.getElementById('ncu-setor').value = '';
@@ -3636,25 +3651,20 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
     document.getElementById('nce-nome').value = '';
     document.getElementById('nce-descricao').value = '';
     document.getElementById('msg-nc-etiqueta').innerHTML = '';
-    document.getElementById('nce-cor-valor').value = '#5B6796';
-    document.querySelectorAll('.nce-cor-btn').forEach(b => {
-      const ativo = b.dataset.cor === '#5B6796';
-      b.classList.toggle('ativo', ativo);
-      b.style.border = ativo ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
-      b.style.outline = ativo ? '2px solid white' : '';
-      b.style.outlineOffset = ativo ? '-4px' : '';
-    });
-    // Popular select de etiqueta pai com todas as etiquetas ativas
-    const sel = document.getElementById('nce-parent');
-    sel.innerHTML = '<option value="">— sem pai (etiqueta raiz) —</option>';
-    (_etiquetasDin || []).forEach(e => {
-      const opt = document.createElement('option');
-      opt.value = e.slug;
-      opt.textContent = e.parent_slug ? `↳ ${e.nome}` : e.nome;
-      sel.appendChild(opt);
-    });
-    // Cor inicial padrão
-    _nceSetCor('#5B6796');
+
+    // Cor inicial: ALEATORIA entre as 8 da paleta. O usuario pode sobrescrever
+    // clicando em qualquer swatch. _nceSetCor cuida do hidden #nce-cor-valor
+    // e do destaque visual do swatch ativo. Reseta a flag para reativar a
+    // heranca automatica da cor da etiqueta pai (se o usuario nao mexer).
+    _nceCorEhAleatoriaAtual = true;
+    _nceSetCor(_nceCorAleatoria(), /* manual = */ false);
+
+    // Popula o autocomplete de etiqueta pai com a mesma fonte _etiquetasDin
+    // que o select usava antes. Reseta o input visivel e o hidden.
+    document.getElementById('nce-parent').value = '';
+    document.getElementById('nce-parent-busca').value = '';
+    _nceParentRender('');
+
     ovEtiqueta.classList.add('open');
     document.getElementById('nce-nome').focus();
   }
@@ -3668,31 +3678,141 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
   document.getElementById('btn-fechar-nc-etiqueta')?.addEventListener('click', fecharEtiqueta);
   document.getElementById('btn-nce-cancelar')?.addEventListener('click', fecharEtiqueta);
 
-  // Helper para setar cor visualmente
-  function _nceSetCor(cor) {
+  // Helper para setar cor visualmente.
+  // manual = true  -> escolha do usuario, trava a heranca automatica da pai.
+  // manual = false -> cor aleatoria/herdada, pai ainda pode sobrescrever.
+  function _nceSetCor(cor, manual) {
+    if (manual === undefined) manual = true;
     document.getElementById('nce-cor-valor').value = cor;
     document.querySelectorAll('.nce-cor-btn').forEach(b => {
       const sel = b.dataset.cor === cor;
+      b.classList.toggle('ativo', sel);
       b.style.border = sel ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
       b.style.outline = sel ? '2px solid white' : '';
       b.style.outlineOffset = sel ? '-4px' : '';
     });
+    if (manual) _nceCorEhAleatoriaAtual = false;
   }
 
-  // Cor da etiqueta — clique manual nos swatches
+  // Cor da etiqueta — clique manual nos swatches.
+  // Marca _nceCorEhAleatoriaAtual = false para impedir que selecionar uma
+  // etiqueta pai sobrescreva a cor escolhida pelo usuario.
   document.getElementById('nce-cores')?.addEventListener('click', e => {
     const btn = e.target.closest('.nce-cor-btn');
     if (!btn) return;
-    _nceSetCor(btn.dataset.cor);
+    _nceCorEhAleatoriaAtual = false;
+    _nceSetCor(btn.dataset.cor, /* manual = */ true);
   });
 
-  // Cor automática ao selecionar etiqueta pai
-  document.getElementById('nce-parent')?.addEventListener('change', function () {
-    const slug = this.value;
-    if (!slug) { _nceSetCor('#5B6796'); return; }
-    const pai = (_etiquetasDin || []).find(e => e.slug === slug);
-    if (pai?.cor) _nceSetCor(pai.cor);
-  });
+  // ── Autocomplete "Etiqueta pai" ───────────────────────────────────────────
+  // Substitui o antigo <select>. Mesma fonte de dados (_etiquetasDin).
+  // - input #nce-parent-busca: o que o usuario digita/ve.
+  // - hidden #nce-parent: guarda o slug para o submit (compativel com codigo antigo).
+  // - #nce-parent-dd: lista filtrada com navegacao por teclado.
+  const _nceInp = document.getElementById('nce-parent-busca');
+  const _nceHid = document.getElementById('nce-parent');
+  const _nceDd  = document.getElementById('nce-parent-dd');
+
+  function _nceCandidatos() {
+    const arr = (_etiquetasDin || []).filter(e => e.ativo !== 0);
+    arr.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' }));
+    return arr;
+  }
+  function _nceRotuloEtiqueta(e) {
+    return e.parent_slug ? `↳ ${e.nome}` : e.nome;
+  }
+  function _nceRender(query) {
+    const q = _nceNorm(query);
+    const all = _nceCandidatos();
+    const semPaiLabel = '— sem pai (etiqueta raiz) —';
+    const showSemPai = !q || _nceNorm(semPaiLabel).includes(q) || 'raiz'.includes(q);
+    const filtered = q
+      ? all.filter(e => _nceNorm(e.nome).includes(q) || _nceNorm(e.slug).includes(q))
+      : all;
+
+    const itensHtml = [];
+    if (showSemPai) {
+      itensHtml.push(
+        `<div class="nce-opt" role="option" data-slug="" data-label="${semPaiLabel}"
+          style="padding:.42rem .75rem;cursor:pointer;font-size:.82rem;color:var(--text-muted);font-style:italic;border-bottom:1px solid var(--border-light,#f3f4f6)">${semPaiLabel}</div>`
+      );
+    }
+    filtered.forEach(e => {
+      const rot = _nceRotuloEtiqueta(e);
+      itensHtml.push(
+        `<div class="nce-opt" role="option" data-slug="${e.slug}" data-label="${rot.replace(/"/g, '&quot;')}" data-cor="${e.cor || ''}"
+          style="padding:.42rem .75rem;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:.45rem">
+          <span style="width:7px;height:7px;border-radius:50%;background:${e.cor || '#94a3b8'};flex-shrink:0"></span>
+          <span>${rot}</span>
+        </div>`
+      );
+    });
+    if (!itensHtml.length) {
+      _nceDd.innerHTML = '<div style="padding:.5rem .75rem;color:var(--text-muted);font-size:.82rem">Nenhuma etiqueta encontrada</div>';
+    } else {
+      _nceDd.innerHTML = itensHtml.join('');
+    }
+    _nceDd.style.display = 'block';
+    _nceInp.setAttribute('aria-expanded', 'true');
+    _nceIdx = -1;
+    _nceHighlight();
+  }
+  function _nceParentRender(query) { _nceRender(query); _nceClose(); }
+  function _nceHighlight() {
+    const items = _nceDd.querySelectorAll('.nce-opt');
+    items.forEach((it, i) => {
+      const on = i === _nceIdx;
+      it.style.background = on ? 'var(--surface-2, rgba(0,0,0,.05))' : 'transparent';
+    });
+    if (_nceIdx >= 0 && items[_nceIdx]) items[_nceIdx].scrollIntoView({ block: 'nearest' });
+  }
+  function _nceClose() { _nceDd.style.display = 'none'; _nceInp.setAttribute('aria-expanded', 'false'); }
+  function _ncePick(slug, label, cor) {
+    _nceHid.value = slug || '';
+    _nceInp.value = label === '— sem pai (etiqueta raiz) —' ? '' : label;
+    _nceClose();
+    // Heranca de cor: apenas se o usuario ainda nao clicou manualmente nos swatches.
+    if (slug && cor && _nceCorEhAleatoriaAtual) _nceSetCor(cor, /* manual = */ false);
+    // Emite change para qualquer codigo legado que escute o id #nce-parent.
+    try { _nceHid.dispatchEvent(new Event('change', { bubbles: true })); } catch {}
+  }
+
+  if (_nceInp) {
+    _nceInp.addEventListener('focus', () => _nceRender(_nceInp.value));
+    _nceInp.addEventListener('input', () => {
+      _nceHid.value = ''; // limpou — submit vai sem pai ate clicar de novo
+      _nceRender(_nceInp.value);
+    });
+    _nceInp.addEventListener('keydown', (e) => {
+      const items = _nceDd.querySelectorAll('.nce-opt');
+      if (e.key === 'ArrowDown') {
+        if (_nceDd.style.display === 'none') _nceRender(_nceInp.value);
+        _nceIdx = Math.min(items.length - 1, _nceIdx + 1); _nceHighlight(); e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        _nceIdx = Math.max(0, _nceIdx - 1); _nceHighlight(); e.preventDefault();
+      } else if (e.key === 'Enter') {
+        if (_nceDd.style.display !== 'none') {
+          const target = items[_nceIdx >= 0 ? _nceIdx : 0];
+          if (target) {
+            e.preventDefault();
+            _ncePick(target.dataset.slug, target.dataset.label, target.dataset.cor);
+          }
+        }
+      } else if (e.key === 'Escape') {
+        _nceClose();
+      }
+    });
+    _nceDd.addEventListener('mousedown', (e) => {
+      const opt = e.target.closest('.nce-opt');
+      if (!opt) return;
+      e.preventDefault();
+      _ncePick(opt.dataset.slug, opt.dataset.label, opt.dataset.cor);
+    });
+    // Fecha ao clicar fora do combo.
+    document.addEventListener('mousedown', (e) => {
+      if (!document.getElementById('nce-parent-combo').contains(e.target)) _nceClose();
+    });
+  }
 
   // Submit: criar usuário
   document.getElementById('form-nc-usuario')?.addEventListener('submit', async e => {
