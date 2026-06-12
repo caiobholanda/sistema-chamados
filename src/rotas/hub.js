@@ -318,19 +318,27 @@ router.post('/trocar-primeira-senha', async (req, res) => {
     if (!admin && !usuario) return res.status(404).json({ ok: false, erro: 'Conta não encontrada' });
 
     const alvo = admin || usuario;
+    const tipo = admin ? 'admin' : 'usuario';
     if (admin && !admin.ativo) return res.status(403).json({ ok: false, erro: 'Conta desativada' });
     if (usuario && usuario.ativo === 0) return res.status(403).json({ ok: false, erro: 'Conta desativada' });
 
     const ok = await bcrypt.compare(senha_atual, alvo.senha_hash);
     if (!ok) return res.status(401).json({ ok: false, erro: 'Senha atual incorreta' });
 
+    // Hash novo SEMPRE (mesmo se senha_nova == senha_atual): garante consistencia
+    // hash/plain e for�a o bcrypt a regenerar o salt. UPDATE atomico (SQL direto)
+    // grava senha_hash, senha_plain E zera precisa_trocar_senha de uma vez.
     const senha_hash = await bcrypt.hash(senha_nova, 12);
-    if (admin) {
-      db.atualizarAdmin(admin.id, { senha_hash, senha_plain: senha_nova, precisa_trocar_senha: 0 });
-    } else {
-      db.atualizarUsuario(usuario.id, { senha_hash, senha_plain: senha_nova, precisa_trocar_senha: 0 });
+    const sql = tipo === 'admin'
+      ? 'UPDATE admins   SET senha_hash = ?, senha_plain = ?, precisa_trocar_senha = 0 WHERE id = ?'
+      : 'UPDATE usuarios SET senha_hash = ?, senha_plain = ?, precisa_trocar_senha = 0 WHERE id = ?';
+    const result = db.getDb().prepare(sql).run(senha_hash, senha_nova, alvo.id);
+    console.log('[trocar-primeira-senha]', { email, tipo, id: alvo.id, changes: result.changes });
+
+    if (result.changes !== 1) {
+      return res.status(500).json({ ok: false, erro: 'Falha ao persistir a nova senha. Tente novamente.' });
     }
-    return res.json({ ok: true, tipo: admin ? 'admin' : 'usuario' });
+    return res.json({ ok: true, tipo });
   } catch (err) {
     console.error('[hub trocar-primeira-senha]', err);
     return res.status(500).json({ ok: false, erro: 'Erro interno' });
