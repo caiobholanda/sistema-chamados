@@ -40,16 +40,26 @@ function validarAgendamento(body) {
   const { frequencia, hora = '08:00', pular_feriados, dia_semana, dia_mes, mes } = body;
   if (!FREQS_VALIDAS.includes(frequencia)) return { erro: 'Frequência inválida' };
   if (!/^\d{2}:\d{2}$/.test(hora)) return { erro: 'Hora inválida (HH:MM)' };
+  // Valida HH:MM dentro de 00:00-23:59
+  const [hh, mm] = hora.split(':').map(Number);
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return { erro: 'Hora fora do intervalo (00:00–23:59)' };
   if (frequencia === 'semanal' && (dia_semana == null || dia_semana < 0 || dia_semana > 6))
     return { erro: 'Dia da semana obrigatório para frequência semanal (0=Dom…6=Sáb)' };
   if (['mensal','bimestral','trimestral','semestral'].includes(frequencia) && (!dia_mes || dia_mes < 1 || dia_mes > 31))
     return { erro: 'Dia do mês obrigatório para esta frequência (1–31)' };
   if (frequencia === 'anual' && (!mes || mes < 1 || mes > 12 || !dia_mes || dia_mes < 1 || dia_mes > 31))
     return { erro: 'Mês e dia obrigatórios para frequência anual' };
+  // Conflito semanal sab/dom + pular fins-de-semana: combinacao impossivel.
+  // Se aceitarmos, _proxDiaUtil silenciosamente move TODA execucao para segunda,
+  // anulando a escolha do usuario.
+  const pularFlag = parseInt(pular_feriados ?? '1') ? 1 : 0;
+  if (frequencia === 'semanal' && pularFlag && (dia_semana === 0 || dia_semana === 6)) {
+    return { erro: 'Conflito: agendamentos semanais aos sábados/domingos não podem ter "pular fins de semana" ativo (a data sempre seria movida para segunda). Desligue a opção de pular ou escolha outro dia da semana.' };
+  }
   return {
     agendamento: {
       frequencia, hora,
-      pular_feriados: parseInt(pular_feriados ?? '1') ? 1 : 0,
+      pular_feriados: pularFlag,
       dia_semana: dia_semana != null ? parseInt(dia_semana) : null,
       dia_mes:    dia_mes    != null ? parseInt(dia_mes)    : null,
       mes:        mes        != null ? parseInt(mes)        : null,
@@ -125,6 +135,9 @@ router.get('/:id', requireAdmin, (req, res) => {
 router.get('/:id/log', requireAdmin, (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ ok: false, erro: 'ID inválido' });
+  // Valida existencia para nao retornar 200+vazio para id fantasma (engana auditoria).
+  const prog = db.buscarProgramadoPorId(id);
+  if (!prog) return res.status(404).json({ ok: false, erro: 'Agendamento não encontrado' });
   res.json({ ok: true, items: db.listarLogProgramado(id, 30) });
 });
 

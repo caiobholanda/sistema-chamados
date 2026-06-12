@@ -111,6 +111,19 @@ test('isFeriado reconhece feriado movel (Carnaval 2026 = 17/fev)', () => {
   assert.equal(isFeriado(d), true);
 });
 
+test('semanal sabado + pular fins de semana: deslocamento silencioso (motivo do bloqueio)', () => {
+  // Demonstra POR QUE bloqueamos: sem o bloqueio, _proxDiaUtil moveria todo sabado
+  // para segunda silenciosamente, anulando a escolha do usuario.
+  const prog = { frequencia: 'semanal', dia_semana: 6, hora: '08:00', pular_feriados: 1 };
+  // afterExec = sabado 13/jun/2026 11:00 UTC.
+  const next = calcularProxima(prog, new Date('2026-06-13T11:00:00Z'));
+  const ftz = new Date(next.getTime() - 3 * 60 * 60 * 1000);
+  // Sem o bloqueio na validacao, o sistema retorna segunda (dow=1). Isso justifica
+  // o erro de validacao que adicionamos em validarAgendamento — usuario nao deve
+  // conseguir salvar essa combinacao.
+  assert.equal(ftz.getUTCDay(), 1, 'sem bloqueio: vira segunda — motivo do erro 400');
+});
+
 test('proximasN nao mistura skip do periodo anterior no proximo', () => {
   const prog = { frequencia: 'mensal', dia_mes: 1, hora: '08:00', pular_feriados: 1 };
   // 1/jan/2027 = sexta, mas feriado. -> 4/jan (segunda).

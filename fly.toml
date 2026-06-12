@@ -10,9 +10,19 @@ primary_region = "gru"
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = "stop"
+  # auto_stop=off + min_machines_running=1 garantem que a maquina NUNCA pare.
+  # Necessario para o cron de Chamados Programados rodar pontualmente
+  # (setInterval em memoria — se a maquina dorme, o tick e perdido).
+  auto_stop_machines = "off"
   auto_start_machines = true
   min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/healthz"
 
 [[vm]]
   memory = "256mb"

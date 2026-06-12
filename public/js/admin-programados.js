@@ -395,6 +395,9 @@ function validarFormCliente(body) {
   if (!body.frequencia) return 'Selecione a frequência.';
   if (!/^\d{2}:\d{2}$/.test(body.hora || ''))
     return 'Hora inválida (use HH:MM).';
+  const [hh, mm] = (body.hora || '').split(':').map(Number);
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59)
+    return 'Hora fora do intervalo (00:00–23:59).';
   if (body.frequencia === 'semanal' && (body.dia_semana == null || isNaN(body.dia_semana)))
     return 'Selecione o dia da semana.';
   if (['mensal','bimestral','trimestral','semestral'].includes(body.frequencia)
@@ -403,6 +406,13 @@ function validarFormCliente(body) {
   if (body.frequencia === 'anual'
       && (!body.dia_mes || body.dia_mes < 1 || body.dia_mes > 31 || !body.mes || body.mes < 1 || body.mes > 12))
     return 'Para frequência anual, informe mês (1–12) e dia (1–31).';
+  // Conflito: semanal aos sabados/domingos + pular fins de semana — silenciosamente
+  // moveria todas as execucoes para segunda. Bloqueia para nao alterar a escolha
+  // do usuario sem aviso.
+  if (body.frequencia === 'semanal' && body.pular_feriados
+      && (body.dia_semana === 0 || body.dia_semana === 6)) {
+    return 'Você escolheu um agendamento aos sábados/domingos com "pular fins de semana" ativo — o sistema sempre moveria para segunda. Desligue "pular fins de semana" ou escolha um dia útil.';
+  }
   return null;
 }
 

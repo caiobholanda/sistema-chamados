@@ -49,7 +49,8 @@ function servirHtmlComVersao(res, arquivo) {
   res.send(html);
 }
 
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.get('/health',  (req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
+app.get('/healthz', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
 app.get('/', (req, res) => servirHtmlComVersao(res, 'index.html'));
 app.get('/index.html', (req, res) => servirHtmlComVersao(res, 'index.html'));
