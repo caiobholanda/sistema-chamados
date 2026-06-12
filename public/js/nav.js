@@ -120,7 +120,9 @@
         try {
           fetch('/api/admin/logout', { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {});
         } catch {}
-        window.location.href = 'https://hub-granmarquise.fly.dev/';
+        // ?logout=1&from=chamados permite ao Hub registrar este logout na
+        // jornada do usuario (logs_admins/logs_usuarios via /api/hub-log).
+        window.location.href = 'https://hub-granmarquise.fly.dev/?logout=1&from=chamados';
       });
     }
 

@@ -296,10 +296,49 @@ router.get('/portal-usuarios/:id/logs', (req, res) => {
   if (!u) return res.status(404).json({ ok: false, erro: 'Usuário não encontrado' });
   res.json({ ok: true, logs: db.listarLogsUsuario(u.id) });
 });
+router.get('/admins/:id/logs', (req, res) => {
+  const a = db.buscarAdminPorId(req.params.id);
+  if (!a) return res.status(404).json({ ok: false, erro: 'Admin não encontrado' });
+  res.json({ ok: true, logs: db.listarLogsAdmin(a.id) });
+});
 router.get('/portal-usuarios/:id/chamados', (req, res) => {
   const u = db.buscarUsuarioPorId(req.params.id);
   if (!u) return res.status(404).json({ ok: false, erro: 'Usuário não encontrado' });
   res.json({ ok: true, chamados: db.listarChamadosPorUsuario(u.id) });
+});
+
+// ─── Log de eventos do Hub ───────────────────────────────────────────────────
+// Hub envia eventos do usuario (login_hub, logout_hub, abrir_<sistema>,
+// logout_<sistema>) para serem persistidos junto com os logs ja existentes
+// em logs_usuarios/logs_admins. O painel de Historico do usuario passa a
+// mostrar a jornada completa entre os sistemas.
+router.post('/log-evento', (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const evento = (req.body.evento || '').trim().slice(0, 80);
+    const ip = (req.body.ip || '').toString().slice(0, 64) || null;
+    const detalhes = req.body.detalhes ? String(req.body.detalhes).slice(0, 240) : null;
+    if (!email || !evento) return res.status(400).json({ ok: false, erro: 'email e evento obrigatorios' });
+
+    const admin = db.buscarAdminPorEmail(email);
+    if (admin) {
+      try { db.registrarLogAdmin(admin.id, evento, ip, detalhes); } catch (e) {
+        console.error('[hub log-evento admin]', e.message);
+      }
+      return res.json({ ok: true, tipo: 'admin' });
+    }
+    const usuario = db.buscarUsuarioPorEmail(email);
+    if (usuario) {
+      try { db.registrarLogUsuario(usuario.id, evento, ip, detalhes); } catch (e) {
+        console.error('[hub log-evento usuario]', e.message);
+      }
+      return res.json({ ok: true, tipo: 'usuario' });
+    }
+    return res.status(404).json({ ok: false, erro: 'Conta nao encontrada' });
+  } catch (err) {
+    console.error('[hub log-evento]', err);
+    return res.status(500).json({ ok: false, erro: 'Erro interno' });
+  }
 });
 
 // ─── Troca obrigatoria no primeiro login ─────────────────────────────────────
