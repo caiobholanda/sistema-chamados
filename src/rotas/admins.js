@@ -78,6 +78,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
       usuario: admin.usuario,
       ramal: admin.ramal || '',
       setor: 'TI',
+      precisa_trocar_senha: admin.precisa_trocar_senha === 1,
     });
   } catch (err) {
     console.error(err);

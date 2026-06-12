@@ -62,6 +62,7 @@ router.post('/admins', async (req, res) => {
       usuario, nome_completo, email, ramal: ramal || null,
       senha_hash, senha_plain: senha, is_master,
     });
+    db.atualizarAdmin(id, { precisa_trocar_senha: 1 });
     res.status(201).json({ ok: true, id });
   } catch (err) {
     console.error('[hub admins POST]', err);
@@ -105,6 +106,8 @@ router.patch('/admins/:id', async (req, res) => {
         if (!senhaForte(req.body.senha)) return res.status(400).json({ ok: false, erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(req.body.senha, 12);
         dados.senha_plain = req.body.senha;
+        // Senha redefinida pelo admin via Hub vira temporaria: usuario precisa trocar no proximo login.
+        dados.precisa_trocar_senha = 1;
       }
     }
 
@@ -151,6 +154,7 @@ router.post('/portal-usuarios', async (req, res) => {
 
     const senha_hash = await bcrypt.hash(senha, 12);
     const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null });
+    db.atualizarUsuario(id, { precisa_trocar_senha: 1 });
     res.status(201).json({ ok: true, id });
   } catch (err) {
     console.error('[hub portal-usuarios POST]', err);
@@ -195,6 +199,7 @@ router.patch('/portal-usuarios/:id', async (req, res) => {
         if (!senhaForte(senha)) return res.status(400).json({ ok: false, erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(senha, 12);
         dados.senha_plain = senha;
+        dados.precisa_trocar_senha = 1;
       }
     }
     if (req.body.ramal !== undefined) {
@@ -292,6 +297,42 @@ router.get('/portal-usuarios/:id/chamados', (req, res) => {
   const u = db.buscarUsuarioPorId(req.params.id);
   if (!u) return res.status(404).json({ ok: false, erro: 'Usuário não encontrado' });
   res.json({ ok: true, chamados: db.listarChamadosPorUsuario(u.id) });
+});
+
+// ─── Troca obrigatoria no primeiro login ─────────────────────────────────────
+// Hub chama isso quando login retornou precisa_trocar_senha: true.
+// Valida senha_atual, grava nova (hash + plain), zera flag.
+router.post('/trocar-primeira-senha', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const senha_atual = (req.body.senha_atual || '').trim();
+    const senha_nova = (req.body.senha_nova || '').trim();
+    if (!email || !senha_atual || !senha_nova) return res.status(400).json({ ok: false, erro: 'Dados incompletos' });
+    if (!senhaForte(senha_nova)) return res.status(400).json({ ok: false, erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
+    if (senha_atual === senha_nova) return res.status(400).json({ ok: false, erro: 'A nova senha deve ser diferente da atual' });
+
+    const admin = db.buscarAdminPorEmail(email);
+    const usuario = !admin ? db.buscarUsuarioPorEmail(email) : null;
+    if (!admin && !usuario) return res.status(404).json({ ok: false, erro: 'Conta não encontrada' });
+
+    const alvo = admin || usuario;
+    if (admin && !admin.ativo) return res.status(403).json({ ok: false, erro: 'Conta desativada' });
+    if (usuario && usuario.ativo === 0) return res.status(403).json({ ok: false, erro: 'Conta desativada' });
+
+    const ok = await bcrypt.compare(senha_atual, alvo.senha_hash);
+    if (!ok) return res.status(401).json({ ok: false, erro: 'Senha atual incorreta' });
+
+    const senha_hash = await bcrypt.hash(senha_nova, 12);
+    if (admin) {
+      db.atualizarAdmin(admin.id, { senha_hash, senha_plain: senha_nova, precisa_trocar_senha: 0 });
+    } else {
+      db.atualizarUsuario(usuario.id, { senha_hash, senha_plain: senha_nova, precisa_trocar_senha: 0 });
+    }
+    return res.json({ ok: true, tipo: admin ? 'admin' : 'usuario' });
+  } catch (err) {
+    console.error('[hub trocar-primeira-senha]', err);
+    return res.status(500).json({ ok: false, erro: 'Erro interno' });
+  }
 });
 
 module.exports = router;

@@ -55,6 +55,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
       email: usuario.email,
       ramal: usuario.ramal || '',
       setor: usuario.setor || '',
+      precisa_trocar_senha: usuario.precisa_trocar_senha === 1,
     });
   } catch (err) {
     console.error(err);
@@ -311,11 +312,11 @@ router.post('/redefinir-senha', async (req, res) => {
 
     const senha_hash = await bcrypt.hash(senha, 10);
     if (isAdmin) {
-      db.atualizarAdmin(registro.admin_id, { senha_hash, senha_plain: senha });
+      db.atualizarAdmin(registro.admin_id, { senha_hash, senha_plain: senha, precisa_trocar_senha: 0 });
       db.marcarAdminResetTokenUsado(token);
       try { db.registrarLogAdmin(registro.admin_id, 'reset_concluido', normIp(req.ip)); } catch {}
     } else {
-      db.atualizarUsuario(registro.usuario_id, { senha_hash, senha_plain: senha });
+      db.atualizarUsuario(registro.usuario_id, { senha_hash, senha_plain: senha, precisa_trocar_senha: 0 });
       db.marcarResetTokenUsado(token);
       try { db.registrarLogUsuario(registro.usuario_id, 'reset_concluido', normIp(req.ip)); } catch {}
     }

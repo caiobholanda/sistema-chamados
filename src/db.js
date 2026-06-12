@@ -120,6 +120,9 @@ function initDb() {
   // Senhas anteriores ficam em branco ate o usuario logar/trocar.
   try { db.exec('ALTER TABLE usuarios ADD COLUMN senha_plain TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN senha_plain TEXT'); } catch {}
+  // Flag para forcar redefinicao no primeiro login (definida quando admin cria a conta pelo Hub).
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN precisa_trocar_senha INTEGER DEFAULT 0'); } catch {}
+  try { db.exec('ALTER TABLE admins ADD COLUMN precisa_trocar_senha INTEGER DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN ramal TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN is_test INTEGER DEFAULT 0'); } catch {}
   try { db.exec("UPDATE admins SET is_test = 1 WHERE email = 'estagioadmin@granmarquise.com.br'"); } catch {}
@@ -1974,6 +1977,7 @@ function atualizarAdmin(id, dados) {
   if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
   if (dados.ativo !== undefined) { campos.push('ativo = ?'); values.push(dados.ativo); }
   if (dados.is_master !== undefined) { campos.push('is_master = ?'); values.push(dados.is_master); }
+  if (dados.precisa_trocar_senha !== undefined) { campos.push('precisa_trocar_senha = ?'); values.push(dados.precisa_trocar_senha ? 1 : 0); }
   if (campos.length === 0) return;
   values.push(id);
   getDb().prepare(`UPDATE admins SET ${campos.join(', ')} WHERE id = ?`).run(...values);
