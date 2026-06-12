@@ -1978,7 +1978,7 @@ function setupModalEventos(c) {
     if (!_adminAnexos.length) {
       tilesBoxAdmin.innerHTML = '';
       if (btnEnviarAdminAnexo) btnEnviarAdminAnexo.style.display = 'none';
-      if (hintAdmin) { hintAdmin.style.color = ''; hintAdmin.textContent = 'Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.'; }
+      if (hintAdmin) { hintAdmin.style.color = ''; hintAdmin.textContent = 'Clique para escolher, arraste arquivos para esta área ou cole (Ctrl+V) um print. Até 10, máx. 200 MB cada.'; }
       return;
     }
     tilesBoxAdmin.innerHTML = _adminAnexos.map((f, i) => {
@@ -2016,6 +2016,101 @@ function setupModalEventos(c) {
     this.value = '';
     _renderAdminAnexoTiles();
   });
+
+  // Helper compartilhado: adiciona arquivos (de input, drop ou paste) na lista.
+  function _addAdminAnexoFiles(files) {
+    let added = 0;
+    Array.from(files || []).forEach(f => {
+      if (_adminAnexos.length >= 10) return;
+      const dup = _adminAnexos.some(x => x.name === f.name && x.size === f.size);
+      if (!dup) { _adminAnexos.push(f); added++; }
+    });
+    if (added) _renderAdminAnexoTiles();
+    return added;
+  }
+
+  // Drag-and-drop na secao 'Anexo do suporte'.
+  // O modal inteiro reage a 'arrastar arquivo' destacando a area; soltar
+  // em qualquer lugar do modal adiciona os arquivos a lista.
+  const dropZone = document.querySelector('.mv2-admin-anexo-section');
+  if (dropZone && !dropZone.dataset.dropReady) {
+    dropZone.dataset.dropReady = '1';
+    // Garante uma borda tracejada visivel quando o usuario arrasta sobre.
+    dropZone.style.transition = 'background .15s ease, outline .15s ease';
+    let _dragCount = 0;
+    function setDragVisual(on) {
+      if (on) {
+        dropZone.style.outline = '2px dashed var(--gold, #c9a961)';
+        dropZone.style.outlineOffset = '4px';
+        dropZone.style.background = 'rgba(201,169,97,.06)';
+      } else {
+        dropZone.style.outline = '';
+        dropZone.style.background = '';
+      }
+    }
+    dropZone.addEventListener('dragenter', (e) => {
+      if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+      e.preventDefault();
+      _dragCount++; setDragVisual(true);
+    });
+    dropZone.addEventListener('dragover', (e) => {
+      if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    dropZone.addEventListener('dragleave', (e) => {
+      _dragCount = Math.max(0, _dragCount - 1);
+      if (_dragCount === 0) setDragVisual(false);
+    });
+    dropZone.addEventListener('drop', (e) => {
+      if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+      e.preventDefault();
+      _dragCount = 0; setDragVisual(false);
+      const files = Array.from(e.dataTransfer.files || []);
+      const before = _adminAnexos.length;
+      const added = _addAdminAnexoFiles(files);
+      if (hintAdmin) {
+        if (added === 0 && _adminAnexos.length === 10) {
+          hintAdmin.style.color = '#e53e3e';
+          hintAdmin.textContent = 'Limite de 10 arquivos atingido.';
+        } else if (added === 0) {
+          hintAdmin.style.color = '#e53e3e';
+          hintAdmin.textContent = 'Nenhum arquivo novo (duplicado ou inválido).';
+        }
+      }
+      void before;
+    });
+  }
+
+  // Paste (Ctrl+V) com screenshot do clipboard. Ativo enquanto o modal
+  // estiver aberto — listener removido em fecharModal via overlay close.
+  const modalOverlay = document.getElementById('modal-overlay');
+  if (modalOverlay && !modalOverlay.dataset.pasteReady) {
+    modalOverlay.dataset.pasteReady = '1';
+    modalOverlay.addEventListener('paste', (e) => {
+      // So captura quando o foco esta dentro do modal e nao em campos de texto
+      // (evita interferir com Ctrl+V em inputs de comentario).
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+      const items = Array.from(e.clipboardData?.items || []);
+      const arquivos = [];
+      for (const it of items) {
+        if (it.kind === 'file') {
+          const blob = it.getAsFile();
+          if (!blob) continue;
+          // Screenshot do clipboard nao tem nome — gera um amigavel.
+          const ext = (blob.type.split('/')[1] || 'png').replace(/^jpeg$/, 'jpg');
+          const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          const file = new File([blob], `screenshot-${stamp}.${ext}`, { type: blob.type });
+          arquivos.push(file);
+        }
+      }
+      if (arquivos.length) {
+        e.preventDefault();
+        _addAdminAnexoFiles(arquivos);
+      }
+    });
+  }
 
   if (tilesBoxAdmin) tilesBoxAdmin.addEventListener('click', (e) => {
     const btn = e.target.closest('.anexo-tile-remove');
