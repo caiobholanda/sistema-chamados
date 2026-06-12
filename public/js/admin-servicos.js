@@ -15,6 +15,10 @@
   let editandoId = null;
   let confirmCallback = null;
   let _parentCombo = null;
+  // True quando o usuario alterou a cor manualmente; impede que a heranca
+  // automatica de cor (ao escolher etiqueta pai) sobrescreva uma escolha
+  // explicita do usuario.
+  let _corManual = false;
 
   /* ── Utils ── */
   function esc(s) {
@@ -184,8 +188,9 @@
   }
 
   /* ── Modal ── */
-  function _criarParentCombo(wrapEl) {
+  function _criarParentCombo(wrapEl, opts) {
     if (!wrapEl) return null;
+    const onChange = (opts && typeof opts.onChange === 'function') ? opts.onChange : null;
     if (!document.getElementById('_et-pcomb-css')) {
       const st = document.createElement('style');
       st.id = '_et-pcomb-css';
@@ -246,7 +251,7 @@
 
     function _close() { dd.style.display = 'none'; }
 
-    function _pick(slug) {
+    function _pick(slug, fromUser) {
       valI.value = slug || '';
       if (!slug) { inp.value = ''; }
       else {
@@ -255,19 +260,22 @@
         else inp.value = slug;
       }
       _close();
+      if (fromUser && onChange) {
+        try { onChange(slug || null); } catch (e) { console.error('[parentCombo onChange]', e); }
+      }
     }
 
     inp.addEventListener('focus', () => { inp.select(); _render(''); });
     inp.addEventListener('input', () => { if (!inp.value.trim()) valI.value = ''; _render(inp.value); });
     inp.addEventListener('keydown', ev => {
       if (ev.key === 'Escape') _close();
-      if (ev.key === 'Enter') { ev.preventDefault(); const f = dd.querySelector('.et-pcomb-item'); if (f) _pick(f.dataset.slug); }
+      if (ev.key === 'Enter') { ev.preventDefault(); const f = dd.querySelector('.et-pcomb-item'); if (f) _pick(f.dataset.slug, true); }
     });
     dd.addEventListener('mousedown', ev => {
       const item = ev.target.closest('.et-pcomb-item');
       if (!item) return;
       ev.preventDefault();
-      _pick(item.dataset.slug);
+      _pick(item.dataset.slug, true);
     });
     document.addEventListener('click', ev => { if (!wrapEl.contains(ev.target)) _close(); }, true);
 
@@ -280,7 +288,19 @@
 
   function abrirModal(titulo, dados = {}) {
     editandoId = dados.id || null;
-    const cor = dados.cor || corAleatoria();
+    // Se ja existe um pai selecionado de antemao (ao editar), herda a cor dele
+    // como sugestao inicial — comportamento consistente com o auto-pick em
+    // tempo real quando o usuario muda o pai no combo.
+    let corInicial = dados.cor;
+    if (!corInicial && dados.parent_slug) {
+      const pai = etiquetas.find(e => e.slug === dados.parent_slug);
+      if (pai && pai.cor) corInicial = pai.cor;
+    }
+    const cor = corInicial || corAleatoria();
+    // Edicao: respeita a cor existente como decisao do usuario (nao
+    // sobrescreve ao trocar pai). Criacao: cor herdada/aleatoria, livre
+    // para ser sobrescrita pela heranca enquanto o usuario nao mexer no input.
+    _corManual = !!(dados.id && dados.cor);
 
     document.getElementById('modal-etiqueta-title').textContent = titulo;
     document.getElementById('et-id').value    = dados.id || '';
@@ -300,6 +320,7 @@
     document.getElementById('form-etiqueta').reset();
     _parentCombo?.clear();
     editandoId = null;
+    _corManual = false;
   }
 
   function atualizarPreview(cor, nome) {
@@ -314,7 +335,9 @@
     const nome      = document.getElementById('et-nome').value.trim();
     const descricao = document.getElementById('et-descricao').value.trim();
     const cor       = document.getElementById('et-cor').value;
-    const parent_slug = document.getElementById('et-parent').value || null;
+    // Usa a API do combo (em vez de ler o hidden input direto) — mais robusto
+    // a mudancas internas e mesma fonte de verdade do que e exibido.
+    const parent_slug = (_parentCombo?.getValue()) || null;
 
     if (!nome) { toast('Nome é obrigatório.', 'erro'); document.getElementById('et-nome').focus(); return; }
 
@@ -386,7 +409,20 @@
     const ok = await verificarAuth();
     if (!ok) return;
     await carregar();
-    _parentCombo = _criarParentCombo(document.getElementById('et-parent-combo'));
+    _parentCombo = _criarParentCombo(document.getElementById('et-parent-combo'), {
+      // Quando o usuario escolhe uma etiqueta pai, herda a cor dela
+      // automaticamente — desde que ele ainda nao tenha mexido na cor
+      // manualmente nesta sessao do modal.
+      onChange(slug) {
+        if (_corManual) return;
+        if (!slug) return;
+        const pai = etiquetas.find(e => e.slug === slug);
+        if (!pai || !pai.cor) return;
+        const inp = document.getElementById('et-cor');
+        if (inp) inp.value = pai.cor;
+        atualizarPreview(pai.cor, document.getElementById('et-nome').value || 'Etiqueta');
+      },
+    });
 
     document.getElementById('filtro-etiquetas').addEventListener('input', () => renderizar());
     document.getElementById('btn-nova-etiqueta').addEventListener('click', () => abrirModal('Nova Etiqueta'));
@@ -402,6 +438,7 @@
     document.getElementById('modal-confirm-overlay').addEventListener('click', ev => { if (ev.target === ev.currentTarget) fecharConfirm(); });
 
     document.getElementById('et-cor').addEventListener('input', ev => {
+      _corManual = true; // qualquer mexida manual trava a heranca automatica
       atualizarPreview(ev.target.value, document.getElementById('et-nome').value || 'Etiqueta');
     });
     document.getElementById('et-nome').addEventListener('input', ev => {
