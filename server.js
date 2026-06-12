@@ -225,6 +225,11 @@ async function main() {
   push.init();
   setInterval(checarPrazos, 2 * 60 * 1000); // a cada 2 minutos (necessário para capturar a janela de 10min)
   setInterval(executarChamadosProgramados, 60 * 1000); // a cada minuto
+  // Heartbeat: prova de vida do cron a cada 5 min nos logs. Se isto sumir,
+  // o loop de programados parou e algum chamado deixou de ser gerado.
+  setInterval(() => {
+    console.log(`[heartbeat] ${new Date().toISOString()} — cron de programados vivo`);
+  }, 5 * 60 * 1000);
   checarPrazos();
   executarChamadosProgramados();
   app.listen(PORT, () => {

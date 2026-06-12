@@ -214,6 +214,7 @@ function renderCards(items) {
         <button class="toggle-btn ${p.ativo?'ativo':'inativo'}" onclick="toggleProg(${p.id},${p.ativo})">${p.ativo?'✓ Ativo':'✗ Inativo'}</button>
         <button class="btn btn-ghost btn-sm" onclick="editarProg(${p.id})">Editar</button>
         <button class="btn btn-ghost btn-sm" onclick="verLog(${p.id},'${esc(p.titulo)}')">Log</button>
+        <button class="btn btn-ghost btn-sm" onclick="gerarAgora()" title="Força o cron a varrer todos os agendamentos pendentes agora.">Gerar agora</button>
         <div style="flex:1"></div>
         <button class="btn btn-danger btn-sm" onclick="deletarProg(${p.id},'${esc(p.titulo)}')">Excluir</button>
       </div>
@@ -537,6 +538,24 @@ window.toggleProg = async (id) => {
   if (!r) return;
   const d = await r.json();
   if (d.ok) { toast(d.ativo ? 'Agendamento ativado' : 'Agendamento pausado'); carregarAgendamentos(); }
+};
+
+// Forca a varredura do cron agora. Util para validar agendamentos sem esperar
+// o intervalo de 60s ou suspeitar que o cron parou.
+window.gerarAgora = async () => {
+  if (!confirm('Forçar varredura do cron agora?\nQualquer agendamento com horário <= agora vai gerar um chamado.')) return;
+  const r = await apiFetch('/api/admin/programados/debug/trigger', { method: 'POST' });
+  if (!r) return;
+  const d = await r.json();
+  if (!d.ok) { toast('Falha ao disparar varredura', 'erro'); return; }
+  const ok = (d.resultados || []).filter(x => x.ok).length;
+  const erros = (d.resultados || []).filter(x => !x.ok).length;
+  const pend = (d.pendentesAntes || []).length;
+  if (pend === 0) toast('Nenhum agendamento pendente neste momento.');
+  else if (erros === 0) toast(`Varredura concluída — ${ok} chamado(s) gerado(s).`);
+  else toast(`Concluída com ${erros} erro(s) e ${ok} sucesso(s)`, 'erro');
+  carregarAgendamentos();
+  carregarHistorico();
 };
 
 window.deletarProg = async (id, titulo) => {

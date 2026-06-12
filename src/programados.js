@@ -70,24 +70,58 @@ function _proxDiaUtil(utcDate, pularFeriados) {
 // `hora` em `prog` é horário LOCAL de Fortaleza (ex: '12:00').
 // `afterExec` (se fornecido) é um Date UTC da última execução.
 // Retorna um Date UTC.
+//
+// REGRA-CHAVE: o periodo seguinte SEMPRE parte da data-base configurada
+// (dia_mes/dia_semana) somada ao incremento de periodo. NUNCA da data que
+// efetivamente foi executada (que pode ter sido deslocada por feriado).
+// Sem isso, um skip de feriado em 1 ciclo persistia em todos os ciclos
+// subsequentes (drift cumulativo).
 function calcularProxima(prog, afterExec = null) {
   const { frequencia, dia_semana, dia_mes, mes, hora, pular_feriados } = prog;
   const [hh, mm] = hora.split(':').map(Number);
 
+  // Garante que dia_mes esteja dentro do ultimo dia do mes referenciado
+  // (ex: dia 31 em fevereiro vira o ultimo dia de fev).
+  function _clampDia(year, month0, diaAlvo) {
+    const ultimo = new Date(Date.UTC(year, month0 + 1, 0)).getUTCDate();
+    return Math.min(diaAlvo, ultimo);
+  }
+
   let next;
 
   if (afterExec) {
-    // Pós-execução: avança a partir da data de execução (em espaço Fortaleza)
+    // Pós-execução: avança o PERIODO partindo da data-base configurada,
+    // nao da execucao anterior (que pode estar deslocada por feriado).
     const ftz = _toFtz(new Date(afterExec));
     const y = ftz.getUTCFullYear(), mo = ftz.getUTCMonth(), d = ftz.getUTCDate();
     switch (frequencia) {
       case 'diario':     next = _fromFtz(y, mo, d + 1, hh, mm);   break;
       case 'semanal':    next = _fromFtz(y, mo, d + 7, hh, mm);   break;
-      case 'mensal':     next = _fromFtz(y, mo + 1, d, hh, mm);   break;
-      case 'bimestral':  next = _fromFtz(y, mo + 2, d, hh, mm);   break;
-      case 'trimestral': next = _fromFtz(y, mo + 3, d, hh, mm);   break;
-      case 'semestral':  next = _fromFtz(y, mo + 6, d, hh, mm);   break;
-      case 'anual':      next = _fromFtz(y + 1, mo, d, hh, mm);   break;
+      case 'mensal': {
+        const dia = _clampDia(y, mo + 1, dia_mes);
+        next = _fromFtz(y, mo + 1, dia, hh, mm);
+        break;
+      }
+      case 'bimestral': {
+        const dia = _clampDia(y, mo + 2, dia_mes);
+        next = _fromFtz(y, mo + 2, dia, hh, mm);
+        break;
+      }
+      case 'trimestral': {
+        const dia = _clampDia(y, mo + 3, dia_mes);
+        next = _fromFtz(y, mo + 3, dia, hh, mm);
+        break;
+      }
+      case 'semestral': {
+        const dia = _clampDia(y, mo + 6, dia_mes);
+        next = _fromFtz(y, mo + 6, dia, hh, mm);
+        break;
+      }
+      case 'anual': {
+        const dia = _clampDia(y + 1, mes - 1, dia_mes);
+        next = _fromFtz(y + 1, mes - 1, dia, hh, mm);
+        break;
+      }
       default:           next = _fromFtz(y, mo, d + 1, hh, mm);
     }
   } else {
@@ -114,13 +148,21 @@ function calcularProxima(prog, afterExec = null) {
       case 'trimestral':
       case 'semestral': {
         const add = { mensal: 1, bimestral: 2, trimestral: 3, semestral: 6 }[frequencia];
-        next = _fromFtz(y, mo, dia_mes, hh, mm);
-        if (next <= nowUtc) next = _fromFtz(y, mo + add, dia_mes, hh, mm);
+        const diaEsteMes = _clampDia(y, mo, dia_mes);
+        next = _fromFtz(y, mo, diaEsteMes, hh, mm);
+        if (next <= nowUtc) {
+          const diaProx = _clampDia(y, mo + add, dia_mes);
+          next = _fromFtz(y, mo + add, diaProx, hh, mm);
+        }
         break;
       }
       case 'anual': {
-        next = _fromFtz(y, mes - 1, dia_mes, hh, mm);
-        if (next <= nowUtc) next = _fromFtz(y + 1, mes - 1, dia_mes, hh, mm);
+        const diaEste = _clampDia(y, mes - 1, dia_mes);
+        next = _fromFtz(y, mes - 1, diaEste, hh, mm);
+        if (next <= nowUtc) {
+          const diaProx = _clampDia(y + 1, mes - 1, dia_mes);
+          next = _fromFtz(y + 1, mes - 1, diaProx, hh, mm);
+        }
         break;
       }
       default:
