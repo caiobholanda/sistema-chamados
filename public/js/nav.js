@@ -75,6 +75,9 @@
     html += '<button id="btn-notificacoes" class="btn btn-ghost btn-sm" title="Ativar notificações" style="margin-left:.5rem;font-size:1rem;padding:.3rem .5rem">🔔</button>';
   }
 
+  // Padrao Gran Marquise: data + hora no header de TODOS os sistemas do Hub.
+  // Formato DD/MM/AAAA · HH:MM, timezone America/Fortaleza, atualiza a cada 30s.
+  html += `<span id="gm-datahora" style="margin-left:.6rem;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.72rem;letter-spacing:.05em;color:var(--text-secondary);font-variant-numeric:tabular-nums;white-space:nowrap" title="Horário de Fortaleza">--/--/---- · --:--</span>`;
   html += `<button id="btn-theme" class="btn btn-ghost btn-sm" title="Alternar modo claro/escuro" style="margin-left:.25rem;padding:.3rem .45rem;font-size:1rem;line-height:1">
     <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
     <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -111,6 +114,20 @@
         _syncThemeIcon();
       });
     }
+
+    // Relogio do header — atualiza a cada 30s (Fortaleza).
+    (function gmRelogio() {
+      const el = document.getElementById('gm-datahora');
+      if (!el) return;
+      function tick() {
+        const d = new Date();
+        const data = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric' }).format(d);
+        const hora = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Fortaleza', hour: '2-digit', minute: '2-digit' }).format(d);
+        el.textContent = data + ' · ' + hora;
+      }
+      tick();
+      setInterval(tick, 30 * 1000);
+    })();
 
     // Botao Sair: chama logout do chamados (limpa cookie token) e redireciona
     // ao Hub. fetch keepalive para nao precisar await antes do redirect.
