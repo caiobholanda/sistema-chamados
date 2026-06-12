@@ -154,14 +154,47 @@ async function apiFetch(url, opts = {}) {
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
-function toast(msg, tipo = 'sucesso') {
+// tipo: 'sucesso' (verde), 'erro' (vermelho), 'info' (azul)
+// duracaoMs: tempo visivel antes de comecar a fade-out
+function toast(msg, tipo = 'sucesso', duracaoMs = 3000) {
   const c = document.getElementById('toast-container');
+  if (!c) return;
   const el = document.createElement('div');
   el.className = `toast-notif toast-${tipo}`;
-  el.innerHTML = `<span class="toast-icon">${tipo==='sucesso'?'✓':'✕'}</span>${msg}`;
+  const cor = tipo === 'erro' ? '#e53e3e' : tipo === 'info' ? '#3b82f6' : '#10b981';
+  const icone = tipo === 'erro' ? '✕' : tipo === 'info' ? 'ℹ' : '✓';
+  el.style.borderLeftColor = cor;
+  el.innerHTML = `<span class="toast-icon" style="color:${cor};font-weight:700;margin-right:.4rem">${icone}</span>${msg}`;
   c.appendChild(el);
-  setTimeout(() => el.classList.add('hide'), 3000);
-  setTimeout(() => el.remove(), 3500);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => el.classList.add('hide'), duracaoMs);
+  setTimeout(() => el.remove(), duracaoMs + 500);
+}
+
+// ── Modal de confirmacao (substitui confirm() nativo que trava a UI) ─────────
+function confirmar(opts) {
+  return new Promise(resolve => {
+    const { titulo = 'Confirmar', mensagem = '', okLabel = 'OK', cancelLabel = 'Cancelar', perigoso = false } = opts || {};
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem;animation:fadeIn .15s ease';
+    overlay.innerHTML = `
+      <div style="background:var(--surface);color:var(--text-primary);border-radius:8px;max-width:420px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:1.4rem 1.5rem;font-family:inherit">
+        <h3 style="margin:0 0 .5rem 0;font-size:1.05rem;font-weight:600">${titulo}</h3>
+        <p style="margin:0 0 1.2rem 0;font-size:.9rem;line-height:1.5;color:var(--text-secondary);white-space:pre-line">${mensagem}</p>
+        <div style="display:flex;gap:.5rem;justify-content:flex-end">
+          <button type="button" class="btn btn-ghost btn-sm" data-act="cancel">${cancelLabel}</button>
+          <button type="button" class="btn ${perigoso ? 'btn-danger' : 'btn-primary'} btn-sm" data-act="ok">${okLabel}</button>
+        </div>
+      </div>`;
+    function fechar(r) { overlay.remove(); document.removeEventListener('keydown', onKey); resolve(r); }
+    function onKey(e) { if (e.key === 'Escape') fechar(false); if (e.key === 'Enter') fechar(true); }
+    overlay.addEventListener('click', e => { if (e.target === overlay) fechar(false); });
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => fechar(false));
+    overlay.querySelector('[data-act="ok"]').addEventListener('click', () => fechar(true));
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', onKey);
+    setTimeout(() => overlay.querySelector('[data-act="ok"]')?.focus(), 50);
+  });
 }
 
 // ── Formatadores ──────────────────────────────────────────────────────────────
@@ -214,7 +247,7 @@ function renderCards(items) {
         <button class="toggle-btn ${p.ativo?'ativo':'inativo'}" onclick="toggleProg(${p.id},${p.ativo})">${p.ativo?'✓ Ativo':'✗ Inativo'}</button>
         <button class="btn btn-ghost btn-sm" onclick="editarProg(${p.id})">Editar</button>
         <button class="btn btn-ghost btn-sm" onclick="verLog(${p.id},'${esc(p.titulo)}')">Log</button>
-        <button class="btn btn-ghost btn-sm" onclick="gerarAgora()" title="Força o cron a varrer todos os agendamentos pendentes agora.">Gerar agora</button>
+        <button class="btn btn-ghost btn-sm" onclick="gerarAgora(event)" title="Força o cron a varrer todos os agendamentos pendentes agora.">Gerar agora</button>
         <div style="flex:1"></div>
         <button class="btn btn-danger btn-sm" onclick="deletarProg(${p.id},'${esc(p.titulo)}')">Excluir</button>
       </div>
@@ -585,28 +618,68 @@ window.toggleProg = async (id) => {
 
 // Forca a varredura do cron agora. Util para validar agendamentos sem esperar
 // o intervalo de 60s ou suspeitar que o cron parou.
-window.gerarAgora = async () => {
-  if (!confirm('Forçar varredura do cron agora?\nQualquer agendamento com horário <= agora vai gerar um chamado.')) return;
-  const r = await apiFetch('/api/admin/programados/debug/trigger', { method: 'POST' });
-  if (!r) return;
-  const d = await r.json();
-  if (!d.ok) { toast('Falha ao disparar varredura', 'erro'); return; }
-  const ok = (d.resultados || []).filter(x => x.ok).length;
-  const erros = (d.resultados || []).filter(x => !x.ok).length;
-  const pend = (d.pendentesAntes || []).length;
-  if (pend === 0) toast('Nenhum agendamento pendente neste momento.');
-  else if (erros === 0) toast(`Varredura concluída — ${ok} chamado(s) gerado(s).`);
-  else toast(`Concluída com ${erros} erro(s) e ${ok} sucesso(s)`, 'erro');
-  carregarAgendamentos();
-  carregarHistorico();
+window.gerarAgora = async (ev) => {
+  const okConfirm = await confirmar({
+    titulo: 'Forçar varredura do cron',
+    mensagem: 'Qualquer agendamento com horário ≤ agora vai gerar um chamado imediatamente.\n\nDeseja continuar?',
+    okLabel: 'Sim, gerar agora',
+  });
+  if (!okConfirm) return;
+  // Feedback no botao clicado (caso seja chamado a partir de um botao no DOM).
+  const btn = ev && ev.currentTarget;
+  const labelOriginal = btn && btn.textContent;
+  if (btn) { btn.disabled = true; btn.dataset.originalText = labelOriginal || ''; btn.textContent = 'Verificando…'; }
+  try {
+    const r = await apiFetch('/api/admin/programados/debug/trigger', { method: 'POST' });
+    if (!r) return;
+    let d;
+    try { d = await r.json(); }
+    catch { toast('Resposta do servidor inválida.', 'erro', 4000); return; }
+    if (!r.ok || !d.ok) {
+      toast(d && d.erro ? `Erro: ${d.erro}` : `Falha ao disparar varredura (HTTP ${r.status})`, 'erro', 4000);
+      return;
+    }
+    const ok = (d.resultados || []).filter(x => x.ok).length;
+    const erros = (d.resultados || []).filter(x => !x.ok).length;
+    const pend = (d.pendentesAntes || []).length;
+    if (pend === 0) {
+      toast('Nenhum agendamento pendente neste momento.', 'info', 4000);
+    } else if (erros === 0) {
+      toast(`Varredura concluída — ${ok} chamado(s) gerado(s).`, 'sucesso', 4000);
+    } else {
+      toast(`Concluída com ${erros} erro(s) e ${ok} sucesso(s).`, 'erro', 4000);
+    }
+    carregarAgendamentos();
+    carregarHistorico();
+  } catch (err) {
+    console.error('[gerarAgora]', err);
+    toast('Erro de rede. Verifique sua conexão.', 'erro', 4000);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = btn.dataset.originalText || labelOriginal || 'Gerar agora';
+    }
+  }
 };
 
 window.deletarProg = async (id, titulo) => {
-  if (!confirm(`Excluir o agendamento "${titulo}"?\nO histórico de chamados gerados não será apagado.`)) return;
-  const r = await apiFetch(`/api/admin/programados/${id}`, { method: 'DELETE' });
-  if (!r) return;
-  const d = await r.json();
-  if (d.ok) { toast('Agendamento excluído'); carregarAgendamentos(); }
+  const ok = await confirmar({
+    titulo: 'Excluir agendamento',
+    mensagem: `Excluir o agendamento "${titulo}"?\n\nO histórico de chamados gerados não será apagado.`,
+    okLabel: 'Excluir',
+    perigoso: true,
+  });
+  if (!ok) return;
+  try {
+    const r = await apiFetch(`/api/admin/programados/${id}`, { method: 'DELETE' });
+    if (!r) return;
+    const d = await r.json().catch(() => ({}));
+    if (d.ok) { toast('Agendamento excluído', 'sucesso', 4000); carregarAgendamentos(); }
+    else toast(d.erro || 'Falha ao excluir.', 'erro', 4000);
+  } catch (err) {
+    console.error('[deletarProg]', err);
+    toast('Erro de rede. Tente novamente.', 'erro', 4000);
+  }
 };
 
 window.verLog = async (id, titulo) => {

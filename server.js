@@ -71,13 +71,22 @@ app.get('/redefinir-senha.html', (req, res) => servirHtmlComVersao(res, 'redefin
 app.get('/mobile', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
 app.get('/mobile.html', (req, res) => servirHtmlComVersao(res, 'mobile.html'));
 
-// Arquivos estáticos (JS, CSS, imagens) — html excluído porque as rotas acima já tratam
+// Arquivos estáticos (JS, CSS, imagens) — html excluído porque as rotas acima já tratam.
+// Estrategia de cache:
+// - .js/.css: max-age=0, must-revalidate + ETag. Browser sempre revalida com
+//   If-None-Match — servidor responde 304 (Not Modified) se o conteudo nao
+//   mudou, ou 200 com novo arquivo se mudou. Sem 'immutable' aqui pois os
+//   nomes nao tem hash de conteudo — usar immutable causa cache eterno e
+//   usuarios ficam presos em versoes antigas mesmo apos deploy.
+// - imagens/fonts: 1h.
 app.use(express.static(path.join(__dirname, 'public'), {
-  etag: false,
-  lastModified: false,
+  etag: true,
+  lastModified: true,
   setHeaders(res, filePath) {
     if (/\.(js|css)$/.test(filePath)) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    } else if (/\.html$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-store');
     } else {
       res.setHeader('Cache-Control', 'public, max-age=3600');
     }
