@@ -1,7 +1,21 @@
-/* Aplica tema salvo antes de renderizar (evita flash) */
+/* Aplica tema antes de renderizar (evita flash).
+   Prioridade:
+   1) ?theme=dark|light na URL — vem do Hub/outro sistema, e' a fonte
+      de verdade do "ultimo escolhido pelo usuario". Sobrescreve o local.
+   2) localStorage('admin-theme') — preferencia salva neste navegador.
+   3) Padrao claro. */
 (function () {
+  try {
+    var p = new URLSearchParams(window.location.search);
+    var fromUrl = p.get('theme');
+    if (fromUrl === 'dark' || fromUrl === 'light') {
+      localStorage.setItem('admin-theme', fromUrl);
+    }
+  } catch (e) {}
   if (localStorage.getItem('admin-theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
   }
 })();
 
@@ -141,8 +155,10 @@
           fetch('/api/admin/logout', { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {});
         } catch {}
         // ?logout=1&from=chamados permite ao Hub registrar este logout na
-        // jornada do usuario (logs_admins/logs_usuarios via /api/hub-log).
-        window.location.href = 'https://hub-granmarquise.fly.dev/?logout=1&from=chamados';
+        // jornada do usuario. &theme=... mantem o modo de visualizacao
+        // sincronizado entre os sistemas do Hub.
+        var t = localStorage.getItem('admin-theme') === 'dark' ? 'dark' : 'light';
+        window.location.href = 'https://hub-granmarquise.fly.dev/?logout=1&from=chamados&theme=' + t;
       });
     }
 
