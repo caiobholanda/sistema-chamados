@@ -3652,6 +3652,10 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
     document.getElementById('nce-descricao').value = '';
     document.getElementById('msg-nc-etiqueta').innerHTML = '';
 
+    // Garante que o swatch dinamico de cor herdada (criado em sessoes
+    // anteriores) saia da DOM ao reabrir o modal.
+    const corCustomOld = document.getElementById('nce-cor-custom');
+    if (corCustomOld) corCustomOld.remove();
     // Cor inicial: ALEATORIA entre as 8 da paleta. O usuario pode sobrescrever
     // clicando em qualquer swatch. _nceSetCor cuida do hidden #nce-cor-valor
     // e do destaque visual do swatch ativo. Reseta a flag para reativar a
@@ -3683,14 +3687,51 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
   // manual = false -> cor aleatoria/herdada, pai ainda pode sobrescrever.
   function _nceSetCor(cor, manual) {
     if (manual === undefined) manual = true;
+    const corLower = String(cor || '').toLowerCase();
     document.getElementById('nce-cor-valor').value = cor;
-    document.querySelectorAll('.nce-cor-btn').forEach(b => {
-      const sel = b.dataset.cor === cor;
+    let temMatch = false;
+    document.querySelectorAll('.nce-cor-btn[data-cor]').forEach(b => {
+      // Ignora o swatch dinamico de cor custom (controlado abaixo).
+      if (b.id === 'nce-cor-custom') return;
+      const sel = String(b.dataset.cor || '').toLowerCase() === corLower;
+      if (sel) temMatch = true;
       b.classList.toggle('ativo', sel);
       b.style.border = sel ? `2px solid ${b.dataset.cor}` : '2px solid transparent';
       b.style.outline = sel ? '2px solid white' : '';
       b.style.outlineOffset = sel ? '-4px' : '';
     });
+    // Quando a cor (herdada de uma etiqueta pai existente) nao bate com
+    // nenhum dos 8 swatches fixos, cria/atualiza um swatch dinamico com a
+    // cor herdada — assim o usuario VE que a cor foi aplicada.
+    const cores = document.getElementById('nce-cores');
+    let custom = document.getElementById('nce-cor-custom');
+    if (!temMatch && cor) {
+      if (!custom && cores) {
+        custom = document.createElement('button');
+        custom.type = 'button';
+        custom.id = 'nce-cor-custom';
+        custom.className = 'nce-cor-btn';
+        custom.title = 'Cor herdada da etiqueta pai';
+        custom.style.cssText = 'width:26px;height:26px;border-radius:50%;cursor:pointer';
+        cores.appendChild(custom);
+        custom.addEventListener('click', () => {
+          // Reseleciona explicitamente — torna a escolha "manual".
+          _nceCorEhAleatoriaAtual = false;
+          _nceSetCor(custom.dataset.cor, true);
+        });
+      }
+      if (custom) {
+        custom.dataset.cor = cor;
+        custom.style.background = cor;
+        custom.style.border = `2px solid ${cor}`;
+        custom.style.outline = '2px solid white';
+        custom.style.outlineOffset = '-4px';
+        custom.classList.add('ativo');
+      }
+    } else if (custom) {
+      // Cor agora bate com um swatch fixo (ou foi limpa): remove o swatch dinamico.
+      custom.remove();
+    }
     if (manual) _nceCorEhAleatoriaAtual = false;
   }
 
