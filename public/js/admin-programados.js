@@ -386,6 +386,26 @@ function lerFormAgendamento() {
   };
 }
 
+// Valida o formulario antes de enviar. Espelha as regras do backend em
+// src/rotas/programados.js validarAgendamento — qualquer divergencia aqui e
+// um bug. Retorna string com a mensagem de erro, ou null se OK.
+function validarFormCliente(body) {
+  if (!body.descricao || body.descricao.trim().length < 10)
+    return 'Descrição obrigatória (mínimo 10 caracteres).';
+  if (!body.frequencia) return 'Selecione a frequência.';
+  if (!/^\d{2}:\d{2}$/.test(body.hora || ''))
+    return 'Hora inválida (use HH:MM).';
+  if (body.frequencia === 'semanal' && (body.dia_semana == null || isNaN(body.dia_semana)))
+    return 'Selecione o dia da semana.';
+  if (['mensal','bimestral','trimestral','semestral'].includes(body.frequencia)
+      && (!body.dia_mes || body.dia_mes < 1 || body.dia_mes > 31))
+    return 'Informe o dia do mês (1 a 31).';
+  if (body.frequencia === 'anual'
+      && (!body.dia_mes || body.dia_mes < 1 || body.dia_mes > 31 || !body.mes || body.mes < 1 || body.mes > 12))
+    return 'Para frequência anual, informe mês (1–12) e dia (1–31).';
+  return null;
+}
+
 function preencherForm(prog) {
   _catCombo?.setValue(prog.categoria || '');
   document.getElementById('f-descricao').value  = prog.descricao || '';
@@ -453,6 +473,13 @@ document.getElementById('btn-fechar-log-2').addEventListener('click', _fecharLog
 
 document.getElementById('btn-preview').addEventListener('click', async () => {
   const body = lerFormAgendamento();
+  const erroCliente = validarFormCliente(body);
+  if (erroCliente) {
+    const e = document.getElementById('modal-erro');
+    e.textContent = erroCliente;
+    e.style.display = 'block';
+    return;
+  }
   const r = await apiFetch('/api/admin/programados/preview', { method: 'POST', body: JSON.stringify(body) });
   if (!r) return;
   const d = await r.json();
@@ -478,6 +505,12 @@ document.getElementById('btn-salvar').addEventListener('click', async () => {
   }
 
   const agend = lerFormAgendamento();
+  const erroCliente = validarFormCliente(agend);
+  if (erroCliente) {
+    erroEl.textContent = erroCliente;
+    erroEl.style.display = 'block';
+    return;
+  }
   const fd = new FormData();
   fd.append('descricao',    agend.descricao);
   fd.append('categoria',    agend.categoria || '');
