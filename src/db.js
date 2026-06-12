@@ -1280,7 +1280,10 @@ function inserirChamado(dados) {
     INSERT INTO chamados (usuario_id, nome, setor, ramal, descricao, anexo_path, anexo_nome_original, categoria, aberto_por_admin_id, admin_responsavel_id, servico_id, servico_nome)
     VALUES (@usuario_id, @nome, @setor, @ramal, @descricao, @anexo_path, @anexo_nome_original, @categoria, @aberto_por_admin_id, @admin_responsavel_id, @servico_id, @servico_nome)
   `);
-  const result = stmt.run({ usuario_id: null, categoria: null, aberto_por_admin_id: null, admin_responsavel_id: null, servico_id: null, servico_nome: null, ...dados });
+  // Defesa em profundidade: ramal e NOT NULL no schema. Outros chamadores
+  // ja passam '', mas garantir aqui evita constraint failure se algum
+  // caller esquecer (ex: scheduler de programados antes do fix).
+  const result = stmt.run({ usuario_id: null, categoria: null, aberto_por_admin_id: null, admin_responsavel_id: null, servico_id: null, servico_nome: null, ramal: '', ...dados, ramal: (dados.ramal == null ? '' : dados.ramal) });
   const id = result.lastInsertRowid;
   if (dados.admin_responsavel_id) {
     db.prepare(`INSERT INTO admin_atendimento_log (chamado_id, admin_id) VALUES (?, ?)`)

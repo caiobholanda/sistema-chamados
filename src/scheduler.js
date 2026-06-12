@@ -14,17 +14,23 @@ async function executarChamadosProgramados() {
       try {
         let nome  = prog.nome;
         let setor = prog.setor;
+        // chamados.ramal e NOT NULL no schema — sempre string (vazia se nao houver).
+        let ramal = prog.ramal || '';
 
         if (prog.usuario_id) {
           const u = buscarUsuarioPorId(prog.usuario_id);
-          if (u && u.ativo) { nome = u.nome; setor = u.setor || prog.setor; }
+          if (u && u.ativo) {
+            nome = u.nome;
+            setor = u.setor || prog.setor;
+            if (!ramal && u.ramal) ramal = u.ramal;
+          }
         }
 
         const chamadoId = inserirChamado({
           usuario_id: prog.usuario_id || null,
           nome,
           setor,
-          ramal: prog.ramal || null,
+          ramal,
           descricao: `[Automático] ${prog.descricao}`,
           categoria: prog.categoria || null,
           aberto_por_admin_id: null,
