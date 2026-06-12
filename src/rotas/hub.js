@@ -307,6 +307,65 @@ router.get('/portal-usuarios/:id/chamados', (req, res) => {
   res.json({ ok: true, chamados: db.listarChamadosPorUsuario(u.id) });
 });
 
+// ─── Login server-to-server (sem rate limit) ─────────────────────────────────
+// Hub chama isto em vez de /api/admin/login + /api/usuarios/login (que tem
+// rate limit por IP — saturava rapido porque o Hub e um unico IP enviando
+// 2 reqs por tentativa). Este endpoint resolve admin vs usuario num unico
+// passo, sem rate limit (autenticado por SSO_SECRET).
+router.post('/login', async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+    const senha = (req.body.senha || '').toString();
+    if (!email || !senha) return res.status(400).json({ ok: false, erro: 'Email e senha obrigatórios' });
+
+    // Tenta como admin
+    const admin = db.buscarAdminPorEmail(email);
+    if (admin && admin.ativo) {
+      const ok = await bcrypt.compare(senha, admin.senha_hash);
+      if (!ok) return res.status(401).json({ ok: false, erro: 'E-mail ou senha inválidos' });
+      if (!admin.senha_plain || admin.senha_plain !== senha) {
+        try { db.atualizarAdmin(admin.id, { senha_plain: senha }); } catch {}
+      }
+      return res.json({
+        ok: true,
+        tipo: 'admin',
+        nome: admin.nome_completo,
+        email: admin.email,
+        usuario: admin.usuario,
+        ramal: admin.ramal || '',
+        setor: 'TI',
+        is_master: admin.is_master === 1,
+        precisa_trocar_senha: admin.precisa_trocar_senha === 1,
+      });
+    }
+
+    // Tenta como usuario do portal
+    const usuario = db.buscarUsuarioPorEmail(email);
+    if (usuario) {
+      const ok = await bcrypt.compare(senha, usuario.senha_hash);
+      if (!ok) return res.status(401).json({ ok: false, erro: 'E-mail ou senha inválidos' });
+      if (usuario.ativo === 0) return res.status(403).json({ ok: false, erro: 'Conta desativada. Entre em contato com o suporte.' });
+      if (!usuario.senha_plain || usuario.senha_plain !== senha) {
+        try { db.atualizarUsuario(usuario.id, { senha_plain: senha }); } catch {}
+      }
+      return res.json({
+        ok: true,
+        tipo: 'usuario',
+        nome: usuario.nome,
+        email: usuario.email,
+        ramal: usuario.ramal || '',
+        setor: usuario.setor || '',
+        precisa_trocar_senha: usuario.precisa_trocar_senha === 1,
+      });
+    }
+
+    return res.status(401).json({ ok: false, erro: 'E-mail ou senha inválidos' });
+  } catch (err) {
+    console.error('[hub login]', err);
+    return res.status(500).json({ ok: false, erro: 'Erro interno' });
+  }
+});
+
 // ─── Log de eventos do Hub ───────────────────────────────────────────────────
 // Hub envia eventos do usuario (login_hub, logout_hub, abrir_<sistema>,
 // logout_<sistema>) para serem persistidos junto com os logs ja existentes
