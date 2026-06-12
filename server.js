@@ -119,8 +119,17 @@ function destinoSeguro(next, fallback) {
   return next;
 }
 
+// Propaga ?theme=dark|light para o destino final do SSO/redirect.
+// Sem isso, o tema escolhido no Hub e' descartado e o nav.js do destino
+// caia no localStorage local (que pode estar desatualizado).
+function _propagaTheme(target, theme) {
+  if (theme !== 'dark' && theme !== 'light') return target;
+  const sep = target.includes('?') ? '&' : '?';
+  return `${target}${sep}theme=${theme}`;
+}
+
 app.get('/sso', (req, res) => {
-  const { sso_token, next } = req.query;
+  const { sso_token, next, theme } = req.query;
   if (!sso_token) return res.redirect(HUB_URL + '/?erro=sem_token');
 
   try {
@@ -136,7 +145,7 @@ app.get('/sso', (req, res) => {
         { expiresIn: 30 * 24 * 60 * 60 }
       );
       res.cookie('token', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
-      return res.redirect(destinoSeguro(next, '/admin-painel.html'));
+      return res.redirect(_propagaTheme(destinoSeguro(next, '/admin-painel.html'), theme));
     }
 
     const usuario = buscarUsuarioPorEmail(email);
@@ -147,7 +156,7 @@ app.get('/sso', (req, res) => {
       { expiresIn: 30 * 24 * 60 * 60 }
     );
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
-    return res.redirect(destinoSeguro(next, '/'));
+    return res.redirect(_propagaTheme(destinoSeguro(next, '/'), theme));
   } catch (err) {
     console.error('[SSO] Erro:', err.message);
     return res.redirect(HUB_URL + '/?erro=sso_invalido');
