@@ -2686,11 +2686,19 @@ function excluirSetor(id) {
 }
 
 // ── Chamados Programados ──────────────────────────────────────────────────────
+// Lista todos os agendamentos VISIVEIS na tela de gestao.
+// Regra: agendamentos 'data_unica' que ja dispararam (ultima_execucao
+// preenchida) somem da listagem — o user nao precisa mais ve-los pois ja
+// cumpriram o proposito. Os recorrentes (diario/semanal/etc) continuam
+// sempre visiveis, ate quando inativados pelo proprio usuario.
+// O log historico (chamados_programados_log) preserva o registro do disparo
+// para auditoria, mesmo apos o agendamento sumir desta lista.
 function listarChamadosProgramados() {
   return getDb().prepare(`
     SELECT p.*, a.nome_completo AS admin_nome
     FROM chamados_programados p
     LEFT JOIN admins a ON a.id = p.admin_responsavel_id
+    WHERE NOT (p.frequencia = 'data_unica' AND p.ultima_execucao IS NOT NULL)
     ORDER BY p.ativo DESC, p.titulo COLLATE NOCASE
   `).all();
 }
