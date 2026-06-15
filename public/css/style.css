@@ -1,82 +1,103 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --gold:         #D4AF37;
-  --gold-dark:    #B8960C;
-  --gold-light:   #EDD97A;
-  --gold-pale:    #F8F0CC;
-  --navy:         #0D1B2A;
-  --navy-mid:     #162840;
+/* Paleta "Gran Marquise" — editorial/luxo hoteleiro.
+   Light: creme quente (#F4EEE1) + grafite (#1C2030) + dourado (#8A6B1F).
+   Dark:  navy (#0A0E1A) + marfim (#F5F0E6) + dourado (#C9A961).
+   Headers em backdrop-filter blur(10px) com fundo translucido.
+   Verde-petroleo (#15705A claro / #3E8497 escuro) como acento secundario. */
+:root,
+:root[data-theme="light"] {
+  --gold:         #8A6B1F;
+  --gold-dark:    #6F551A;
+  --gold-light:   #B58B3A;
+  --gold-pale:    rgba(138,107,31,.12);
+  --navy:         #0A0E1A;
+  --navy-mid:     #11162A;
 
   --primary:       var(--gold);
   --primary-dark:  var(--gold-dark);
   --primary-light: var(--gold-pale);
   --accent:        var(--gold);
+  --accent-teal:   #15705A;
 
-  --success:        #15803D;
-  --success-light:  #DCFCE7;
+  --success:        #15705A;
+  --success-light:  rgba(21,112,90,.12);
   --danger:         #B91C1C;
   --danger-light:   #FEE2E2;
-  --warning:        #B45309;
-  --warning-light:  #FEF3C7;
+  --warning:        #8A6B1F;
+  --warning-light:  rgba(138,107,31,.12);
 
   --cor-urgente:        #B91C1C;
   --cor-alta:           #C2410C;
   --cor-media:          #1D4ED8;
-  --cor-baixa:          #15803D;
-  --cor-sem-prioridade: #6B7280;
+  --cor-baixa:          #15705A;
+  --cor-sem-prioridade: #605738;
   --cor-aberto:         #1D4ED8;
   --cor-andamento:      #7C3AED;
-  --cor-concluido:      #15803D;
-  --cor-encerrado:      #6B7280;
+  --cor-concluido:      #15705A;
+  --cor-encerrado:      #605738;
 
   --nav-height: 68px;
   --nav-bg:     var(--navy);
 
-  --bg:           #F7F3ED;
-  --surface:      #FFFFFF;
-  --surface-2:    #FDFAF5;
-  --border:       #E5DDD0;
-  --border-strong:#C8BAA5;
+  --bg:           #F4EEE1;
+  --surface:      #FAF9F5;
+  --surface-2:    #F4EEE1;
+  --border:       rgba(96, 87, 56, 0.13);
+  --border-strong:rgba(96, 87, 56, 0.28);
+  --header-bg:    rgba(244, 238, 225, 0.82);
 
-  --text:          #1C1C1C;
-  --text-secondary:#4A4540;
-  --text-muted:    #7A726A;
+  --text:          #1C2030;
+  --text-secondary:#44402F;
+  --text-muted:    #605738;
 
   --radius-sm: 2px;
   --radius:    6px;
   --radius-lg: 10px;
 
-  --shadow-sm: 0 1px 2px rgba(20,14,6,.05), 0 0 0 1px rgba(20,14,6,.04);
-  --shadow:    0 1px 3px rgba(20,14,6,.07), 0 4px 12px rgba(20,14,6,.05);
-  --shadow-md: 0 4px 8px rgba(20,14,6,.08), 0 12px 24px rgba(20,14,6,.05);
-  --shadow-lg: 0 8px 24px rgba(20,14,6,.1), 0 32px 64px rgba(20,14,6,.08);
+  --shadow-sm: 0 1px 2px rgba(28,32,48,.05), 0 0 0 1px rgba(28,32,48,.04);
+  --shadow:    0 1px 3px rgba(28,32,48,.07), 0 4px 12px rgba(28,32,48,.05);
+  --shadow-md: 0 4px 8px rgba(28,32,48,.08), 0 12px 24px rgba(28,32,48,.05);
+  --shadow-lg: 0 8px 24px rgba(28,32,48,.10), 0 32px 64px rgba(28,32,48,.08);
 }
 
 [data-theme="dark"] {
-  --bg:           #0F1419;
-  --surface:      #1A2230;
-  --surface-2:    #151C29;
-  --border:       #2A3448;
-  --border-strong:#3D4F68;
+  --gold:         #C9A961;
+  --gold-dark:    #B3924E;
+  --gold-light:   #D4C4A0;
+  --gold-pale:    rgba(201,169,97,.16);
+  --accent-teal:  #3E8497;
 
-  --text:          #E2D9CE;
-  --text-secondary:#A89880;
-  --text-muted:    #6B7F96;
+  --bg:           #0A0E1A;
+  --surface:      #11162A;
+  --surface-2:    #161B2E;
+  --border:       rgba(138, 126, 100, 0.13);
+  --border-strong:rgba(138, 126, 100, 0.28);
+  --header-bg:    rgba(10, 14, 26, 0.72);
 
-  --success:        #16A34A;
-  --success-light:  #052E16;
-  --danger:         #DC2626;
-  --danger-light:   #450A0A;
-  --warning:        #D97706;
-  --warning-light:  #451A03;
+  --text:          #F5F0E6;
+  --text-secondary:#D4C4A0;
+  --text-muted:    #8A7E64;
+
+  --success:        #3E8497;
+  --success-light:  rgba(62,132,151,.18);
+  --danger:         #D86862;
+  --danger-light:   rgba(216,104,98,.18);
+  --warning:        #C9A961;
+  --warning-light:  rgba(201,169,97,.16);
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,.3), 0 0 0 1px rgba(0,0,0,.2);
   --shadow:    0 1px 3px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.3);
   --shadow-md: 0 4px 8px rgba(0,0,0,.4), 0 12px 24px rgba(0,0,0,.3);
   --shadow-lg: 0 8px 24px rgba(0,0,0,.5), 0 32px 64px rgba(0,0,0,.4);
+}
+
+/* Transicao suave entre temas em todos os elementos comuns. */
+body, header, .card, .btn, .form-control, .table, table, th, td,
+input, select, textarea, button, .badge, .modal, .modal-overlay {
+  transition: background-color .3s ease, color .3s ease, border-color .3s ease;
 }
 
 /* ═══════════════════════════════════════════
