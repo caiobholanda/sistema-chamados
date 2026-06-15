@@ -76,9 +76,31 @@ function _proxDiaUtil(utcDate, pularFeriados) {
 // efetivamente foi executada (que pode ter sido deslocada por feriado).
 // Sem isso, um skip de feriado em 1 ciclo persistia em todos os ciclos
 // subsequentes (drift cumulativo).
+// Data sentinela para frequencia 'data_unica' apos ja ter sido executada
+// (ano 9999). O cron compara proxima_execucao <= now; nunca vai pegar isso.
+// Defesa secundaria alem do scheduler.js que tambem seta ativo=0 apos disparo.
+const SENTINELA_DATA_UNICA_PASSADA = new Date(Date.UTC(9999, 11, 31, 0, 0));
+
 function calcularProxima(prog, afterExec = null) {
-  const { frequencia, dia_semana, dia_mes, mes, hora, pular_feriados } = prog;
+  const { frequencia, dia_semana, dia_mes, mes, hora, pular_feriados, data_unica } = prog;
   const [hh, mm] = hora.split(':').map(Number);
+
+  // 'data_unica': dispara uma vez na data escolhida; depois jamais.
+  if (frequencia === 'data_unica') {
+    if (afterExec) return SENTINELA_DATA_UNICA_PASSADA;
+    if (!data_unica || !/^\d{4}-\d{2}-\d{2}$/.test(data_unica)) {
+      // Sem data valida: sentinela impede disparo (defensivo — front/back ja validam).
+      return SENTINELA_DATA_UNICA_PASSADA;
+    }
+    const [yy, mo, dd] = data_unica.split('-').map(Number);
+    let alvo = _fromFtz(yy, mo - 1, dd, hh, mm);
+    if (pular_feriados) {
+      const afterSkip = _proxDiaUtil(alvo, true);
+      const ftz = _toFtz(afterSkip);
+      alvo = _fromFtz(ftz.getUTCFullYear(), ftz.getUTCMonth(), ftz.getUTCDate(), hh, mm);
+    }
+    return alvo;
+  }
 
   // Garante que dia_mes esteja dentro do ultimo dia do mes referenciado
   // (ex: dia 31 em fevereiro vira o ultimo dia de fev).
@@ -182,6 +204,10 @@ function calcularProxima(prog, afterExec = null) {
 
 // Retorna array com as próximas N datas (UTC) de execução
 function proximasN(prog, n = 5) {
+  // 'data_unica' dispara exatamente uma vez: o preview mostra so essa data.
+  if (prog.frequencia === 'data_unica') {
+    return [calcularProxima(prog)];
+  }
   const datas = [];
   let last = null;
   for (let i = 0; i < n; i++) {

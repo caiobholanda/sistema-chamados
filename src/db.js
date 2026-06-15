@@ -279,6 +279,9 @@ function initDb() {
   try { db.exec("ALTER TABLE inventario_micros ADD COLUMN nobreak TEXT DEFAULT ''"); } catch {}
   try { db.exec('ALTER TABLE chamados_programados ADD COLUMN usuario_id INTEGER'); } catch {}
   try { db.exec('ALTER TABLE chamados_programados ADD COLUMN anexos_json TEXT'); } catch {}
+  // data_unica: usado pela frequencia 'data_unica' (chamado disparado uma vez
+  // em data especifica). Formato 'YYYY-MM-DD'. Demais frequencias mantem NULL.
+  try { db.exec('ALTER TABLE chamados_programados ADD COLUMN data_unica TEXT'); } catch {}
   try { db.exec(`
     CREATE TABLE IF NOT EXISTS mensagens_leitura (
       admin_id INTEGER NOT NULL,
@@ -2701,12 +2704,12 @@ function inserirChamadoProgramado(dados) {
     INSERT INTO chamados_programados
       (titulo, nome, setor, ramal, descricao, categoria, prioridade, frequencia,
        dia_semana, dia_mes, mes, hora, pular_feriados, admin_responsavel_id, proxima_execucao,
-       usuario_id, anexos_json)
+       usuario_id, anexos_json, data_unica)
     VALUES
       (@titulo,@nome,@setor,@ramal,@descricao,@categoria,@prioridade,@frequencia,
        @dia_semana,@dia_mes,@mes,@hora,@pular_feriados,@admin_responsavel_id,@proxima_execucao,
-       @usuario_id,@anexos_json)
-  `).run(dados).lastInsertRowid;
+       @usuario_id,@anexos_json,@data_unica)
+  `).run({ data_unica: null, ...dados }).lastInsertRowid;
 }
 
 function atualizarChamadoProgramado(id, dados) {
@@ -2717,9 +2720,9 @@ function atualizarChamadoProgramado(id, dados) {
       frequencia=@frequencia, dia_semana=@dia_semana, dia_mes=@dia_mes, mes=@mes,
       hora=@hora, pular_feriados=@pular_feriados,
       admin_responsavel_id=@admin_responsavel_id, proxima_execucao=@proxima_execucao,
-      usuario_id=@usuario_id, anexos_json=@anexos_json
+      usuario_id=@usuario_id, anexos_json=@anexos_json, data_unica=@data_unica
     WHERE id=@id
-  `).run({ ...dados, id });
+  `).run({ data_unica: null, ...dados, id });
 }
 
 function toggleChamadoProgramado(id, ativo) {

@@ -9,7 +9,17 @@ const { uploadChamadoMiddleware, UPLOADS_DIR } = require('../upload');
 const { calcularProxima, proximasN } = require('../programados');
 const { executarChamadosProgramados } = require('../scheduler');
 
-const FREQS_VALIDAS = ['diario','semanal','mensal','bimestral','trimestral','semestral','anual'];
+const FREQS_VALIDAS = ['diario','semanal','mensal','bimestral','trimestral','semestral','anual','data_unica'];
+
+// 'YYYY-MM-DD' de hoje no fuso de Fortaleza. Usado para validar que data_unica
+// nao e' no passado. Usar new Date() local do server (UTC) entregaria o dia
+// errado nas horas finais do dia em Fortaleza.
+function _hojeFortalezaISO() {
+  const agora = new Date();
+  const ftz = new Date(agora.getTime() + (-3 * 60 * 60 * 1000));
+  const y = ftz.getUTCFullYear(), m = String(ftz.getUTCMonth() + 1).padStart(2, '0'), d = String(ftz.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 function toISO(d) { return d.toISOString().replace('T',' ').slice(0,19); }
 
@@ -37,7 +47,7 @@ function limparArquivosProg(anexosJson) {
 }
 
 function validarAgendamento(body) {
-  const { frequencia, hora = '08:00', pular_feriados, dia_semana, dia_mes, mes } = body;
+  const { frequencia, hora = '08:00', pular_feriados, dia_semana, dia_mes, mes, data_unica } = body;
   if (!FREQS_VALIDAS.includes(frequencia)) return { erro: 'Frequência inválida' };
   if (!/^\d{2}:\d{2}$/.test(hora)) return { erro: 'Hora inválida (HH:MM)' };
   // Valida HH:MM dentro de 00:00-23:59
@@ -49,6 +59,17 @@ function validarAgendamento(body) {
     return { erro: 'Dia do mês obrigatório para esta frequência (1–31)' };
   if (frequencia === 'anual' && (!mes || mes < 1 || mes > 12 || !dia_mes || dia_mes < 1 || dia_mes > 31))
     return { erro: 'Mês e dia obrigatórios para frequência anual' };
+  // 'data_unica': data alvo no formato YYYY-MM-DD, deve ser hoje ou futura
+  // (comparacao no fuso de Fortaleza para nao bloquear dia atual nas ultimas
+  // horas em servidores UTC).
+  if (frequencia === 'data_unica') {
+    if (!data_unica || !/^\d{4}-\d{2}-\d{2}$/.test(data_unica)) {
+      return { erro: 'Informe a data específica (YYYY-MM-DD)' };
+    }
+    if (data_unica < _hojeFortalezaISO()) {
+      return { erro: 'A data específica não pode ser no passado' };
+    }
+  }
   // Conflito semanal sab/dom + pular fins-de-semana: combinacao impossivel.
   // Se aceitarmos, _proxDiaUtil silenciosamente move TODA execucao para segunda,
   // anulando a escolha do usuario.
@@ -63,6 +84,7 @@ function validarAgendamento(body) {
       dia_semana: dia_semana != null ? parseInt(dia_semana) : null,
       dia_mes:    dia_mes    != null ? parseInt(dia_mes)    : null,
       mes:        mes        != null ? parseInt(mes)        : null,
+      data_unica: frequencia === 'data_unica' ? data_unica : null,
     },
   };
 }

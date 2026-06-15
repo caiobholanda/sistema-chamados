@@ -140,3 +140,41 @@ test('proximasN nao mistura skip do periodo anterior no proximo', () => {
   const todosBaixos = dias.every(d => d <= 5);
   assert.equal(todosBaixos, true, `dias deveriam estar proximos do dia-base 1, vieram: ${dias.join(',')}`);
 });
+
+// ── data_unica: dispara 1 vez na data alvo, depois sentinela 9999 ─────────────
+test('data_unica: calcularProxima sem afterExec retorna data alvo no fuso Fortaleza', () => {
+  const prog = { frequencia: 'data_unica', data_unica: '2030-06-15', hora: '14:30', pular_feriados: 0 };
+  const next = calcularProxima(prog);
+  assert.equal(asFtz(next), '2030-06-15 14:30');
+});
+
+test('data_unica: com afterExec retorna sentinela ano 9999 (cron nunca repete)', () => {
+  const prog = { frequencia: 'data_unica', data_unica: '2030-06-15', hora: '08:00', pular_feriados: 0 };
+  const next = calcularProxima(prog, new Date('2030-06-15T11:00:00Z'));
+  assert.equal(next.getUTCFullYear(), 9999, 'esperava ano sentinela 9999');
+});
+
+test('data_unica: proximasN devolve exatamente 1 entry', () => {
+  const prog = { frequencia: 'data_unica', data_unica: '2030-06-15', hora: '08:00', pular_feriados: 0 };
+  const datas = proximasN(prog, 5);
+  assert.equal(datas.length, 1, 'data_unica deve ter exatamente 1 ocorrencia');
+  assert.equal(asFtz(datas[0]), '2030-06-15 08:00');
+});
+
+test('data_unica: pular_feriados move para proximo dia util (sabado 13/jun/2026 -> seg 15)', () => {
+  const prog = { frequencia: 'data_unica', data_unica: '2026-06-13', hora: '09:00', pular_feriados: 1 };
+  const next = calcularProxima(prog);
+  assert.equal(asFtz(next), '2026-06-15 09:00', 'sab deve avancar para seg');
+});
+
+test('data_unica: pular_feriados desligado mantem data mesmo em fim de semana', () => {
+  const prog = { frequencia: 'data_unica', data_unica: '2026-06-13', hora: '09:00', pular_feriados: 0 };
+  const next = calcularProxima(prog);
+  assert.equal(asFtz(next), '2026-06-13 09:00');
+});
+
+test('data_unica: data_unica invalida retorna sentinela (defensivo)', () => {
+  const prog = { frequencia: 'data_unica', data_unica: null, hora: '08:00', pular_feriados: 0 };
+  const next = calcularProxima(prog);
+  assert.equal(next.getUTCFullYear(), 9999);
+});

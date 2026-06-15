@@ -30,6 +30,7 @@
     .freq-trimestral{ background:#dcfce7; color:#166534; }
     .freq-semestral { background:#fee2e2; color:#991b1b; }
     .freq-anual     { background:#fef9c3; color:#713f12; }
+    .freq-data_unica{ background:#e0e7ff; color:#3730a3; }
     .prog-card-title { font-weight: 700; font-size: .95rem; flex: 1; }
     .prog-card-sub { font-size: .76rem; color: var(--text-secondary, #6b7280); margin-top: .15rem; }
     .prog-card-body { padding: 1rem 1.25rem; display: flex; gap: 2.5rem; flex-wrap: wrap; }
@@ -206,6 +207,7 @@
               <option value="trimestral">Trimestral</option>
               <option value="semestral">Semestral</option>
               <option value="anual">Anual</option>
+              <option value="data_unica">Data específica (uma vez)</option>
             </select>
           </div>
           <div>
@@ -238,6 +240,10 @@
               <option value="9">Setembro</option><option value="10">Outubro</option>
               <option value="11">Novembro</option><option value="12">Dezembro</option>
             </select>
+          </div>
+          <div id="campo-data-unica" style="display:none">
+            <label class="form-label">Data <span class="req">*</span></label>
+            <input class="form-control" id="f-data-unica" type="date">
           </div>
           <div class="field-full" style="display:flex;align-items:center;gap:.6rem">
             <input type="checkbox" id="f-pular-feriados" checked style="width:1rem;height:1rem;cursor:pointer">

@@ -1,6 +1,6 @@
 'use strict';
 
-const { getProgramadosPendentes, registrarExecucaoProgramado, inserirChamado, buscarUsuarioPorId, inserirAnexoExtra, getDb } = require('./db');
+const { getProgramadosPendentes, registrarExecucaoProgramado, inserirChamado, buscarUsuarioPorId, inserirAnexoExtra, getDb, toggleChamadoProgramado } = require('./db');
 const push = require('./push');
 const { calcularProxima } = require('./programados');
 
@@ -56,10 +56,16 @@ async function executarChamadosProgramados() {
         const proxima = calcularProxima(prog, new Date());
         const proximaISO = proxima.toISOString().replace('T', ' ').slice(0, 19);
         registrarExecucaoProgramado(prog.id, chamadoId, proximaISO);
+        // 'data_unica' so dispara uma vez. Desativa o agendamento apos gerar
+        // o chamado para garantir que nunca seja re-executado (defesa em
+        // profundidade alem da data sentinela 9999 em proxima_execucao).
+        if (prog.frequencia === 'data_unica') {
+          toggleChamadoProgramado(prog.id, 0);
+        }
         const msg = `Chamado #${chamadoId} criado automaticamente: "${prog.titulo}" (${setor})`;
-        console.log(`[Programados] ${msg} → próxima: ${proximaISO}`);
+        console.log(`[Programados] ${msg} → próxima: ${prog.frequencia === 'data_unica' ? 'CONCLUIDO (data unica)' : proximaISO}`);
         push.enviarParaTodos('📅 Chamado Programado', msg).catch(() => {});
-        resultados.push({ ok: true, progId: prog.id, titulo: prog.titulo, chamadoId, proximaISO });
+        resultados.push({ ok: true, progId: prog.id, titulo: prog.titulo, chamadoId, proximaISO, concluido: prog.frequencia === 'data_unica' });
       } catch (err) {
         console.error(`[Programados] ERRO no agendamento #${prog.id} "${prog.titulo}":`, err.message);
         resultados.push({ ok: false, progId: prog.id, titulo: prog.titulo, erro: err.message });

@@ -3,11 +3,24 @@
 const FREQ_LABEL = {
   diario:'Diário', semanal:'Semanal', mensal:'Mensal',
   bimestral:'Bimestral', trimestral:'Trimestral', semestral:'Semestral', anual:'Anual',
+  data_unica:'Data específica',
 };
 const FREQ_SHORT = {
   diario:'DIA', semanal:'SEM', mensal:'MES',
   bimestral:'BIM', trimestral:'TRI', semestral:'SEM·A', anual:'ANO',
+  data_unica:'UMA',
 };
+
+// 'YYYY-MM-DD' de hoje no fuso de Fortaleza — espelha _hojeFortalezaISO do back.
+function _hojeFortalezaISO() {
+  const ftz = new Date(Date.now() + (-3 * 60 * 60 * 1000));
+  const y = ftz.getUTCFullYear(), m = String(ftz.getUTCMonth() + 1).padStart(2, '0'), d = String(ftz.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+function _fmtDataBR(iso) {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || '';
+  const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`;
+}
 const DIA_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const MESES = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -206,7 +219,7 @@ function fmtDT(iso) {
 }
 
 function descrFreq(prog) {
-  const { frequencia, dia_semana, dia_mes, mes, hora } = prog;
+  const { frequencia, dia_semana, dia_mes, mes, hora, data_unica } = prog;
   const h = hora || '08:00';
   switch (frequencia) {
     case 'diario':     return `Todo dia às ${h}`;
@@ -216,6 +229,7 @@ function descrFreq(prog) {
     case 'trimestral': return `Dia ${dia_mes} a cada 3 meses`;
     case 'semestral':  return `Dia ${dia_mes} a cada 6 meses`;
     case 'anual':      return `${dia_mes}/${mes} todo ano às ${h}`;
+    case 'data_unica': return `Uma vez em ${_fmtDataBR(data_unica)} às ${h}`;
     default:           return frequencia;
   }
 }
@@ -415,6 +429,7 @@ function lerFormAgendamento() {
     dia_mes:      ['mensal','bimestral','trimestral','semestral','anual'].includes(freq)
                     ? parseInt(document.getElementById('f-dia-mes').value) : null,
     mes:          freq==='anual' ? parseInt(document.getElementById('f-mes').value) : null,
+    data_unica:   freq==='data_unica' ? document.getElementById('f-data-unica').value : null,
     pular_feriados: document.getElementById('f-pular-feriados').checked ? 1 : 0,
   };
 }
@@ -439,6 +454,13 @@ function validarFormCliente(body) {
   if (body.frequencia === 'anual'
       && (!body.dia_mes || body.dia_mes < 1 || body.dia_mes > 31 || !body.mes || body.mes < 1 || body.mes > 12))
     return 'Para frequência anual, informe mês (1–12) e dia (1–31).';
+  // 'data_unica': data alvo obrigatoria e nao pode ser no passado (fuso Fortaleza).
+  if (body.frequencia === 'data_unica') {
+    if (!body.data_unica || !/^\d{4}-\d{2}-\d{2}$/.test(body.data_unica))
+      return 'Informe a data específica.';
+    if (body.data_unica < _hojeFortalezaISO())
+      return 'A data específica não pode ser no passado.';
+  }
   // Conflito: semanal aos sabados/domingos + pular fins de semana — silenciosamente
   // moveria todas as execucoes para segunda. Bloqueia para nao alterar a escolha
   // do usuario sem aviso.
@@ -460,6 +482,7 @@ function preencherForm(prog) {
   if (prog.dia_semana != null) document.getElementById('f-dia-semana').value = prog.dia_semana;
   if (prog.dia_mes != null)    document.getElementById('f-dia-mes').value    = prog.dia_mes;
   if (prog.mes != null)        document.getElementById('f-mes').value        = prog.mes;
+  if (prog.data_unica)         document.getElementById('f-data-unica').value = prog.data_unica;
   // show admin hint if admin is set
   const hint = document.getElementById('f-admin-hint');
   const sel  = document.getElementById('f-admin');
@@ -488,6 +511,8 @@ function atualizarCamposFreq() {
     ['mensal','bimestral','trimestral','semestral','anual'].includes(freq) ? 'block' : 'none';
   document.getElementById('campo-mes').style.display =
     freq==='anual' ? 'block' : 'none';
+  document.getElementById('campo-data-unica').style.display =
+    freq==='data_unica' ? 'block' : 'none';
 }
 document.getElementById('f-frequencia').addEventListener('change', atualizarCamposFreq);
 
@@ -563,6 +588,7 @@ document.getElementById('btn-salvar').addEventListener('click', async () => {
   if (agend.dia_semana != null) fd.append('dia_semana', agend.dia_semana);
   if (agend.dia_mes    != null) fd.append('dia_mes',    agend.dia_mes);
   if (agend.mes        != null) fd.append('mes',        agend.mes);
+  if (agend.data_unica)         fd.append('data_unica', agend.data_unica);
 
   const adminId = document.getElementById('f-admin').value;
   if (adminId) fd.append('admin_responsavel_id', adminId);
