@@ -236,14 +236,11 @@ async function api(url, opts = {}) {
 })();
 
 // ── Login ─────────────────────────────────────────────────────
-// Login centralizado no Hub: qualquer chamada a renderLogin redireciona para la.
+// Mobile do admin tem login proprio (email + senha do banco local de admins).
+// Nao redireciona pro Hub: este e' o entry point standalone do PWA mobile do
+// TI. Aceita qualquer admin ativo no banco (master ou nao); 401 redesenha
+// esta tela quando o cookie expira ou e' invalido.
 function renderLogin() {
-  adminInfo = null;
-  location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.href));
-  return;
-}
-
-function _renderLogin_legacy_unused() {
   adminInfo = null;
   app.innerHTML = `
     <div class="mob-login">
