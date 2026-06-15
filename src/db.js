@@ -2205,13 +2205,26 @@ function rankingAdminsMes(mes) {
   // Tempo médio só usa o admin_atendimento_log (preciso, respeita transferências).
   // Chamados sem log mostram '—' — a contagem começa a partir de novas
   // ações (assumir, transferir, concluir, encerrar) depois deste deploy.
+  //
+  // BUG FIX (rank inflado): a contagem de 'concluidos' e 'encerrados' agora
+  // confirma o ESTADO ATUAL do chamado via EXISTS sub-query. Antes, qualquer
+  // transicao para 'concluido' no historico contava — mesmo se depois o
+  // chamado fosse reaberto. Resultado: ranking inflado em 1 por chamado
+  // reaberto. Total = concluidos + encerrados (sem inflar).
   return db.prepare(`
     SELECT
       a.id,
       a.nome_completo,
-      COUNT(DISTINCT CASE WHEN h.valor_novo = 'concluido' THEN h.chamado_id END) AS concluidos,
-      COUNT(DISTINCT CASE WHEN h.valor_novo = 'encerrado' THEN h.chamado_id END) AS encerrados,
-      COUNT(DISTINCT h.chamado_id) AS total,
+      COUNT(DISTINCT CASE WHEN h.valor_novo = 'concluido'
+          AND EXISTS(SELECT 1 FROM chamados c WHERE c.id = h.chamado_id AND c.status = 'concluido')
+        THEN h.chamado_id END) AS concluidos,
+      COUNT(DISTINCT CASE WHEN h.valor_novo = 'encerrado'
+          AND EXISTS(SELECT 1 FROM chamados c WHERE c.id = h.chamado_id AND c.status = 'encerrado')
+        THEN h.chamado_id END) AS encerrados,
+      COUNT(DISTINCT CASE WHEN
+          (h.valor_novo = 'concluido' AND EXISTS(SELECT 1 FROM chamados c WHERE c.id = h.chamado_id AND c.status = 'concluido'))
+       OR (h.valor_novo = 'encerrado' AND EXISTS(SELECT 1 FROM chamados c WHERE c.id = h.chamado_id AND c.status = 'encerrado'))
+        THEN h.chamado_id END) AS total,
       (
         SELECT AVG(l.duracao_segundos)
         FROM admin_atendimento_log l
