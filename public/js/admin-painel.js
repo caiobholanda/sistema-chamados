@@ -1197,10 +1197,21 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
     const r = await fetch('/api/admin/chamados', { method: 'POST', body: fd });
     const d = await r.json();
     if (r.ok) {
+      // Atualiza lista e KPIs em background — para que ao fechar o detalhe,
+      // a lista por tras ja esteja correta.
       fecharModalNovoChamado();
       carregarChamados();
       carregarEstatisticas();
       mostrarToast('Chamado aberto!', 'O chamado foi criado e já está na lista.');
+      // Abre direto o detalhe do chamado recem-criado. Backend (admins.js:263)
+      // retorna { id, mensagem } — campo confirmado, sem assumir.
+      // Fallback seguro: se 'id' nao vier por algum motivo, mantem o
+      // comportamento antigo (so lista + toast).
+      // setTimeout segue o mesmo padrao da linha 1040 (transferencia de
+      // chamado), garantindo que fecharModalNovoChamado() libere o DOM e
+      // intervalos antes de abrirModal() rodar.
+      const novoId = d && d.id;
+      if (novoId) setTimeout(() => { abrirModal(novoId); }, 200);
     } else {
       msgEl.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao abrir chamado.'}</div>`;
     }
