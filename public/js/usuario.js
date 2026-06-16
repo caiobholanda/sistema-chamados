@@ -17,6 +17,7 @@ function _s(s) { return _esc(_decode(s)); }
 let _refreshInterval = null;
 let _visibilityController = null;
 let _sseSource = null;
+let _sseOk = false; // true assim que o SSE confirma conexão
 function _pararRefresh() {
   if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
 }
@@ -250,10 +251,20 @@ async function _atualizarChat(chamadoId) {
 
 function _iniciarChat(chamadoId) {
   _atualizarChat(chamadoId);
-  // SSE notifica em tempo real (mensagem:new). Mantemos um refresh raro
-  // (45s) como safety-net caso o SSE caia silenciosamente.
-  if (!_chatIntervals.has(chamadoId))
-    _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 45000));
+  // Polling adaptativo: 5s quando SSE não está confirmado, 45s quando OK.
+  // Cobre o caso de SSE cair silenciosamente.
+  if (!_chatIntervals.has(chamadoId)) {
+    const cad = () => (_sseOk ? 45000 : 5000);
+    let iv = setInterval(() => _atualizarChat(chamadoId), cad());
+    // Re-avalia cadência a cada 30s
+    const reavaliar = setInterval(() => {
+      clearInterval(iv);
+      iv = setInterval(() => _atualizarChat(chamadoId), cad());
+      _chatIntervals.set(chamadoId, iv);
+    }, 30000);
+    _chatIntervals.set(chamadoId, iv);
+    // _limparChats só limpa iv; reavaliar fica até o GC limpar (~30s)
+  }
   ChatUtils.chatPedirPermissaoNotif();
 
   const form = document.getElementById('chat-form-' + chamadoId);
@@ -325,11 +336,14 @@ function _iniciarChat(chamadoId) {
         const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens', { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
         ok = r.ok;
         if (ok) {
-          // Path RÁPIDO: o backend já devolve a msg completa. Injeta direto.
+          // Path RÁPIDO: backend devolve msg completa. Injeta direto.
+          // Fallback: se algo der errado, refresh via _atualizarChat.
+          let injetou = false;
           try {
             const d = await r.json();
-            if (d?.msg) _injetarMsgDireto(chamadoId, d.msg);
+            if (d?.msg) injetou = _injetarMsgDireto(chamadoId, d.msg);
           } catch {}
+          if (!injetou) await _atualizarChat(chamadoId);
         } else {
           const d = await r.json().catch(() => ({}));
           erroMsg = d.erro || 'Erro ao enviar mensagem.';
@@ -1117,19 +1131,27 @@ function renderPainel(usuario) {
   // SSE — notificações instantâneas do servidor
   if (_sseSource) { _sseSource.close(); _sseSource = null; }
   _sseSource = new EventSource('/api/usuarios/stream');
+  _sseSource.onopen = () => { _sseOk = true; console.log('[chat] SSE conectado'); };
   _sseSource.addEventListener('mensagem:new', e => {
     try {
       const data = JSON.parse(e.data);
-      // Path RÁPIDO: o backend já mandou a msg completa no payload.
-      // Injetamos direto no DOM (zero round-trip — chega em <100ms).
-      if (data.msg) {
-        _injetarMsgDireto(data.chamado_id, data.msg);
-      } else {
-        // Fallback: payload antigo só com chamado_id → faz fetch.
-        _atualizarChat(data.chamado_id);
-      }
-    } catch {}
+      // Path RÁPIDO: injeta direto se o backend mandou a msg completa.
+      // Fallback SEMPRE: também chama _atualizarChat para garantir que
+      // nenhuma mensagem fique perdida (caso _injetarMsgDireto retorne
+      // false por box inexistente, dedup, OU se o payload veio sem msg).
+      let injetou = false;
+      if (data.msg) injetou = _injetarMsgDireto(data.chamado_id, data.msg);
+      if (!injetou) _atualizarChat(data.chamado_id);
+    } catch (err) {
+      console.warn('[chat] SSE mensagem:new erro:', err);
+      // Última cartada: refresh full
+      try { carregarChamados(true); } catch {}
+    }
   });
+  _sseSource.onerror = () => {
+    _sseOk = false;
+    console.warn('[chat] SSE caiu, EventSource vai reconectar');
+  };
   _sseSource.addEventListener('chamado:atualizado', () => {
     carregarChamados(true);
   });

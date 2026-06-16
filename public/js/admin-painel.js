@@ -14,20 +14,29 @@ if (window.ChatUtils) ChatUtils.chatMonitorOnline();
 // em qualquer chamado. Cliente filtra se o evento é do chamado atual
 // e injeta direto no DOM (sem fetch). Reduz latência de >1s para <100ms.
 let _adminSse = null;
+let _adminSseOk = false; // flag: true assim que o SSE estabelece conexão
 function _conectarAdminSse() {
   try {
     if (_adminSse) return;
     _adminSse = new EventSource('/api/admin/stream');
+    _adminSse.onopen = () => { _adminSseOk = true; console.log('[chat-admin] SSE conectado'); };
     _adminSse.addEventListener('mensagem:new', (e) => {
       try {
         const data = JSON.parse(e.data);
         // Só processa se o chamado aberto é o que recebeu a mensagem
         if (!chamadoAtual || Number(chamadoAtual.id) !== Number(data.chamado_id)) return;
-        if (data.msg) _injetarMsgAdminDireto(data.chamado_id, data.msg);
-        else _atualizarChatAdmin(data.chamado_id);
-      } catch {}
+        // Path RÁPIDO + fallback: tenta injeção direta, senão refresh full
+        let injetou = false;
+        if (data.msg) injetou = _injetarMsgAdminDireto(data.chamado_id, data.msg);
+        if (!injetou) _atualizarChatAdmin(data.chamado_id);
+      } catch (err) {
+        console.warn('[chat-admin] SSE erro:', err);
+      }
     });
-    _adminSse.onerror = () => { /* reconnect automático do EventSource */ };
+    _adminSse.onerror = () => {
+      _adminSseOk = false;
+      console.warn('[chat-admin] SSE caiu, EventSource vai reconectar');
+    };
   } catch {}
 }
 _conectarAdminSse();
@@ -2525,9 +2534,19 @@ function setupModalEventos(c) {
     // que o usuário tenha rolado em chamado anterior — abrir é "começar
     // do zero" e ele espera ver a última mensagem).
     _atualizarChatAdmin(c.id).then(() => scrollChatAdminToBottom(true));
-    // Refresh raro (45s) como safety-net. Em produção o admin pode ter SSE
-    // no futuro; por ora o intervalo cobre mensagens novas.
-    _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 45000);
+    // Polling adaptativo: 5s quando SSE NÃO está ok, 45s quando está.
+    // Garante que se o SSE cair silenciosamente, ainda recebemos msgs.
+    _chatAdminIv = setInterval(() => {
+      _atualizarChatAdmin(c.id);
+    }, _adminSseOk ? 45000 : 5000);
+    // Re-avalia cadência a cada 30s (sem buscar — só ajusta interval)
+    const reavaliar = setInterval(() => {
+      if (!_chatAdminIv) { clearInterval(reavaliar); return; }
+      clearInterval(_chatAdminIv);
+      _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), _adminSseOk ? 45000 : 5000);
+    }, 30000);
+    // Quando fechar o modal, esse 'reavaliar' fica órfão — mas custa nada
+    // (só ajusta um interval). _chatAdminIv é limpo em outro lugar.
     ChatUtils.chatPedirPermissaoNotif();
 
     const fileInput = document.getElementById('chat-modal-file');
@@ -2581,12 +2600,13 @@ function setupModalEventos(c) {
         if (r.ok) {
           chatInput.value = '';
           clearFile();
-          // Path RÁPIDO: backend devolve a msg completa. Injeta direto.
+          // Path RÁPIDO + fallback: tenta injeção direta, senão refresh.
+          let injetou = false;
           try {
             const d = await r.json();
-            if (d?.msg) _injetarMsgAdminDireto(c.id, d.msg);
-            else await _atualizarChatAdmin(c.id);
-          } catch { await _atualizarChatAdmin(c.id); }
+            if (d?.msg) injetou = _injetarMsgAdminDireto(c.id, d.msg);
+          } catch {}
+          if (!injetou) await _atualizarChatAdmin(c.id);
           // O admin acabou de enviar — força scroll para o fundo
           scrollChatAdminToBottom(true);
         } else {
