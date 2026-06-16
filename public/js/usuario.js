@@ -615,7 +615,25 @@ function renderPainel(usuario) {
 
   let abaAtiva = 'abertos';
   let escopoAbertos = 'todos'; // 'todos' | 'meus'
-  let filtroNome = '';
+  let filtroNome = ''; // mantém nome p/ compat (renomeado: agora é busca geral)
+  let filtroCategoria = ''; // '' = todas; ou slug da categoria
+
+  // Catálogo de categorias (etiquetas) para o dropdown — mesma cor/nome usados
+  // no admin. Lista carregada do backend quando disponível, com fallback.
+  const _CATS_BASE = [
+    { slug: 'software',      nome: 'Software',        cor: '#6366F1' },
+    { slug: 'hardware',      nome: 'Hardware',        cor: '#0EA5E9' },
+    { slug: 'impressora',    nome: 'Impressora',      cor: '#8B5CF6' },
+    { slug: 'ramal',         nome: 'Ramal',           cor: '#EC4899' },
+    { slug: 'nobreak',       nome: 'Nobreak',         cor: '#F59E0B' },
+    { slug: 'monitor',       nome: 'Monitor',         cor: '#0891B2' },
+    { slug: 'mouse',         nome: 'Mouse',           cor: '#10B981' },
+    { slug: 'teclado',       nome: 'Teclado',         cor: '#EF4444' },
+    { slug: 'rede',          nome: 'Rede / Internet', cor: '#059669' },
+    { slug: 'processo_compra', nome: 'Compra',        cor: '#F97316' },
+    { slug: 'outros',        nome: 'Outros',          cor: '#6B7280' },
+  ];
+  let _catalogoCats = _CATS_BASE.slice();
   let todosChamados = [];
   let _chamadosHash = null;
 
@@ -1124,6 +1142,17 @@ function renderPainel(usuario) {
         filtroNome = '';
         renderListaChamados(todosChamados, abaAtiva);
       });
+      const sel = document.getElementById('filtro-cat-u');
+      if (sel) sel.addEventListener('change', () => {
+        filtroCategoria = sel.value;
+        renderListaChamados(todosChamados, abaAtiva);
+      });
+      const reset = document.getElementById('filtro-reset-u');
+      if (reset) reset.addEventListener('click', () => {
+        filtroNome = '';
+        filtroCategoria = '';
+        renderListaChamados(todosChamados, abaAtiva);
+      });
     }
 
     if (aba === 'cancelados') {
@@ -1161,8 +1190,26 @@ function renderPainel(usuario) {
       : todos.filter(c => ['concluido', 'encerrado'].includes(c.status));
 
     const _porEscopo = escopoAbertos === 'meus' ? _porAba.filter(c => c.eh_meu !== 0) : _porAba;
-    const _nomeNorm = (filtroNome || '').trim().toLowerCase();
-    const _porNome = _nomeNorm ? _porEscopo.filter(c => (c.nome || '').toLowerCase().includes(_nomeNorm)) : _porEscopo;
+
+    // Filtro de categoria (etiqueta) — combinável com busca textual
+    const _porCategoria = filtroCategoria
+      ? _porEscopo.filter(c => (c.categoria || '') === filtroCategoria)
+      : _porEscopo;
+
+    // Busca multicampo: nome de quem abriu, ID (#123 ou 123), descrição,
+    // categoria/etiqueta, setor, ramal, admin responsável, solução.
+    const _termo = (filtroNome || '').trim().toLowerCase();
+    const _porNome = _termo ? _porCategoria.filter(c => {
+      // Numérico puro busca por ID; com # também
+      const semHash = _termo.replace(/^#/, '');
+      if (/^\d+$/.test(semHash) && String(c.id) === semHash) return true;
+      const haystacks = [
+        c.nome, c.descricao, c.setor, c.ramal,
+        c.categoria, _catalogoCats.find(x => x.slug === c.categoria)?.nome,
+        c.admin_nome, c.solucao, c.tipo,
+      ];
+      return haystacks.some(v => v && String(v).toLowerCase().includes(_termo));
+    }) : _porCategoria;
 
     const _qtdTodos = _porAba.length;
     const _qtdMeus = _porAba.filter(c => c.eh_meu !== 0).length;
@@ -1179,23 +1226,55 @@ function renderPainel(usuario) {
         return new Date(b.criado_em) - new Date(a.criado_em);
       });
 
+    // Conta chamados por categoria DENTRO do escopo (não da aba inteira) pra
+    // mostrar números reais no dropdown.
+    const _cntPorCat = {};
+    _porEscopo.forEach(c => { if (c.categoria) _cntPorCat[c.categoria] = (_cntPorCat[c.categoria] || 0) + 1; });
+    const _catsDisponiveis = _catalogoCats
+      .filter(cat => _cntPorCat[cat.slug])
+      .sort((a, b) => (_cntPorCat[b.slug] || 0) - (_cntPorCat[a.slug] || 0));
+
     const filtroBarHtml = aba === 'cancelados' ? '' : `
       <div class="filtro-bar" id="filtro-bar-u">
         <div class="filtro-bar-titulo">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           Filtros
         </div>
-        <div class="filtro-bar-row">
+        <div class="filtro-bar-row" style="flex-wrap:wrap;gap:.6rem">
           <div class="filtro-escopo-row" id="filtro-escopo-row">
             <button type="button" class="chip-escopo${escopoAbertos === 'todos' ? ' ativo' : ''}" data-escopo="todos">Todos <span class="chip-cnt">${_qtdTodos}</span></button>
             <button type="button" class="chip-escopo${escopoAbertos === 'meus' ? ' ativo' : ''}" data-escopo="meus">Meus <span class="chip-cnt">${_qtdMeus}</span></button>
           </div>
-          <div class="filtro-busca-wrap">
+          <div class="filtro-busca-wrap" style="flex:1;min-width:220px">
             <svg class="filtro-busca-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="filtro-nome-u" class="filtro-busca-input" placeholder="Filtrar por nome de quem abriu..." value="${(filtroNome || '').replace(/"/g, '&quot;')}" autocomplete="off">
+            <input type="text" id="filtro-nome-u" class="filtro-busca-input"
+              placeholder="Buscar por nome, descrição, etiqueta, #id, setor, ramal, responsável…"
+              value="${(filtroNome || '').replace(/"/g, '&quot;')}" autocomplete="off">
             ${filtroNome ? `<button type="button" id="filtro-nome-clear" class="filtro-busca-clear" title="Limpar">✕</button>` : ''}
           </div>
+          <div class="filtro-cat-wrap" style="position:relative">
+            <select id="filtro-cat-u" class="filtro-busca-input" style="padding-right:1.6rem;min-width:170px;cursor:pointer">
+              <option value="">Todas as etiquetas</option>
+              ${_catsDisponiveis.map(cat => `
+                <option value="${cat.slug}"${filtroCategoria === cat.slug ? ' selected' : ''}>
+                  ${cat.nome} (${_cntPorCat[cat.slug]})
+                </option>
+              `).join('')}
+            </select>
+          </div>
+          ${(filtroNome || filtroCategoria) ? `
+            <button type="button" id="filtro-reset-u" class="chip-escopo" style="font-size:.78rem">
+              ✕ Limpar filtros
+            </button>` : ''}
         </div>
+        ${filtroCategoria ? `
+          <div style="margin-top:.5rem;font-size:.78rem;color:var(--text-muted)">
+            Etiqueta: <strong style="color:${(_catalogoCats.find(x => x.slug === filtroCategoria)?.cor) || '#666'};font-weight:600">
+              ${_catalogoCats.find(x => x.slug === filtroCategoria)?.nome || filtroCategoria}
+            </strong>
+            · ${filtrados.length} resultado${filtrados.length === 1 ? '' : 's'}
+          </div>
+        ` : ''}
       </div>
     `;
 
