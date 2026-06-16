@@ -33,7 +33,19 @@ process.on('unhandledRejection', (reason) => {
   console.error('[WARN unhandledRejection]', reason);
 });
 
-app.use(compression());
+// CRÍTICO: NÃO comprimir streams SSE. Brotli/gzip bufferiza eventos até
+// o buffer encher, fazendo o chat em tempo real travar (sintoma: SSE
+// conecta mas eventos nunca chegam no navegador).
+app.use(compression({
+  filter: (req, res) => {
+    if (req.path.endsWith('/stream') || req.path.startsWith('/api/admin/stream') || req.path.startsWith('/api/usuarios/stream')) {
+      return false;
+    }
+    const ct = res.getHeader('Content-Type');
+    if (ct && String(ct).includes('text/event-stream')) return false;
+    return compression.filter(req, res);
+  },
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

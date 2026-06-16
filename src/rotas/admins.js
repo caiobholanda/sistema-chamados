@@ -1230,9 +1230,13 @@ router.delete('/chamados/:id/admin-anexo', requireAdmin, (req, res) => {
 // se o evento é do chamado atualmente aberto.
 router.get('/stream', requireAdmin, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // nginx/proxy: NÃO bufferiza
+  res.setHeader('Content-Encoding', 'identity'); // SEM compressão Brotli/gzip
   res.flushHeaders();
+  // 2KB de padding inicial força flush em proxies (clássico)
+  res.write(':' + ' '.repeat(2048) + '\n\n');
   sse.subscribeAdmin(res);
   const hb = setInterval(() => { try { res.write(':hb\n\n'); } catch {} }, 25000);
   req.on('close', () => {

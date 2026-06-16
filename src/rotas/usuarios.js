@@ -331,9 +331,13 @@ router.post('/redefinir-senha', async (req, res) => {
 // GET /api/usuarios/stream — SSE para notificações em tempo real
 router.get('/stream', requireUsuario, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // nginx/proxy: NÃO bufferiza
+  res.setHeader('Content-Encoding', 'identity'); // SEM compressão Brotli/gzip
   res.flushHeaders();
+  // Padding inicial 2KB força flush em proxies que esperam tamanho mínimo
+  res.write(':' + ' '.repeat(2048) + '\n\n');
 
   const userId = req.usuario.sub;
   sse.subscribe(userId, res);

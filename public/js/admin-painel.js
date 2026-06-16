@@ -33,6 +33,11 @@ function _conectarAdminSse() {
         console.warn('[chat-admin] SSE erro:', err);
       }
     });
+    // Listener para chamado:atualizado: backend dispara quando status/admin
+    // muda. Aciona um refresh da lista pra refletir badges/etiquetas.
+    _adminSse.addEventListener('chamado:atualizado', () => {
+      try { if (typeof carregarChamados === 'function') carregarChamados(true); } catch {}
+    });
     _adminSse.onerror = () => {
       _adminSseOk = false;
       console.warn('[chat-admin] SSE caiu, EventSource vai reconectar');
