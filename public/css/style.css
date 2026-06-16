@@ -3034,14 +3034,48 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 .mv2-danger-compact .modal-danger-label { margin-bottom: .4rem; }
 
-/* Chat na coluna direita: ocupa toda a altura disponível */
+/* Chat na coluna direita: ocupa toda a altura disponível.
+   IMPORTANTE: min-height: 0 (e não 100px) é o que destrava o overflow
+   quando este elemento é filho de um pai flex/grid. Sem isso, o pai
+   "estica" para caber todas as mensagens e o scroll nunca aparece —
+   quem rola acaba sendo o modal inteiro. */
 .mv2-chat-msgs {
-  flex: 1 !important;
+  flex: 1 1 0 !important;
   height: auto !important;
   max-height: none !important;
-  min-height: 100px !important;
+  min-height: 0 !important;
   overflow-y: auto !important;
 }
+
+/* === FIX CASCATA DE ALTURA do modal de chamado (V2) ============
+   Bug: o chat #chat-modal-msgs não respeitava o limite do modal e
+   o .mv2-layout crescia além da viewport, fazendo o MODAL inteiro
+   rolar em vez do chat. Regra técnica: para que overflow funcione
+   num filho de flex/grid, TODO ancestral flex/grid intermediário
+   precisa de min-height: 0 (caso contrário o min-content do filho
+   força o pai a esticar).
+   Aplicamos override só onde o modal contém .mv2 (não afeta os
+   outros modais do painel). */
+#modal-body:has(.mv2) {
+  overflow: hidden !important;
+  min-height: 0 !important;
+}
+.mv2 {
+  overflow: hidden !important;   /* deixa de ser o elemento que rola */
+}
+.mv2-layout {
+  flex: 1 1 auto !important;     /* estica até o limite do .mv2 */
+  align-items: stretch !important; /* colunas usam altura total */
+  min-height: 0 !important;
+}
+.mv2-right-col {
+  max-height: 100%;
+  overflow: hidden;              /* contém o chat + input fixos */
+  min-height: 0 !important;
+}
+/* O input de mensagem fica fixo no rodapé do chat */
+#chat-modal-form { flex: 0 0 auto; }
+/* ================================================================ */
 
 /* Chat full-width: classe removida, mantida por compatibilidade */
 .mv2-chat-full { margin-top: 0; }
@@ -3092,14 +3126,13 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .mv2-sep { color: rgba(255,255,255,.3); }
 .mv2-hero-badge { flex-shrink: 0; }
 
-/* Layout: não forçar altura — deixar fluir com rolagem no .mv2 */
+/* Layout: estica até o limite do .mv2 — sobrescrito mais abaixo
+   pelo bloco "FIX CASCATA DE ALTURA" (mantido aqui só para referência). */
 .mv2-layout {
-  flex: 0 0 auto;
   display: grid;
   grid-template-columns: 1fr 360px;
   gap: 0;
   min-height: 0;
-  align-items: start;
 }
 @media(max-width: 780px) {
   .mv2-layout { grid-template-columns: 1fr; }

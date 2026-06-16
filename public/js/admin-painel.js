@@ -173,6 +173,23 @@ function _renderMsgAdmin(m, chamadoId) {
   });
 }
 
+// Rolagem centralizada para o fundo do chat. Aplica no elemento CERTO
+// (#chat-modal-msgs) — nunca no modal nem no body. Usa requestAnimationFrame
+// para garantir que a altura já foi recalculada após o append.
+//   force=true   → sempre rola (uso típico: o admin acabou de enviar).
+//   force=false  → rola só se o usuário já está perto do fim (não atrapalha
+//                  quem está lendo mensagens antigas).
+function scrollChatAdminToBottom(force) {
+  const box = document.getElementById('chat-modal-msgs');
+  if (!box) return;
+  requestAnimationFrame(() => {
+    if (!box.isConnected) return;
+    if (force) { box.scrollTop = box.scrollHeight; return; }
+    const dist = box.scrollHeight - box.scrollTop - box.clientHeight;
+    if (dist < 80) box.scrollTop = box.scrollHeight;
+  });
+}
+
 async function _atualizarChatAdmin(chamadoId) {
   const box = document.getElementById('chat-modal-msgs');
   if (!box) return;
@@ -209,15 +226,15 @@ async function _atualizarChatAdmin(chamadoId) {
     ChatUtils.chatRedistribuirSeparadores(box);
 
     if (atFundo) {
-      box.scrollTop = box.scrollHeight;
+      scrollChatAdminToBottom(true);
       novas.forEach(m => {
         const ext = (m.chat_anexo_nome_original || '').split('.').pop().toLowerCase();
         if (_IMGS_EXT.includes(ext)) {
           const img = box.querySelector(`[data-msg-id="${m.id}"] img`);
-          if (img && !img.complete) img.addEventListener('load', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+          if (img && !img.complete) img.addEventListener('load', () => scrollChatAdminToBottom(true), { once: true });
         } else if (['mp4','webm','mov','avi','mkv','wmv'].includes(ext)) {
           const vid = box.querySelector(`[data-msg-id="${m.id}"] video`);
-          if (vid) vid.addEventListener('loadedmetadata', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+          if (vid) vid.addEventListener('loadedmetadata', () => scrollChatAdminToBottom(true), { once: true });
         }
       });
       ChatUtils.chatBotaoNovas(box, 0);
@@ -233,7 +250,7 @@ async function _atualizarChatAdmin(chamadoId) {
             titulo: 'Usuário respondeu',
             corpo: (ultima.mensagem || '📎 Arquivo').slice(0, 80),
             tag: 'chat-' + chamadoId,
-            onClick: () => { box.scrollTop = box.scrollHeight; },
+            onClick: () => scrollChatAdminToBottom(true),
           });
         }
       }
@@ -2450,7 +2467,10 @@ function setupModalEventos(c) {
   if (chatForm) {
     // Garante que nenhum interval órfão de chamado anterior continue rodando
     if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
-    _atualizarChatAdmin(c.id);
+    // Ao abrir o modal, carrega histórico e força scroll ao fim (mesmo
+    // que o usuário tenha rolado em chamado anterior — abrir é "começar
+    // do zero" e ele espera ver a última mensagem).
+    _atualizarChatAdmin(c.id).then(() => scrollChatAdminToBottom(true));
     // Refresh raro (45s) como safety-net. Em produção o admin pode ter SSE
     // no futuro; por ora o intervalo cobre mensagens novas.
     _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 45000);
@@ -2508,6 +2528,9 @@ function setupModalEventos(c) {
           chatInput.value = '';
           clearFile();
           await _atualizarChatAdmin(c.id);
+          // O admin acabou de enviar — força scroll para o fundo, mesmo
+          // que ele estivesse lendo mensagens antigas.
+          scrollChatAdminToBottom(true);
         } else {
           const d = await r.json().catch(() => ({}));
           if (errEl) errEl.textContent = d.erro || 'Erro ao enviar mensagem.';
