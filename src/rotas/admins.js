@@ -202,6 +202,35 @@ router.post('/chamados', requireAdmin, uploadChamadoMiddleware(), async (req, re
       }
     }
 
+    // CRÍTICO p/ SSE: se admin abriu chamado em nome de alguém SEM enviar
+    // usuario_id (caso clássico: admin digitou o nome livre), tentamos
+    // resolver usuario_id por nome+setor. Sem isso, sse.notify(usuario_id)
+    // nunca dispara e o chat fica mudo do lado do usuário.
+    if (!usuarioId) {
+      const nomeBody = sanitizarTexto(req.body.nome || '').trim();
+      const setorBody = sanitizarTexto(req.body.setor || '').trim();
+      if (nomeBody) {
+        try {
+          // Match exato no nome (case-insensitive); se houver setor, preferir match com setor
+          let match = null;
+          if (setorBody) {
+            match = db.getDb().prepare(
+              'SELECT * FROM usuarios WHERE LOWER(nome)=LOWER(?) AND LOWER(setor)=LOWER(?) AND ativo=1 LIMIT 1'
+            ).get(nomeBody, setorBody);
+          }
+          if (!match) {
+            match = db.getDb().prepare(
+              'SELECT * FROM usuarios WHERE LOWER(nome)=LOWER(?) AND ativo=1 LIMIT 1'
+            ).get(nomeBody);
+          }
+          if (match) {
+            usuarioId = match.id;
+            // Mantém nome/setor/ramal que o admin enviou (não sobrescreve).
+          }
+        } catch {}
+      }
+    }
+
     let adminResponsavelId = req.admin.sub;
     const adminResponsavelRaw = req.body.admin_responsavel_id ? parseInt(req.body.admin_responsavel_id, 10) : null;
     if (adminResponsavelRaw && adminResponsavelRaw !== req.admin.sub) {
