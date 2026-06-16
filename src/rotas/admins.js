@@ -401,16 +401,20 @@ router.post('/chamados/:id/mensagens', requireAdmin, uploadMiddleware('chat_anex
       const novoCaminho = path.join(UPLOADS_DIR, novoNome);
       fs.renameSync(tmpPath, novoCaminho);
       db.getDb().prepare('UPDATE mensagens_chamado SET chat_anexo_path = ? WHERE id = ?').run(novoNome, msgId);
-      if (chamado.usuario_id) { sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id }); notificarUsuario(chamado); }
-      return res.status(201).json({ mensagem: 'Mensagem enviada' });
+      // Envia a mensagem COMPLETA no SSE para que o cliente injete direto
+      // no DOM (zero round-trip GET, latência cai de >1s para <100ms).
+      const msgCompleta = db.buscarMensagemChamadoPorId(msgId);
+      if (chamado.usuario_id) { sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id, msg: msgCompleta }); notificarUsuario(chamado); }
+      return res.status(201).json({ mensagem: 'Mensagem enviada', msg: msgCompleta });
     }
-    db.criarMensagem({
+    const msgIdSimples = db.criarMensagem({
       chamado_id: chamado.id, autor_tipo: 'admin',
       autor_id: req.admin.sub, autor_nome: admin ? admin.nome_completo : 'Suporte',
       mensagem,
     });
-    if (chamado.usuario_id) { sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id }); notificarUsuario(chamado); }
-    return res.status(201).json({ mensagem: 'Mensagem enviada' });
+    const msgCompletaSimples = db.buscarMensagemChamadoPorId(msgIdSimples);
+    if (chamado.usuario_id) { sse.notify(chamado.usuario_id, 'mensagem:new', { chamado_id: chamado.id, msg: msgCompletaSimples }); notificarUsuario(chamado); }
+    return res.status(201).json({ mensagem: 'Mensagem enviada', msg: msgCompletaSimples });
   } catch (err) {
     console.error(err);
     if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
@@ -1218,6 +1222,23 @@ router.delete('/chamados/:id/admin-anexo', requireAdmin, (req, res) => {
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno' });
   }
+});
+
+// SSE para painel admin: broadcast de eventos de chat em tempo real.
+// Todos os admins conectados recebem 'mensagem:new' quando qualquer
+// usuário envia mensagem em qualquer chamado. Cabe ao cliente filtrar
+// se o evento é do chamado atualmente aberto.
+router.get('/stream', requireAdmin, (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  sse.subscribeAdmin(res);
+  const hb = setInterval(() => { try { res.write(':hb\n\n'); } catch {} }, 25000);
+  req.on('close', () => {
+    clearInterval(hb);
+    sse.unsubscribeAdmin(res);
+  });
 });
 
 module.exports = router;

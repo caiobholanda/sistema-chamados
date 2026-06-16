@@ -8,6 +8,7 @@ const { upload, uploadMiddleware, uploadChamadoMiddleware, renomearAnexoComId, r
 const { classificarInteligente } = require('../categorizador');
 const { extrairEquipamentos } = require('../analisador-equipamentos');
 const push = require('../push');
+const sse = require('../sse');
 
 function getUsuarioIdFromCookie(req) {
   try {
@@ -249,6 +250,7 @@ router.post('/:id/mensagens', uploadMiddleware('chat_anexo'), (req, res) => {
     }
     const usuario = db.buscarUsuarioPorId(usuario_id);
     const nomeAutor = usuario ? usuario.nome : 'Usuário';
+    let msgIdFinal;
     if (req.file) {
       const MIME_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp', 'image/heic': '.heic', 'image/avif': '.avif' };
       let nomeOriginal = req.file.originalname || '';
@@ -261,28 +263,31 @@ router.post('/:id/mensagens', uploadMiddleware('chat_anexo'), (req, res) => {
       const tmpNome = `chatusr_${Date.now()}__${base}${ext}`;
       const tmpPath = path.join(UPLOADS_DIR, tmpNome);
       fs.renameSync(req.file.path, tmpPath);
-      const msgId = db.criarMensagem({
+      msgIdFinal = db.criarMensagem({
         chamado_id: chamado.id, autor_tipo: 'usuario',
         autor_id: usuario_id, autor_nome: nomeAutor,
         mensagem, chat_anexo_path: tmpNome, chat_anexo_nome_original: nomeOriginal,
       });
-      const novoNome = `chatusr_${msgId}__${base}${ext}`;
+      const novoNome = `chatusr_${msgIdFinal}__${base}${ext}`;
       fs.renameSync(tmpPath, path.join(UPLOADS_DIR, novoNome));
-      db.getDb().prepare('UPDATE mensagens_chamado SET chat_anexo_path = ? WHERE id = ?').run(novoNome, msgId);
+      db.getDb().prepare('UPDATE mensagens_chamado SET chat_anexo_path = ? WHERE id = ?').run(novoNome, msgIdFinal);
     } else {
-      db.criarMensagem({
+      msgIdFinal = db.criarMensagem({
         chamado_id: chamado.id, autor_tipo: 'usuario',
         autor_id: usuario_id, autor_nome: nomeAutor,
         mensagem,
       });
     }
+    const msgCompletaUsr = db.buscarMensagemChamadoPorId(msgIdFinal);
+    // SSE broadcast pros admins: payload completo → injeção direta sem fetch
+    try { sse.notifyAllAdmins('mensagem:new', { chamado_id: chamado.id, msg: msgCompletaUsr }); } catch {}
     const notifMsg = mensagem || `[Arquivo: ${req.file ? req.file.originalname : ''}]`;
     if (chamado.admin_responsavel_id) {
       push.enviarParaAdmin(chamado.admin_responsavel_id, `💬 ${nomeAutor}`, notifMsg.slice(0, 100)).catch(() => {});
     } else {
       push.enviarParaTodos(`💬 ${nomeAutor}`, notifMsg.slice(0, 100)).catch(() => {});
     }
-    return res.status(201).json({ mensagem: 'Mensagem enviada' });
+    return res.status(201).json({ mensagem: 'Mensagem enviada', msg: msgCompletaUsr });
   } catch (err) {
     console.error(err);
     if (req.file) try { fs.unlinkSync(req.file.path); } catch {}

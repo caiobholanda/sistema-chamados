@@ -9,6 +9,60 @@ function _esc(s) {
 
 // Monitor de conexão online/offline (banner global).
 if (window.ChatUtils) ChatUtils.chatMonitorOnline();
+
+// SSE admin — chega no painel TODA vez que um usuário envia mensagem,
+// em qualquer chamado. Cliente filtra se o evento é do chamado atual
+// e injeta direto no DOM (sem fetch). Reduz latência de >1s para <100ms.
+let _adminSse = null;
+function _conectarAdminSse() {
+  try {
+    if (_adminSse) return;
+    _adminSse = new EventSource('/api/admin/stream');
+    _adminSse.addEventListener('mensagem:new', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        // Só processa se o chamado aberto é o que recebeu a mensagem
+        if (!chamadoAtual || Number(chamadoAtual.id) !== Number(data.chamado_id)) return;
+        if (data.msg) _injetarMsgAdminDireto(data.chamado_id, data.msg);
+        else _atualizarChatAdmin(data.chamado_id);
+      } catch {}
+    });
+    _adminSse.onerror = () => { /* reconnect automático do EventSource */ };
+  } catch {}
+}
+_conectarAdminSse();
+
+// Injeta UMA mensagem no DOM do chat admin sem fetch. Dedup via data-msg-id.
+function _injetarMsgAdminDireto(chamadoId, msg) {
+  if (!msg || !msg.id) return false;
+  const box = document.getElementById('chat-modal-msgs');
+  if (!box) return false; // modal fechado
+  if (box.querySelector(`[data-msg-id="${msg.id}"]`)) return true;
+  const vazio = box.querySelector('.chat-vazio'); if (vazio) vazio.remove();
+  const atFundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  const m = { ...msg, chamado_id: chamadoId };
+  const tmp = document.createElement('div');
+  tmp.innerHTML = _renderMsgAdmin(m, chamadoId);
+  while (tmp.firstChild) box.appendChild(tmp.firstChild);
+  if (window.ChatUtils) ChatUtils.chatRedistribuirSeparadores(box);
+  if (atFundo) {
+    scrollChatAdminToBottom(true);
+    if (window.ChatUtils) ChatUtils.chatBotaoNovas(box, 0);
+  } else if (msg.autor_tipo !== 'admin') {
+    const atual = parseInt(box.dataset.novas || '0') + 1;
+    box.dataset.novas = atual;
+    if (window.ChatUtils) {
+      ChatUtils.chatBotaoNovas(box, atual);
+      ChatUtils.chatNotificar({
+        titulo: 'Usuário respondeu',
+        corpo: (msg.mensagem || '📎 Arquivo').slice(0, 80),
+        tag: 'chat-' + chamadoId,
+        onClick: () => scrollChatAdminToBottom(true),
+      });
+    }
+  }
+  return true;
+}
 function _decode(s) {
   const ta = document.createElement('textarea');
   ta.innerHTML = s ?? '';
@@ -2527,9 +2581,13 @@ function setupModalEventos(c) {
         if (r.ok) {
           chatInput.value = '';
           clearFile();
-          await _atualizarChatAdmin(c.id);
-          // O admin acabou de enviar — força scroll para o fundo, mesmo
-          // que ele estivesse lendo mensagens antigas.
+          // Path RÁPIDO: backend devolve a msg completa. Injeta direto.
+          try {
+            const d = await r.json();
+            if (d?.msg) _injetarMsgAdminDireto(c.id, d.msg);
+            else await _atualizarChatAdmin(c.id);
+          } catch { await _atualizarChatAdmin(c.id); }
+          // O admin acabou de enviar — força scroll para o fundo
           scrollChatAdminToBottom(true);
         } else {
           const d = await r.json().catch(() => ({}));

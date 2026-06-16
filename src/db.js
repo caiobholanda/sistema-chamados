@@ -1333,6 +1333,12 @@ function listarMensagensChamado(chamadoId) {
   ).all(chamadoId);
 }
 
+function buscarMensagemChamadoPorId(id) {
+  return getDb().prepare(
+    'SELECT * FROM mensagens_chamado WHERE id = ?'
+  ).get(id);
+}
+
 function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original }) {
   const result = getDb().prepare(`
     INSERT INTO mensagens_chamado (chamado_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original)
@@ -3000,6 +3006,7 @@ module.exports = {
   exportarCsvMes,
   marcarMensagensLidas,
   listarMensagensChamado,
+  buscarMensagemChamadoPorId,
   criarMensagem,
   inserirMencoesEquipamentos,
   rankingEquipamentos,

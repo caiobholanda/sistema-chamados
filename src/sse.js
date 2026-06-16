@@ -1,4 +1,5 @@
 const clients = new Map(); // userId (number) → Set<res>
+const admins  = new Set(); // res de TODOS os admins conectados (broadcast)
 
 function subscribe(userId, res) {
   const id = Number(userId);
@@ -21,4 +22,12 @@ function notify(userId, event, data = {}) {
   set.forEach(res => { try { res.write(msg); } catch {} });
 }
 
-module.exports = { subscribe, unsubscribe, notify };
+function subscribeAdmin(res) { admins.add(res); }
+function unsubscribeAdmin(res) { admins.delete(res); }
+function notifyAllAdmins(event, data = {}) {
+  if (!admins.size) return;
+  const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  admins.forEach(res => { try { res.write(msg); } catch {} });
+}
+
+module.exports = { subscribe, unsubscribe, notify, subscribeAdmin, unsubscribeAdmin, notifyAllAdmins };

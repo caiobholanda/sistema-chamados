@@ -132,6 +132,40 @@ function _renderMsgChat(m) {
   });
 }
 
+// Injeta UMA mensagem no DOM sem fetch — usado quando o SSE entrega o
+// payload completo (path rápido, latência <100ms). Idempotente: se a
+// msg já foi renderizada, não duplica. Dedup via data-msg-id.
+function _injetarMsgDireto(chamadoId, msg) {
+  if (!msg || !msg.id) return false;
+  const box = document.getElementById('chat-msgs-' + chamadoId);
+  if (!box) return false; // chat colapsado: deixa pro _atualizarChat futuro
+  // Já renderizada?
+  if (box.querySelector(`[data-msg-id="${msg.id}"]`)) return true;
+  // Remove placeholder "vazio" se existir
+  const vazio = box.querySelector('.chat-vazio'); if (vazio) vazio.remove();
+  const atFundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  const m = { ...msg, chamado_id: chamadoId };
+  const tmp = document.createElement('div');
+  tmp.innerHTML = _renderMsgChat(m);
+  while (tmp.firstChild) box.appendChild(tmp.firstChild);
+  ChatUtils.chatRedistribuirSeparadores(box);
+  if (atFundo) {
+    box.scrollTop = box.scrollHeight;
+    ChatUtils.chatBotaoNovas(box, 0);
+  } else if (msg.autor_tipo !== 'usuario') {
+    const atual = parseInt(box.dataset.novas || '0') + 1;
+    box.dataset.novas = atual;
+    ChatUtils.chatBotaoNovas(box, atual);
+    ChatUtils.chatNotificar({
+      titulo: 'Suporte respondeu',
+      corpo: (msg.mensagem || '📎 Arquivo').slice(0, 80),
+      tag: 'chat-' + chamadoId,
+      onClick: () => { box.scrollTop = box.scrollHeight; },
+    });
+  }
+  return true;
+}
+
 async function _atualizarChat(chamadoId) {
   const box = document.getElementById('chat-msgs-' + chamadoId);
   if (!box) return;
@@ -290,9 +324,24 @@ function _iniciarChat(chamadoId) {
       } else {
         const r = await apiFetch('/api/chamados/' + chamadoId + '/mensagens', { method: 'POST', body: JSON.stringify({ mensagem: texto }) });
         ok = r.ok;
-        if (!ok) { const d = await r.json().catch(() => ({})); erroMsg = d.erro || 'Erro ao enviar mensagem.'; }
+        if (ok) {
+          // Path RÁPIDO: o backend já devolve a msg completa. Injeta direto.
+          try {
+            const d = await r.json();
+            if (d?.msg) _injetarMsgDireto(chamadoId, d.msg);
+          } catch {}
+        } else {
+          const d = await r.json().catch(() => ({}));
+          erroMsg = d.erro || 'Erro ao enviar mensagem.';
+        }
       }
-      if (ok) { chatInput.value = ''; clearFile(); await _atualizarChat(chamadoId); }
+      if (ok) {
+        chatInput.value = '';
+        clearFile();
+        // Forçar sempre scroll para o fundo no envio próprio
+        const box = document.getElementById('chat-msgs-' + chamadoId);
+        if (box) requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; });
+      }
       else if (errEl) errEl.textContent = erroMsg;
     } catch {
       if (errEl) errEl.textContent = 'Erro de conexão.';
@@ -1069,8 +1118,17 @@ function renderPainel(usuario) {
   if (_sseSource) { _sseSource.close(); _sseSource = null; }
   _sseSource = new EventSource('/api/usuarios/stream');
   _sseSource.addEventListener('mensagem:new', e => {
-    const { chamado_id } = JSON.parse(e.data);
-    _atualizarChat(chamado_id);
+    try {
+      const data = JSON.parse(e.data);
+      // Path RÁPIDO: o backend já mandou a msg completa no payload.
+      // Injetamos direto no DOM (zero round-trip — chega em <100ms).
+      if (data.msg) {
+        _injetarMsgDireto(data.chamado_id, data.msg);
+      } else {
+        // Fallback: payload antigo só com chamado_id → faz fetch.
+        _atualizarChat(data.chamado_id);
+      }
+    } catch {}
   });
   _sseSource.addEventListener('chamado:atualizado', () => {
     carregarChamados(true);
