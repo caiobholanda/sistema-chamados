@@ -124,14 +124,12 @@ function _chatAnexoHtmlUsr(url, nome) {
 }
 
 function _renderMsgChat(m) {
-  const mine = m.autor_tipo === 'usuario';
-  const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
-  const anexoHtml = _chatAnexoHtmlUsr(`/api/chamados/${m.chamado_id}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
-  return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
-    <div class="chat-msg-author">${m.autor_nome}</div>
-    ${textoHtml}${anexoHtml}
-    <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
-  </div>`;
+  const ehMinha = m.autor_tipo === 'usuario';
+  return ChatUtils.chatRenderMsg(m, {
+    ehMinha,
+    anexoUrl: `/api/chamados/${m.chamado_id}/mensagens/${m.id}/chat-anexo`,
+    horaTxt: ChatUtils.chatHoraCurta(m.criado_em),
+  });
 }
 
 async function _atualizarChat(chamadoId) {
@@ -166,6 +164,8 @@ async function _atualizarChat(chamadoId) {
     tmp.innerHTML = novas.map(_renderMsgChat).join('');
     while (tmp.firstChild) box.appendChild(tmp.firstChild);
 
+    ChatUtils.chatRedistribuirSeparadores(box);
+
     if (atFundo) {
       box.scrollTop = box.scrollHeight;
       // After images/videos expand the container, re-anchor to bottom
@@ -179,14 +179,48 @@ async function _atualizarChat(chamadoId) {
           if (vid) vid.addEventListener('loadedmetadata', () => { box.scrollTop = box.scrollHeight; }, { once: true });
         }
       });
+      ChatUtils.chatBotaoNovas(box, 0); // some o botão se tinha
+    } else {
+      // Usuário está scrollado para cima — sinaliza "X novas"
+      const novasDeOutros = novas.filter(m => m.autor_tipo !== 'usuario').length;
+      if (novasDeOutros > 0) {
+        const atual = parseInt(box.dataset.novas || '0') + novasDeOutros;
+        box.dataset.novas = atual;
+        ChatUtils.chatBotaoNovas(box, atual);
+        // Notifica navegador se aba em outra guia/janela
+        const ultima = novas.find(m => m.autor_tipo !== 'usuario');
+        if (ultima) {
+          ChatUtils.chatNotificar({
+            titulo: 'Suporte respondeu',
+            corpo: (ultima.mensagem || '📎 Arquivo').slice(0, 80),
+            tag: 'chat-' + ultima.chamado_id,
+            onClick: () => {
+              box.scrollTop = box.scrollHeight;
+              const card = box.closest('.chamado-card-usuario');
+              if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            },
+          });
+        }
+      }
+    }
+    // Listener para zerar "X novas" quando user chegar ao fundo
+    if (!box.dataset.scrollWired) {
+      box.dataset.scrollWired = '1';
+      box.addEventListener('scroll', () => {
+        const fundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+        if (fundo) { box.dataset.novas = '0'; ChatUtils.chatBotaoNovas(box, 0); }
+      });
     }
   } catch {}
 }
 
 function _iniciarChat(chamadoId) {
   _atualizarChat(chamadoId);
+  // SSE notifica em tempo real (mensagem:new). Mantemos um refresh raro
+  // (45s) como safety-net caso o SSE caia silenciosamente.
   if (!_chatIntervals.has(chamadoId))
-    _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 5000));
+    _chatIntervals.set(chamadoId, setInterval(() => _atualizarChat(chamadoId), 45000));
+  ChatUtils.chatPedirPermissaoNotif();
 
   const form = document.getElementById('chat-form-' + chamadoId);
   if (!form) return;
@@ -285,6 +319,9 @@ function badgeStatus(s) {
 async function apiFetch(url, opts = {}) {
   return fetch(url, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
 }
+
+// Monitora conexão online/offline (banner global).
+if (window.ChatUtils) ChatUtils.chatMonitorOnline();
 
 (async () => {
   const r = await apiFetch('/api/usuarios/me');

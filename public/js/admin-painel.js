@@ -6,6 +6,9 @@ function _esc(s) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+// Monitor de conexão online/offline (banner global).
+if (window.ChatUtils) ChatUtils.chatMonitorOnline();
 function _decode(s) {
   const ta = document.createElement('textarea');
   ta.innerHTML = s ?? '';
@@ -162,14 +165,12 @@ function _chatAnexoHtml(url, nome) {
 }
 
 function _renderMsgAdmin(m, chamadoId) {
-  const mine = m.autor_tipo === 'admin';
-  const textoHtml = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
-  const anexoHtml = _chatAnexoHtml(`/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
-  return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
-    <div class="chat-msg-author">${_esc(m.autor_nome)}</div>
-    ${textoHtml}${anexoHtml}
-    <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
-  </div>`;
+  const ehMinha = m.autor_tipo === 'admin';
+  return ChatUtils.chatRenderMsg(m, {
+    ehMinha,
+    anexoUrl: `/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`,
+    horaTxt: ChatUtils.chatHoraCurta(m.criado_em),
+  });
 }
 
 async function _atualizarChatAdmin(chamadoId) {
@@ -205,9 +206,10 @@ async function _atualizarChatAdmin(chamadoId) {
     tmp.innerHTML = novas.map(m => _renderMsgAdmin(m, chamadoId)).join('');
     while (tmp.firstChild) box.appendChild(tmp.firstChild);
 
+    ChatUtils.chatRedistribuirSeparadores(box);
+
     if (atFundo) {
       box.scrollTop = box.scrollHeight;
-      // Re-anchor after images/videos expand the container
       novas.forEach(m => {
         const ext = (m.chat_anexo_nome_original || '').split('.').pop().toLowerCase();
         if (_IMGS_EXT.includes(ext)) {
@@ -217,6 +219,30 @@ async function _atualizarChatAdmin(chamadoId) {
           const vid = box.querySelector(`[data-msg-id="${m.id}"] video`);
           if (vid) vid.addEventListener('loadedmetadata', () => { box.scrollTop = box.scrollHeight; }, { once: true });
         }
+      });
+      ChatUtils.chatBotaoNovas(box, 0);
+    } else {
+      const novasDeOutros = novas.filter(m => m.autor_tipo !== 'admin').length;
+      if (novasDeOutros > 0) {
+        const atual = parseInt(box.dataset.novas || '0') + novasDeOutros;
+        box.dataset.novas = atual;
+        ChatUtils.chatBotaoNovas(box, atual);
+        const ultima = novas.find(m => m.autor_tipo !== 'admin');
+        if (ultima) {
+          ChatUtils.chatNotificar({
+            titulo: 'Usuário respondeu',
+            corpo: (ultima.mensagem || '📎 Arquivo').slice(0, 80),
+            tag: 'chat-' + chamadoId,
+            onClick: () => { box.scrollTop = box.scrollHeight; },
+          });
+        }
+      }
+    }
+    if (!box.dataset.scrollWired) {
+      box.dataset.scrollWired = '1';
+      box.addEventListener('scroll', () => {
+        const fundo = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+        if (fundo) { box.dataset.novas = '0'; ChatUtils.chatBotaoNovas(box, 0); }
       });
     }
   } catch {}
@@ -2425,7 +2451,10 @@ function setupModalEventos(c) {
     // Garante que nenhum interval órfão de chamado anterior continue rodando
     if (_chatAdminIv) { clearInterval(_chatAdminIv); _chatAdminIv = null; }
     _atualizarChatAdmin(c.id);
-    _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 6000);
+    // Refresh raro (45s) como safety-net. Em produção o admin pode ter SSE
+    // no futuro; por ora o intervalo cobre mensagens novas.
+    _chatAdminIv = setInterval(() => _atualizarChatAdmin(c.id), 45000);
+    ChatUtils.chatPedirPermissaoNotif();
 
     const fileInput = document.getElementById('chat-modal-file');
     const fileChip = document.getElementById('chat-modal-file-chip');
