@@ -10,10 +10,11 @@
     const st = document.createElement('style');
     st.id = 'chat-utils-style';
     st.textContent = `
-      .chat-messages { display:flex; flex-direction:column; gap:.5rem; }
+      /* Lado das mensagens — funciona com ou sem flex no container pai */
+      .chat-messages { display: flex !important; flex-direction: column !important; gap: .5rem; align-items: stretch; }
       .chat-msg { max-width: 78%; display:flex; flex-direction:column; padding: .35rem .15rem; }
-      .chat-msg.mine   { align-self: flex-end;   align-items: flex-end;   text-align: right; }
-      .chat-msg.theirs { align-self: flex-start; align-items: flex-start; text-align: left; }
+      .chat-msg.mine   { align-self: flex-end !important;   align-items: flex-end;   text-align: right; margin-left:auto; margin-right:0; }
+      .chat-msg.theirs { align-self: flex-start !important; align-items: flex-start; text-align: left;  margin-right:auto; margin-left:0; }
       .chat-msg-author { font-size: .72rem; color: var(--text-muted, #6b7280); margin-bottom: .15rem; font-weight: 600; }
       .chat-msg-bubble {
         padding: .55rem .8rem; border-radius: 14px;

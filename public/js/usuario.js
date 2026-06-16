@@ -922,6 +922,49 @@ function renderPainel(usuario) {
   document.getElementById('pill-concluidos-u').addEventListener('click', () => document.getElementById('tab-encerrados').click());
   document.getElementById('pill-sugestoes-u').addEventListener('click', () => document.getElementById('tab-sugestoes-u').click());
 
+  // Patch direto no DOM: atualiza apenas o badge "X novos" de cada card,
+  // sem reconstruir o DOM e sem afetar o chat aberto.
+  function _patchBadgesNovidadesU(novos) {
+    for (const c of novos) {
+      const card = document.querySelector(`.chamado-card-usuario[data-cid="${c.id}"]`);
+      if (!card) continue;
+      const headerBox = card.querySelector('.chamado-card-header .flex');
+      if (!headerBox) continue;
+      let badge = headerBox.querySelector('.badge-novidades-usuario');
+      const qtd = c.novidades_usuario || 0;
+      if (qtd > 0 && c.eh_meu !== 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'badge-novidades-usuario';
+          badge.dataset.cid = c.id;
+          headerBox.appendChild(badge);
+        }
+        badge.title = `${qtd} atualização${qtd > 1 ? 'ões' : ''} nova${qtd > 1 ? 's' : ''}`;
+        badge.textContent = `${qtd} novo${qtd > 1 ? 's' : ''}`;
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+  }
+
+  // Patch direto: contadores das pills/tabs sem re-render.
+  function _atualizarContadoresU(novos) {
+    const qtd = { aberto: 0, em_andamento: 0, aguardando_compra: 0, aguardando_chegar: 0, concluido: 0, encerrado: 0, cancelado: 0 };
+    novos.forEach(c => { if (qtd[c.status] !== undefined) qtd[c.status]++; });
+    const el = id => document.getElementById(id);
+    const pendentes = novos.filter(c => c.status === 'concluido' && c.nota === null).length;
+    const abertos = qtd.aberto + qtd.em_andamento + qtd.aguardando_compra + qtd.aguardando_chegar;
+    const encerrados = qtd.concluido + qtd.encerrado;
+    if (el('cnt-u-aberto'))    el('cnt-u-aberto').textContent    = abertos;
+    if (el('cnt-u-avaliacao')) el('cnt-u-avaliacao').textContent = pendentes;
+    if (el('cnt-u-concluido')) el('cnt-u-concluido').textContent = encerrados;
+    if (el('cnt-u-cancelado')) el('cnt-u-cancelado').textContent = qtd.cancelado;
+    if (el('badge-abertos-u'))     el('badge-abertos-u').textContent     = abertos || '';
+    if (el('badge-encerrados-u'))  el('badge-encerrados-u').textContent  = encerrados || '';
+    if (el('badge-avaliacao-u'))   el('badge-avaliacao-u').textContent   = pendentes || '';
+    if (el('badge-cancelados-u'))  el('badge-cancelados-u').textContent  = qtd.cancelado || '';
+  }
+
   async function carregarChamados(silencioso = false) {
     const lista = document.getElementById('lista-usuario');
     if (!lista) return;
@@ -942,13 +985,21 @@ function renderPainel(usuario) {
       return;
     }
 
-    // Silencioso: só atualiza se os dados mudaram (hash sem termo, o termo muda só por ação do usuário)
+    // Silencioso: hash IGNORA atualizado_em e novidades_usuario porque mudam
+    // a todo momento (cada mensagem nova → atualizado_em muda → re-render
+    // total destruiria o chat). Esses campos são patcheados direto no DOM
+    // logo abaixo, sem refazer a lista.
     if (silencioso) {
       const novoHash = JSON.stringify(novos.map(c =>
-        [c.id, c.status, c.admin_nome, c.nota, c.prazo, c.solucao, c.prioridade, c.atualizado_em, c.assinado_em, c.requer_acordo, c.novidades_usuario]
+        [c.id, c.status, c.admin_nome, c.nota, c.prazo, c.solucao, c.prioridade, c.assinado_em, c.requer_acordo]
       ));
-      if (novoHash === _chamadosHash) return;
+      const mudouEstrutura = (novoHash !== _chamadosHash);
       _chamadosHash = novoHash;
+      // Sempre atualiza contadores+badges de novidades (não destrói DOM dos cards)
+      todosChamados = novos;
+      _patchBadgesNovidadesU(novos);
+      _atualizarContadoresU(novos);
+      if (!mudouEstrutura) return; // chat preservado, sem flicker
     } else {
       _chamadosHash = null;
     }
@@ -994,7 +1045,7 @@ function renderPainel(usuario) {
   carregarChamados();
   _carregarSugestoesUsuario();
   _pararRefresh();
-  _refreshInterval = setInterval(() => carregarChamados(true), 5000);
+  _refreshInterval = setInterval(() => carregarChamados(true), 30000);
 
   // SSE — notificações instantâneas do servidor
   if (_sseSource) { _sseSource.close(); _sseSource = null; }
@@ -1021,7 +1072,7 @@ function renderPainel(usuario) {
       _pararRefresh();
       _limparChats();
       carregarChamados(true);
-      _refreshInterval = setInterval(() => carregarChamados(true), 5000);
+      _refreshInterval = setInterval(() => carregarChamados(true), 30000);
       if (abaAtiva === 'sugestoes') _iniciarSugRefresh();
     }
   }, { signal: _visibilityController.signal });
@@ -1176,22 +1227,41 @@ function renderPainel(usuario) {
     );
     _chatIntervals.forEach((iv, id) => { if (!ativosIds.has(id)) { clearInterval(iv); _chatIntervals.delete(id); } });
 
-    // Preservar texto digitado nos chats antes de re-renderizar
+    // Preservar texto digitado + conteúdo do chat + scroll antes de re-renderizar.
+    // Sem isso, cada re-render destrói as mensagens e mostra "Carregando…"
+    // de novo (flicker constante reportado pelos usuários).
     const chatState = {};
     filtrados.forEach(c => {
       const inp = document.getElementById('chat-input-' + c.id);
-      if (inp) chatState[c.id] = { value: inp.value, focused: document.activeElement === inp };
+      const box = document.getElementById('chat-msgs-' + c.id);
+      chatState[c.id] = {
+        value: inp ? inp.value : null,
+        focused: inp && document.activeElement === inp,
+        msgsHtml: box ? box.innerHTML : null,
+        scrollTop: box ? box.scrollTop : null,
+        scrollWired: box ? box.dataset.scrollWired : null,
+        novasCnt: box ? box.dataset.novas : null,
+      };
     });
 
     lista.innerHTML = filtroBarHtml + filtrados.map(c => renderCardChamado(c)).join('');
     _ligarChipsEscopo();
 
-    // Restaurar texto e foco depois de re-renderizar
+    // Restaurar tudo após re-render: chat preservado, sem flicker.
     Object.entries(chatState).forEach(([id, s]) => {
       const inp = document.getElementById('chat-input-' + id);
-      if (!inp) return;
-      if (s.value) inp.value = s.value;
-      if (s.focused) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+      if (inp) {
+        if (s.value) inp.value = s.value;
+        if (s.focused) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+      }
+      const box = document.getElementById('chat-msgs-' + id);
+      if (box && s.msgsHtml && s.msgsHtml.includes('data-msg-id')) {
+        // Só restaura se tinha mensagens reais (não o placeholder "Carregando…")
+        box.innerHTML = s.msgsHtml;
+        if (s.scrollTop != null) box.scrollTop = s.scrollTop;
+        if (s.scrollWired) box.dataset.scrollWired = s.scrollWired;
+        if (s.novasCnt) box.dataset.novas = s.novasCnt;
+      }
     });
 
     filtrados.filter(c => c.status === 'concluido' && c.nota === null).forEach(c => {
