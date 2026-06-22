@@ -5,6 +5,7 @@ let _chatMobIv = null;
 // ── Busca/filtro client-side da lista ─────────────────────────
 let buscaTexto = '';
 let _chamadosCache = [];
+let _carregando = false;
 const _etiquetaNome = {};        // slug → nome (para busca por etiqueta)
 let _etiquetasPromise = null;
 
@@ -236,7 +237,7 @@ async function api(url, opts = {}) {
 (async () => {
   try {
     const r = await fetch('/api/admin/me');
-    if (r.ok) { adminInfo = await r.json(); renderLista(); iniciarPush(); }
+    if (r.ok) { adminInfo = await r.json(); _carregarEtiquetasMapa(); renderLista(); iniciarPush(); }
     else renderLogin();
   } catch { renderLogin(); }
 })();
@@ -350,6 +351,7 @@ function renderLogin() {
       });
       if (rA.ok) {
         adminInfo = await (await fetch('/api/admin/me')).json();
+        _carregarEtiquetasMapa();
         renderLista();
         iniciarPush();
         return;
@@ -633,14 +635,16 @@ async function abrirFormNovoChamado() {
 async function carregarChamados() {
   const lista = document.getElementById('mob-lista');
   if (lista) lista.innerHTML = '<div class="mob-loading">Carregando…</div>';
+  _carregando = true;
   try {
     const params = new URLSearchParams({ status: 'aberto,em_andamento,aguardando_compra,aguardando_chegar' });
     if (filtroAtivo === 'meus' && adminInfo) params.set('admin_id', adminInfo.id);
     const r = await api('/api/admin/chamados?' + params);
-    if (!r.ok) return;
+    if (!r.ok) { _carregando = false; return; }
     _chamadosCache = await r.json();
+    _carregando = false;
     renderCards();
-  } catch {}
+  } catch { _carregando = false; }
 }
 
 // Mapa slug→nome das etiquetas, carregado uma vez (para permitir busca por etiqueta)
@@ -693,6 +697,10 @@ function renderCards() {
   const filtrados = _filtrarChamados(_chamadosCache);
 
   if (!filtrados.length) {
+    if (_carregando && !_chamadosCache.length) {
+      lista.innerHTML = '<div class="mob-loading">Carregando…</div>';
+      return;
+    }
     lista.innerHTML = _chamadosCache.length
       ? '<div class="mob-empty">Nenhum chamado corresponde à busca.</div>'
       : '<div class="mob-empty">Nenhum chamado em aberto no momento.</div>';
