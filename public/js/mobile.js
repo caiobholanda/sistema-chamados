@@ -2,6 +2,12 @@ const app = document.getElementById('mob-app');
 let adminInfo = null;
 let _chatMobIv = null;
 
+// ── Busca/filtro client-side da lista ─────────────────────────
+let buscaTexto = '';
+let _chamadosCache = [];
+const _etiquetaNome = {};        // slug → nome (para busca por etiqueta)
+let _etiquetasPromise = null;
+
 // ── Push Notifications ────────────────────────────────────────
 let _swReg = null;
 let _lastSubscribeTs = 0;
@@ -392,6 +398,12 @@ async function renderLista() {
         </button>
       </div>
     </div>
+    <div class="mob-busca-wrap">
+      <svg class="mob-busca-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="mob-busca-input" class="mob-busca-input" type="text" inputmode="search"
+             placeholder="Buscar nº, usuário, responsável, etiqueta…" autocomplete="off" enterkeyhint="search">
+      <button type="button" id="mob-busca-clear" class="mob-busca-clear" aria-label="Limpar busca" style="display:none">✕</button>
+    </div>
     <div class="mob-filtro-bar">
       <button class="mob-filtro-btn ${filtroAtivo === 'meus' ? 'ativo' : ''}" data-filtro="meus">Meus chamados</button>
       <button class="mob-filtro-btn ${filtroAtivo === 'todos' ? 'ativo' : ''}" data-filtro="todos">Todos</button>
@@ -410,6 +422,26 @@ async function renderLista() {
   });
 
   document.getElementById('mob-btn-novo-chamado').addEventListener('click', abrirFormNovoChamado);
+
+  // Busca client-side (instantânea, sem nova requisição)
+  const buscaInput = document.getElementById('mob-busca-input');
+  const buscaClear = document.getElementById('mob-busca-clear');
+  buscaInput.value = buscaTexto;
+  buscaClear.style.display = buscaTexto ? 'block' : 'none';
+  buscaInput.addEventListener('input', () => {
+    buscaTexto = buscaInput.value;
+    buscaClear.style.display = buscaTexto ? 'block' : 'none';
+    renderCards();
+  });
+  buscaClear.addEventListener('click', () => {
+    buscaTexto = '';
+    buscaInput.value = '';
+    buscaClear.style.display = 'none';
+    renderCards();
+    buscaInput.focus();
+  });
+  // Carrega nomes das etiquetas para busca; re-filtra ao concluir se houver busca ativa
+  _carregarEtiquetasMapa().then(() => { if (buscaTexto.trim()) renderCards(); });
 
   carregarChamados();
 }
@@ -600,45 +632,97 @@ async function abrirFormNovoChamado() {
 
 async function carregarChamados() {
   const lista = document.getElementById('mob-lista');
-  lista.innerHTML = '<div class="mob-loading">Carregando…</div>';
+  if (lista) lista.innerHTML = '<div class="mob-loading">Carregando…</div>';
   try {
     const params = new URLSearchParams({ status: 'aberto,em_andamento,aguardando_compra,aguardando_chegar' });
     if (filtroAtivo === 'meus' && adminInfo) params.set('admin_id', adminInfo.id);
     const r = await api('/api/admin/chamados?' + params);
     if (!r.ok) return;
-    const chamados = await r.json();
-    const lista = document.getElementById('mob-lista');
-
-    if (!chamados.length) {
-      lista.innerHTML = '<div class="mob-empty">Nenhum chamado em aberto no momento.</div>';
-      return;
-    }
-
-    lista.innerHTML = chamados.map(c => `
-      <div class="mob-card" data-id="${c.id}">
-        <div class="mob-card-head">
-          <span style="font-family:monospace;font-size:.72rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.06);padding:.12rem .35rem;border-radius:4px">#${c.id}</span>
-          <span class="badge badge-${c.status}">${STATUS_LABELS[c.status]}</span>
-          ${c.prioridade ? `<span class="badge badge-${c.prioridade}">${PRIO_LABELS[c.prioridade]}</span>` : ''}
-          <span class="mob-card-data">${fmtData(c.criado_em)}</span>
-        </div>
-        <div class="mob-card-nome">${c.nome}</div>
-        <div class="mob-card-setor">${c.usuario_setor || c.setor}</div>
-        <div class="mob-card-desc">${c.descricao.length > 120 ? c.descricao.slice(0, 120) + '…' : c.descricao}</div>
-        ${c.admin_nome ? `<div class="mob-card-resp">Responsável: ${c.admin_nome}</div>` : ''}
-        ${fmtPrazo(c.prazo)}
-      </div>
-    `).join('');
-
-    lista.querySelectorAll('.mob-card').forEach(el => {
-      el.addEventListener('click', async () => {
-        try {
-          const r = await api(`/api/admin/chamados/${el.dataset.id}`);
-          if (r.ok) renderDetalhe(await r.json());
-        } catch {}
-      });
-    });
+    _chamadosCache = await r.json();
+    renderCards();
   } catch {}
+}
+
+// Mapa slug→nome das etiquetas, carregado uma vez (para permitir busca por etiqueta)
+function _carregarEtiquetasMapa() {
+  if (!_etiquetasPromise) {
+    _etiquetasPromise = fetch('/api/etiquetas', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : [])
+      .then(ets => { (ets || []).forEach(e => { if (e && e.slug) _etiquetaNome[e.slug] = e.nome; }); })
+      .catch(() => {});
+  }
+  return _etiquetasPromise;
+}
+
+// Normaliza para busca: minúsculas + remove acentos
+function _normBusca(s) {
+  return (s == null ? '' : String(s)).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Texto pesquisável de um chamado (todos os campos relevantes da lista)
+function _haystackChamado(c) {
+  return _normBusca([
+    c.id, '#' + c.id,                          // número do chamado (com e sem #)
+    c.nome,                                     // usuário (criador / transferido para)
+    c.admin_nome,                               // admin responsável
+    c.aberto_por_admin_nome,                    // admin que abriu
+    c.setor, c.usuario_setor,
+    c.ramal, c.usuario_ramal,
+    c.descricao,                                // características do problema
+    c.servico_nome,
+    _etiquetaNome[c.categoria] || c.categoria,  // etiqueta (nome ou slug)
+    STATUS_LABELS[c.status],
+    PRIO_LABELS[c.prioridade],
+  ].filter(v => v != null && v !== '').join(' '));
+}
+
+// Aplica a busca textual (todos os termos precisam casar — AND)
+function _filtrarChamados(lista) {
+  const q = _normBusca(buscaTexto).trim();
+  if (!q) return lista;
+  const termos = q.split(/\s+/).filter(Boolean);
+  return lista.filter(c => {
+    const hay = _haystackChamado(c);
+    return termos.every(t => hay.includes(t));
+  });
+}
+
+function renderCards() {
+  const lista = document.getElementById('mob-lista');
+  if (!lista) return;
+  const filtrados = _filtrarChamados(_chamadosCache);
+
+  if (!filtrados.length) {
+    lista.innerHTML = _chamadosCache.length
+      ? '<div class="mob-empty">Nenhum chamado corresponde à busca.</div>'
+      : '<div class="mob-empty">Nenhum chamado em aberto no momento.</div>';
+    return;
+  }
+
+  lista.innerHTML = filtrados.map(c => `
+    <div class="mob-card" data-id="${c.id}">
+      <div class="mob-card-head">
+        <span style="font-family:monospace;font-size:.72rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.06);padding:.12rem .35rem;border-radius:4px">#${c.id}</span>
+        <span class="badge badge-${c.status}">${STATUS_LABELS[c.status]}</span>
+        ${c.prioridade ? `<span class="badge badge-${c.prioridade}">${PRIO_LABELS[c.prioridade]}</span>` : ''}
+        <span class="mob-card-data">${fmtData(c.criado_em)}</span>
+      </div>
+      <div class="mob-card-nome">${c.nome}</div>
+      <div class="mob-card-setor">${c.usuario_setor || c.setor}</div>
+      <div class="mob-card-desc">${c.descricao.length > 120 ? c.descricao.slice(0, 120) + '…' : c.descricao}</div>
+      ${c.admin_nome ? `<div class="mob-card-resp">Responsável: ${c.admin_nome}</div>` : ''}
+      ${fmtPrazo(c.prazo)}
+    </div>
+  `).join('');
+
+  lista.querySelectorAll('.mob-card').forEach(el => {
+    el.addEventListener('click', async () => {
+      try {
+        const r = await api(`/api/admin/chamados/${el.dataset.id}`);
+        if (r.ok) renderDetalhe(await r.json());
+      } catch {}
+    });
+  });
 }
 
 
