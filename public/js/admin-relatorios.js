@@ -682,7 +682,7 @@ async function abrirModalAvaliados() {
     const r = await api('/api/admin/chamados');
     if (!r.ok) throw new Error('falha');
     const arr = await r.json();
-    const avaliados = arr.filter(c => c.nota !== null && c.nota !== undefined);
+    const avaliados = arr.filter(c => c.nota !== null && c.nota !== undefined && c.status === 'concluido');
     avaliados.sort((a, b) => (b.concluido_em || '').localeCompare(a.concluido_em || ''));
     _renderListaAvaliados(avaliados);
   } catch (err) {
