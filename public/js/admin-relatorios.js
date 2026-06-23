@@ -731,15 +731,15 @@ function _atualizarListaAvaliados() {
   const chaves = Object.keys(grupos).sort().reverse();
 
   lista.innerHTML = chaves.map(ym => `
-    <section style="margin-bottom:1.25rem">
-      <header style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;margin-bottom:.55rem;padding:.35rem 0 .45rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1">
-        <h3 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:1.05rem;font-weight:600;color:var(--text);text-transform:capitalize;letter-spacing:.01em">${ym === 'sem-data' ? 'Sem data de conclusão' : _esc(nomeMes(ym))}</h3>
-        <span style="font-size:.7rem;color:var(--text-muted);font-weight:600">${grupos[ym].length} chamado${grupos[ym].length !== 1 ? 's' : ''}</span>
-      </header>
+    <div style="margin-bottom:1.25rem">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;margin-bottom:.55rem;padding:.5rem .75rem;background:var(--gold-pale);border-left:3px solid var(--gold);border-radius:var(--radius-sm)">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:1.05rem;font-weight:600;color:var(--text);text-transform:capitalize;letter-spacing:.01em">${ym === 'sem-data' ? 'Sem data de conclusão' : _esc(nomeMes(ym))}</div>
+        <span style="font-size:.7rem;color:var(--text-secondary);font-weight:700">${grupos[ym].length} chamado${grupos[ym].length !== 1 ? 's' : ''}</span>
+      </div>
       <div style="display:flex;flex-direction:column;gap:.55rem">
         ${grupos[ym].map(_cardAvaliado).join('')}
       </div>
-    </section>
+    </div>
   `).join('');
 }
 
