@@ -115,7 +115,10 @@ function montarProg(body, req) {
   }
 
   const prog = {
-    titulo: descricao.slice(0, 60).trim(),
+    // Resumo da descricao usado em cards, historico e push notification.
+    // Limite 255 (vs descricao.maxlength=2000) mantem o titulo como resumo
+    // sem virar paragrafo. SQLite TEXT nao tem teto, so a regra de produto.
+    titulo: descricao.trim().slice(0, 255),
     nome, setor, ramal: null, descricao,
     categoria: (body.categoria || '').trim() || null,
     prioridade: 'normal',
@@ -132,6 +135,31 @@ router.post('/debug/trigger', requireAdmin, async (req, res) => {
   const pendentesAntes = db.getProgramadosPendentes().map(p => ({ id: p.id, titulo: p.titulo, proxima: p.proxima_execucao }));
   const resultados = await executarChamadosProgramados();
   res.json({ ok: true, pendentesAntes, resultados });
+});
+
+// POST /api/admin/programados/debug/recompute-titulos
+// Regenera `titulo` a partir de `descricao.trim().slice(0, 255)` para registros
+// cujo titulo provavelmente foi cortado no limite antigo de 60 chars. Heuristica:
+// LENGTH(titulo) >= 60 e (descricao mais longa que titulo OU titulo != prefixo de descricao).
+// Default = dry-run. Passe ?dryRun=0 (ou {dryRun:false}) para aplicar.
+router.post('/debug/recompute-titulos', requireAdmin, (req, res) => {
+  const dryRun = !(req.query.dryRun === '0' || req.body?.dryRun === false);
+  const linhas = db.getDb().prepare('SELECT id, titulo, descricao FROM chamados_programados').all();
+  const alteracoes = [];
+  for (const l of linhas) {
+    const novo = String(l.descricao || '').trim().slice(0, 255);
+    if (novo !== l.titulo) {
+      alteracoes.push({ id: l.id, antes: l.titulo, depois: novo });
+    }
+  }
+  if (!dryRun) {
+    const stmt = db.getDb().prepare('UPDATE chamados_programados SET titulo = ? WHERE id = ?');
+    const tx = db.getDb().transaction(() => {
+      for (const a of alteracoes) stmt.run(a.depois, a.id);
+    });
+    tx();
+  }
+  res.json({ ok: true, dryRun, total: linhas.length, alterados: alteracoes.length, alteracoes });
 });
 
 // GET /api/admin/programados
