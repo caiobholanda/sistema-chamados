@@ -2124,13 +2124,13 @@ function relatorioMes(mes) {
   const notaMedia = db.prepare(`
     SELECT AVG(nota) as media, COUNT(nota) as total
     FROM chamados
-    WHERE concluido_em BETWEEN ? AND ? AND nota IS NOT NULL AND status != 'cancelado'
+    WHERE concluido_em BETWEEN ? AND ? AND nota IS NOT NULL AND status = 'concluido'
   `).get(inicio, fim + ' 23:59:59');
 
   const tendencia6m = db.prepare(`
     SELECT strftime('%Y-%m', concluido_em) as mes, AVG(nota) as media, COUNT(nota) as total
     FROM chamados
-    WHERE concluido_em >= date(?, '-11 months') AND nota IS NOT NULL AND status != 'cancelado'
+    WHERE concluido_em >= date(?, '-11 months') AND nota IS NOT NULL AND status = 'concluido'
     GROUP BY mes
     ORDER BY mes ASC
   `).all(inicio);
@@ -2244,7 +2244,7 @@ function rankingAdminsMes(mes) {
         FROM chamados c
         WHERE c.admin_responsavel_id = a.id
           AND c.nota IS NOT NULL
-          AND c.status != 'cancelado'
+          AND c.status = 'concluido'
           AND c.concluido_em BETWEEN ? AND ?
       ) AS nota_media,
       (
@@ -2252,7 +2252,7 @@ function rankingAdminsMes(mes) {
         FROM chamados c
         WHERE c.admin_responsavel_id = a.id
           AND c.nota IS NOT NULL
-          AND c.status != 'cancelado'
+          AND c.status = 'concluido'
           AND c.concluido_em BETWEEN ? AND ?
       ) AS total_avaliacoes
     FROM admins a

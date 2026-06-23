@@ -349,7 +349,7 @@ function comparacaoNotasHtml(notaMesAtual, notaMesAnt, notaAnoMedia, notaAnoTota
         <div class="nota-bar-wrap">
           <div class="nota-bar-fill" style="width:${pct.toFixed(1)}%;background:${barCor}"></div>
         </div>
-        <div class="nota-col-count">${total > 0 ? total + ' avaliação' + (total !== 1 ? 'ões' : '') : 'sem avaliações'}</div>
+        <div class="nota-col-count">${total > 0 ? total + ' avaliaç' + (total !== 1 ? 'ões' : 'ão') : 'sem avaliações'}</div>
         ${extra || ''}
       </div>`;
   }
