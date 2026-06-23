@@ -4069,3 +4069,34 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
   });
 })();
 
+// FAB scroll nav — capsula unica com trilho de progresso.
+// Mostra apenas quando a pagina rola mais que 240px; ao chegar nos extremos,
+// o meio-botao correspondente dimma (nao some) para manter a forma estavel.
+(function fabScrollNav() {
+  const nav = document.getElementById('fab-scroll-nav');
+  if (!nav) return;
+  nav.hidden = false;
+  const btnTop = document.getElementById('fab-top');
+  const btnBottom = document.getElementById('fab-bottom');
+  const fill = nav.querySelector('.fab-rail-fill');
+  const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const go = (top) => window.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' });
+  btnTop.addEventListener('click', () => go(0));
+  btnBottom.addEventListener('click', () => go(document.documentElement.scrollHeight));
+  let ticking = false;
+  function update() {
+    const y = window.scrollY || document.documentElement.scrollTop;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = max > 0 ? Math.min(100, Math.max(0, (y / max) * 100)) : 0;
+    fill.style.height = pct + '%';
+    nav.classList.toggle('is-visible', max > 240);
+    btnTop.setAttribute('aria-disabled', y < 8 ? 'true' : 'false');
+    btnBottom.setAttribute('aria-disabled', y > max - 8 ? 'true' : 'false');
+    ticking = false;
+  }
+  const schedule = () => { if (!ticking) { requestAnimationFrame(update); ticking = true; } };
+  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', schedule);
+  update();
+})();
+
