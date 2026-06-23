@@ -5,14 +5,33 @@ const fs = require('fs');
 const UPLOADS_DIR = path.join(__dirname, '..', 'data', 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
+// Whitelist única de uploads (fonte da verdade — backend + endpoint /api/uploads/allowed-types).
+// Atributos `accept=` nos inputs do frontend devem espelhar EXTENSOES_PERMITIDAS.
 const TIPOS_PERMITIDOS = [
-  'image/jpeg', 'image/png',
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
   'application/pdf',
-  'text/plain',
+  'text/plain', 'text/csv',
+  'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/zip', 'application/x-zip-compressed',
+  'application/vnd.rar', 'application/x-rar-compressed',
+  'application/x-7z-compressed',
   'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/x-ms-wmv',
 ];
-const EXTENSOES_PERMITIDAS = ['.jpg', '.jpeg', '.png', '.pdf', '.txt', '.log', '.docx', '.mp4', '.webm', '.mov', '.avi', '.mkv', '.wmv'];
+const EXTENSOES_PERMITIDAS = [
+  '.jpg', '.jpeg', '.png', '.gif', '.webp',
+  '.pdf', '.txt', '.log',
+  '.doc', '.docx',
+  '.xls', '.xlsx', '.csv',
+  '.ppt', '.pptx',
+  '.zip', '.rar', '.7z',
+  '.mp4', '.webm', '.mov', '.avi', '.mkv', '.wmv',
+];
+const MSG_TIPO_INVALIDO = 'Tipo de arquivo não permitido. Aceitos: imagens, vídeos, PDF, TXT/LOG/CSV, Word (doc/docx), Excel (xls/xlsx), PowerPoint (ppt/pptx) e arquivos compactados (zip/rar/7z).';
 
 function sanitizarNome(nome) {
   return nome
@@ -34,10 +53,14 @@ const storage = multer.diskStorage({
 });
 
 function fileFilter(_req, file, cb) {
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  const extOk = EXTENSOES_PERMITIDAS.includes(ext);
   const mimeOk = TIPOS_PERMITIDOS.includes(file.mimetype)
-    || file.mimetype.startsWith('video/')
-    || file.mimetype.startsWith('image/');
-  if (!mimeOk) {
+    || (file.mimetype || '').startsWith('video/')
+    || (file.mimetype || '').startsWith('image/');
+  // Aceita se extensão OU mime estiverem na whitelist — alguns navegadores enviam
+  // application/octet-stream para Office/zip, o que daria falso negativo se exigisse ambos.
+  if (!extOk && !mimeOk) {
     return cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Tipo de arquivo não permitido'));
   }
   cb(null, true);
@@ -64,7 +87,7 @@ function uploadMiddleware(field) {
     upload.single(field)(req, res, err => {
       if (!err) return next();
       if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ erro: 'Arquivo muito grande (máx. 200 MB).' });
-      return res.status(400).json({ erro: 'Tipo de arquivo não permitido. São aceitos: imagens, vídeos, PDF, TXT e DOCX.' });
+      return res.status(400).json({ erro: MSG_TIPO_INVALIDO });
     });
   };
 }
@@ -87,7 +110,7 @@ function uploadChamadoMiddleware() {
       if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ erro: 'Arquivo muito grande (máx. 200 MB por arquivo).' });
       if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE')
         return res.status(400).json({ erro: 'Limite ou tipo de arquivo inválido. Máx. 10 anexos por chamado.' });
-      return res.status(400).json({ erro: 'Tipo de arquivo não permitido. São aceitos: imagens, vídeos, PDF, TXT e DOCX.' });
+      return res.status(400).json({ erro: MSG_TIPO_INVALIDO });
     });
   };
 }
@@ -102,4 +125,14 @@ function renomearAnexoExtra(chamadoId, anexoExtraId, tempPath, nomeOriginal) {
   return novoNome;
 }
 
-module.exports = { upload, uploadMiddleware, uploadChamadoMiddleware, renomearAnexoComId, renomearAnexoExtra, UPLOADS_DIR };
+module.exports = {
+  upload,
+  uploadMiddleware,
+  uploadChamadoMiddleware,
+  renomearAnexoComId,
+  renomearAnexoExtra,
+  UPLOADS_DIR,
+  TIPOS_PERMITIDOS,
+  EXTENSOES_PERMITIDAS,
+  MSG_TIPO_INVALIDO,
+};

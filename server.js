@@ -106,6 +106,16 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // Rotas da API
+app.get('/api/uploads/allowed-types', (_req, res) => {
+  const { EXTENSOES_PERMITIDAS, TIPOS_PERMITIDOS } = require('./src/upload');
+  res.json({
+    extensoes: EXTENSOES_PERMITIDAS,
+    mimes: TIPOS_PERMITIDOS,
+    accept: ['image/*', 'video/*', ...EXTENSOES_PERMITIDAS].join(','),
+    maxFileSizeMB: 200,
+    maxFiles: 10,
+  });
+});
 app.use('/api/export', require('./src/rotas/exportar'));
 app.use('/api/chamados', require('./src/rotas/chamados'));
 app.use('/api/usuarios', require('./src/rotas/usuarios'));
@@ -188,7 +198,8 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ erro: 'Arquivo muito grande. Máximo 200 MB.' });
   }
   if (err && err.code === 'LIMIT_UNEXPECTED_FILE') {
-    return res.status(400).json({ erro: 'Tipo de arquivo não permitido. Use jpg, png, pdf, txt, docx, mp4, mov, webm, avi ou mkv.' });
+    const { MSG_TIPO_INVALIDO } = require('./src/upload');
+    return res.status(400).json({ erro: MSG_TIPO_INVALIDO });
   }
   console.error(err);
   return res.status(500).json({ erro: 'Erro interno no servidor' });

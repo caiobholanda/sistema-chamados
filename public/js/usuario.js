@@ -861,7 +861,7 @@ function renderPainel(usuario) {
               <button type="button" class="file-chip-clear-sug" data-sug-id="${s.id}" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;color:var(--text-muted);font-size:.85rem" title="Remover arquivo">✕</button>
             </div>
             <div class="chat-input-row" style="display:flex;gap:.4rem;padding:.5rem .75rem;background:#fff;border-top:1px solid var(--border)">
-              <input type="file" id="file-input-sug-u-${s.id}" style="display:none" accept="image/*,video/*,.pdf,.txt,.docx">
+              <input type="file" id="file-input-sug-u-${s.id}" style="display:none" accept="image/*,video/*,.pdf,.txt,.log,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.zip,.rar,.7z">
               <button type="button" class="btn btn-secondary btn-sm btn-file-sug" data-sug-id="${s.id}" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
               </button>
@@ -1801,7 +1801,7 @@ function renderCardChamado(c) {
         <button type="button" data-cid="${c.id}" class="btn-chat-file-clear" style="background:none;border:none;cursor:pointer;padding:0;font-size:.85rem;color:var(--text-muted)" title="Remover">✕</button>
       </div>
       <form class="chat-input-row" id="chat-form-${c.id}">
-        <input type="file" id="chat-file-${c.id}" style="display:none" accept="image/*,video/*,.pdf,.txt,.docx">
+        <input type="file" id="chat-file-${c.id}" style="display:none" accept="image/*,video/*,.pdf,.txt,.log,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.zip,.rar,.7z">
         <button type="button" data-cid="${c.id}" class="btn-chat-anexo btn btn-secondary btn-sm" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         </button>
@@ -1878,7 +1878,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Adicionar arquivos
           </button>
-          <input type="file" id="ch-anexo" multiple accept="image/*,video/*,.pdf,.txt,.docx" style="display:none">
+          <input type="file" id="ch-anexo" multiple accept="image/*,video/*,.pdf,.txt,.log,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.zip,.rar,.7z" style="display:none">
           <div class="anexo-tiles" id="ch-anexo-tiles"></div>
           <p class="form-hint" id="ch-anexo-hint">Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.</p>
         </div>

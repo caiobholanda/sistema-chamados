@@ -332,7 +332,7 @@ function renderDetalhe(s) {
             <button type="button" id="file-chip-clear-sug-${s.id}" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;color:var(--text-muted);font-size:.85rem" title="Remover arquivo">✕</button>
           </div>
           <div class="chat-input-row" style="display:flex;gap:.4rem;padding:.5rem .75rem;background:var(--surface);border-top:1px solid var(--border)">
-            <input type="file" id="file-input-sug-${s.id}" style="display:none" accept="image/*,video/*,.pdf,.txt,.docx">
+            <input type="file" id="file-input-sug-${s.id}" style="display:none" accept="image/*,video/*,.pdf,.txt,.log,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.zip,.rar,.7z">
             <button type="button" id="btn-file-sug-${s.id}" class="btn btn-secondary btn-sm" title="Anexar arquivo" style="padding:.32rem .55rem;flex-shrink:0">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
             </button>
