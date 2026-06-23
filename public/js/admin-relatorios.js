@@ -203,7 +203,10 @@ function renderConteudo(dados, ranking, mes) {
             <div class="chart-title">Satisfação dos usuários</div>
             <div class="chart-sub">Comparativo de notas · escala 1–10</div>
           </div>
-          ${notaMedia.media ? `<span class="chart-pill ${notaMedia.media >= 8 ? 'good' : 'warn'}">${notaMedia.media.toFixed(1).replace('.', ',')} este mês</span>` : ''}
+          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+            ${notaMedia.media ? `<span class="chart-pill ${notaMedia.media >= 8 ? 'good' : 'warn'}">${notaMedia.media.toFixed(1).replace('.', ',')} este mês</span>` : ''}
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-ver-avaliados" style="font-size:.68rem" title="Ver todos os chamados avaliados">Ver chamados avaliados</button>
+          </div>
         </div>
         ${comparacaoNotasHtml(notaMedia, notaMesAntObj, notaAnoMedia, notaAnoTotal, mes)}
       </div>
@@ -567,3 +570,140 @@ document.addEventListener('DOMContentLoaded', () => {
 
   carregar(mes);
 });
+
+// ── Modal "Chamados avaliados" ─────────────────────────────
+let _avalEscHandler = null;
+let _avalBodyOverflow = '';
+
+function _fmtDataHoraBR(s) {
+  if (!s) return '—';
+  const iso = s.includes('T') ? s : s.replace(' ', 'T');
+  const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
+}
+
+function _fecharModalAvaliados() {
+  const ov = document.getElementById('aval-overlay');
+  if (ov) ov.remove();
+  document.body.style.overflow = _avalBodyOverflow;
+  if (_avalEscHandler) {
+    document.removeEventListener('keydown', _avalEscHandler);
+    _avalEscHandler = null;
+  }
+}
+
+function _renderOverlayAvaliados(innerHtml) {
+  const ja = document.getElementById('aval-overlay');
+  if (ja) ja.remove();
+  const ov = document.createElement('div');
+  ov.id = 'aval-overlay';
+  ov.className = 'modal-overlay open';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'Chamados avaliados');
+  ov.innerHTML = `<div class="modal" style="max-width:min(96vw,820px)" tabindex="-1">${innerHtml}</div>`;
+  document.body.appendChild(ov);
+
+  if (_avalEscHandler == null) {
+    _avalBodyOverflow = document.body.style.overflow || '';
+    document.body.style.overflow = 'hidden';
+    _avalEscHandler = (e) => { if (e.key === 'Escape') _fecharModalAvaliados(); };
+    document.addEventListener('keydown', _avalEscHandler);
+  }
+
+  ov.addEventListener('click', (e) => { if (e.target === ov) _fecharModalAvaliados(); });
+  ov.querySelectorAll('[data-aval-close]').forEach(b => b.addEventListener('click', _fecharModalAvaliados));
+
+  const focusEl = ov.querySelector('.modal');
+  if (focusEl) focusEl.focus();
+  return ov;
+}
+
+function _headerAvaliados(sub) {
+  return `
+    <div class="modal-header">
+      <div>
+        <h2 style="margin:0">Chamados avaliados</h2>
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:.15rem">${_esc(sub || '')}</div>
+      </div>
+      <button type="button" class="modal-close" data-aval-close aria-label="Fechar">✕</button>
+    </div>`;
+}
+
+function _cardAvaliado(c) {
+  const nota = Number(c.nota);
+  const corNota = nota >= 8 ? 'var(--success)' : nota >= 6 ? 'var(--warning)' : 'var(--danger)';
+  const cat = c.servico_nome ? _esc(c.servico_nome) : _esc(_catLabel(c.categoria));
+  const comentario = (c.comentario_avaliacao || '').trim();
+  return `
+    <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;background:var(--surface-2)">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
+        <div style="display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap">
+          <strong style="color:var(--gold);font-size:.95rem">#${c.id}</strong>
+          <span style="color:var(--text);font-weight:600">${cat}</span>
+        </div>
+        <div style="font-weight:700;color:${corNota};font-size:1rem">${nota.toFixed(1).replace('.', ',')}<small style="color:var(--text-muted);font-weight:400">/10</small></div>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;font-size:.78rem;color:var(--text-secondary);margin-top:.35rem;align-items:center">
+        <span>${_esc(c.nome || '—')}</span>
+        <span style="color:var(--text-muted)">•</span>
+        <span>${_esc(c.setor || '—')}</span>
+        <span style="color:var(--text-muted)">•</span>
+        <span>Concluído em ${_fmtDataHoraBR(c.concluido_em)}</span>
+      </div>
+      ${comentario ? `<div style="margin-top:.55rem;padding:.5rem .7rem;background:var(--surface);border-left:3px solid var(--gold);border-radius:var(--radius-sm);font-size:.82rem;color:var(--text);font-style:italic">“${_esc(comentario)}”</div>` : ''}
+    </div>`;
+}
+
+function _renderListaAvaliados(arr) {
+  const total = arr.length;
+  const sub = total === 0
+    ? 'Nenhum chamado avaliado encontrado'
+    : `${total} chamado${total !== 1 ? 's' : ''} avaliado${total !== 1 ? 's' : ''} · ordenado por mais recente`;
+  const body = total === 0
+    ? `<div class="chart-empty" style="padding:2rem">Nenhum chamado avaliado encontrado</div>`
+    : `<div style="display:flex;flex-direction:column;gap:.6rem">${arr.map(_cardAvaliado).join('')}</div>`;
+  _renderOverlayAvaliados(`
+    ${_headerAvaliados(sub)}
+    <div class="modal-body" style="padding:1rem 1.25rem">${body}</div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-aval-close>Fechar</button>
+    </div>
+  `);
+}
+
+async function abrirModalAvaliados() {
+  _renderOverlayAvaliados(`
+    ${_headerAvaliados('Carregando…')}
+    <div class="modal-body" style="padding:2rem"><div class="loading"><div class="spinner"></div></div></div>
+  `);
+  try {
+    const r = await api('/api/admin/chamados');
+    if (!r.ok) throw new Error('falha');
+    const arr = await r.json();
+    const avaliados = arr.filter(c => c.nota !== null && c.nota !== undefined);
+    avaliados.sort((a, b) => (b.concluido_em || '').localeCompare(a.concluido_em || ''));
+    _renderListaAvaliados(avaliados);
+  } catch (err) {
+    if (err && err.message === '401') return;
+    console.error(err);
+    _renderOverlayAvaliados(`
+      ${_headerAvaliados('Erro ao carregar')}
+      <div class="modal-body" style="padding:1.5rem">
+        <div class="alert alert-danger">Erro ao carregar chamados avaliados.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-aval-close>Fechar</button>
+      </div>
+    `);
+  }
+}
+
+if (!window.__avalDelegado) {
+  window.__avalDelegado = true;
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest && e.target.closest('#btn-ver-avaliados');
+    if (btn) abrirModalAvaliados();
+  });
+}
