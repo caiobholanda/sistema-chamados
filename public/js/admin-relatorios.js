@@ -574,6 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Modal "Chamados avaliados" ─────────────────────────────
 let _avalEscHandler = null;
 let _avalBodyOverflow = '';
+let _avalDados = [];
 
 function _fmtDataHoraBR(s) {
   if (!s) return '—';
@@ -656,21 +657,90 @@ function _cardAvaliado(c) {
     </div>`;
 }
 
-function _renderListaAvaliados(arr) {
-  const total = arr.length;
+function _renderShellAvaliados() {
+  const total = _avalDados.length;
   const sub = total === 0
-    ? 'Nenhum chamado avaliado encontrado'
-    : `${total} chamado${total !== 1 ? 's' : ''} avaliado${total !== 1 ? 's' : ''} · ordenado por mais recente`;
-  const body = total === 0
-    ? `<div class="chart-empty" style="padding:2rem">Nenhum chamado avaliado encontrado</div>`
-    : `<div style="display:flex;flex-direction:column;gap:.6rem">${arr.map(_cardAvaliado).join('')}</div>`;
+    ? 'Nenhum chamado concluído com avaliação'
+    : `${total} chamado${total !== 1 ? 's' : ''} concluído${total !== 1 ? 's' : ''} com avaliação`;
   _renderOverlayAvaliados(`
     ${_headerAvaliados(sub)}
-    <div class="modal-body" style="padding:1rem 1.25rem">${body}</div>
+    <div class="modal-body" style="padding:0;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:.75rem 1.25rem;border-bottom:1px solid var(--border);background:var(--surface-2);display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+        <div>
+          <label for="aval-de" style="display:block;font-size:.68rem;color:var(--text-muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.2rem">De</label>
+          <input type="date" id="aval-de" class="form-control" style="padding:.35rem .55rem;font-size:.82rem;width:auto">
+        </div>
+        <div>
+          <label for="aval-ate" style="display:block;font-size:.68rem;color:var(--text-muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.2rem">Até</label>
+          <input type="date" id="aval-ate" class="form-control" style="padding:.35rem .55rem;font-size:.82rem;width:auto">
+        </div>
+        <button type="button" id="aval-limpar" class="btn btn-secondary btn-sm" style="font-size:.68rem">Limpar filtro</button>
+        <div id="aval-contagem" style="margin-left:auto;font-size:.78rem;color:var(--text-secondary);font-weight:600"></div>
+      </div>
+      <div id="aval-lista" style="padding:1rem 1.25rem;overflow-y:auto;flex:1"></div>
+    </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-aval-close>Fechar</button>
     </div>
   `);
+
+  const de = document.getElementById('aval-de');
+  const ate = document.getElementById('aval-ate');
+  const limpar = document.getElementById('aval-limpar');
+  de.addEventListener('change', _atualizarListaAvaliados);
+  ate.addEventListener('change', _atualizarListaAvaliados);
+  limpar.addEventListener('click', () => {
+    de.value = '';
+    ate.value = '';
+    _atualizarListaAvaliados();
+  });
+
+  _atualizarListaAvaliados();
+}
+
+function _atualizarListaAvaliados() {
+  const deEl = document.getElementById('aval-de');
+  const ateEl = document.getElementById('aval-ate');
+  if (!deEl || !ateEl) return;
+  const de = deEl.value;
+  const ate = ateEl.value;
+
+  let filtrado = _avalDados;
+  if (de)  filtrado = filtrado.filter(c => (c.concluido_em || '').slice(0, 10) >= de);
+  if (ate) filtrado = filtrado.filter(c => (c.concluido_em || '').slice(0, 10) <= ate);
+
+  const contagem = document.getElementById('aval-contagem');
+  const lista = document.getElementById('aval-lista');
+  const totalFiltrado = filtrado.length;
+  const totalGeral = _avalDados.length;
+  const sufixoFiltro = (de || ate) ? ` de ${totalGeral}` : '';
+  contagem.textContent = totalFiltrado === 0
+    ? 'Nenhum chamado no filtro'
+    : `${totalFiltrado} chamado${totalFiltrado !== 1 ? 's' : ''}${sufixoFiltro}`;
+
+  if (totalFiltrado === 0) {
+    lista.innerHTML = `<div class="chart-empty" style="padding:2rem">${(de || ate) ? 'Nenhum chamado avaliado no período selecionado.' : 'Nenhum chamado concluído com avaliação.'}</div>`;
+    return;
+  }
+
+  const grupos = {};
+  for (const c of filtrado) {
+    const ym = (c.concluido_em || '').slice(0, 7) || 'sem-data';
+    (grupos[ym] = grupos[ym] || []).push(c);
+  }
+  const chaves = Object.keys(grupos).sort().reverse();
+
+  lista.innerHTML = chaves.map(ym => `
+    <section style="margin-bottom:1.25rem">
+      <header style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem;margin-bottom:.55rem;padding:.35rem 0 .45rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1">
+        <h3 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:1.05rem;font-weight:600;color:var(--text);text-transform:capitalize;letter-spacing:.01em">${ym === 'sem-data' ? 'Sem data de conclusão' : _esc(nomeMes(ym))}</h3>
+        <span style="font-size:.7rem;color:var(--text-muted);font-weight:600">${grupos[ym].length} chamado${grupos[ym].length !== 1 ? 's' : ''}</span>
+      </header>
+      <div style="display:flex;flex-direction:column;gap:.55rem">
+        ${grupos[ym].map(_cardAvaliado).join('')}
+      </div>
+    </section>
+  `).join('');
 }
 
 async function abrirModalAvaliados() {
@@ -682,9 +752,11 @@ async function abrirModalAvaliados() {
     const r = await api('/api/admin/chamados');
     if (!r.ok) throw new Error('falha');
     const arr = await r.json();
-    const avaliados = arr.filter(c => c.nota !== null && c.nota !== undefined && c.status === 'concluido');
-    avaliados.sort((a, b) => (b.concluido_em || '').localeCompare(a.concluido_em || ''));
-    _renderListaAvaliados(avaliados);
+    _avalDados = arr
+      .filter(c => c.nota !== null && c.nota !== undefined && c.status === 'concluido')
+      .sort((a, b) => (b.concluido_em || '').localeCompare(a.concluido_em || ''));
+    _renderShellAvaliados();
+    return;
   } catch (err) {
     if (err && err.message === '401') return;
     console.error(err);
