@@ -197,9 +197,12 @@ app.use((err, req, res, next) => {
   if (err && err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ erro: 'Arquivo muito grande. Máximo 200 MB.' });
   }
-  if (err && err.code === 'LIMIT_UNEXPECTED_FILE') {
+  if (err && err.code === 'TIPO_ARQUIVO_INVALIDO') {
     const { MSG_TIPO_INVALIDO } = require('./src/upload');
     return res.status(400).json({ erro: MSG_TIPO_INVALIDO });
+  }
+  if (err && err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({ erro: `Campo de upload inválido: recebido "${err.field}".` });
   }
   console.error(err);
   return res.status(500).json({ erro: 'Erro interno no servidor' });

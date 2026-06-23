@@ -61,7 +61,13 @@ function fileFilter(_req, file, cb) {
   // Aceita se extensão OU mime estiverem na whitelist — alguns navegadores enviam
   // application/octet-stream para Office/zip, o que daria falso negativo se exigisse ambos.
   if (!extOk && !mimeOk) {
-    return cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Tipo de arquivo não permitido'));
+    // Código próprio para diferenciar de LIMIT_UNEXPECTED_FILE (multer dispara esse
+    // quando o NOME do campo é desconhecido — sintoma totalmente diferente).
+    const err = new Error('Tipo de arquivo não permitido');
+    err.code = 'TIPO_ARQUIVO_INVALIDO';
+    err.extensao = ext;
+    err.mimetype = file.mimetype;
+    return cb(err);
   }
   cb(null, true);
 }
@@ -87,7 +93,10 @@ function uploadMiddleware(field) {
     upload.single(field)(req, res, err => {
       if (!err) return next();
       if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ erro: 'Arquivo muito grande (máx. 200 MB).' });
-      return res.status(400).json({ erro: MSG_TIPO_INVALIDO });
+      if (err.code === 'TIPO_ARQUIVO_INVALIDO') return res.status(400).json({ erro: MSG_TIPO_INVALIDO });
+      if (err.code === 'LIMIT_UNEXPECTED_FILE')
+        return res.status(400).json({ erro: `Campo de upload inválido: recebido "${err.field}", esperado "${field}".` });
+      return res.status(400).json({ erro: 'Erro no upload', detalhe: err.message });
     });
   };
 }
@@ -108,9 +117,11 @@ function uploadChamadoMiddleware() {
         return next();
       }
       if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ erro: 'Arquivo muito grande (máx. 200 MB por arquivo).' });
-      if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE')
-        return res.status(400).json({ erro: 'Limite ou tipo de arquivo inválido. Máx. 10 anexos por chamado.' });
-      return res.status(400).json({ erro: MSG_TIPO_INVALIDO });
+      if (err.code === 'LIMIT_FILE_COUNT') return res.status(400).json({ erro: 'Máx. 10 anexos por chamado.' });
+      if (err.code === 'TIPO_ARQUIVO_INVALIDO') return res.status(400).json({ erro: MSG_TIPO_INVALIDO });
+      if (err.code === 'LIMIT_UNEXPECTED_FILE')
+        return res.status(400).json({ erro: `Campo de upload inválido: recebido "${err.field}", esperado "anexos" ou "anexo".` });
+      return res.status(400).json({ erro: 'Erro no upload', detalhe: err.message });
     });
   };
 }
