@@ -248,6 +248,9 @@ function renderCards(items) {
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div class="prog-next">Próxima: ${fmtDT(p.proxima_execucao)}</div>
+          ${p.proxima_canonica && p.proxima_canonica !== p.proxima_execucao
+            ? `<div style="font-size:.7rem;color:var(--text-secondary);margin-top:2px" title="O slot agendado caiu em feriado ou fim de semana; com 'pular feriados' ativo o cron move para o próximo dia útil.">Slot original: ${fmtDT(p.proxima_canonica)} <span style="color:var(--gold-dark,#92400e)">↗ movido</span></div>`
+            : ''}
           ${p.total_gerados ? `<div style="font-size:.7rem;color:var(--text-secondary)">${p.total_gerados} gerado${p.total_gerados>1?'s':''}</div>` : ''}
         </div>
       </div>
