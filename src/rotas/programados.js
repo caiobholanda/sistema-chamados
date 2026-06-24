@@ -6,7 +6,7 @@ const router  = express.Router();
 const { requireAdmin } = require('../auth');
 const db = require('../db');
 const { uploadChamadoMiddleware, UPLOADS_DIR } = require('../upload');
-const { calcularProxima, proximasN, avancarCanonica, aplicarSkip } = require('../programados');
+const { calcularProxima, proximasN, avancarCanonica, aplicarSkip, derivarCanonicaAnterior } = require('../programados');
 const { executarChamadosProgramados } = require('../scheduler');
 
 const FREQS_VALIDAS = ['diario','semanal','mensal','bimestral','trimestral','semestral','anual','data_unica'];
@@ -180,6 +180,62 @@ router.post('/debug/recompute-titulos', requireAdmin, (req, res) => {
     tx();
   }
   res.json({ ok: true, dryRun, total: linhas.length, alterados: alteracoes.length, alteracoes });
+});
+
+// POST /api/admin/programados/debug/recompute-proximas
+// Backfill para registros legados: recompoe proxima_canonica/proxima_execucao
+// a partir de ultima_execucao usando derivarCanonicaAnterior + avancarCanonica.
+// Necessario para limpar registros gravados ANTES da migracao da coluna
+// proxima_canonica (commit b00f20c) — esses registros tem proxima_execucao
+// pulando 1 slot devido ao bug antigo (cron usava `new Date()` em vez do slot
+// canonico). Default = dry-run; passe ?dryRun=0 para aplicar.
+router.post('/debug/recompute-proximas', requireAdmin, (req, res) => {
+  const dryRun = !(req.query.dryRun === '0' || req.body?.dryRun === false);
+  const linhas = db.getDb().prepare(`
+    SELECT * FROM chamados_programados
+    WHERE ativo = 1 AND ultima_execucao IS NOT NULL AND frequencia != 'data_unica'
+  `).all();
+  const alteracoes = [];
+  for (const prog of linhas) {
+    try {
+      const ultimaUtc = new Date(prog.ultima_execucao.replace(' ', 'T') + 'Z');
+      const canonicaAnt = derivarCanonicaAnterior(prog, ultimaUtc);
+      if (!canonicaAnt) { alteracoes.push({ id: prog.id, titulo: prog.titulo, erro: 'canonica anterior nao derivavel' }); continue; }
+      const novaCanon = avancarCanonica(prog, canonicaAnt);
+      const novaEfetiva = aplicarSkip(novaCanon, prog.pular_feriados, prog.hora);
+      const novaCanonISO = toISO(novaCanon);
+      const novaEfetISO = toISO(novaEfetiva);
+      if (novaEfetISO !== prog.proxima_execucao || novaCanonISO !== (prog.proxima_canonica || prog.proxima_execucao)) {
+        alteracoes.push({
+          id: prog.id,
+          titulo: prog.titulo,
+          frequencia: prog.frequencia,
+          dia_semana: prog.dia_semana,
+          dia_mes: prog.dia_mes,
+          hora: prog.hora,
+          ultima_execucao: prog.ultima_execucao,
+          canonica_derivada: toISO(canonicaAnt),
+          proxima_execucao_antes: prog.proxima_execucao,
+          proxima_execucao_depois: novaEfetISO,
+          proxima_canonica_antes: prog.proxima_canonica,
+          proxima_canonica_depois: novaCanonISO,
+        });
+      }
+    } catch (e) {
+      alteracoes.push({ id: prog.id, titulo: prog.titulo, erro: e.message });
+    }
+  }
+  if (!dryRun) {
+    const stmt = db.getDb().prepare('UPDATE chamados_programados SET proxima_canonica = ?, proxima_execucao = ? WHERE id = ?');
+    const tx = db.getDb().transaction(() => {
+      for (const a of alteracoes) {
+        if (a.erro) continue;
+        stmt.run(a.proxima_canonica_depois, a.proxima_execucao_depois, a.id);
+      }
+    });
+    tx();
+  }
+  res.json({ ok: true, dryRun, total: linhas.length, alterados: alteracoes.filter(a => !a.erro).length, erros: alteracoes.filter(a => a.erro).length, alteracoes });
 });
 
 // GET /api/admin/programados

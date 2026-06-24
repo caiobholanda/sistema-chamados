@@ -164,6 +164,64 @@ function aplicarSkip(dataCanonica, pular_feriados, hora) {
   return _fromFtz(ftz.getUTCFullYear(), ftz.getUTCMonth(), ftz.getUTCDate(), hh, mm);
 }
 
+// ── Derivacao da canonica anterior a partir de uma data arbitraria ───────────
+// Usado pelo backfill /debug/recompute-proximas para corrigir registros cuja
+// proxima_execucao foi gravada com a logica antiga (que usava `new Date()`
+// como ancora em vez do slot canonico). A `ultima_execucao` reflete quando o
+// cron FIROU, nao necessariamente o slot ideal — esta funcao reconstroi o
+// slot canonico mais recente <= dataUtc, alinhado a dia_semana/dia_mes/hora.
+function derivarCanonicaAnterior(prog, dataUtc) {
+  const { frequencia, dia_semana, dia_mes, mes, hora, data_unica } = prog;
+  const [hh, mm] = String(hora || '08:00').split(':').map(Number);
+
+  if (frequencia === 'data_unica') {
+    if (!data_unica || !/^\d{4}-\d{2}-\d{2}$/.test(data_unica)) return null;
+    const [yy, mo, dd] = data_unica.split('-').map(Number);
+    return _fromFtz(yy, mo - 1, dd, hh, mm);
+  }
+
+  const refUtc = new Date(dataUtc);
+  const ftz = _toFtz(refUtc);
+  const y = ftz.getUTCFullYear(), mo = ftz.getUTCMonth(), d = ftz.getUTCDate();
+  const dow = ftz.getUTCDay();
+
+  switch (frequencia) {
+    case 'diario': {
+      let cand = _fromFtz(y, mo, d, hh, mm);
+      if (cand > refUtc) cand = _fromFtz(y, mo, d - 1, hh, mm);
+      return cand;
+    }
+    case 'semanal': {
+      // Volta para o dia_semana mais recente <= refUtc.
+      let diff = (dow - dia_semana + 7) % 7;
+      let cand = _fromFtz(y, mo, d - diff, hh, mm);
+      if (cand > refUtc) cand = _fromFtz(y, mo, d - diff - 7, hh, mm);
+      return cand;
+    }
+    case 'mensal':
+    case 'bimestral':
+    case 'trimestral':
+    case 'semestral': {
+      const step = { mensal: 1, bimestral: 2, trimestral: 3, semestral: 6 }[frequencia];
+      let cand = _fromFtz(y, mo, _clampDia(y, mo, dia_mes), hh, mm);
+      if (cand > refUtc) {
+        const candFtz = _toFtz(cand);
+        const cy = candFtz.getUTCFullYear();
+        const cmo = candFtz.getUTCMonth() - step;
+        cand = _fromFtz(cy, cmo, _clampDia(cy, cmo, dia_mes), hh, mm);
+      }
+      return cand;
+    }
+    case 'anual': {
+      let cand = _fromFtz(y, mes - 1, _clampDia(y, mes - 1, dia_mes), hh, mm);
+      if (cand > refUtc) cand = _fromFtz(y - 1, mes - 1, _clampDia(y - 1, mes - 1, dia_mes), hh, mm);
+      return cand;
+    }
+    default:
+      return refUtc;
+  }
+}
+
 // ── API publica back-compat ──────────────────────────────────────────────────
 // Mantem assinatura antiga: calcula canonica + aplica skip.
 function calcularProxima(prog, afterExec = null) {
@@ -189,6 +247,6 @@ function proximasN(prog, n = 5) {
 
 module.exports = {
   calcularProxima, proximasN, isFeriado,
-  avancarCanonica, aplicarSkip,
+  avancarCanonica, aplicarSkip, derivarCanonicaAnterior,
   SENTINELA_DATA_UNICA_PASSADA,
 };

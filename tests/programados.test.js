@@ -10,7 +10,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { calcularProxima, proximasN, isFeriado, avancarCanonica, aplicarSkip } = require('../src/programados');
+const { calcularProxima, proximasN, isFeriado, avancarCanonica, aplicarSkip, derivarCanonicaAnterior } = require('../src/programados');
 
 // Helper: formata um Date UTC como 'YYYY-MM-DD HH:mm:ss' em horario Fortaleza.
 function asFtz(d) {
@@ -286,6 +286,79 @@ test('backfill semanal: skip de feriado na efetiva nao influencia avanco', () =>
     '2026-07-07 08:00', // ter
     '2026-07-14 08:00', // ter
   ]);
+});
+
+// ── derivarCanonicaAnterior: backfill de registros legados ───────────────────
+// Estes testes simulam casos reais do banco onde ultima_execucao nao bate com
+// o slot canonico (cron firou atrasado / em dia diferente do agendado).
+
+test('derivarCanonicaAnterior diario: ultima na hora canonica retorna ela mesma', () => {
+  const prog = { frequencia: 'diario', hora: '08:16', pular_feriados: 0 };
+  const ultima = new Date('2026-06-23T11:16:00Z'); // 08:16 BRT
+  const canon = derivarCanonicaAnterior(prog, ultima);
+  assert.equal(asFtz(canon), '2026-06-23 08:16');
+});
+
+test('derivarCanonicaAnterior diario: ultima horas depois retorna mesma data na hora', () => {
+  const prog = { frequencia: 'diario', hora: '08:16', pular_feriados: 0 };
+  const ultima = new Date('2026-06-23T18:00:00Z'); // 15:00 BRT
+  const canon = derivarCanonicaAnterior(prog, ultima);
+  assert.equal(asFtz(canon), '2026-06-23 08:16');
+});
+
+test('derivarCanonicaAnterior diario: ultima madrugada retorna dia anterior na hora', () => {
+  const prog = { frequencia: 'diario', hora: '08:16', pular_feriados: 0 };
+  const ultima = new Date('2026-06-23T05:00:00Z'); // 02:00 BRT
+  const canon = derivarCanonicaAnterior(prog, ultima);
+  assert.equal(asFtz(canon), '2026-06-22 08:16');
+});
+
+test('derivarCanonicaAnterior semanal dia_semana=3 (qua) ultima na qua certa', () => {
+  const prog = { frequencia: 'semanal', dia_semana: 3, hora: '15:00', pular_feriados: 0 };
+  const ultima = new Date('2026-06-17T18:00:00Z'); // qua 15:00 BRT
+  const canon = derivarCanonicaAnterior(prog, ultima);
+  assert.equal(asFtz(canon), '2026-06-17 15:00');
+});
+
+test('derivarCanonicaAnterior semanal: ultima drift para qui volta para qua anterior', () => {
+  // Caso REAL do id 4 no banco: cron firou tarde, ultima ficou em qui mas
+  // dia_semana=3 (qua). Derivacao deve voltar para a qua mais recente.
+  const prog = { frequencia: 'semanal', dia_semana: 3, hora: '15:00', pular_feriados: 0 };
+  const ultima = new Date('2026-06-18T03:00:00Z'); // qui 00:00 BRT
+  const canon = derivarCanonicaAnterior(prog, ultima);
+  assert.equal(asFtz(canon), '2026-06-17 15:00', 'volta para qua 17/06');
+});
+
+test('backfill end-to-end: id 4 (semanal qua) corrige proxima de qui 25 para qua 24', () => {
+  // Simulacao do registro id 4 do relato: cron firou drift e proxima ficou
+  // marcada para qui 25/06. Apos backfill: deve ir para qua 24/06.
+  const prog = { frequencia: 'semanal', dia_semana: 3, hora: '15:00', pular_feriados: 0 };
+  const ultima = new Date('2026-06-17T20:00:00Z'); // qua 17/06 17:00 BRT
+  const canonAnt = derivarCanonicaAnterior(prog, ultima);
+  const novaCanon = avancarCanonica(prog, canonAnt);
+  assert.equal(asFtz(novaCanon), '2026-06-24 15:00', 'proxima = qua 24/06 15:00 BRT');
+});
+
+test('backfill end-to-end: id 5 (diario 08:16) corrige proxima de 25 para 24', () => {
+  const prog = { frequencia: 'diario', hora: '08:16', pular_feriados: 0 };
+  const ultima = new Date('2026-06-23T11:16:00Z'); // 23/06 08:16 BRT
+  const canonAnt = derivarCanonicaAnterior(prog, ultima);
+  const novaCanon = avancarCanonica(prog, canonAnt);
+  assert.equal(asFtz(novaCanon), '2026-06-24 08:16', 'proxima = 24/06 08:16');
+});
+
+test('derivarCanonicaAnterior mensal dia 15: ultima em 20 retorna 15 mesmo mes', () => {
+  const prog = { frequencia: 'mensal', dia_mes: 15, hora: '08:00', pular_feriados: 0 };
+  const ultima = new Date('2026-06-20T15:00:00Z'); // 12:00 BRT
+  const canon = derivarCanonicaAnterior(prog, ultima);
+  assert.equal(asFtz(canon), '2026-06-15 08:00');
+});
+
+test('derivarCanonicaAnterior mensal dia 15: ultima em 10 retorna 15 mes anterior', () => {
+  const prog = { frequencia: 'mensal', dia_mes: 15, hora: '08:00', pular_feriados: 0 };
+  const ultima = new Date('2026-06-10T15:00:00Z'); // 12:00 BRT
+  const canon = derivarCanonicaAnterior(prog, ultima);
+  assert.equal(asFtz(canon), '2026-05-15 08:00');
 });
 
 // ── Backwards-compat: calcularProxima continua aplicando skip ────────────────
