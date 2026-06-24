@@ -260,10 +260,10 @@ function renderCards(items) {
       <div class="prog-card-actions">
         <button class="toggle-btn ${p.ativo?'ativo':'inativo'}" onclick="toggleProg(${p.id},${p.ativo})">${p.ativo?'✓ Ativo':'✗ Inativo'}</button>
         <button class="btn btn-ghost btn-sm" onclick="editarProg(${p.id})">Editar</button>
-        <button class="btn btn-ghost btn-sm" onclick="verLog(${p.id},'${esc(p.titulo)}')">Log</button>
+        <button class="btn btn-ghost btn-sm" data-titulo="${esc(p.titulo)}" onclick="verLog(${p.id}, this.dataset.titulo)">Log</button>
         <button class="btn btn-ghost btn-sm" onclick="gerarAgora(event)" title="Força o cron a varrer todos os agendamentos pendentes agora.">Gerar agora</button>
         <div style="flex:1"></div>
-        <button class="btn btn-danger btn-sm" onclick="deletarProg(${p.id},'${esc(p.titulo)}')">Excluir</button>
+        <button class="btn btn-danger btn-sm" data-titulo="${esc(p.titulo)}" onclick="deletarProg(${p.id}, this.dataset.titulo)">Excluir</button>
       </div>
     </div>
   `).join('');
@@ -332,7 +332,10 @@ function _renderProgTiles() {
     return;
   }
   box.innerHTML = _progArquivos.map((f, i) => {
-    const nome = f.name.replace(/"/g, '&quot;');
+    // f.name vem do file picker — usuario pode renomear localmente para qualquer
+    // string (inclusive HTML/JS). Usa esc() para escapar todos os caracteres
+    // perigosos em contexto de texto e atributo HTML.
+    const nome = esc(f.name);
     let media;
     if (_IMGS_EXT_RE.test(f.name)) {
       const url = URL.createObjectURL(f);

@@ -3,7 +3,7 @@ const express = require('express');
 const path    = require('path');
 const fs      = require('fs');
 const router  = express.Router();
-const { requireAdmin } = require('../auth');
+const { requireAdmin, requireMaster } = require('../auth');
 const db = require('../db');
 const { uploadChamadoMiddleware, UPLOADS_DIR } = require('../upload');
 const { calcularProxima, proximasN, avancarCanonica, aplicarSkip, derivarCanonicaAnterior } = require('../programados');
@@ -24,6 +24,10 @@ function _hojeFortalezaISO() {
 function toISO(d) { return d.toISOString().replace('T',' ').slice(0,19); }
 
 function _sanitizarNomeArq(nome) {
+  // ̀-ͯ = Combining Diacritical Marks (acentos separados pelo NFD).
+  // Usa escape Unicode em vez de literais para evitar problemas de encoding no
+  // source (vimos report de regex corrompida — funciona na pratica, mas escape
+  // e' robusto a transformacoes de arquivo).
   return nome.normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100);
 }
@@ -110,17 +114,25 @@ function montarProg(body, req, existing = null) {
   let setor     = 'TI';
   let usuarioId = null;
 
-  const usuIdRaw = body.usuario_id ? parseInt(body.usuario_id, 10) : null;
+  const usuIdRawN = body.usuario_id ? parseInt(body.usuario_id, 10) : NaN;
+  const usuIdRaw = Number.isInteger(usuIdRawN) && usuIdRawN > 0 ? usuIdRawN : null;
   if (usuIdRaw && req.admin.is_master) {
     const u = db.buscarUsuarioPorId(usuIdRaw);
     if (u && u.ativo) { usuarioId = u.id; nome = u.nome; setor = u.setor || 'TI'; }
   }
 
   let adminResponsavelId = req.admin.sub;
-  const adminRespRaw = body.admin_responsavel_id ? parseInt(body.admin_responsavel_id, 10) : null;
-  if (adminRespRaw) {
+  const adminRespRawN = body.admin_responsavel_id ? parseInt(body.admin_responsavel_id, 10) : NaN;
+  const adminRespRaw = Number.isInteger(adminRespRawN) && adminRespRawN > 0 ? adminRespRawN : null;
+  if (adminRespRaw && adminRespRaw !== req.admin.sub) {
+    // Gate: somente master pode delegar para OUTRO admin. Admin comum sempre
+    // fica como responsavel de si mesmo. Sem este gate, qualquer admin podia
+    // atribuir o agendamento para qualquer outro admin (incluindo master).
+    if (!req.admin.is_master) return { erro: 'Apenas admin master pode atribuir para outro admin' };
     const alvo = db.buscarAdminPorId(adminRespRaw);
     if (alvo && alvo.ativo) adminResponsavelId = alvo.id;
+  } else if (adminRespRaw) {
+    adminResponsavelId = adminRespRaw; // proprio admin — sempre permitido
   }
 
   const prog = {
@@ -151,7 +163,7 @@ function montarProg(body, req, existing = null) {
 }
 
 // POST /api/admin/programados/debug/trigger
-router.post('/debug/trigger', requireAdmin, async (req, res) => {
+router.post('/debug/trigger', requireMaster, async (req, res) => {
   const pendentesAntes = db.getProgramadosPendentes().map(p => ({ id: p.id, titulo: p.titulo, proxima: p.proxima_execucao }));
   const resultados = await executarChamadosProgramados();
   res.json({ ok: true, pendentesAntes, resultados });
@@ -162,7 +174,7 @@ router.post('/debug/trigger', requireAdmin, async (req, res) => {
 // cujo titulo provavelmente foi cortado no limite antigo de 60 chars. Heuristica:
 // LENGTH(titulo) >= 60 e (descricao mais longa que titulo OU titulo != prefixo de descricao).
 // Default = dry-run. Passe ?dryRun=0 (ou {dryRun:false}) para aplicar.
-router.post('/debug/recompute-titulos', requireAdmin, (req, res) => {
+router.post('/debug/recompute-titulos', requireMaster, (req, res) => {
   const dryRun = !(req.query.dryRun === '0' || req.body?.dryRun === false);
   const linhas = db.getDb().prepare('SELECT id, titulo, descricao FROM chamados_programados').all();
   const alteracoes = [];
@@ -189,53 +201,56 @@ router.post('/debug/recompute-titulos', requireAdmin, (req, res) => {
 // proxima_canonica (commit b00f20c) — esses registros tem proxima_execucao
 // pulando 1 slot devido ao bug antigo (cron usava `new Date()` em vez do slot
 // canonico). Default = dry-run; passe ?dryRun=0 para aplicar.
-router.post('/debug/recompute-proximas', requireAdmin, (req, res) => {
+router.post('/debug/recompute-proximas', requireMaster, (req, res) => {
   const dryRun = !(req.query.dryRun === '0' || req.body?.dryRun === false);
-  const linhas = db.getDb().prepare(`
-    SELECT * FROM chamados_programados
-    WHERE ativo = 1 AND ultima_execucao IS NOT NULL AND frequencia != 'data_unica'
-  `).all();
-  const alteracoes = [];
-  for (const prog of linhas) {
-    try {
-      const ultimaUtc = new Date(prog.ultima_execucao.replace(' ', 'T') + 'Z');
-      const canonicaAnt = derivarCanonicaAnterior(prog, ultimaUtc);
-      if (!canonicaAnt) { alteracoes.push({ id: prog.id, titulo: prog.titulo, erro: 'canonica anterior nao derivavel' }); continue; }
-      const novaCanon = avancarCanonica(prog, canonicaAnt);
-      const novaEfetiva = aplicarSkip(novaCanon, prog.pular_feriados, prog.hora);
-      const novaCanonISO = toISO(novaCanon);
-      const novaEfetISO = toISO(novaEfetiva);
-      if (novaEfetISO !== prog.proxima_execucao || novaCanonISO !== (prog.proxima_canonica || prog.proxima_execucao)) {
-        alteracoes.push({
-          id: prog.id,
-          titulo: prog.titulo,
-          frequencia: prog.frequencia,
-          dia_semana: prog.dia_semana,
-          dia_mes: prog.dia_mes,
-          hora: prog.hora,
-          ultima_execucao: prog.ultima_execucao,
-          canonica_derivada: toISO(canonicaAnt),
-          proxima_execucao_antes: prog.proxima_execucao,
-          proxima_execucao_depois: novaEfetISO,
-          proxima_canonica_antes: prog.proxima_canonica,
-          proxima_canonica_depois: novaCanonISO,
-        });
+  // Envolve SELECT + UPDATE em uma unica transacao IMMEDIATE para evitar race:
+  // se dois admins disparam recompute em paralelo, sem o lock o segundo leria
+  // os dados ja-corrigidos do primeiro e nao alteraria nada (idempotente OK),
+  // mas leria estado parcial. Com IMMEDIATE, o segundo bloqueia ate o primeiro
+  // terminar (sqlite garante ordenacao serializavel das writes).
+  const dbi = db.getDb();
+  const computar = dbi.transaction(() => {
+    const linhas = dbi.prepare(`
+      SELECT * FROM chamados_programados
+      WHERE ativo = 1 AND ultima_execucao IS NOT NULL AND frequencia != 'data_unica'
+    `).all();
+    const alteracoes = [];
+    for (const prog of linhas) {
+      try {
+        const ultimaUtc = new Date(prog.ultima_execucao.replace(' ', 'T') + 'Z');
+        const canonicaAnt = derivarCanonicaAnterior(prog, ultimaUtc);
+        if (!canonicaAnt) { alteracoes.push({ id: prog.id, titulo: prog.titulo, erro: 'canonica anterior nao derivavel' }); continue; }
+        const novaCanon = avancarCanonica(prog, canonicaAnt);
+        const novaEfetiva = aplicarSkip(novaCanon, prog.pular_feriados, prog.hora);
+        const novaCanonISO = toISO(novaCanon);
+        const novaEfetISO = toISO(novaEfetiva);
+        if (novaEfetISO !== prog.proxima_execucao || novaCanonISO !== (prog.proxima_canonica || prog.proxima_execucao)) {
+          alteracoes.push({
+            id: prog.id, titulo: prog.titulo, frequencia: prog.frequencia,
+            dia_semana: prog.dia_semana, dia_mes: prog.dia_mes, hora: prog.hora,
+            ultima_execucao: prog.ultima_execucao,
+            canonica_derivada: toISO(canonicaAnt),
+            proxima_execucao_antes: prog.proxima_execucao,
+            proxima_execucao_depois: novaEfetISO,
+            proxima_canonica_antes: prog.proxima_canonica,
+            proxima_canonica_depois: novaCanonISO,
+          });
+        }
+      } catch (e) {
+        alteracoes.push({ id: prog.id, titulo: prog.titulo, erro: e.message });
       }
-    } catch (e) {
-      alteracoes.push({ id: prog.id, titulo: prog.titulo, erro: e.message });
     }
-  }
-  if (!dryRun) {
-    const stmt = db.getDb().prepare('UPDATE chamados_programados SET proxima_canonica = ?, proxima_execucao = ? WHERE id = ?');
-    const tx = db.getDb().transaction(() => {
+    if (!dryRun) {
+      const stmt = dbi.prepare('UPDATE chamados_programados SET proxima_canonica = ?, proxima_execucao = ? WHERE id = ?');
       for (const a of alteracoes) {
         if (a.erro) continue;
         stmt.run(a.proxima_canonica_depois, a.proxima_execucao_depois, a.id);
       }
-    });
-    tx();
-  }
-  res.json({ ok: true, dryRun, total: linhas.length, alterados: alteracoes.filter(a => !a.erro).length, erros: alteracoes.filter(a => a.erro).length, alteracoes });
+    }
+    return { total: linhas.length, alteracoes };
+  });
+  const { total, alteracoes } = computar.immediate();
+  res.json({ ok: true, dryRun, total, alterados: alteracoes.filter(a => !a.erro).length, erros: alteracoes.filter(a => a.erro).length, alteracoes });
 });
 
 // GET /api/admin/programados
@@ -300,11 +315,20 @@ router.post('/', requireAdmin, uploadChamadoMiddleware(), (req, res) => {
     prog.anexos_json = null;
     const id = db.inserirChamadoProgramado(prog);
     if (arquivos.length) {
-      const anexos = arquivos.map((f, i) => ({
-        path: renomearAnexoProg(id, i, f.path, f.originalname),
-        nome_original: f.originalname,
-      }));
-      db.atualizarChamadoProgramado(id, { ...prog, anexos_json: JSON.stringify(anexos) });
+      // Rollback: se rename ou update falharem, remove o registro recem-criado
+      // para nao deixar um agendamento "orfao" sem anexos. O finally do try
+      // externo ja cuida de limpar os arquivos temporarios via arquivos.forEach.
+      try {
+        const anexos = arquivos.map((f, i) => ({
+          path: renomearAnexoProg(id, i, f.path, f.originalname),
+          nome_original: f.originalname,
+        }));
+        db.atualizarChamadoProgramado(id, { ...prog, anexos_json: JSON.stringify(anexos) });
+      } catch (anexoErr) {
+        // Rollback: remove o agendamento recem-criado para nao virar orfao.
+        try { db.deletarChamadoProgramado(id); } catch {}
+        throw anexoErr;
+      }
     }
     res.status(201).json({ ok: true, id });
   } catch (err) {
@@ -364,12 +388,17 @@ router.patch('/:id/toggle', requireAdmin, (req, res) => {
 
 // DELETE /api/admin/programados/:id
 router.delete('/:id', requireAdmin, (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ ok: false, erro: 'ID inválido' });
   const item = db.buscarProgramadoPorId(id);
   if (!item) return res.status(404).json({ ok: false, erro: 'Não encontrado' });
-  limparArquivosProg(item.anexos_json);
+  // Ordem: deleta o registro PRIMEIRO; so depois remove arquivos.
+  // Inverso (anterior) deixava registros "vivos" com anexos perdidos se o DELETE
+  // do DB falhasse (constraint, lock). Agora se a delecao de arquivos falhar,
+  // o registro ja foi removido — arquivos viram orphans (problema menor,
+  // resolviveis por GC futuro) em vez de inconsistencia DB/FS.
   db.deletarChamadoProgramado(id);
+  limparArquivosProg(item.anexos_json);
   res.json({ ok: true });
 });
 

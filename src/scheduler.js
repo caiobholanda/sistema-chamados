@@ -12,7 +12,18 @@ function _parseDbDate(s) {
   return new Date(s.replace(' ', 'T') + 'Z');
 }
 
+// Lock de processo: setInterval(cron, 60s) pode disparar antes do tick anterior
+// terminar (push lento, banco lento, anexos grandes). Sem este flag, dois ticks
+// concorrentes leem getProgramadosPendentes() antes do primeiro registrar a
+// execucao -> chamado duplicado.
+let _running = false;
+
 async function executarChamadosProgramados() {
+  if (_running) {
+    console.log(`[Programados] ${new Date().toISOString()} — pulando tick: execucao anterior ainda em andamento`);
+    return [];
+  }
+  _running = true;
   const now = new Date();
   const ts = now.toISOString();
   const resultados = [];
@@ -45,7 +56,7 @@ async function executarChamadosProgramados() {
           toggleChamadoProgramado(prog.id, 0);
           const msg = `Chamado #${chamadoId} criado automaticamente: "${prog.titulo}" (${setor})`;
           console.log(`[Programados] #${prog.id} ${msg} → CONCLUIDO (data_unica desativada)`);
-          push.enviarParaTodos('📅 Chamado Programado', msg).catch(() => {});
+          push.enviarParaTodos('📅 Chamado Programado', msg).catch(e => console.warn(`[Programados] push falhou: ${e.message}`));
           resultados.push({ ok: true, progId: prog.id, titulo: prog.titulo, chamadoId, slotsVencidos: 1, concluido: true });
           continue;
         }
@@ -75,7 +86,7 @@ async function executarChamadosProgramados() {
 
         const msg = `Chamado #${chamadoId} criado automaticamente: "${prog.titulo}" (${setor})`;
         console.log(`[Programados] #${prog.id} ${msg} → slots vencidos=${slotsVencidos} (catchup=${isCatchUp}); proxima canonica=${_toISO(proxCanon)} efetiva=${_toISO(efetivaNext)}`);
-        push.enviarParaTodos('📅 Chamado Programado', msg).catch(() => {});
+        push.enviarParaTodos('📅 Chamado Programado', msg).catch(e => console.warn(`[Programados] push falhou: ${e.message}`));
         resultados.push({
           ok: true,
           progId: prog.id,
@@ -94,6 +105,8 @@ async function executarChamadosProgramados() {
     console.log(`[Programados] ${ts} — fim: gerados=${resultados.filter(r => r.ok).length} erros=${resultados.filter(r => !r.ok).length}`);
   } catch (err) {
     console.error('[Programados] ERRO geral na varredura:', err);
+  } finally {
+    _running = false;
   }
   return resultados;
 }
