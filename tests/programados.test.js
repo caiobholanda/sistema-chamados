@@ -10,7 +10,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { calcularProxima, proximasN, isFeriado } = require('../src/programados');
+const { calcularProxima, proximasN, isFeriado, avancarCanonica, aplicarSkip } = require('../src/programados');
 
 // Helper: formata um Date UTC como 'YYYY-MM-DD HH:mm:ss' em horario Fortaleza.
 function asFtz(d) {
@@ -177,4 +177,122 @@ test('data_unica: data_unica invalida retorna sentinela (defensivo)', () => {
   const prog = { frequencia: 'data_unica', data_unica: null, hora: '08:00', pular_feriados: 0 };
   const next = calcularProxima(prog);
   assert.equal(next.getUTCFullYear(), 9999);
+});
+
+// ── Avanco canonico SEPARADO do skip ─────────────────────────────────────────
+// Estes testes garantem que avancarCanonica NUNCA aplica skip — o avanco do
+// periodo seguinte sempre parte da data ideal, nao da deslocada por feriado.
+
+test('avancarCanonica diario: nunca aplica skip (sabado nao vira segunda)', () => {
+  const prog = { frequencia: 'diario', hora: '08:00', pular_feriados: 1 };
+  // afterCanon = sex 12/jun/2026 08:00 BRT = 11:00 UTC.
+  const next = avancarCanonica(prog, new Date('2026-06-12T11:00:00Z'));
+  // Esperamos sabado 13/jun, mesmo com pular_feriados=1 (canonica ignora skip).
+  assert.equal(asFtz(next), '2026-06-13 08:00');
+});
+
+test('avancarCanonica semanal: terca canonica mantem dia mesmo se cair em feriado', () => {
+  // Carnaval 2026: ter 17/fev = feriado movel. Canonica deve continuar = ter.
+  const prog = { frequencia: 'semanal', dia_semana: 2, hora: '09:00', pular_feriados: 1 };
+  // afterCanon = ter 10/fev/2026. +7 = ter 17/fev (Carnaval = feriado).
+  const next = avancarCanonica(prog, new Date('2026-02-10T12:00:00Z'));
+  assert.equal(asFtz(next), '2026-02-17 09:00', 'canonica = ter 17/fev (carnaval)');
+  // aplicarSkip move ter 17/fev -> qua 18 (Cinzas, nao e feriado).
+  const efetiva = aplicarSkip(next, 1, '09:00');
+  assert.equal(asFtz(efetiva), '2026-02-18 09:00', 'efetiva = qua 18/fev');
+});
+
+test('aplicarSkip pular_feriados=0 retorna data original', () => {
+  const sab = new Date('2026-06-13T11:00:00Z'); // sab 08:00 BRT
+  const out = aplicarSkip(sab, 0, '08:00');
+  assert.equal(out.getTime(), sab.getTime());
+});
+
+test('aplicarSkip preserva HH:MM apos pular dias', () => {
+  const dom = new Date('2026-06-14T13:30:00Z'); // dom 10:30 BRT
+  const out = aplicarSkip(dom, 1, '10:30');
+  // Dom -> seg 15/jun 10:30 BRT.
+  assert.equal(asFtz(out), '2026-06-15 10:30');
+});
+
+// ── proximasN agora itera pela CANONICA: sem drift de feriado ────────────────
+test('proximasN semanal sex: feriado nao puxa proxima sex para seg', () => {
+  // sexta dia 1 podia ser feriado (1/mai/2026 = sex = Dia do Trabalho).
+  // Sequencia: 1/mai (feriado) -> efetiva seg 4/mai; PROXIMA canonica = sex 8/mai.
+  const prog = { frequencia: 'semanal', dia_semana: 5, hora: '08:00', pular_feriados: 1 };
+  // Forca ancora = sex 24/abr/2026.
+  let lastCanon = new Date('2026-04-24T11:00:00Z');
+  const datas = [];
+  for (let i = 0; i < 4; i++) {
+    const canon = avancarCanonica(prog, lastCanon);
+    datas.push(asFtz(aplicarSkip(canon, prog.pular_feriados, prog.hora)));
+    lastCanon = canon;
+  }
+  // 1/mai=sex=feriado -> seg 4/mai. 8/mai=sex util. 15/mai=sex util. 22/mai=sex util.
+  assert.deepEqual(datas, [
+    '2026-05-04 08:00',
+    '2026-05-08 08:00',
+    '2026-05-15 08:00',
+    '2026-05-22 08:00',
+  ]);
+});
+
+// ── Backfill: simula cron atrasado, conta slots vencidos ─────────────────────
+test('backfill diario: cron atrasado 3 dias conta 3 slots vencidos', () => {
+  const prog = { frequencia: 'diario', hora: '08:00', pular_feriados: 0 };
+  // Ancora canonica = 20/jun/2026 11:00 UTC (08:00 BRT).
+  // "Agora" = 23/jun/2026 14:00 UTC. Slots: 20, 21, 22, 23 = 4 slots <= now.
+  // Apos loop: proxCanon = 24/jun (primeiro futuro).
+  const now = new Date('2026-06-23T14:00:00Z');
+  let proxCanon = new Date('2026-06-20T11:00:00Z');
+  let count = 0;
+  while (proxCanon <= now) {
+    count++;
+    proxCanon = avancarCanonica(prog, proxCanon);
+  }
+  assert.equal(count, 4, 'esperava 4 slots vencidos');
+  assert.equal(asFtz(proxCanon), '2026-06-24 08:00');
+});
+
+test('backfill mensal: cron atrasado 2 meses conta 2 slots, sem perder dia-base', () => {
+  const prog = { frequencia: 'mensal', dia_mes: 15, hora: '08:00', pular_feriados: 0 };
+  const now = new Date('2026-08-20T14:00:00Z');
+  let proxCanon = new Date('2026-06-15T11:00:00Z'); // ancora: 15/jun
+  let count = 0;
+  while (proxCanon <= now) {
+    count++;
+    proxCanon = avancarCanonica(prog, proxCanon);
+  }
+  // 15/jun, 15/jul, 15/ago <= 20/ago = 3 slots vencidos. Proxima = 15/set.
+  assert.equal(count, 3);
+  assert.equal(asFtz(proxCanon), '2026-09-15 08:00');
+});
+
+test('backfill semanal: skip de feriado na efetiva nao influencia avanco', () => {
+  // Terca semanal, pular=1. Se uma terca cai em feriado e foi gerada como qua,
+  // o backfill subsequente deve continuar partindo da TERCA, nao da quarta.
+  const prog = { frequencia: 'semanal', dia_semana: 2, hora: '08:00', pular_feriados: 1 };
+  // Ancora = ter 16/jun. Avanca 4x.
+  let proxCanon = new Date('2026-06-16T11:00:00Z');
+  const semanas = [];
+  for (let i = 0; i < 4; i++) {
+    proxCanon = avancarCanonica(prog, proxCanon);
+    semanas.push(asFtz(proxCanon));
+  }
+  // Sempre terca, ainda que algumas caiam em feriado (a canonica nao se move).
+  assert.deepEqual(semanas, [
+    '2026-06-23 08:00', // ter
+    '2026-06-30 08:00', // ter
+    '2026-07-07 08:00', // ter
+    '2026-07-14 08:00', // ter
+  ]);
+});
+
+// ── Backwards-compat: calcularProxima continua aplicando skip ────────────────
+test('calcularProxima mantem comportamento antigo (canonica + skip)', () => {
+  // Sabado canonico com pular_feriados=1 -> segunda.
+  const prog = { frequencia: 'diario', hora: '08:00', pular_feriados: 1 };
+  const next = calcularProxima(prog, new Date('2026-06-12T11:00:00Z')); // sex 12/jun
+  // Canonica = sab 13. Skip => seg 15.
+  assert.equal(asFtz(next), '2026-06-15 08:00');
 });

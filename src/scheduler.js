@@ -1,22 +1,33 @@
 'use strict';
 
-const { getProgramadosPendentes, registrarExecucaoProgramado, inserirChamado, buscarUsuarioPorId, inserirAnexoExtra, getDb, toggleChamadoProgramado } = require('./db');
+const { getProgramadosPendentes, registrarExecucaoProgramado, inserirChamado, buscarUsuarioPorId, inserirAnexoExtra, toggleChamadoProgramado } = require('./db');
 const push = require('./push');
-const { calcularProxima } = require('./programados');
+const { avancarCanonica, aplicarSkip, SENTINELA_DATA_UNICA_PASSADA } = require('./programados');
+
+function _toISO(d) { return d.toISOString().replace('T', ' ').slice(0, 19); }
+
+// Converte string 'YYYY-MM-DD HH:MM:SS' (UTC) salva no DB para Date UTC.
+function _parseDbDate(s) {
+  if (!s) return null;
+  return new Date(s.replace(' ', 'T') + 'Z');
+}
 
 async function executarChamadosProgramados() {
-  const ts = new Date().toISOString();
+  const now = new Date();
+  const ts = now.toISOString();
   const resultados = [];
   try {
     const pendentes = getProgramadosPendentes();
-    console.log(`[Programados] ${ts} — varredura: ${pendentes.length} elegível(is)`);
+    console.log(`[Programados] ${ts} — varredura: ${pendentes.length} pendente(s) (proxima_execucao <= now)`);
     for (const prog of pendentes) {
       try {
+        // Ancora canonica: prefere coluna nova, fallback para proxima_execucao
+        // (registros legados pre-migracao).
+        const ancoraInicial = _parseDbDate(prog.proxima_canonica) || _parseDbDate(prog.proxima_execucao);
+
         let nome  = prog.nome;
         let setor = prog.setor;
-        // chamados.ramal e NOT NULL no schema — sempre string (vazia se nao houver).
         let ramal = prog.ramal || '';
-
         if (prog.usuario_id) {
           const u = buscarUsuarioPorId(prog.usuario_id);
           if (u && u.ativo) {
@@ -26,55 +37,94 @@ async function executarChamadosProgramados() {
           }
         }
 
-        const chamadoId = inserirChamado({
-          usuario_id: prog.usuario_id || null,
-          nome,
-          setor,
-          ramal,
-          descricao: `[Automático] ${prog.descricao}`,
-          categoria: prog.categoria || null,
-          aberto_por_admin_id: null,
-          admin_responsavel_id: prog.admin_responsavel_id || null,
-          anexo_path: null,
-          anexo_nome_original: null,
-          servico_id: null,
-          servico_nome: null,
-        });
+        // data_unica: dispara 1 vez e desativa. Sem backfill (nao aplicavel).
+        if (prog.frequencia === 'data_unica') {
+          const chamadoId = _inserirChamadoComAnexos(prog, nome, setor, ramal, '[Automático]');
+          const sentISO = _toISO(SENTINELA_DATA_UNICA_PASSADA);
+          registrarExecucaoProgramado(prog.id, chamadoId, sentISO, sentISO);
+          toggleChamadoProgramado(prog.id, 0);
+          const msg = `Chamado #${chamadoId} criado automaticamente: "${prog.titulo}" (${setor})`;
+          console.log(`[Programados] #${prog.id} ${msg} → CONCLUIDO (data_unica desativada)`);
+          push.enviarParaTodos('📅 Chamado Programado', msg).catch(() => {});
+          resultados.push({ ok: true, progId: prog.id, titulo: prog.titulo, chamadoId, slotsVencidos: 1, concluido: true });
+          continue;
+        }
 
-        if (prog.anexos_json) {
-          try {
-            const anexos = JSON.parse(prog.anexos_json);
-            for (const a of anexos) {
-              const anexoId = inserirAnexoExtra({ chamado_id: chamadoId, path: a.path, nome_original: a.nome_original });
-              void anexoId;
-            }
-          } catch (e) {
-            console.warn(`[Programados] Erro ao inserir anexos para #${prog.id}:`, e.message);
+        // Recorrente: conta slots vencidos avancando canonica ate > now.
+        // Politica "1 catch-up + avancar p/ futuro": gera UM chamado mesmo que
+        // haja N slots perdidos; descricao indica quantos slots foram pulados.
+        let slotsVencidos = 0;
+        let proxCanon = ancoraInicial;
+        while (proxCanon && proxCanon <= now) {
+          slotsVencidos++;
+          proxCanon = avancarCanonica(prog, proxCanon);
+          // Defesa contra loop infinito (nao deve acontecer com frequencias validas):
+          if (slotsVencidos > 10000) {
+            throw new Error(`Loop de backfill divergiu (>${slotsVencidos} iteracoes)`);
           }
         }
 
-        const proxima = calcularProxima(prog, new Date());
-        const proximaISO = proxima.toISOString().replace('T', ' ').slice(0, 19);
-        registrarExecucaoProgramado(prog.id, chamadoId, proximaISO);
-        // 'data_unica' so dispara uma vez. Desativa o agendamento apos gerar
-        // o chamado para garantir que nunca seja re-executado (defesa em
-        // profundidade alem da data sentinela 9999 em proxima_execucao).
-        if (prog.frequencia === 'data_unica') {
-          toggleChamadoProgramado(prog.id, 0);
-        }
+        const isCatchUp = slotsVencidos > 1;
+        const prefixo = isCatchUp
+          ? `[Automático CATCH-UP ${slotsVencidos}× pendentes desde ${_toISO(ancoraInicial)} UTC]`
+          : '[Automático]';
+
+        const chamadoId = _inserirChamadoComAnexos(prog, nome, setor, ramal, prefixo);
+        const efetivaNext = aplicarSkip(proxCanon, prog.pular_feriados, prog.hora);
+        registrarExecucaoProgramado(prog.id, chamadoId, _toISO(efetivaNext), _toISO(proxCanon));
+
         const msg = `Chamado #${chamadoId} criado automaticamente: "${prog.titulo}" (${setor})`;
-        console.log(`[Programados] ${msg} → próxima: ${prog.frequencia === 'data_unica' ? 'CONCLUIDO (data unica)' : proximaISO}`);
+        console.log(`[Programados] #${prog.id} ${msg} → slots vencidos=${slotsVencidos} (catchup=${isCatchUp}); proxima canonica=${_toISO(proxCanon)} efetiva=${_toISO(efetivaNext)}`);
         push.enviarParaTodos('📅 Chamado Programado', msg).catch(() => {});
-        resultados.push({ ok: true, progId: prog.id, titulo: prog.titulo, chamadoId, proximaISO, concluido: prog.frequencia === 'data_unica' });
+        resultados.push({
+          ok: true,
+          progId: prog.id,
+          titulo: prog.titulo,
+          chamadoId,
+          slotsVencidos,
+          catchUp: isCatchUp,
+          proximaCanonica: _toISO(proxCanon),
+          proximaEfetiva: _toISO(efetivaNext),
+        });
       } catch (err) {
         console.error(`[Programados] ERRO no agendamento #${prog.id} "${prog.titulo}":`, err.message);
         resultados.push({ ok: false, progId: prog.id, titulo: prog.titulo, erro: err.message });
       }
     }
+    console.log(`[Programados] ${ts} — fim: gerados=${resultados.filter(r => r.ok).length} erros=${resultados.filter(r => !r.ok).length}`);
   } catch (err) {
     console.error('[Programados] ERRO geral na varredura:', err);
   }
   return resultados;
+}
+
+// Cria o chamado e, se houver anexos no agendamento, replica-os.
+function _inserirChamadoComAnexos(prog, nome, setor, ramal, prefixo) {
+  const chamadoId = inserirChamado({
+    usuario_id: prog.usuario_id || null,
+    nome,
+    setor,
+    ramal,
+    descricao: `${prefixo} ${prog.descricao}`,
+    categoria: prog.categoria || null,
+    aberto_por_admin_id: null,
+    admin_responsavel_id: prog.admin_responsavel_id || null,
+    anexo_path: null,
+    anexo_nome_original: null,
+    servico_id: null,
+    servico_nome: null,
+  });
+  if (prog.anexos_json) {
+    try {
+      const anexos = JSON.parse(prog.anexos_json);
+      for (const a of anexos) {
+        inserirAnexoExtra({ chamado_id: chamadoId, path: a.path, nome_original: a.nome_original });
+      }
+    } catch (e) {
+      console.warn(`[Programados] Erro ao inserir anexos para prog #${prog.id}:`, e.message);
+    }
+  }
+  return chamadoId;
 }
 
 module.exports = { executarChamadosProgramados };

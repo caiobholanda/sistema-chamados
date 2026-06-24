@@ -66,156 +66,129 @@ function _proxDiaUtil(utcDate, pularFeriados) {
   return d;
 }
 
-// ── Cálculo da próxima execução ───────────────────────────────────────────────
-// `hora` em `prog` é horário LOCAL de Fortaleza (ex: '12:00').
-// `afterExec` (se fornecido) é um Date UTC da última execução.
-// Retorna um Date UTC.
-//
-// REGRA-CHAVE: o periodo seguinte SEMPRE parte da data-base configurada
-// (dia_mes/dia_semana) somada ao incremento de periodo. NUNCA da data que
-// efetivamente foi executada (que pode ter sido deslocada por feriado).
-// Sem isso, um skip de feriado em 1 ciclo persistia em todos os ciclos
-// subsequentes (drift cumulativo).
+// Garante que dia_mes esteja dentro do ultimo dia do mes referenciado
+// (ex: dia 31 em fevereiro vira o ultimo dia de fev).
+function _clampDia(year, month0, diaAlvo) {
+  const ultimo = new Date(Date.UTC(year, month0 + 1, 0)).getUTCDate();
+  return Math.min(diaAlvo, ultimo);
+}
+
 // Data sentinela para frequencia 'data_unica' apos ja ter sido executada
 // (ano 9999). O cron compara proxima_execucao <= now; nunca vai pegar isso.
-// Defesa secundaria alem do scheduler.js que tambem seta ativo=0 apos disparo.
 const SENTINELA_DATA_UNICA_PASSADA = new Date(Date.UTC(9999, 11, 31, 0, 0));
 
-function calcularProxima(prog, afterExec = null) {
-  const { frequencia, dia_semana, dia_mes, mes, hora, pular_feriados, data_unica } = prog;
+// ── Avanco CANONICO (sem skip de feriado) ────────────────────────────────────
+// Retorna a proxima ocorrencia "ideal" do periodo, ignorando a regra de pular
+// feriado/fim-de-semana. Esta data e' a ANCORA persistida em proxima_canonica
+// para evitar drift cumulativo: o periodo seguinte sempre parte daqui, nunca
+// da data efetivamente gerada (que pode ter sido empurrada por feriado).
+//
+// `ancoraCanonica` (UTC Date) = ocorrencia canonica anterior. Se null/undefined,
+// calcula a PRIMEIRA ocorrencia a partir de agora.
+function avancarCanonica(prog, ancoraCanonica = null) {
+  const { frequencia, dia_semana, dia_mes, mes, hora, data_unica } = prog;
   const [hh, mm] = hora.split(':').map(Number);
 
-  // 'data_unica': dispara uma vez na data escolhida; depois jamais.
+  // data_unica: dispara uma vez. Se ja foi disparada, sentinela.
   if (frequencia === 'data_unica') {
-    if (afterExec) return SENTINELA_DATA_UNICA_PASSADA;
+    if (ancoraCanonica) return SENTINELA_DATA_UNICA_PASSADA;
     if (!data_unica || !/^\d{4}-\d{2}-\d{2}$/.test(data_unica)) {
-      // Sem data valida: sentinela impede disparo (defensivo — front/back ja validam).
       return SENTINELA_DATA_UNICA_PASSADA;
     }
     const [yy, mo, dd] = data_unica.split('-').map(Number);
-    let alvo = _fromFtz(yy, mo - 1, dd, hh, mm);
-    if (pular_feriados) {
-      const afterSkip = _proxDiaUtil(alvo, true);
-      const ftz = _toFtz(afterSkip);
-      alvo = _fromFtz(ftz.getUTCFullYear(), ftz.getUTCMonth(), ftz.getUTCDate(), hh, mm);
-    }
-    return alvo;
+    return _fromFtz(yy, mo - 1, dd, hh, mm);
   }
 
-  // Garante que dia_mes esteja dentro do ultimo dia do mes referenciado
-  // (ex: dia 31 em fevereiro vira o ultimo dia de fev).
-  function _clampDia(year, month0, diaAlvo) {
-    const ultimo = new Date(Date.UTC(year, month0 + 1, 0)).getUTCDate();
-    return Math.min(diaAlvo, ultimo);
-  }
-
-  let next;
-
-  if (afterExec) {
-    // Pós-execução: avança o PERIODO partindo da data-base configurada,
-    // nao da execucao anterior (que pode estar deslocada por feriado).
-    const ftz = _toFtz(new Date(afterExec));
+  if (ancoraCanonica) {
+    const ftz = _toFtz(new Date(ancoraCanonica));
     const y = ftz.getUTCFullYear(), mo = ftz.getUTCMonth(), d = ftz.getUTCDate();
     switch (frequencia) {
-      case 'diario':     next = _fromFtz(y, mo, d + 1, hh, mm);   break;
-      case 'semanal':    next = _fromFtz(y, mo, d + 7, hh, mm);   break;
-      case 'mensal': {
-        const dia = _clampDia(y, mo + 1, dia_mes);
-        next = _fromFtz(y, mo + 1, dia, hh, mm);
-        break;
-      }
-      case 'bimestral': {
-        const dia = _clampDia(y, mo + 2, dia_mes);
-        next = _fromFtz(y, mo + 2, dia, hh, mm);
-        break;
-      }
-      case 'trimestral': {
-        const dia = _clampDia(y, mo + 3, dia_mes);
-        next = _fromFtz(y, mo + 3, dia, hh, mm);
-        break;
-      }
-      case 'semestral': {
-        const dia = _clampDia(y, mo + 6, dia_mes);
-        next = _fromFtz(y, mo + 6, dia, hh, mm);
-        break;
-      }
-      case 'anual': {
-        const dia = _clampDia(y + 1, mes - 1, dia_mes);
-        next = _fromFtz(y + 1, mes - 1, dia, hh, mm);
-        break;
-      }
-      default:           next = _fromFtz(y, mo, d + 1, hh, mm);
-    }
-  } else {
-    // Primeira vez: encontrar próxima ocorrência a partir de agora
-    const nowUtc = new Date();
-    const ftz = _toFtz(nowUtc);
-    const y = ftz.getUTCFullYear(), mo = ftz.getUTCMonth(), d = ftz.getUTCDate();
-    const dow = ftz.getUTCDay();
-
-    switch (frequencia) {
-      case 'diario': {
-        next = _fromFtz(y, mo, d, hh, mm);
-        if (next <= nowUtc) next = _fromFtz(y, mo, d + 1, hh, mm);
-        break;
-      }
-      case 'semanal': {
-        let diff = (dia_semana - dow + 7) % 7;
-        if (diff === 0 && _fromFtz(y, mo, d, hh, mm) <= nowUtc) diff = 7;
-        next = _fromFtz(y, mo, d + diff, hh, mm);
-        break;
-      }
-      case 'mensal':
-      case 'bimestral':
-      case 'trimestral':
-      case 'semestral': {
-        const add = { mensal: 1, bimestral: 2, trimestral: 3, semestral: 6 }[frequencia];
-        const diaEsteMes = _clampDia(y, mo, dia_mes);
-        next = _fromFtz(y, mo, diaEsteMes, hh, mm);
-        if (next <= nowUtc) {
-          const diaProx = _clampDia(y, mo + add, dia_mes);
-          next = _fromFtz(y, mo + add, diaProx, hh, mm);
-        }
-        break;
-      }
-      case 'anual': {
-        const diaEste = _clampDia(y, mes - 1, dia_mes);
-        next = _fromFtz(y, mes - 1, diaEste, hh, mm);
-        if (next <= nowUtc) {
-          const diaProx = _clampDia(y + 1, mes - 1, dia_mes);
-          next = _fromFtz(y + 1, mes - 1, diaProx, hh, mm);
-        }
-        break;
-      }
-      default:
-        next = _fromFtz(y, mo, d + 1, hh, mm);
+      case 'diario':     return _fromFtz(y, mo, d + 1, hh, mm);
+      case 'semanal':    return _fromFtz(y, mo, d + 7, hh, mm);
+      case 'mensal':     return _fromFtz(y, mo + 1, _clampDia(y, mo + 1, dia_mes), hh, mm);
+      case 'bimestral':  return _fromFtz(y, mo + 2, _clampDia(y, mo + 2, dia_mes), hh, mm);
+      case 'trimestral': return _fromFtz(y, mo + 3, _clampDia(y, mo + 3, dia_mes), hh, mm);
+      case 'semestral':  return _fromFtz(y, mo + 6, _clampDia(y, mo + 6, dia_mes), hh, mm);
+      case 'anual':      return _fromFtz(y + 1, mes - 1, _clampDia(y + 1, mes - 1, dia_mes), hh, mm);
+      default:           return _fromFtz(y, mo, d + 1, hh, mm);
     }
   }
 
-  if (pular_feriados) {
-    const afterSkip = _proxDiaUtil(next, true);
-    // Re-aplica o horário no fuso Fortaleza após o possível avanço de dias
-    const ftz = _toFtz(afterSkip);
-    next = _fromFtz(ftz.getUTCFullYear(), ftz.getUTCMonth(), ftz.getUTCDate(), hh, mm);
-  }
+  // Primeira vez: procura proxima ocorrencia a partir de agora.
+  const nowUtc = new Date();
+  const ftz = _toFtz(nowUtc);
+  const y = ftz.getUTCFullYear(), mo = ftz.getUTCMonth(), d = ftz.getUTCDate();
+  const dow = ftz.getUTCDay();
 
-  return next;
+  switch (frequencia) {
+    case 'diario': {
+      let next = _fromFtz(y, mo, d, hh, mm);
+      if (next <= nowUtc) next = _fromFtz(y, mo, d + 1, hh, mm);
+      return next;
+    }
+    case 'semanal': {
+      let diff = (dia_semana - dow + 7) % 7;
+      if (diff === 0 && _fromFtz(y, mo, d, hh, mm) <= nowUtc) diff = 7;
+      return _fromFtz(y, mo, d + diff, hh, mm);
+    }
+    case 'mensal':
+    case 'bimestral':
+    case 'trimestral':
+    case 'semestral': {
+      const add = { mensal: 1, bimestral: 2, trimestral: 3, semestral: 6 }[frequencia];
+      let next = _fromFtz(y, mo, _clampDia(y, mo, dia_mes), hh, mm);
+      if (next <= nowUtc) next = _fromFtz(y, mo + add, _clampDia(y, mo + add, dia_mes), hh, mm);
+      return next;
+    }
+    case 'anual': {
+      let next = _fromFtz(y, mes - 1, _clampDia(y, mes - 1, dia_mes), hh, mm);
+      if (next <= nowUtc) next = _fromFtz(y + 1, mes - 1, _clampDia(y + 1, mes - 1, dia_mes), hh, mm);
+      return next;
+    }
+    default:
+      return _fromFtz(y, mo, d + 1, hh, mm);
+  }
 }
 
-// Retorna array com as próximas N datas (UTC) de execução
+// ── Aplicacao do skip de feriado/fim-de-semana ───────────────────────────────
+// Aplica a regra "pular feriados e fins de semana" sobre uma data canonica,
+// preservando o horario HH:MM original. Se a regra estiver off (pular=0),
+// retorna a propria data.
+function aplicarSkip(dataCanonica, pular_feriados, hora) {
+  if (!pular_feriados) return dataCanonica;
+  // Sentinela 9999 nao precisa de skip.
+  if (dataCanonica.getUTCFullYear() === 9999) return dataCanonica;
+  const [hh, mm] = String(hora || '08:00').split(':').map(Number);
+  const afterSkip = _proxDiaUtil(dataCanonica, true);
+  const ftz = _toFtz(afterSkip);
+  return _fromFtz(ftz.getUTCFullYear(), ftz.getUTCMonth(), ftz.getUTCDate(), hh, mm);
+}
+
+// ── API publica back-compat ──────────────────────────────────────────────────
+// Mantem assinatura antiga: calcula canonica + aplica skip.
+function calcularProxima(prog, afterExec = null) {
+  const canon = avancarCanonica(prog, afterExec);
+  return aplicarSkip(canon, prog.pular_feriados, prog.hora);
+}
+
+// Retorna array com as proximas N datas (UTC) de execucao EFETIVA.
+// Itera pela CANONICA (nao pela efetiva) para nao acumular drift de feriado.
 function proximasN(prog, n = 5) {
-  // 'data_unica' dispara exatamente uma vez: o preview mostra so essa data.
   if (prog.frequencia === 'data_unica') {
     return [calcularProxima(prog)];
   }
   const datas = [];
-  let last = null;
+  let lastCanon = null;
   for (let i = 0; i < n; i++) {
-    const d = calcularProxima(prog, last);
-    datas.push(d);
-    last = d;
+    const canon = avancarCanonica(prog, lastCanon);
+    datas.push(aplicarSkip(canon, prog.pular_feriados, prog.hora));
+    lastCanon = canon;
   }
   return datas;
 }
 
-module.exports = { calcularProxima, proximasN, isFeriado };
+module.exports = {
+  calcularProxima, proximasN, isFeriado,
+  avancarCanonica, aplicarSkip,
+  SENTINELA_DATA_UNICA_PASSADA,
+};

@@ -6,7 +6,7 @@ const router  = express.Router();
 const { requireAdmin } = require('../auth');
 const db = require('../db');
 const { uploadChamadoMiddleware, UPLOADS_DIR } = require('../upload');
-const { calcularProxima, proximasN } = require('../programados');
+const { calcularProxima, proximasN, avancarCanonica, aplicarSkip } = require('../programados');
 const { executarChamadosProgramados } = require('../scheduler');
 
 const FREQS_VALIDAS = ['diario','semanal','mensal','bimestral','trimestral','semestral','anual','data_unica'];
@@ -89,7 +89,16 @@ function validarAgendamento(body) {
   };
 }
 
-function montarProg(body, req) {
+// Fields que, se alterados num PUT, exigem recalculo de proxima_execucao/canonica.
+// Se nenhum mudou, preservamos as datas do registro existente (evita pular slots
+// ao editar so descricao/categoria/atribuicao).
+const _SCHEDULE_FIELDS = ['frequencia','hora','dia_semana','dia_mes','mes','pular_feriados','data_unica'];
+function _scheduleMudou(existing, agendamento) {
+  if (!existing) return true;
+  return _SCHEDULE_FIELDS.some(f => (existing[f] ?? null) !== (agendamento[f] ?? null));
+}
+
+function montarProg(body, req, existing = null) {
   const descricao = (body.descricao || '').trim();
   if (!descricao || descricao.length < 10) return { erro: 'Descrição obrigatória (mín. 10 caracteres)' };
 
@@ -126,7 +135,18 @@ function montarProg(body, req) {
     admin_responsavel_id: adminResponsavelId,
     usuario_id: usuarioId,
   };
-  prog.proxima_execucao = toISO(calcularProxima(prog));
+  // PUT: se schedule nao mudou, preserva proxima_canonica/proxima_execucao do
+  // existente. Caso contrario (POST, ou PUT com mudanca de schedule), recalcula
+  // a partir de "agora" usando avancarCanonica + aplicarSkip (mantem alinhamento
+  // entre as duas colunas).
+  if (existing && !_scheduleMudou(existing, agendamento)) {
+    prog.proxima_canonica = existing.proxima_canonica || existing.proxima_execucao;
+    prog.proxima_execucao = existing.proxima_execucao;
+  } else {
+    const canon = avancarCanonica(prog);
+    prog.proxima_canonica = toISO(canon);
+    prog.proxima_execucao = toISO(aplicarSkip(canon, prog.pular_feriados, prog.hora));
+  }
   return { prog };
 }
 
@@ -252,7 +272,7 @@ router.put('/:id', requireAdmin, uploadChamadoMiddleware(), (req, res) => {
     return res.status(404).json({ ok: false, erro: 'Não encontrado' });
   }
   try {
-    const { erro, prog } = montarProg(req.body, req);
+    const { erro, prog } = montarProg(req.body, req, existing);
     if (erro) {
       arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
       return res.status(400).json({ ok: false, erro });

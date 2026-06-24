@@ -620,6 +620,14 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_prog_proxima ON chamados_programados(proxima_execucao) WHERE ativo=1;
   `);
 
+  // proxima_canonica: data do slot SEM aplicar skip de feriado/fim-de-semana.
+  // Necessaria para evitar drift cumulativo em diario/semanal quando o skip
+  // desloca a execucao real (proxima_execucao) — o avanco do periodo seguinte
+  // parte sempre da CANONICA, nunca da efetiva. Migracao idempotente:
+  // ALTER em try{} (joga se ja existe) + backfill apenas das linhas com NULL.
+  try { db.exec("ALTER TABLE chamados_programados ADD COLUMN proxima_canonica TEXT"); } catch {}
+  db.prepare("UPDATE chamados_programados SET proxima_canonica = proxima_execucao WHERE proxima_canonica IS NULL").run();
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS setores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2730,13 +2738,13 @@ function inserirChamadoProgramado(dados) {
   return getDb().prepare(`
     INSERT INTO chamados_programados
       (titulo, nome, setor, ramal, descricao, categoria, prioridade, frequencia,
-       dia_semana, dia_mes, mes, hora, pular_feriados, admin_responsavel_id, proxima_execucao,
+       dia_semana, dia_mes, mes, hora, pular_feriados, admin_responsavel_id, proxima_execucao, proxima_canonica,
        usuario_id, anexos_json, data_unica)
     VALUES
       (@titulo,@nome,@setor,@ramal,@descricao,@categoria,@prioridade,@frequencia,
-       @dia_semana,@dia_mes,@mes,@hora,@pular_feriados,@admin_responsavel_id,@proxima_execucao,
+       @dia_semana,@dia_mes,@mes,@hora,@pular_feriados,@admin_responsavel_id,@proxima_execucao,@proxima_canonica,
        @usuario_id,@anexos_json,@data_unica)
-  `).run({ data_unica: null, ...dados }).lastInsertRowid;
+  `).run({ data_unica: null, proxima_canonica: null, ...dados }).lastInsertRowid;
 }
 
 function atualizarChamadoProgramado(id, dados) {
@@ -2746,10 +2754,10 @@ function atualizarChamadoProgramado(id, dados) {
       descricao=@descricao, categoria=@categoria, prioridade=@prioridade,
       frequencia=@frequencia, dia_semana=@dia_semana, dia_mes=@dia_mes, mes=@mes,
       hora=@hora, pular_feriados=@pular_feriados,
-      admin_responsavel_id=@admin_responsavel_id, proxima_execucao=@proxima_execucao,
+      admin_responsavel_id=@admin_responsavel_id, proxima_execucao=@proxima_execucao, proxima_canonica=@proxima_canonica,
       usuario_id=@usuario_id, anexos_json=@anexos_json, data_unica=@data_unica
     WHERE id=@id
-  `).run({ data_unica: null, ...dados, id });
+  `).run({ data_unica: null, proxima_canonica: null, ...dados, id });
 }
 
 function toggleChamadoProgramado(id, ativo) {
@@ -2767,18 +2775,19 @@ function getProgramadosPendentes() {
   ).all(agora);
 }
 
-function registrarExecucaoProgramado(programadoId, chamadoId, proximaExecucao) {
+function registrarExecucaoProgramado(programadoId, chamadoId, proximaExecucao, proximaCanonica = null) {
   const db = getDb();
   const agora = new Date().toISOString().replace('T', ' ').slice(0, 19);
   db.prepare(`
     INSERT INTO chamados_programados_log (programado_id, chamado_id, executado_em)
     VALUES (?, ?, ?)
   `).run(programadoId, chamadoId, agora);
+  // proxima_canonica: preserva valor anterior se nao informado (COALESCE)
   db.prepare(`
     UPDATE chamados_programados
-    SET ultima_execucao=?, proxima_execucao=?, total_gerados=total_gerados+1
+    SET ultima_execucao=?, proxima_execucao=?, proxima_canonica=COALESCE(?, proxima_canonica), total_gerados=total_gerados+1
     WHERE id=?
-  `).run(agora, proximaExecucao, programadoId);
+  `).run(agora, proximaExecucao, proximaCanonica, programadoId);
 }
 
 function listarLogProgramado(programadoId, limit = 20) {
