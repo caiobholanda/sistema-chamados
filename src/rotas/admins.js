@@ -1157,6 +1157,26 @@ router.delete('/chamados/:id/anexos/:anexoId', requireAdmin, (req, res) => {
   }
 });
 
+router.delete('/chamados/:id/anexo', requireAdmin, (req, res) => {
+  try {
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado || !chamado.anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
+    const { UPLOADS_DIR } = require('../upload');
+    const filePath = path.join(UPLOADS_DIR, chamado.anexo_path);
+    const nomeAnexoRemovido = chamado.anexo_nome_original || chamado.anexo_path;
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
+    db.getDb().prepare('UPDATE chamados SET anexo_path = NULL, anexo_nome_original = NULL WHERE id = ?').run(chamado.id);
+    db.getDb().prepare(`
+      INSERT INTO historico_chamados (chamado_id, admin_id, acao, valor_anterior, valor_novo)
+      VALUES (?, ?, 'anexo_usuario_removido', ?, NULL)
+    `).run(chamado.id, req.admin.sub, nomeAnexoRemovido);
+    return res.json({ mensagem: 'Anexo removido' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.post('/chamados/:id/admin-anexo', requireAdmin, uploadMiddleware('admin_anexo'), async (req, res) => {
   try {
     const chamado = db.buscarChamadoPorId(req.params.id);

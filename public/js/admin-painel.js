@@ -1639,11 +1639,32 @@ async function _carregarAnexosExtras(chamadoId) {
     if (!lista.length) { box.innerHTML = ''; return; }
     box.innerHTML = lista.map(a => {
       const url = `/api/chamados/${chamadoId}/anexos/${a.id}`;
-      if (_isImgAnexo(a.nome_original)) {
-        return `<div class="anexo-preview-wrap"><img class="lbx-img anexo-preview-img" src="${url}" alt="${a.nome_original}"><a href="${url}" download class="anexo-preview-dl">⬇ baixar</a></div>`;
-      }
-      return `<a href="${url}" class="mv2-anexo-btn" download><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${a.nome_original}</a>`;
+      const corpo = _isImgAnexo(a.nome_original)
+        ? `<div class="anexo-preview-wrap" style="flex:1"><img class="lbx-img anexo-preview-img" src="${url}" alt="${a.nome_original}"><a href="${url}" download class="anexo-preview-dl">⬇ baixar</a></div>`
+        : `<a href="${url}" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${a.nome_original}</a>`;
+      return `<div style="display:flex;align-items:flex-start;gap:.4rem;flex-wrap:wrap;margin-top:.4rem">
+        ${corpo}
+        <button class="btn btn-danger btn-sm btn-remover-anexo-extra" data-anexo-id="${a.id}" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo (útil quando foi enviado no chamado errado)">✕</button>
+      </div>`;
     }).join('');
+    if (!box.dataset.removeReady) {
+      box.dataset.removeReady = '1';
+      box.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.btn-remover-anexo-extra');
+        if (!btn) return;
+        if (!confirm('Remover este anexo?\n\nIsso é útil quando o arquivo foi anexado ao chamado errado.')) return;
+        btn.disabled = true;
+        const anexoId = btn.dataset.anexoId;
+        const cid = box.dataset.chamadoId;
+        const r = await api(`/api/admin/chamados/${cid}/anexos/${anexoId}`, { method: 'DELETE' });
+        if (r.ok) _carregarAnexosExtras(cid);
+        else {
+          const d = await r.json().catch(() => ({}));
+          alert(d.erro || 'Erro ao remover anexo');
+          btn.disabled = false;
+        }
+      });
+    }
   } catch {}
 }
 
@@ -1811,11 +1832,13 @@ function renderModalBody(c) {
             </div>
           </div>
 
-          ${c.anexo_nome_original ? (
-            _isImgAnexo(c.anexo_nome_original)
-            ? `<div class="anexo-preview-wrap"><img class="lbx-img anexo-preview-img" src="/api/chamados/${c.id}/anexo" alt="${c.anexo_nome_original}"><a href="/api/chamados/${c.id}/anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
-            : `<a href="/api/chamados/${c.id}/anexo" class="mv2-anexo-btn" download><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${c.anexo_nome_original}</a>`
-          ) : ''}
+          ${c.anexo_nome_original ? `
+            <div style="display:flex;align-items:flex-start;gap:.4rem;flex-wrap:wrap;margin-top:.4rem">
+              ${_isImgAnexo(c.anexo_nome_original)
+                ? `<div class="anexo-preview-wrap" style="flex:1"><img class="lbx-img anexo-preview-img" src="/api/chamados/${c.id}/anexo" alt="${c.anexo_nome_original}"><a href="/api/chamados/${c.id}/anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
+                : `<a href="/api/chamados/${c.id}/anexo" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${c.anexo_nome_original}</a>`}
+              <button class="btn btn-danger btn-sm" id="btn-remover-anexo-usuario" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo (útil quando foi enviado no chamado errado)">✕</button>
+            </div>` : ''}
           <div id="mv2-anexos-extras" data-chamado-id="${c.id}"></div>
 
           <!-- Anexo do admin -->
@@ -2283,6 +2306,21 @@ function setupModalEventos(c) {
       if (!confirm('Remover o anexo do suporte?')) return;
       const r = await api(`/api/admin/chamados/${c.id}/admin-anexo`, { method: 'DELETE' });
       if (r.ok) abrirModal(c.id);
+    });
+  }
+
+  const btnRemoverAnexoUsuario = document.getElementById('btn-remover-anexo-usuario');
+  if (btnRemoverAnexoUsuario) {
+    btnRemoverAnexoUsuario.addEventListener('click', async () => {
+      if (!confirm('Remover o anexo enviado pelo usuário?\n\nIsso é útil quando o arquivo foi anexado ao chamado errado.')) return;
+      btnRemoverAnexoUsuario.disabled = true;
+      const r = await api(`/api/admin/chamados/${c.id}/anexo`, { method: 'DELETE' });
+      if (r.ok) abrirModal(c.id);
+      else {
+        const d = await r.json().catch(() => ({}));
+        alert(d.erro || 'Erro ao remover anexo');
+        btnRemoverAnexoUsuario.disabled = false;
+      }
     });
   }
 
