@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <script src="/js/theme-init.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chamados — Gran Marquise TI</title>
   <link rel="preconnect" href="https://letsimage.s3.amazonaws.com">
@@ -9,13 +10,13 @@
 </head>
 <body>
 <header>
-  <a class="header-brand" href="https://hub-granmarquise.fly.dev" target="_blank" rel="noopener noreferrer" title="Abrir o Hub em nova aba" style="text-decoration:none;color:inherit;cursor:pointer">
+  <div class="header-brand">
     <img class="header-logo-img" src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise">
     <div class="header-brand-text">
       <div class="header-brand-name">Gran Marquise</div>
       <div class="header-brand-sub">Suporte de TI</div>
     </div>
-  </a>
+  </div>
   <div class="header-divider"></div>
   <nav></nav>
 </header>
@@ -85,19 +86,77 @@
     <div class="equipamentos-lista" id="equipamentos-lista"></div>
   </div>
 
+  <div class="tabs-bar">
+    <button class="tab-btn" id="tab-meus" data-tab="meus">
+      Meus chamados <span class="tab-badge" id="badge-meus"></span>
+    </button>
+  </div>
+
+  <div class="sub-tabs-bar" id="subtabs-meus" style="display:none;margin:1rem 0 0">
+    <button class="sub-tab-btn ativo" id="subtab-meus-abertos" data-subtab="abertos">
+      Abertos <span class="tab-badge" id="badge-meus-abertos"></span>
+    </button>
+    <button class="sub-tab-btn" id="subtab-meus-encerrados" data-subtab="encerrados">
+      Concluídos <span class="tab-badge" id="badge-meus-encerrados"></span>
+    </button>
+  </div>
 
   <div class="filtros-card">
     <div class="filtros">
-      <input class="form-control" type="search" id="filtro-busca" aria-label="Buscar chamados" placeholder="Buscar por ID, nome, descrição, setor, etiqueta…" style="min-width:220px;flex:1">
-      <div class="filtro-setor-wrap" style="flex:1;min-width:120px">
-        <input class="form-control" type="text" id="filtro-setor" placeholder="Todos os setores" autocomplete="off" aria-label="Setor">
-      </div>
+      <input class="form-control" type="search" id="filtro-busca" aria-label="Buscar chamados" placeholder="Buscar por ID, nome, descrição, setor…" style="min-width:220px;flex:1">
+      <select class="form-control" id="filtro-setor" aria-label="Setor">
+        <option value="">Todos os setores</option>
+        <optgroup label="Hospedagem">
+          <option>Recepção</option>
+          <option>Concierge</option>
+          <option>Governança</option>
+          <option>Reservas</option>
+          <option>Mensageria / Portaria</option>
+        </optgroup>
+        <optgroup label="Alimentos &amp; Bebidas">
+          <option>Restaurante Mucuripe</option>
+          <option>Restaurante Mangostin</option>
+          <option>Bar Rooftop</option>
+          <option>Lobby Bar</option>
+          <option>Room Service</option>
+          <option>Cozinha</option>
+          <option>Confeitaria / Padaria</option>
+          <option>Nutrição</option>
+          <option>Banquetes</option>
+        </optgroup>
+        <optgroup label="Eventos">
+          <option>Eventos e Convenções</option>
+        </optgroup>
+        <optgroup label="Bem-estar &amp; Lazer">
+          <option>Spa by L'Occitane</option>
+          <option>Fitness Center</option>
+          <option>Piscina</option>
+          <option>Play Gran</option>
+        </optgroup>
+        <optgroup label="Administrativo">
+          <option>Gerência Geral</option>
+          <option>Recursos Humanos</option>
+          <option>Financeiro</option>
+          <option>Controladoria</option>
+          <option>Compras / Almoxarifado</option>
+          <option>Comercial / Vendas</option>
+          <option>Marketing</option>
+          <option>Revenue Management</option>
+          <option>Tecnologia da Informação</option>
+          <option>Jurídico</option>
+        </optgroup>
+        <optgroup label="Operacional">
+          <option>Manutenção</option>
+          <option>Segurança</option>
+          <option>Lavanderia</option>
+          <option>Rouparia</option>
+          <option>Estacionamento</option>
+          <option>Transportes</option>
+        </optgroup>
+      </select>
       <select class="form-control" id="filtro-admin" aria-label="Responsável">
         <option value="">Todos os responsáveis</option>
       </select>
-      <div class="filtro-servico-wrap" style="flex:1;min-width:120px">
-        <input class="form-control" type="text" id="filtro-servico" placeholder="Todos os serviços" autocomplete="off" aria-label="Serviço">
-      </div>
       <button class="btn btn-primary btn-sm" id="btn-filtrar">Filtrar</button>
       <button class="btn btn-secondary btn-sm" id="btn-limpar">Limpar</button>
       <button class="btn btn-secondary btn-sm" id="btn-atualizar" title="Atualizar" aria-label="Atualizar">&#8635;</button>
@@ -112,18 +171,8 @@
         <button class="filtro-tipo-btn ativo" data-tipo="criacao">Criação</button>
         <button class="filtro-tipo-btn" data-tipo="encerramento">Encerramento</button>
       </div>
-      <div class="filtro-periodo-sep"></div>
-      <div class="filtro-periodo-chips" role="group" aria-label="Período rápido">
-        <button class="filtro-periodo-chip" data-periodo="semana">Semana</button>
-        <button class="filtro-periodo-chip" data-periodo="mes">Mês</button>
-        <button class="filtro-periodo-chip" data-periodo="trimestre">Trimestre</button>
-      </div>
-      <div class="filtro-periodo-sep"></div>
       <div class="filtro-data-pick">
-        <span class="filtro-data-sep-text">De</span>
-        <input class="filtro-data-input" type="date" id="filtro-data-inicio" aria-label="Data início">
-        <span class="filtro-data-sep-text">até</span>
-        <input class="filtro-data-input" type="date" id="filtro-data-fim" aria-label="Data fim">
+        <input class="filtro-data-input" type="date" id="filtro-data-dia" aria-label="Selecionar dia">
         <button class="btn btn-secondary btn-sm" id="btn-limpar-data" style="font-size:.7rem;padding:.28rem .55rem">× Limpar</button>
       </div>
     </div>
@@ -174,21 +223,11 @@
       <form id="form-novo-chamado">
         <div class="form-group" id="nc-usuario-wrap" style="display:none">
           <label for="nc-usuario-busca">Direcionar para usuário <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-          <div style="display:flex;gap:.4rem;align-items:center">
-            <div style="flex:1;position:relative">
-              <input class="form-control" type="text" id="nc-usuario-busca" placeholder="Buscar por nome, setor ou e-mail…" autocomplete="off">
-              <div id="nc-usuario-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:var(--surface);max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
-            </div>
-            <button type="button" id="btn-nc-novo-usuario" title="Cadastrar novo usuário" style="flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;font-size:1.2rem;line-height:1;color:var(--gold-dark);font-weight:600">+</button>
+          <div style="position:relative">
+            <input class="form-control" type="text" id="nc-usuario-busca" placeholder="Buscar por nome, setor ou e-mail…" autocomplete="off">
+            <div id="nc-usuario-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:#fff;max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
           </div>
           <div id="nc-usuario-selecionado" style="display:none;font-size:.8rem;color:var(--text-secondary);margin-top:.35rem;padding:.3rem .5rem;background:var(--bg-card);border-radius:5px;border:1px solid var(--border)"></div>
-        </div>
-        <div class="form-group">
-          <label>Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional — IA escolhe se vazio)</span></label>
-          <div style="display:flex;gap:.4rem;align-items:center">
-            <div style="flex:1" id="nc-cat-combo"></div>
-            <button type="button" id="btn-nc-nova-etiqueta" title="Criar nova etiqueta" style="flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;font-size:1.2rem;line-height:1;color:var(--gold-dark);font-weight:600">+</button>
-          </div>
         </div>
         <div class="form-group">
           <label for="nc-admin-responsavel">Atribuir para admin <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
@@ -196,6 +235,33 @@
             <option value="">Minha responsabilidade</option>
           </select>
           <p class="form-hint" id="nc-admin-hint" style="display:none"></p>
+        </div>
+        <div class="form-group">
+          <label for="nc-categoria">Serviço <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
+          <select class="form-control" id="nc-categoria">
+            <option value="">Classificar automaticamente</option>
+            <option value="software">Software</option>
+            <option value="hardware">Hardware</option>
+            <option value="cameras">Câmeras / CFTV</option>
+            <option value="email">E-mail</option>
+            <option value="processo_compra">Processo de Compra</option>
+          </select>
+          <select class="form-control" id="nc-subcategoria" style="display:none;margin-top:.5rem">
+            <option value="">— tipo de hardware —</option>
+            <option value="impressora">Impressora</option>
+            <option value="ramal">Ramal / Telefone</option>
+            <option value="nobreak">Nobreak</option>
+            <option value="monitor">Monitor</option>
+            <option value="mouse">Mouse</option>
+            <option value="teclado">Teclado</option>
+            <option value="rede">Rede / Internet</option>
+            <option value="acesso_senha">Acesso / Senha</option>
+            <option value="tv_projetor">TV</option>
+            <option value="projetor">Projetor</option>
+            <option value="tablet">Tablet</option>
+            <option value="celular">Celular</option>
+            <option value="outros">Outros</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="nc-descricao">Descrição do problema <span class="req">*</span></label>
@@ -207,7 +273,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Adicionar arquivos
           </button>
-          <input type="file" id="nc-anexo" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.log,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.zip,.rar,.7z,.mp4,.webm,.mov,.avi,.mkv,.wmv" style="display:none">
+          <input type="file" id="nc-anexo" multiple accept=".jpg,.jpeg,.png,.pdf,.txt,.log,.docx,.mp4,.webm,.mov,.avi,.mkv,.wmv" style="display:none">
           <div class="anexo-tiles" id="nc-anexo-tiles"></div>
           <p class="form-hint" id="nc-anexo-hint">Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.</p>
         </div>
@@ -217,117 +283,11 @@
   </div>
 </div>
 
-<!-- Modal: Novo usuário do portal (via + no form de novo chamado) -->
-<div class="modal-overlay" id="modal-nc-novo-usuario" style="z-index:600">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-header">
-      <h2>Novo usuário do portal</h2>
-      <button class="modal-close" id="btn-fechar-nc-usuario">&#x2715;</button>
-    </div>
-    <div class="modal-body" style="padding:1.25rem">
-      <div id="msg-nc-usuario"></div>
-      <form id="form-nc-usuario" autocomplete="off">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
-          <div class="form-group" style="margin:0">
-            <label style="font-size:.8rem">Nome completo <span class="req">*</span></label>
-            <input class="form-control" type="text" id="ncu-nome" maxlength="100" placeholder="Nome completo">
-          </div>
-          <div class="form-group" style="margin:0">
-            <label style="font-size:.8rem">Setor</label>
-            <input class="form-control" type="text" id="ncu-setor" maxlength="80" placeholder="Ex: Recepção">
-          </div>
-        </div>
-        <div class="form-group" style="margin:.6rem 0 0">
-          <label style="font-size:.8rem">E-mail <span class="req">*</span> <span style="font-weight:400;color:var(--text-muted)">(@granmarquise.com.br)</span></label>
-          <input class="form-control" type="email" id="ncu-email" placeholder="usuario@granmarquise.com.br">
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem">
-          <div class="form-group" style="margin:0">
-            <label style="font-size:.8rem">Senha <span class="req">*</span></label>
-            <input class="form-control" type="password" id="ncu-senha" placeholder="Senha forte">
-          </div>
-          <div class="form-group" style="margin:0">
-            <label style="font-size:.8rem">Ramal</label>
-            <input class="form-control" type="text" id="ncu-ramal" maxlength="4" placeholder="4 dígitos">
-          </div>
-        </div>
-        <p style="font-size:.74rem;color:var(--text-muted);margin:.5rem 0 .75rem">Mín. 8 chars · maiúscula + minúscula + número + especial.</p>
-        <div style="display:flex;gap:.5rem">
-          <button type="submit" class="btn btn-primary" style="flex:1" id="btn-ncu-salvar">Criar usuário</button>
-          <button type="button" class="btn btn-secondary" id="btn-ncu-cancelar">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: Nova etiqueta (via + no form de novo chamado) -->
-<div class="modal-overlay" id="modal-nc-nova-etiqueta" style="z-index:600">
-  <div class="modal" style="max-width:360px">
-    <div class="modal-header">
-      <h2>Nova etiqueta</h2>
-      <button class="modal-close" id="btn-fechar-nc-etiqueta">&#x2715;</button>
-    </div>
-    <div class="modal-body" style="padding:1.25rem">
-      <div id="msg-nc-etiqueta"></div>
-      <form id="form-nc-etiqueta" autocomplete="off">
-        <div class="form-group">
-          <label style="font-size:.8rem">Nome <span class="req">*</span></label>
-          <input class="form-control" type="text" id="nce-nome" maxlength="60" placeholder="Ex: Impressora, VPN…">
-        </div>
-        <div class="form-group">
-          <label style="font-size:.8rem" for="nce-parent-busca">Etiqueta pai <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-          <!-- Autocomplete: input visivel filtra; hidden #nce-parent mantem o slug
-               compatibilidade com o submit (continua lendo .value como antes). -->
-          <div id="nce-parent-combo" style="position:relative">
-            <input type="text" class="form-control" id="nce-parent-busca"
-              placeholder="— sem pai (etiqueta raiz) —" autocomplete="off"
-              role="combobox" aria-autocomplete="list" aria-expanded="false"
-              aria-controls="nce-parent-dd" style="font-size:.82rem">
-            <input type="hidden" id="nce-parent">
-            <div id="nce-parent-dd" role="listbox" style="display:none;position:absolute;z-index:10;left:0;right:0;top:calc(100% + 2px);background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.15)"></div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label style="font-size:.8rem">Descrição <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-          <textarea class="form-control" id="nce-descricao" rows="2" maxlength="500" placeholder="Descreva quando usar esta etiqueta…" style="font-size:.8rem;resize:vertical"></textarea>
-        </div>
-        <div class="form-group">
-          <label style="font-size:.8rem">Cor</label>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.3rem" id="nce-cores">
-            <button type="button" class="nce-cor-btn ativo" data-cor="#5B6796" style="width:26px;height:26px;border-radius:50%;background:#5B6796;border:2px solid #5B6796;cursor:pointer" title="Índigo"></button>
-            <button type="button" class="nce-cor-btn" data-cor="#0F766E" style="width:26px;height:26px;border-radius:50%;background:#0F766E;border:2px solid transparent;cursor:pointer" title="Verde-azulado"></button>
-            <button type="button" class="nce-cor-btn" data-cor="#D4AF37" style="width:26px;height:26px;border-radius:50%;background:#D4AF37;border:2px solid transparent;cursor:pointer" title="Ouro"></button>
-            <button type="button" class="nce-cor-btn" data-cor="#B85450" style="width:26px;height:26px;border-radius:50%;background:#B85450;border:2px solid transparent;cursor:pointer" title="Vermelho"></button>
-            <button type="button" class="nce-cor-btn" data-cor="#6B6B6B" style="width:26px;height:26px;border-radius:50%;background:#6B6B6B;border:2px solid transparent;cursor:pointer" title="Cinza"></button>
-            <button type="button" class="nce-cor-btn" data-cor="#2D7A4F" style="width:26px;height:26px;border-radius:50%;background:#2D7A4F;border:2px solid transparent;cursor:pointer" title="Verde"></button>
-            <button type="button" class="nce-cor-btn" data-cor="#0EA5E9" style="width:26px;height:26px;border-radius:50%;background:#0EA5E9;border:2px solid transparent;cursor:pointer" title="Azul"></button>
-            <button type="button" class="nce-cor-btn" data-cor="#8B5CF6" style="width:26px;height:26px;border-radius:50%;background:#8B5CF6;border:2px solid transparent;cursor:pointer" title="Roxo"></button>
-          </div>
-          <input type="hidden" id="nce-cor-valor" value="#5B6796">
-        </div>
-        <div style="display:flex;gap:.5rem;margin-top:.25rem">
-          <button type="submit" class="btn btn-primary" style="flex:1" id="btn-nce-salvar">Criar etiqueta</button>
-          <button type="button" class="btn btn-secondary" id="btn-nce-cancelar">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<nav id="fab-scroll-nav" aria-label="Navegação rápida de scroll" hidden>
-  <button class="fab-half fab-up" id="fab-top" type="button" aria-label="Ir para o início da página">
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 14l6-6 6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </button>
-  <div class="fab-rail" aria-hidden="true"><span class="fab-rail-fill"></span></div>
-  <button class="fab-half fab-down" id="fab-bottom" type="button" aria-label="Ir para o final da página">
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 10l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </button>
-</nav>
-
-<script defer src="/js/nav.js?v=10"></script>
-<script defer src="/js/historico-modal.js?v=10"></script>
-<script defer src="/js/chat-utils.js?v=2"></script>
-<script defer src="/js/admin-painel.js?v=30"></script>
+<script defer src="/js/nav.js"></script>
+<script defer src="/js/historico-modal.js"></script>
+<script defer src="/js/admin-painel.js?v=22"></script>
+<!-- === BLOCO FUMAÇA - REMOVER COM "Tire essa parte das fumaças" === -->
+<script defer src="/js/fumaca.js"></script>
+<!-- === FIM BLOCO FUMAÇA === -->
 </body>
 </html>

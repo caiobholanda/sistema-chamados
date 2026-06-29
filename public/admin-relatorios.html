@@ -4,51 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Relatórios — Gran Marquise TI</title>
+  <script src="/js/theme-init.js"></script>
   <link rel="preconnect" href="https://letsimage.s3.amazonaws.com">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="/css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <header>
-  <a class="header-brand" href="https://hub-granmarquise.fly.dev" target="_blank" rel="noopener noreferrer" title="Abrir o Hub em nova aba" style="text-decoration:none;color:inherit;cursor:pointer">
+  <div class="header-brand">
     <img class="header-logo-img" src="https://letsimage.s3.amazonaws.com/editor/granmarquise/imgs/1760033174793-hotelgranmarquise_pos_footer.png" alt="Gran Marquise">
     <div class="header-brand-text">
       <div class="header-brand-name">Gran Marquise</div>
       <div class="header-brand-sub">Suporte de TI</div>
     </div>
-  </a>
+  </div>
   <div class="header-divider"></div>
   <nav></nav>
 </header>
 
-<main class="wide">
-
-  <div class="page-header">
-    <div class="page-title">Relatórios</div>
-    <div class="page-subtitle" id="page-subtitle">Indicadores de desempenho do suporte de TI</div>
-  </div>
-
-  <div class="rel-toolbar">
-    <button class="step-arrow" id="btn-mes-anterior" aria-label="Mês anterior" title="Mês anterior">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <label class="picker" for="sel-mes">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span id="label-mes">—</span>
-      <input type="month" id="sel-mes" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none">
-    </label>
-    <button class="step-arrow" id="btn-mes-proximo" aria-label="Próximo mês" title="Próximo mês">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-    </button>
-    <button class="btn btn-secondary btn-sm" id="btn-mes-atual" style="font-size:.7rem">Mês atual</button>
-    <div class="compare" id="compare-info" style="display:none">
-      Comparar vs. <strong id="compare-mes">—</strong>
+<main>
+  <div class="page-header flex-between flex-wrap gap-2">
+    <div>
+      <div class="page-title">Relatórios</div>
+      <div class="page-subtitle">Indicadores de desempenho do suporte técnico</div>
+    </div>
+    <div class="flex gap-1 flex-wrap" style="align-items:center">
+      <label for="sel-mes" style="font-size:.68rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em">Período</label>
+      <input type="month" class="form-control" id="sel-mes" style="width:auto">
+      <button class="btn btn-primary btn-sm" id="btn-carregar">Carregar</button>
     </div>
   </div>
 
   <div id="conteudo"><div class="loading"><div class="spinner"></div></div></div>
 </main>
 
-<script defer src="/js/nav.js?v=10"></script>
-<script defer src="/js/admin-relatorios.js?v=12"></script>
+<script defer src="/js/nav.js"></script>
+<script defer src="/js/admin-relatorios.js?v=2"></script>
 </body>
 </html>
