@@ -2,11 +2,9 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <script src="/js/theme-init.js"></script>
-  <meta http-equiv="refresh" content="0;url=/">
   <title>Redirecionando…</title>
 </head>
 <body>
-  <script>location.replace('/');</script>
+  <script>location.replace('/acesso-hub.html?next=' + encodeURIComponent(location.origin + '/admin-painel.html'));</script>
 </body>
 </html>
