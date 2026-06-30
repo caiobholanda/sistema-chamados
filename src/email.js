@@ -19,7 +19,7 @@ function criarTransporter() {
   });
 }
 
-function htmlEmail(nome, linkReset) {
+function htmlEmail(nome, linkReset, horas = 1) {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="UTF-8"></head>
@@ -60,7 +60,7 @@ function htmlEmail(nome, linkReset) {
         <tr>
           <td style="padding:0 40px 28px">
             <p style="margin:0;font-size:12px;color:#7A726A;line-height:1.6">
-              Este link expira em <strong>1 hora</strong>.<br>
+              Este link expira em <strong>${horas} hora${horas > 1 ? 's' : ''}</strong>.<br>
               Se você não solicitou a redefinição, ignore este e-mail — sua senha permanece a mesma.
             </p>
             <p style="margin:12px 0 0;font-size:11px;color:#B8B0A8;line-height:1.6;word-break:break-all">
@@ -81,7 +81,7 @@ function htmlEmail(nome, linkReset) {
 </html>`;
 }
 
-async function enviarViaBrevo(destinatario, nome, linkReset) {
+async function enviarViaBrevo(destinatario, nome, linkReset, horas = 1) {
   const apiKey = process.env.BREVO_API_KEY;
   const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'tigranmarquise@gmail.com';
 
@@ -89,7 +89,7 @@ async function enviarViaBrevo(destinatario, nome, linkReset) {
     sender: { email: from, name: 'Gran Marquise TI' },
     to: [{ email: destinatario, name: nome }],
     subject: 'Redefinição de senha — Portal TI Gran Marquise',
-    htmlContent: htmlEmail(nome, linkReset),
+    htmlContent: htmlEmail(nome, linkReset, horas),
   });
 
   return new Promise((resolve, reject) => {
@@ -120,10 +120,10 @@ async function enviarViaBrevo(destinatario, nome, linkReset) {
   });
 }
 
-async function enviarResetSenha(destinatario, nome, linkReset) {
+async function enviarResetSenha(destinatario, nome, linkReset, horas = 1) {
   if (process.env.BREVO_API_KEY) {
     console.log(`[Reset Senha] Enviando via Brevo para ${destinatario}...`);
-    return enviarViaBrevo(destinatario, nome, linkReset);
+    return enviarViaBrevo(destinatario, nome, linkReset, horas);
   }
 
   const transporter = criarTransporter();
@@ -142,7 +142,7 @@ async function enviarResetSenha(destinatario, nome, linkReset) {
     from: `"Gran Marquise TI" <${from}>`,
     to: destinatario,
     subject: 'Redefinição de senha — Portal TI Gran Marquise',
-    html: htmlEmail(nome, linkReset),
+    html: htmlEmail(nome, linkReset, horas),
   }), timeout]);
 }
 

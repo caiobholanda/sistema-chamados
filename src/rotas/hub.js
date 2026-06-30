@@ -1,10 +1,12 @@
 // Rotas server-to-server: chamadas pelo HubSistemas com Bearer SSO_SECRET.
 // Nao expor para o cliente final. O Hub e que valida o admin (via JWT proprio)
 // antes de proxiar para ca.
+const crypto = require('crypto');
 const express = require('express');
 const bcrypt = require('bcrypt');
 const router = express.Router();
 const db = require('../db');
+const { enviarResetSenha } = require('../email');
 
 const DOMINIO_EMAIL = '@granmarquise.com.br';
 function senhaForte(s) {
@@ -229,6 +231,41 @@ router.delete('/portal-usuarios/:id', (req, res) => {
   } catch (err) {
     console.error('[hub portal-usuarios DELETE]', err);
     res.status(500).json({ ok: false, erro: 'Erro interno' });
+  }
+});
+
+// ─── Reset de senha admin-iniciado (link 24h) ────────────────────────────────
+router.post('/admins/:id/reset-link', async (req, res) => {
+  try {
+    const alvo = db.buscarAdminPorId(req.params.id);
+    if (!alvo) return res.status(404).json({ ok: false, erro: 'Admin não encontrado' });
+    if (!alvo.email) return res.status(400).json({ ok: false, erro: 'Admin sem e-mail cadastrado' });
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
+    db.criarAdminResetToken(alvo.id, token, expires_at);
+    const base = process.env.APP_URL || 'https://sistema-chamados-granmarquise.fly.dev';
+    await enviarResetSenha(alvo.email, alvo.nome_completo, `${base}/redefinir-senha.html?token=${token}`, 24);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[hub admins reset-link]', err);
+    res.status(500).json({ ok: false, erro: 'Erro ao gerar link de redefinição' });
+  }
+});
+
+router.post('/portal-usuarios/:id/reset-link', async (req, res) => {
+  try {
+    const u = db.buscarUsuarioPorId(req.params.id);
+    if (!u) return res.status(404).json({ ok: false, erro: 'Usuário não encontrado' });
+    if (!u.email) return res.status(400).json({ ok: false, erro: 'Usuário sem e-mail cadastrado' });
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
+    db.criarResetToken(u.id, token, expires_at);
+    const base = process.env.APP_URL || 'https://sistema-chamados-granmarquise.fly.dev';
+    await enviarResetSenha(u.email, u.nome, `${base}/redefinir-senha.html?token=${token}`, 24);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[hub portal-usuarios reset-link]', err);
+    res.status(500).json({ ok: false, erro: 'Erro ao gerar link de redefinição' });
   }
 });
 
