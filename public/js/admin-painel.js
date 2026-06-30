@@ -1796,7 +1796,7 @@ function renderModalBody(c) {
               <span class="mv2-ts-label">Aberto em</span>
               <span class="mv2-ts-val">${fmtData(c.criado_em)}</span>
             </div>
-            ${c.prazo ? `<div class="mv2-ts-chip ${atrasado ? 'mv2-ts-danger' : 'mv2-ts-warn'}">
+            ${c.prazo ? `<div class="mv2-ts-chip ${atrasado ? 'mv2-ts-atraso' : 'mv2-ts-warn'}">
               <span class="mv2-ts-label">${atrasado ? '⚠ Prazo vencido' : 'Prazo'}</span>
               <span class="mv2-ts-val">${fmtData(c.prazo)}</span>
             </div>` : ''}

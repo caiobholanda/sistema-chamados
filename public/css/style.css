@@ -3409,6 +3409,10 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   background: var(--danger-light);
   border-color: rgba(185,28,28,.25);
 }
+.mv2-ts-atraso {
+  background: #FDF2EE;
+  border-color: rgba(156,88,67,.28);
+}
 .mv2-ts-warn {
   background: var(--warning-light);
   border-color: rgba(180,83,9,.22);
@@ -3425,6 +3429,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   color: var(--text-muted);
 }
 .mv2-ts-danger .mv2-ts-label { color: var(--danger); }
+.mv2-ts-atraso .mv2-ts-label { color: #9C5843; }
 .mv2-ts-warn .mv2-ts-label { color: var(--warning); }
 .mv2-ts-ok .mv2-ts-label { color: var(--success); }
 .mv2-ts-val {
@@ -3434,6 +3439,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   margin-top: .05rem;
 }
 .mv2-ts-danger .mv2-ts-val { color: var(--danger); }
+.mv2-ts-atraso .mv2-ts-val { color: #9C5843; font-weight: 700; }
 
 /* Categoria */
 .mv2-cat-row {
