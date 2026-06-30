@@ -5653,3 +5653,4 @@ html.modal-aberto {
   color: var(--text-muted); pointer-events: none;
 }
 .lupa-wrap > .form-control { padding-left: 2rem; }
+.lupa-wrap > .form-control-sm { padding-left: 2rem !important; }

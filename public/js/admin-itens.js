@@ -304,7 +304,10 @@ function renderMicros(lista) {
 
   el.innerHTML = `
     <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <input class="form-control" id="micros-search" type="text" placeholder="Buscar setor, usuário, hostname…" style="max-width:260px">
+      <div class="lupa-wrap" style="max-width:260px">
+        <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-control" id="micros-search" type="text" placeholder="Buscar setor, usuário, hostname…">
+      </div>
       <select class="form-control" id="micros-processador" style="max-width:180px">
         <option value="">Todos os processadores</option>
         ${processadores.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('')}
@@ -438,7 +441,10 @@ function renderToner(itens) {
 
   el.innerHTML = `
     <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <input class="form-control" id="toner-search" type="text" placeholder="Buscar nome…" style="max-width:220px">
+      <div class="lupa-wrap" style="max-width:220px">
+        <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-control" id="toner-search" type="text" placeholder="Buscar nome…">
+      </div>
       <select class="form-control" id="toner-tipo" style="max-width:180px">
         <option value="">Todos os tipos</option>
         <option value="toner_mono">Toner Mono</option>
@@ -542,7 +548,10 @@ function renderImpressoras(impressoras) {
 
   el.innerHTML = `
     <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <input class="form-control" id="imp-search" type="text" placeholder="Buscar nome, IP, SELB…" style="max-width:240px">
+      <div class="lupa-wrap" style="max-width:240px">
+        <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-control" id="imp-search" type="text" placeholder="Buscar nome, IP, SELB…">
+      </div>
       <select class="form-control" id="imp-loc-filter" style="max-width:200px">
         <option value="">Todas as localizações</option>
         ${locs.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('')}
@@ -625,7 +634,10 @@ function renderPerifericos(lista) {
 
   el.innerHTML = `
     <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <input class="form-control" id="per-search" type="text" placeholder="Buscar nome…" style="max-width:240px">
+      <div class="lupa-wrap" style="max-width:240px">
+        <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-control" id="per-search" type="text" placeholder="Buscar nome…">
+      </div>
       <span id="per-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem">${lista.length} item${lista.length !== 1 ? 's' : ''}</span>
     </div>
     <div id="per-tabela"></div>

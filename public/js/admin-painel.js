@@ -460,7 +460,8 @@ function _criarComboEtiqueta(wrapEl, cfg = {}) {
     document.head.appendChild(st);
   }
   const cls = cfg.sm ? 'form-control form-control-sm' : 'form-control';
-  wrapEl.innerHTML = `<div style="position:relative">
+  wrapEl.innerHTML = `<div class="lupa-wrap" style="position:relative">
+    <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input type="text" class="${cls}" data-combo-inp placeholder="${cfg.placeholder || 'Selecionar etiqueta…'}" autocomplete="off">
     <input type="hidden" data-combo-val>
     <div data-combo-dd style="display:none;position:absolute;z-index:1050;left:0;right:0;top:calc(100% + 2px);background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);max-height:220px;overflow-y:auto"></div>
