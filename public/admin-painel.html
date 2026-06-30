@@ -88,14 +88,19 @@
 
   <div class="filtros-card">
     <div class="filtros">
-      <input class="form-control" type="search" id="filtro-busca" aria-label="Buscar chamados" placeholder="Buscar por ID, nome, descrição, setor, etiqueta…" style="min-width:220px;flex:1">
-      <div class="filtro-setor-wrap" style="flex:1;min-width:120px">
+      <div class="lupa-wrap" style="flex:1;min-width:220px">
+        <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-control" type="search" id="filtro-busca" aria-label="Buscar chamados" placeholder="Buscar por ID, nome, descrição, setor, etiqueta…">
+      </div>
+      <div class="filtro-setor-wrap lupa-wrap" style="flex:1;min-width:120px">
+        <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="form-control" type="text" id="filtro-setor" placeholder="Todos os setores" autocomplete="off" aria-label="Setor">
       </div>
       <select class="form-control" id="filtro-admin" aria-label="Responsável">
         <option value="">Todos os responsáveis</option>
       </select>
-      <div class="filtro-servico-wrap" style="flex:1;min-width:120px">
+      <div class="filtro-servico-wrap lupa-wrap" style="flex:1;min-width:120px">
+        <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="form-control" type="text" id="filtro-servico" placeholder="Todos os serviços" autocomplete="off" aria-label="Serviço">
       </div>
       <button class="btn btn-primary btn-sm" id="btn-filtrar">Filtrar</button>
@@ -175,7 +180,8 @@
         <div class="form-group" id="nc-usuario-wrap" style="display:none">
           <label for="nc-usuario-busca">Direcionar para usuário <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
           <div style="display:flex;gap:.4rem;align-items:center">
-            <div style="flex:1;position:relative">
+            <div class="lupa-wrap" style="flex:1;position:relative">
+              <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input class="form-control" type="text" id="nc-usuario-busca" placeholder="Buscar por nome, setor ou e-mail…" autocomplete="off">
               <div id="nc-usuario-resultados" style="display:none;position:absolute;z-index:200;left:0;right:0;border:1px solid var(--border);border-radius:6px;background:var(--surface);max-height:170px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
             </div>
@@ -279,7 +285,8 @@
           <label style="font-size:.8rem" for="nce-parent-busca">Etiqueta pai <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
           <!-- Autocomplete: input visivel filtra; hidden #nce-parent mantem o slug
                compatibilidade com o submit (continua lendo .value como antes). -->
-          <div id="nce-parent-combo" style="position:relative">
+          <div id="nce-parent-combo" class="lupa-wrap" style="position:relative">
+            <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" class="form-control" id="nce-parent-busca"
               placeholder="— sem pai (etiqueta raiz) —" autocomplete="off"
               role="combobox" aria-autocomplete="list" aria-expanded="false"

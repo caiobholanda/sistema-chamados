@@ -87,9 +87,11 @@
   </div>
 
   <div style="margin-bottom:1rem">
-    <input class="form-control" type="search" id="filtro-etiquetas"
-      placeholder="Filtrar por nome, descrição ou categoria pai…"
-      style="max-width:420px">
+    <div class="lupa-wrap" style="max-width:420px">
+      <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="form-control" type="search" id="filtro-etiquetas"
+        placeholder="Filtrar por nome, descrição ou categoria pai…">
+    </div>
   </div>
 
   <div id="lista-etiquetas"><div class="loading"><div class="spinner"></div></div></div>

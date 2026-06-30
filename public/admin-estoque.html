@@ -45,7 +45,10 @@
   <!-- Busca equipamentos -->
   <div id="filtros-equipamentos" style="display:none;margin:.75rem 0 0">
     <div class="filtros">
-      <input class="form-control" type="search" id="eq-busca" placeholder="Buscar por nome, categoria ou código… Ex: toner, nobreak" style="max-width:320px">
+      <div class="lupa-wrap" style="max-width:320px">
+        <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-control" type="search" id="eq-busca" placeholder="Buscar por nome, categoria ou código… Ex: toner, nobreak">
+      </div>
       <select class="form-control" id="eq-status" style="max-width:160px">
         <option value="">Todos os status</option>
         <option value="disponivel">Disponível</option>

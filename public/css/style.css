@@ -5643,3 +5643,13 @@ html.modal-aberto {
   #fab-scroll-nav,
   #fab-scroll-nav * { transition: none !important; }
 }
+
+/* ═══════════════════════════════════════════
+   LUPA WRAPPER (campo de busca com ícone)
+═══════════════════════════════════════════ */
+.lupa-wrap { position: relative; }
+.lupa-wrap > .lupa-icon {
+  position: absolute; left: .65rem; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); pointer-events: none;
+}
+.lupa-wrap > .form-control { padding-left: 2rem; }

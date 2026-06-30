@@ -31,12 +31,18 @@
   </div>
 
   <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-    <input class="form-control" id="f-setor" type="text" placeholder="Filtrar por setor…" style="max-width:200px">
+    <div class="lupa-wrap" style="max-width:200px">
+      <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="form-control" id="f-setor" type="text" placeholder="Filtrar por setor…">
+    </div>
     <select class="form-control" id="f-status" style="max-width:160px">
       <option value="">Todos os status</option>
       <option value="NOVO">NOVO</option>
     </select>
-    <input class="form-control" id="f-search" type="text" placeholder="Buscar usuário, hostname…" style="max-width:220px">
+    <div class="lupa-wrap" style="max-width:220px">
+      <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="form-control" id="f-search" type="text" placeholder="Buscar usuário, hostname…">
+    </div>
     <span id="inv-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem"></span>
   </div>
 
