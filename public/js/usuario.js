@@ -578,7 +578,7 @@ function renderPainel(usuario) {
         </div>
       </div>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap">
-        <button class="btn btn-primary" id="btn-novo-chamado" style="font-size:.95rem;padding:.55rem 1.3rem;font-weight:700;box-shadow:0 2px 8px rgba(180,140,60,.25)">+ Abrir chamado</button>
+        <button class="btn btn-primary" id="btn-novo-chamado" style="font-size:.95rem;padding:.55rem 1.3rem;font-weight:700">+ Abrir chamado</button>
         <button class="btn btn-secondary" id="btn-nova-sugestao-u" style="font-size:.95rem;padding:.55rem 1.3rem">💡 Mandar uma Sugestão</button>
       </div>
     </div>
