@@ -133,10 +133,12 @@ input, select, textarea, button, .badge, .modal, .modal-overlay {
 }
 
 /* Badges — red */
-[data-theme="dark"] .badge-atraso,
 [data-theme="dark"] .badge-cancelado,
 [data-theme="dark"] .badge-negada {
   background: #3b0a0a; color: #fca5a5; border-color: #dc2626;
+}
+[data-theme="dark"] .badge-atraso {
+  background: #5c2a1e; color: #FFD4C4; border-color: #9C5843;
 }
 
 /* Badges — green */
@@ -157,7 +159,7 @@ input, select, textarea, button, .badge, .modal, .modal-overlay {
 
 /* Banner borders */
 [data-theme="dark"] .banner-prazo  { border-color: #d97706; }
-[data-theme="dark"] .banner-atraso { border-color: #dc2626; }
+[data-theme="dark"] .banner-atraso { border-color: #9C5843; }
 
 /* Historico especial */
 [data-theme="dark"] .historico-item-assin  { background: var(--success-light); }
@@ -246,7 +248,7 @@ input, select, textarea, button, .badge, .modal, .modal-overlay {
 [data-theme="dark"] .termo-sig-label   { color: var(--text-muted); }
 
 /* Modal danger zone border (already uses var, just fix border) */
-[data-theme="dark"] .banner-atraso { border-color: #dc2626; }
+[data-theme="dark"] .banner-atraso { border-color: #9C5843; }
 [data-theme="dark"] .banner-prazo  { border-color: #d97706; }
 
 /* Metric circle empty track */
@@ -749,8 +751,8 @@ select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-
   letter-spacing: .07em;
 }
 .badge-urgente        { background: var(--danger-light);  color: var(--danger);   border: 1px solid #fecaca; }
-.badge-atraso         { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; animation: pulso-atraso 1.8s ease-in-out infinite; will-change: opacity; }
-@keyframes pulso-atraso { 0%,100% { opacity:1; } 50% { opacity:.6; } }
+.badge-atraso         { background: #9C5843; color: #FFF9F7; border: 1px solid #7a3428; animation: pulso-atraso 1.8s ease-in-out infinite; will-change: opacity; }
+@keyframes pulso-atraso { 0%,100% { opacity:1; } 50% { opacity:.72; } }
 .badge-alta           { background: #FFEDD5;               color: #C2410C;         border: 1px solid #fdba74; }
 .badge-media          { background: #DBEAFE;               color: #1D4ED8;         border: 1px solid #93c5fd; }
 .badge-baixa          { background: var(--success-light);  color: var(--success);  border: 1px solid #86efac; }
@@ -1473,8 +1475,8 @@ tbody tr:hover td { background: var(--surface-2); }
 }
 .chamado-encerrado { opacity: .65; }
 .chamado-encerrado:hover { opacity: 1; }
-.chamado-atraso { border-left: 3px solid var(--danger) !important; }
-.prazo-vencido { color: var(--danger) !important; font-weight: 600; }
+.chamado-atraso { border-left: 3px solid #9C5843 !important; }
+.prazo-vencido { color: #9C5843 !important; font-weight: 600; }
 .chamado-data-rel { margin-left: auto; font-size: .7rem; color: var(--text-muted); }
 
 /* ═══════════════════════════════════════════
@@ -1494,13 +1496,13 @@ tbody tr:hover td { background: var(--surface-2); }
   display: flex;
   align-items: center;
   gap: .5rem;
-  background: var(--danger-light);
-  border: 1px solid #fca5a5;
-  border-left: 3px solid var(--danger);
+  background: #FDF2EE;
+  border: 1px solid #d4957f;
+  border-left: 3px solid #9C5843;
   border-radius: var(--radius-sm);
   padding: .65rem 1rem;
   font-size: .84rem;
-  color: var(--danger);
+  color: #7a3428;
   margin-bottom: .75rem;
 }
 
