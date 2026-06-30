@@ -1127,9 +1127,10 @@ tbody tr:hover td { background: var(--surface-2); }
   flex-shrink: 0;
 }
 .filtro-tipo-btn {
-  padding: .3rem .72rem;
+  padding: .35rem .9rem;
   font-size: .71rem;
   font-weight: 600;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   letter-spacing: .04em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -1386,8 +1387,9 @@ tbody tr:hover td { background: var(--surface-2); }
 }
 .filtro-periodo-chips { display: flex; gap: .28rem; align-items: center; }
 .filtro-periodo-chip {
-  padding: .28rem .58rem;
+  padding: .35rem .75rem;
   font-size: .67rem; font-weight: 700;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   letter-spacing: .07em; text-transform: uppercase;
   color: var(--text-muted);
   background: transparent;
