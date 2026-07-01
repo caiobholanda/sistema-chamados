@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -322,7 +322,7 @@ input, select, textarea, button, .badge, .modal, .modal-overlay {
 [data-theme="dark"] .btn-termo-add-row:hover { background: rgba(156,88,67,.08); }
 
 body {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -365,7 +365,7 @@ header {
   flex-shrink: 0;
 }
 .header-monogram {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 15px;
   font-weight: 700;
   color: var(--gold);
@@ -508,7 +508,7 @@ main.wide { max-width: 1280px; }
 
 .page-header { margin-bottom: 1.75rem; }
 .page-title {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.65rem;
   font-weight: 600;
   color: var(--text);
@@ -624,14 +624,14 @@ select.form-control:focus {
 .ajuda-modal { background:var(--surface); border-radius:14px; max-width:760px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-lg); border:1px solid var(--border); animation:slideUp .25s ease; }
 @keyframes slideUp { from {transform:translateY(20px); opacity:0} to {transform:translateY(0); opacity:1} }
 .ajuda-cabec { padding:1.4rem 1.6rem 1.1rem; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; background:linear-gradient(135deg, var(--gold-pale) 0%, transparent 100%); border-radius:14px 14px 0 0; }
-.ajuda-tit { font-family:'Helvetica Neue', Helvetica, Arial, sans-serif; font-size:1.7rem; font-weight:600; color:var(--navy); line-height:1.1; letter-spacing:.01em; }
+.ajuda-tit { font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size:1.7rem; font-weight:600; color:var(--navy); line-height:1.1; letter-spacing:.01em; }
 .ajuda-sub { font-size:.82rem; color:var(--text-muted); margin-top:.25rem; }
 .ajuda-fechar { background:transparent; border:none; color:var(--text-muted); font-size:1.6rem; cursor:pointer; line-height:1; padding:0 .3rem; border-radius:6px; transition:all .15s; }
 .ajuda-fechar:hover { background:var(--surface-2); color:var(--text); }
 .ajuda-corpo { padding:.4rem 1.6rem 1.6rem; }
 .ajuda-passo { display:flex; gap:.9rem; padding:.95rem 0; border-bottom:1px solid var(--border); }
 .ajuda-passo:last-child { border-bottom:none; }
-.ajuda-num { flex-shrink:0; width:34px; height:34px; border-radius:50%; background:var(--gold); color:var(--navy); font-weight:700; font-size:.95rem; display:flex; align-items:center; justify-content:center; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif; }
+.ajuda-num { flex-shrink:0; width:34px; height:34px; border-radius:50%; background:var(--gold); color:var(--navy); font-weight:700; font-size:.95rem; display:flex; align-items:center; justify-content:center; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 .ajuda-conteudo { flex:1; min-width:0; }
 .ajuda-acao { font-size:.97rem; font-weight:600; color:var(--text); display:flex; align-items:center; gap:.4rem; margin-bottom:.18rem; }
 .ajuda-acao svg { color:var(--gold); flex-shrink:0; }
@@ -899,7 +899,7 @@ tbody tr:hover td { background: var(--surface-2); }
   border-top: 3px solid var(--gold);
 }
 .modal-header h2 {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--text);
@@ -1001,7 +1001,7 @@ tbody tr:hover td { background: var(--surface-2); }
 .dot-sugestao  { background: #fffbeb; color: #d97706; }
 .stat-info { display: flex; flex-direction: column; }
 .stat-num {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.85rem;
   font-weight: 700;
   color: var(--text);
@@ -1159,7 +1159,7 @@ tbody tr:hover td { background: var(--surface-2); }
   padding: .35rem .9rem;
   font-size: .71rem;
   font-weight: 600;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   letter-spacing: .04em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -1418,7 +1418,7 @@ tbody tr:hover td { background: var(--surface-2); }
 .filtro-periodo-chip {
   padding: .35rem .75rem;
   font-size: .67rem; font-weight: 700;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   letter-spacing: .07em; text-transform: uppercase;
   color: var(--text-muted);
   background: transparent;
@@ -1597,7 +1597,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
   margin-bottom: .2rem;
 }
 .relat-periodo-mes {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.3rem;
   font-weight: 600;
   color: var(--text);
@@ -1656,7 +1656,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
 .relat-kpi-primary .relat-kpi-desc  { color: rgba(255,255,255,.35); }
 
 .relat-kpi-value {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 2.2rem;
   font-weight: 700;
   letter-spacing: -.04em;
@@ -1762,7 +1762,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
   color: var(--text-muted);
 }
 .relat-empty-title {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.2rem; font-weight: 600;
   color: var(--text); margin-bottom: .5rem;
 }
@@ -1863,13 +1863,13 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border: 1px solid rgba(156,88,67,.3);
   border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 20px; font-weight: 700;
   color: var(--gold); letter-spacing: .08em;
   margin-bottom: 1rem;
 }
 .auth-brand-name {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.35rem; font-weight: 600;
   color: #fff; letter-spacing: .04em;
   margin-bottom: .2rem;
@@ -1899,7 +1899,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border-top: 3px solid var(--gold);
 }
 .auth-card-title {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.4rem; font-weight: 600;
   color: var(--text); margin-bottom: .35rem; letter-spacing: .01em;
 }
@@ -1949,12 +1949,12 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 2rem; position: relative; z-index: 1;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 17px; font-weight: 700;
   color: var(--gold); letter-spacing: .08em;
 }
 .login-left h2 {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.6rem; font-weight: 600;
   color: #fff; line-height: 1.25; margin-bottom: .6rem;
   position: relative; z-index: 1;
@@ -1990,7 +1990,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border-top: 3px solid var(--gold);
 }
 .login-card-title {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.35rem; font-weight: 600;
   color: var(--text); margin-bottom: .3rem; letter-spacing: .01em;
 }
@@ -2034,7 +2034,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   text-transform: uppercase;
 }
 .painel-nome {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.3rem;
   font-weight: 600;
   color: #fff;
@@ -2146,7 +2146,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .badge-criado-por-admin svg { flex-shrink: 0; opacity: .8; }
 .badge-criado-por-admin strong { font-weight: 700; color: #1E40AF; }
 .chamado-card-setor {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 600; font-size: 1rem;
   color: var(--text); margin-bottom: .2rem;
 }
@@ -2607,7 +2607,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   flex-wrap: wrap;
 }
 .modal-solicitante-name {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.45rem;
   font-weight: 800;
   color: var(--navy);
@@ -2686,7 +2686,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   padding: 1rem;
 }
 #modal-confirmar-overlay .modal-footer .btn {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: .95rem;
   font-weight: 600;
   letter-spacing: .04em;
@@ -2737,7 +2737,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   text-overflow: ellipsis;
 }
 .ranking-podio-num {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 2.1rem;
   font-weight: 700;
   color: var(--text);
@@ -2791,7 +2791,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .ranking-table tbody tr:last-child td { border-bottom: none; }
 .ranking-table tbody tr:hover td { background: var(--surface-2); }
 .ranking-pos {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-muted);
@@ -3027,7 +3027,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border-right: 1px solid rgba(255,255,255,.1);
 }
 .mv2-logo-user-nome {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.15rem;
   font-weight: 600;
   color: rgba(255,255,255,.95);
@@ -3145,7 +3145,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
   border: 2px solid rgba(156,88,67,.45);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.55rem;
   font-weight: 600;
   color: var(--gold);
@@ -3153,7 +3153,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 .mv2-hero-info { flex: 1; min-width: 0; }
 .mv2-nome {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.35rem;
   font-weight: 600;
   color: #fff;
@@ -3282,7 +3282,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 }
 .mv2-rating-num {
   font-size: 1.85rem;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 700;
   color: var(--gold-dark);
   line-height: 1;
@@ -3824,7 +3824,7 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
 }
 .mob-login-logo { width: 160px; filter: brightness(0) invert(1); margin-bottom: 2rem; }
 .mob-login-title {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.75rem; font-weight: 600; color: #fff; margin-bottom: .2rem;
 }
 .mob-login-sub { font-size: .82rem; color: rgba(255,255,255,.5); margin-bottom: 2rem; letter-spacing: .04em; }
@@ -3840,7 +3840,7 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
   background: var(--navy); padding: .85rem 1rem; position: sticky; top: 0; z-index: 10;
 }
 .mob-header-info { flex: 1; min-width: 0; }
-.mob-header-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.05rem; font-weight: 600; color: #fff; }
+.mob-header-title { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 1.05rem; font-weight: 600; color: #fff; }
 .mob-header-sub { font-size: .72rem; color: rgba(255,255,255,.5); margin-top: .1rem; }
 .mob-sair-btn {
   flex-shrink: 0; background: transparent; border: 1px solid rgba(255,255,255,.25);
@@ -4037,7 +4037,7 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
   border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;
 }
 .mob-sucesso-titulo {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.6rem; font-weight: 600; color: var(--text); margin-bottom: .4rem;
 }
 .mob-sucesso-sub { font-size: .85rem; color: var(--text-muted); margin-bottom: 2rem; }
@@ -4162,7 +4162,7 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
   border-bottom: 1px solid var(--border);
 }
 .assinatura-modal-title {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text);
@@ -4486,7 +4486,7 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
   margin-bottom: .45rem;
 }
 .termo-titulo {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 1.08rem;
   font-weight: 700;
   letter-spacing: .05em;
@@ -4835,7 +4835,7 @@ html.modal-aberto {
     background: var(--surface);
     font-size: .85rem;
     color: var(--text);
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 600;
     transition: border-color .15s;
   }
@@ -4922,7 +4922,7 @@ html.modal-aberto {
     flex-shrink: 0;
   }
   .kpi-val {
-    font-family: var(--font-body, 'Helvetica Neue', Helvetica, Arial, sans-serif);
+    font-family: var(--font-body, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     font-size: 2.2rem;
     font-weight: 700;
     line-height: 1.05;
@@ -4979,7 +4979,7 @@ html.modal-aberto {
   }
   .chart-title-block { min-width: 0; }
   .chart-title {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: .9rem;
     font-weight: 600;
     color: var(--text);
@@ -5064,7 +5064,7 @@ html.modal-aberto {
   }
   .sector-row:last-child { border-bottom: none; }
   .sector-rank {
-    font-family: var(--font-body, 'Helvetica Neue', Helvetica, Arial, sans-serif);
+    font-family: var(--font-body, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     font-size: .82rem; font-weight: 700;
     color: var(--text-muted);
     text-align: center;
@@ -5115,7 +5115,7 @@ html.modal-aberto {
   @media (max-width: 600px) { .donut-wrap { grid-template-columns: 1fr; } }
   .donut-center {
     fill: var(--text);
-    font-family: var(--font-body, 'Helvetica Neue', Helvetica, Arial, sans-serif);
+    font-family: var(--font-body, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     font-weight: 700;
     text-anchor: middle;
     letter-spacing: -.02em;
@@ -5158,7 +5158,7 @@ html.modal-aberto {
     gap: 1rem;
   }
   .meta-num {
-    font-family: var(--font-body, 'Helvetica Neue', Helvetica, Arial, sans-serif);
+    font-family: var(--font-body, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     font-size: 1.75rem; font-weight: 700;
     line-height: 1; color: var(--text);
     letter-spacing: -.025em;
@@ -5229,7 +5229,7 @@ html.modal-aberto {
     aspect-ratio: 1 / 1;
     border-radius: 999px;
     display: inline-flex; align-items: center; justify-content: center;
-    font-family: var(--font-body, 'Helvetica Neue', Helvetica, Arial, sans-serif);
+    font-family: var(--font-body, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     font-size: .82rem; font-weight: 700;
     border: 2px solid;
     font-variant-numeric: tabular-nums;
@@ -5253,13 +5253,13 @@ html.modal-aberto {
     border: 1px solid rgba(156,88,67,.32);
     color: var(--gold-dark);
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 11px; font-weight: 700;
     letter-spacing: .05em;
     flex-shrink: 0;
   }
   .rank-you-tag {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: .58rem; font-weight: 700; font-style: normal; text-transform: uppercase; letter-spacing: .09em;
     background: #ECE4D2; color: #202C28; padding: 1px 6px; border-radius: 2px;
     margin-left: 4px;
