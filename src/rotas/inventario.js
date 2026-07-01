@@ -8,6 +8,13 @@ function san(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;').trim();
 }
 
+// GET /api/admin/inventario/autocomplete
+router.get('/autocomplete', requireAdmin, (req, res) => {
+  try {
+    return res.json(db.listarSetoresUsuariosInventario());
+  } catch (err) { console.error(err); return res.status(500).json({ erro: 'Erro interno' }); }
+});
+
 // GET /api/admin/inventario
 router.get('/', requireAdmin, (req, res) => {
   try {

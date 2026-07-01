@@ -1,6 +1,7 @@
 let adminInfo = null;
 let abaAtiva = 'micros';
 let _itensCache = [];
+let _autocomplete = { setores: [], usuarios: [] };
 
 // ── Caches para as novas abas ─────────────────────────────
 let _microsCache = [];
@@ -94,6 +95,14 @@ function mostrarToast(msg, tipo = 'ok') {
   el.innerHTML = `<button class="toast-close" onclick="this.parentElement.remove()">✕</button><strong>${msg}</strong>`;
   container.appendChild(el);
   setTimeout(() => el.remove(), 3500);
+}
+
+function popularAutocomplete(data) {
+  _autocomplete = data;
+  const ds = document.getElementById('dl-setores');
+  const du = document.getElementById('dl-usuarios');
+  if (ds) ds.innerHTML = data.setores.map(s => `<option value="${esc(s)}">`).join('');
+  if (du) du.innerHTML = data.usuarios.map(u => `<option value="${esc(u)}">`).join('');
 }
 
 // ── Toolbar: btn-novo-item label e visibilidade ───────────
@@ -1095,11 +1104,11 @@ function renderFormMicros(item, isEdit) {
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Setor <span style="color:var(--danger)">*</span></label>
-          <input class="form-control" id="fm-setor" type="text" value="${esc(item.setor || '')}" placeholder="Ex: CONTROLADORIA">
+          <input class="form-control" id="fm-setor" type="text" list="dl-setores" value="${esc(item.setor || '')}" placeholder="Ex: CONTROLADORIA">
         </div>
         <div class="form-group">
           <label class="form-label">Usuário <span style="color:var(--danger)">*</span></label>
-          <input class="form-control" id="fm-usuario" type="text" value="${esc(item.usuario || '')}" placeholder="Nome do usuário">
+          <input class="form-control" id="fm-usuario" type="text" list="dl-usuarios" value="${esc(item.usuario || '')}" placeholder="Nome do usuário">
         </div>
       </div>
       <div class="form-row-2">
@@ -1426,13 +1435,8 @@ function abrirMovimentacao(itemId, tipoMov) {
       ${tipoMov === 'entrada' ? `
       <div class="form-group">
         <label class="form-label">Veio de algum setor? <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-        ${setoresComItem.length > 0 ? `
-          <datalist id="setores-lista">
-            ${[...new Set(setoresComItem)].map(s => `<option value="${s.replace(/"/g,'&quot;')}">`).join('')}
-          </datalist>
-        ` : ''}
         <input class="form-control" id="mov-setor-origem" type="text"
-          list="setores-lista"
+          list="dl-setores"
           placeholder="${setoresComItem.length > 0 ? 'Selecione ou digite o setor…' : 'Ex: Recepção, RH, Governança…'}">
         <div style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">Se preenchido, a etiqueta desse setor será removida da coluna "Com setores"</div>
       </div>
@@ -1440,7 +1444,7 @@ function abrirMovimentacao(itemId, tipoMov) {
       ${tipoMov === 'saida' ? `
       <div class="form-group">
         <label class="form-label">Setor de destino <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-        <input class="form-control" id="mov-setor" type="text" placeholder="Ex: Recepção, RH, Governança…">
+        <input class="form-control" id="mov-setor" type="text" list="dl-setores" placeholder="Ex: Recepção, RH, Governança…">
         <div style="font-size:.72rem;color:var(--text-muted);margin-top:.25rem">Preencha se o toner está indo para um setor (não para uso imediato)</div>
       </div>
       ` : ''}
@@ -1599,7 +1603,7 @@ function abrirModalImpressora(id) {
       </div>
       <div class="form-group">
         <label class="form-label">Localização</label>
-        <input class="form-control" id="imp-loc" type="text" value="${esc(item ? item.localizacao : '')}" placeholder="Ex: RECEPCAO">
+        <input class="form-control" id="imp-loc" type="text" list="dl-setores" value="${esc(item ? item.localizacao : '')}" placeholder="Ex: RECEPCAO">
       </div>
       <div class="form-group">
         <label class="form-label">Nº de Série</label>
@@ -1986,7 +1990,7 @@ function eqMovCampos() {
   const extras = document.getElementById('eqm-extras');
   if (!extras) return;
   if (tipo === 'saida') {
-    extras.innerHTML = `<div class="form-group"><label class="form-label">Setor de destino <span style="color:var(--danger)">*</span></label><input class="form-control" id="eqm-destino" type="text" placeholder="Ex: Recepção, RH, Governança…"></div>`;
+    extras.innerHTML = `<div class="form-group"><label class="form-label">Setor de destino <span style="color:var(--danger)">*</span></label><input class="form-control" id="eqm-destino" type="text" list="dl-setores" placeholder="Ex: Recepção, RH, Governança…"></div>`;
   } else if (tipo === 'entrada') {
     extras.innerHTML = _eqMovSetor ? `
       <div class="form-group">
@@ -2136,6 +2140,11 @@ async function confirmarDeletarReservaLegado(id, nome) {
     adminOk = true;
   } catch (err) {
     console.error('[init] /api/admin/me falhou:', err && err.message || err);
+  }
+
+  if (adminOk) {
+    api('/api/admin/inventario/autocomplete')
+      .then(r => r.json()).then(d => popularAutocomplete(d)).catch(() => {});
   }
 
   // Dispara o carregamento dos dados IMEDIATAMENTE, em paralelo com o setup

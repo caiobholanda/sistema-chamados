@@ -1080,6 +1080,13 @@ function buscarInventarioPorId(id) {
   return getDb().prepare('SELECT * FROM inventario_micros WHERE id = ?').get(id);
 }
 
+function listarSetoresUsuariosInventario() {
+  const db = getDb();
+  const setores = db.prepare("SELECT DISTINCT setor FROM inventario_micros WHERE setor != '' ORDER BY setor ASC").all().map(r => r.setor);
+  const usuarios = db.prepare("SELECT DISTINCT usuario FROM inventario_micros WHERE usuario != '' ORDER BY usuario ASC").all().map(r => r.usuario);
+  return { setores, usuarios };
+}
+
 function criarInventario(dados) {
   const result = getDb().prepare(`
     INSERT INTO inventario_micros
@@ -3035,6 +3042,7 @@ module.exports = {
   marcarRequerAcordo,
   listarAssinaturasHistorico,
   listarInventario,
+  listarSetoresUsuariosInventario,
   buscarInventarioPorId,
   criarInventario,
   atualizarInventario,
