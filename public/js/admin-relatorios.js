@@ -648,7 +648,7 @@ function _cardAvaliado(c) {
   return `
     <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;background:var(--surface-2)">
       <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
-        <div style="display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
           <button type="button" onclick="_abrirChamadoDeRelatorio(${c.id})" style="background:var(--gold-pale,rgba(156,88,67,.1));border:1px solid var(--gold);color:var(--gold);font-size:.88rem;font-weight:700;font-family:inherit;padding:.15rem .45rem;border-radius:var(--radius-sm);cursor:pointer;transition:background .15s">#${c.id}</button>
           <span style="color:var(--text);font-weight:600">${cat}</span>
         </div>
