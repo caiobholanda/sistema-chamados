@@ -1082,8 +1082,8 @@ function buscarInventarioPorId(id) {
 
 function listarSetoresUsuariosInventario() {
   const db = getDb();
-  const setores = db.prepare("SELECT DISTINCT setor FROM inventario_micros WHERE setor != '' ORDER BY setor ASC").all().map(r => r.setor);
-  const usuarios = db.prepare("SELECT DISTINCT usuario FROM inventario_micros WHERE usuario != '' ORDER BY usuario ASC").all().map(r => r.usuario);
+  const setores = db.prepare("SELECT nome FROM setores ORDER BY nome ASC").all().map(r => r.nome);
+  const usuarios = db.prepare("SELECT nome FROM usuarios WHERE ativo = 1 ORDER BY nome ASC").all().map(r => r.nome);
   return { setores, usuarios };
 }
 
