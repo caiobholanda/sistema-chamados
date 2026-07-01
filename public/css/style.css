@@ -694,6 +694,7 @@ select.form-control:focus {
 #btn-enviar-chamado {
   background: #ECE4D2;
   color: var(--navy);
+  border: 1px solid var(--border-strong);
   box-shadow: 0 1px 3px rgba(0,0,0,.12);
 }
 #btn-filtrar:hover,
@@ -701,6 +702,7 @@ select.form-control:focus {
 #btn-confirmar-novo-chamado:hover,
 #btn-enviar-chamado:hover {
   background: #D8CCBA;
+  border-color: var(--border-strong);
   box-shadow: 0 2px 8px rgba(0,0,0,.18);
 }
 
