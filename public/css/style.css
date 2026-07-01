@@ -5259,8 +5259,9 @@ html.modal-aberto {
     flex-shrink: 0;
   }
   .rank-you-tag {
-    font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
-    background: var(--gold); color: var(--navy); padding: 1px 6px; border-radius: 2px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: .58rem; font-weight: 700; font-style: normal; text-transform: uppercase; letter-spacing: .09em;
+    background: #ECE4D2; color: #202C28; padding: 1px 6px; border-radius: 2px;
     margin-left: 4px;
   }
   .rank-num { font-variant-numeric: tabular-nums; font-weight: 700; }

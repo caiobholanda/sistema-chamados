@@ -2143,13 +2143,13 @@ function relatorioMes(mes) {
     ORDER BY mes ASC
   `).all(inicio);
 
-  const top5Setores = db.prepare(`
+  const top10Setores = db.prepare(`
     SELECT setor, COUNT(*) as total
     FROM chamados
     WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
     GROUP BY setor
     ORDER BY total DESC
-    LIMIT 5
+    LIMIT 10
   `).all(inicio, fim + ' 23:59:59');
 
   const porCategoria = db.prepare(`
@@ -2158,6 +2158,7 @@ function relatorioMes(mes) {
     WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
     GROUP BY categoria
     ORDER BY total DESC
+    LIMIT 10
   `).all(inicio, fim + ' 23:59:59');
 
   // Tempo médio de resposta = média do tempo entre criado_em e primeira mensagem do admin
@@ -2201,7 +2202,7 @@ function relatorioMes(mes) {
     volumeStatus, volumeStatusAnt,
     totalMes, totalMesAnt,
     abertosUltimos12, notaMedia, tendencia6m,
-    top5Setores, porCategoria,
+    top10Setores, porCategoria,
     tempoMedioRespostaSeg: tempoMedioRespostaRow?.media_seg || null,
     chamadosReabertos,
     sla: {

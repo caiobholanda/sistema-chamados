@@ -115,7 +115,7 @@ function padSerie12m(serie, mesAtual) {
 
 function renderConteudo(dados, ranking, mes) {
   const { volumeStatus, totalMes, totalMesAnt, abertosUltimos12, notaMedia,
-          top5Setores, porCategoria, tempoMedioRespostaSeg, sla, chamadosReabertos } = dados;
+          top10Setores, porCategoria, tempoMedioRespostaSeg, sla, chamadosReabertos } = dados;
   const tendencia6m = padSerie12m(dados.tendencia6m, mes);
   const mesAntKey = mesAnterior(mes);
   const notaMesAntObj = tendencia6m.find(s => s.mes === mesAntKey) || { media: null, total: 0 };
@@ -218,10 +218,10 @@ function renderConteudo(dados, ranking, mes) {
         <div class="chart-head">
           <div class="chart-title-block">
             <div class="chart-title">Setores com mais chamados</div>
-            <div class="chart-sub">Top 5 origens — onde a demanda é maior</div>
+            <div class="chart-sub">Top 10 origens — onde a demanda é maior</div>
           </div>
         </div>
-        ${setoresList(top5Setores)}
+        ${setoresList(top10Setores)}
       </div>
 
       <div class="chart-card">
