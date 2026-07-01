@@ -162,7 +162,7 @@ async function carregarSugestoes(silencioso = false) {
       _listaHash = null;
     }
 
-    _atualizarContadores(lista);
+    _atualizarContadores();
     renderLista(lista);
 
     // Atualiza badge do modal aberto se o status mudou
@@ -178,16 +178,13 @@ async function carregarSugestoes(silencioso = false) {
   } catch {}
 }
 
-function _atualizarContadores(lista) {
-  const FECHADAS = ['feita','negada'];
-  const tots = {
-    abertas: lista.filter(x => !FECHADAS.includes(x.status)).length,
-  };
-  ['enviada','em_analise','em_producao','feita','negada'].forEach(s => { tots[s] = lista.filter(x => x.status === s).length; });
-  Object.entries(tots).forEach(([s, n]) => {
-    const el = document.getElementById(`cnt-${s}`);
-    if (el) el.textContent = n || '';
-  });
+function _atualizarContadores() {
+  apiFetch('/api/sugestoes/admin/contagens').then(r => r.json()).then(c => {
+    Object.entries(c).forEach(([s, n]) => {
+      const el = document.getElementById(`cnt-${s}`);
+      if (el) el.textContent = n || '';
+    });
+  }).catch(() => {});
 }
 
 function renderLista(lista) {
@@ -530,13 +527,6 @@ async function init() {
     const wrap = document.getElementById('nav-usuarios-wrap');
     if (wrap) wrap.innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
   }
-
-  apiFetch('/api/sugestoes/admin/contagens').then(r => r.json()).then(c => {
-    Object.entries(c).forEach(([s, n]) => {
-      const el = document.getElementById(`cnt-${s}`);
-      if (el) el.textContent = n || '';
-    });
-  }).catch(() => {});
 
   await carregarUsuarios();
   await carregarSugestoes();
