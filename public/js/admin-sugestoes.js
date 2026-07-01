@@ -531,6 +531,13 @@ async function init() {
     if (wrap) wrap.innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
   }
 
+  apiFetch('/api/sugestoes/admin/contagens').then(r => r.json()).then(c => {
+    Object.entries(c).forEach(([s, n]) => {
+      const el = document.getElementById(`cnt-${s}`);
+      if (el) el.textContent = n || '';
+    });
+  }).catch(() => {});
+
   await carregarUsuarios();
   await carregarSugestoes();
 

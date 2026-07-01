@@ -191,6 +191,20 @@ router.get('/admin/contadores', requireAdmin, (req, res) => {
   }
 });
 
+router.get('/admin/contagens', requireAdmin, (req, res) => {
+  try {
+    const todos = db.listarSugestoesAdmin({ status: '', usuario_id: null, busca: '' });
+    const c = { enviada: 0, em_analise: 0, em_producao: 0, feita: 0, negada: 0, abertas: 0 };
+    for (const s of todos) {
+      if (s.status in c) c[s.status]++;
+      if (!['feita', 'negada'].includes(s.status)) c.abertas++;
+    }
+    return res.json(c);
+  } catch (err) {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.get('/admin/:id', requireAdmin, (req, res) => {
   try {
     const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
