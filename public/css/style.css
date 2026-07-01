@@ -586,6 +586,11 @@ select.form-control {
 }
 select.form-control option { color: var(--text); }
 select.form-control optgroup { font-weight: 700; color: var(--text-muted); font-size: .8rem; }
+select.form-control:focus {
+  outline: 0;
+  border-color: #996442;
+  box-shadow: 0 0 0 3px rgba(153,100,66,.14);
+}
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 @media(max-width:540px) { .form-row { grid-template-columns: 1fr; } }
 
