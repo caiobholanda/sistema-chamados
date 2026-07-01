@@ -832,7 +832,17 @@ function renderPainel(usuario) {
       </div>`;
       return;
     }
-    el.innerHTML = lista.map(s => {
+    const FECHADAS = ['feita', 'negada'];
+    const abertas = lista.filter(s => !FECHADAS.includes(s.status));
+    const encerradas = lista.filter(s => FECHADAS.includes(s.status));
+
+    function secao(titulo, itens) {
+      if (!itens.length) return '';
+      return `<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:1.25rem 0 .6rem">${titulo} <span style="font-weight:400">(${itens.length})</span></div>` +
+        itens.map(renderCard).join('');
+    }
+
+    function renderCard(s) {
       const statusLabel = SUGH_LABELS[s.status] || s.status;
       const fechado = s.status === 'feita' || s.status === 'negada';
       const campoExtraLabel = s.status === 'feita' ? 'Como foi implementado' : s.status === 'negada' ? 'Justificativa' : '';
@@ -872,7 +882,9 @@ function renderPainel(usuario) {
           </div>
         </div>
       `;
-    }).join('');
+    }
+
+    el.innerHTML = secao('Abertas', abertas) + secao('Encerradas', encerradas);
 
     lista.forEach(s => {
       const box = document.getElementById(`chat-msgs-sug-u-${s.id}`);
