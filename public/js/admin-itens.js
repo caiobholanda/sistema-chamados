@@ -2149,6 +2149,23 @@ async function confirmarDeletarReservaLegado(id, nome) {
   if (adminOk) {
     api('/api/admin/inventario/autocomplete')
       .then(r => r.json()).then(d => popularAutocomplete(d)).catch(() => {});
+
+    // Popular badges das tabs inativas no carregamento inicial (em paralelo)
+    const [pItens, pEqs, pImps, pCompra] = [
+      api('/api/admin/estoque/itens').then(r => r.json()).catch(() => []),
+      api('/api/admin/estoque/equipamentos').then(r => r.json()).catch(() => []),
+      api('/api/admin/estoque/impressoras').then(r => r.json()).catch(() => []),
+      api('/api/admin/itens/chamados-compra').then(r => r.json()).catch(() => []),
+    ];
+    Promise.all([pItens, pEqs, pImps, pCompra]).then(([itens, eqs, imps, compra]) => {
+      const $b = id => document.getElementById(id);
+      const n = v => v || '';
+      if ($b('badge-toner')) $b('badge-toner').textContent = n(itens.filter(i => i.tipo !== 'periferico' && i.tipo !== 'reserva').length);
+      if ($b('badge-perifericos')) $b('badge-perifericos').textContent = n(itens.filter(i => i.tipo === 'periferico').length);
+      if ($b('badge-reserva')) $b('badge-reserva').textContent = n(eqs.length + itens.filter(i => i.tipo === 'reserva').length);
+      if ($b('badge-impressoras')) $b('badge-impressoras').textContent = n(imps.length);
+      if ($b('badge-compra')) $b('badge-compra').textContent = n(compra.filter(c => c.status === 'aberto').length);
+    }).catch(() => {});
   }
 
   // Dispara o carregamento dos dados IMEDIATAMENTE, em paralelo com o setup
