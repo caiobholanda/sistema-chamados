@@ -536,7 +536,7 @@ async function carregar(mes) {
       api(`/api/admin/relatorios/ranking?mes=${mes}`),
     ]);
     if (_adminLogadoId == null) {
-      try { const me = await (await api('/api/admin/me')).json(); _adminLogadoId = me.id; } catch {}
+      try { const me = await (await api('/api/admin/me')).json(); _adminLogadoId = me.id; window.adminInfo = me; } catch {}
     }
     if (!r1.ok || !r2.ok) throw new Error('falha');
     const dados = await r1.json();
@@ -594,6 +594,14 @@ function _fecharModalAvaliados() {
   }
 }
 
+function _abrirChamadoDeRelatorio(id) {
+  if (typeof window.abrirChamadoModal !== 'function') return;
+  window._cmApi = api;
+  const el = document.getElementById('cm-modal-overlay');
+  if (el) document.body.appendChild(el);
+  window.abrirChamadoModal(id);
+}
+
 function _renderOverlayAvaliados(innerHtml) {
   const ja = document.getElementById('aval-overlay');
   if (ja) ja.remove();
@@ -641,7 +649,7 @@ function _cardAvaliado(c) {
     <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;background:var(--surface-2)">
       <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
         <div style="display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap">
-          <strong style="color:var(--gold);font-size:.95rem">#${c.id}</strong>
+          <button type="button" onclick="_abrirChamadoDeRelatorio(${c.id})" style="background:var(--gold-pale,rgba(156,88,67,.1));border:1px solid var(--gold);color:var(--gold);font-size:.88rem;font-weight:700;font-family:inherit;padding:.15rem .45rem;border-radius:var(--radius-sm);cursor:pointer;transition:background .15s">#${c.id}</button>
           <span style="color:var(--text);font-weight:600">${cat}</span>
         </div>
         <div style="font-weight:700;color:${corNota};font-size:1rem">${nota.toFixed(1).replace('.', ',')}<small style="color:var(--text-muted);font-weight:400">/10</small></div>
