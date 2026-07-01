@@ -681,7 +681,8 @@ function renderTabelaImpressoras(lista) {
 
 function renderSuprimentos(lista) {
   const el = document.getElementById('itens-lista');
-  document.getElementById('badge-perifericos').textContent = lista.length || '';
+  const _badgeInsumos = document.getElementById('badge-insumos');
+  if (_badgeInsumos) _badgeInsumos.textContent = lista.length || '';
   _suprimentosFiltered = lista;
 
   el.innerHTML = `
