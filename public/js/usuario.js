@@ -775,7 +775,7 @@ function renderPainel(usuario) {
         _sugHash = novoHash;
         _sugestoesUsuario = lista;
         const badgeEl = document.getElementById('badge-sugestoes-u');
-        if (badgeEl) { const a = lista.filter(s => !['feita','negada'].includes(s.status)).length; badgeEl.textContent = a || ''; }
+        if (badgeEl) badgeEl.textContent = lista.length || '';
         const cntSugEl = document.getElementById('cnt-u-sugestoes');
         if (cntSugEl) cntSugEl.textContent = lista.length;
         if (abaAtiva === 'sugestoes') _atualizarSilencioso(lista);
@@ -785,7 +785,7 @@ function renderPainel(usuario) {
       _sugHash = null;
       _sugestoesUsuario = lista;
       const badgeEl = document.getElementById('badge-sugestoes-u');
-      if (badgeEl) { const a = lista.filter(s => !['feita','negada'].includes(s.status)).length; badgeEl.textContent = a || ''; }
+      if (badgeEl) badgeEl.textContent = lista.length || '';
       const cntSugEl2 = document.getElementById('cnt-u-sugestoes');
       if (cntSugEl2) cntSugEl2.textContent = lista.length;
       if (abaAtiva === 'sugestoes') _renderSugestoesUsuario(lista);
