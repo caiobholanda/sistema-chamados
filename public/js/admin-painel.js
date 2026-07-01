@@ -3730,23 +3730,36 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
     });
   });
 
-  const SAIDAS = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak','saida_bateria','saida_componente','saida_memoria','saida_processador'];
-  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor','entrada_componente'];
+  const SAIDAS = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak'];
+  const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor'];
+  // Outer question that gates each inner key — shared between coletarMovs and the confirmar validator
+  const parentOf = {
+    saida_mouse:     'troca_mouse',
+    entrada_mouse:   'troca_mouse',
+    saida_teclado:   'troca_teclado',
+    entrada_teclado: 'troca_teclado',
+    saida_monitor:   'troca_monitor',
+    entrada_monitor: 'troca_monitor',
+    saida_cabo:      'troca_cabo',
+    saida_nobreak:   'troca_nobreak',
+  };
 
   function coletarMovs() {
     const movs = [];
     [...SAIDAS.map(k => [k,'saida']), ...ENTRADAS.map(k => [k,'entrada'])].forEach(([key, tipo]) => {
       if (state[key] !== 'sim') return;
+      const parent = parentOf[key];
+      if (parent && state[parent] !== 'sim') return;
       const sel = document.getElementById('wiz-sel-' + key);
       const qtd = document.getElementById('wiz-qtd-' + key);
       if (!sel || !sel.value) return;
       movs.push({ itemId: +sel.value, tipo, cor: 'geral', qtd: Math.max(1, +(qtd?.value || 1)), obs: `${chamado.nome} — Chamado #${chamado.id}`, chamadoId: chamado.id });
     });
-    // nobreak antigo retornando ao estoque: usa o mesmo item da saída, registra como usado
-    if (state['entrada_nobreak'] === 'sim') {
+    // nobreak antigo retornando ao estoque: usa o mesmo item da saída, registra em qtd_geral
+    if (state['troca_nobreak'] === 'sim' && state['entrada_nobreak'] === 'sim') {
       const saidaSel = document.getElementById('wiz-sel-saida_nobreak');
       if (saidaSel && saidaSel.value) {
-        movs.push({ itemId: +saidaSel.value, tipo: 'entrada', cor: 'usado', qtd: 1, obs: `${chamado.nome} — Chamado #${chamado.id}`, chamadoId: chamado.id });
+        movs.push({ itemId: +saidaSel.value, tipo: 'entrada', cor: 'geral', qtd: 1, obs: `${chamado.nome} — Chamado #${chamado.id} (nobreak devolvido)`, chamadoId: chamado.id });
       }
     }
     return movs;
@@ -3784,7 +3797,37 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
     }
   }
 
-  document.getElementById('wiz-confirmar').addEventListener('click', () => executar(coletarMovs()));
+  document.getElementById('wiz-confirmar').addEventListener('click', () => {
+    const msg = document.getElementById('wiz-msg');
+    // Perguntas top-level que devem ser respondidas para cada categoria
+    const outersByCat = {
+      mouse:   ['troca_mouse'],
+      teclado: ['troca_teclado'],
+      monitor: ['troca_monitor', 'troca_cabo'],
+      nobreak: ['troca_nobreak'],
+    };
+    const outers = outersByCat[cat] || [];
+    const semResposta = outers.filter(k => state[k] !== 'sim' && state[k] !== 'nao');
+    if (semResposta.length) {
+      if (msg) msg.innerHTML = '<div class="alert alert-danger">Responda todas as perguntas antes de confirmar.</div>';
+      return;
+    }
+    // Validar que toda pergunta respondida "Sim" tem um item selecionado no estoque
+    const erroSel = [];
+    [...SAIDAS.map(k => [k,'saida']), ...ENTRADAS.map(k => [k,'entrada'])].forEach(([key]) => {
+      const parent = parentOf[key];
+      if (parent && state[parent] !== 'sim') return;
+      if (state[key] !== 'sim') return;
+      const sel = document.getElementById('wiz-sel-' + key);
+      if (!sel || !sel.value) erroSel.push(key);
+    });
+    if (erroSel.length) {
+      if (msg) msg.innerHTML = '<div class="alert alert-danger">Selecione o item no estoque para cada movimentação marcada como "Sim".</div>';
+      return;
+    }
+    if (msg) msg.innerHTML = '';
+    executar(coletarMovs());
+  });
   document.getElementById('wiz-fechar').addEventListener('click', () => ov.remove());
 }
 

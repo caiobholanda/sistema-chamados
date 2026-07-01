@@ -813,23 +813,37 @@ function mobWizHtml(cat, itens) {
 }
 
 function mobWizColetarMovs(chamadoId) {
-  const SAIDAS   = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak','saida_bateria'];
+  const SAIDAS   = ['saida_mouse','saida_teclado','saida_monitor','saida_cabo','saida_nobreak'];
   const ENTRADAS = ['entrada_mouse','entrada_teclado','entrada_monitor'];
+  const parentOf = {
+    saida_mouse:     'troca_mouse',
+    entrada_mouse:   'troca_mouse',
+    saida_teclado:   'troca_teclado',
+    entrada_teclado: 'troca_teclado',
+    saida_monitor:   'troca_monitor',
+    entrada_monitor: 'troca_monitor',
+    saida_cabo:      'troca_cabo',
+    saida_nobreak:   'troca_nobreak',
+  };
+  function isAtivo(key) {
+    const btn = document.querySelector(`.mob-wiz-sim[data-q="${key}"]`);
+    return btn && btn.classList.contains('ativo');
+  }
   const movs = [];
   [...SAIDAS.map(k => [k,'saida']), ...ENTRADAS.map(k => [k,'entrada'])].forEach(([key, tipo]) => {
-    const sim = document.querySelector(`.mob-wiz-sim[data-q="${key}"]`);
-    if (!sim || !sim.classList.contains('ativo')) return;
+    if (!isAtivo(key)) return;
+    const parent = parentOf[key];
+    if (parent && !isAtivo(parent)) return;
     const sel = document.getElementById('mwiz-sel-' + key);
     const qtd = document.getElementById('mwiz-qtd-' + key);
     if (!sel || !sel.value) return;
     movs.push({ itemId: +sel.value, tipo, cor: 'geral', qtd: Math.max(1, +(qtd?.value || 1)), chamadoId });
   });
-  // nobreak antigo retornando: mesmo item da saída, registra como usado
-  const entNb = document.querySelector('.mob-wiz-sim[data-q="entrada_nobreak"]');
-  if (entNb && entNb.classList.contains('ativo')) {
+  // nobreak antigo retornando: mesmo item da saída, registra em qtd_geral
+  if (isAtivo('troca_nobreak') && isAtivo('entrada_nobreak')) {
     const saidaSel = document.getElementById('mwiz-sel-saida_nobreak');
     if (saidaSel && saidaSel.value) {
-      movs.push({ itemId: +saidaSel.value, tipo: 'entrada', cor: 'usado', qtd: 1, chamadoId });
+      movs.push({ itemId: +saidaSel.value, tipo: 'entrada', cor: 'geral', qtd: 1, chamadoId });
     }
   }
   return movs;
@@ -1240,6 +1254,22 @@ async function renderDetalhe(c) {
     try {
       // Registrar movimentações de estoque
       if (temWiz) {
+        // Validar: todas as perguntas top-level devem ser respondidas
+        const outersByCat = {
+          mouse: ['troca_mouse'], teclado: ['troca_teclado'],
+          monitor: ['troca_monitor','troca_cabo'], nobreak: ['troca_nobreak'],
+        };
+        const outers = outersByCat[c.categoria] || [];
+        const semResp = outers.filter(k => {
+          const sim = document.querySelector(`.mob-wiz-sim[data-q="${k}"]`);
+          const nao = document.querySelector(`.mob-wiz-nao[data-q="${k}"]`);
+          return !(sim && sim.classList.contains('ativo')) && !(nao && nao.classList.contains('ativo'));
+        });
+        if (semResp.length) {
+          msg.innerHTML = '<div class="mob-alert mob-alert-danger">Responda todas as perguntas de estoque antes de concluir.</div>';
+          if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Concluir chamado'; }
+          return;
+        }
         const movs = mobWizColetarMovs(c.id);
         for (const m of movs) {
           const r = await api(`/api/admin/estoque/itens/${m.itemId}/movimentacao`, {
