@@ -3690,7 +3690,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
         <h2>Movimentação de Estoque — ${catNome}</h2>
         <button class="modal-close" id="wiz-fechar">&#x2715;</button>
       </div>
-      <div class="modal-body" style="overflow-y:auto;flex:1;padding-bottom:.5rem">
+      <div class="modal-body" style="overflow-y:auto;flex:1;padding:.75rem 1.25rem .5rem">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem">
           Responda as perguntas abaixo para registrar entradas e saídas no estoque.
         </p>
