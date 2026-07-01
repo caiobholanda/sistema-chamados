@@ -164,19 +164,19 @@ function renderEstoque(itens) {
           ${itens.map(item => `
             <tr>
               <td>
-                <strong>${item.nome}</strong>
-                ${item.descricao ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.1rem">${item.descricao}</div>` : ''}
+                <strong>${esc(item.nome)}</strong>
+                ${item.descricao ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.1rem">${esc(item.descricao)}</div>` : ''}
               </td>
-              <td>${item.categoria ? `<span class="itens-cat-tag">${item.categoria}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+              <td>${item.categoria ? `<span class="itens-cat-tag">${esc(item.categoria)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
               <td>
                 <span class="${item.quantidade <= item.quantidade_minima ? 'qtd-alerta' : 'qtd-ok'}">${item.quantidade}</span>
                 ${item.quantidade <= item.quantidade_minima ? '<span class="qtd-alerta-icon" title="Abaixo do mínimo">⚠</span>' : ''}
               </td>
               <td style="color:var(--text-muted)">${item.quantidade_minima}</td>
-              <td style="color:var(--text-secondary)">${item.localizacao || '—'}</td>
+              <td style="color:var(--text-secondary)">${esc(item.localizacao) || '—'}</td>
               <td style="white-space:nowrap">
                 <button class="btn btn-secondary btn-sm" onclick="abrirModalEditar(${item.id})">Editar</button>
-                <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletar(${item.id}, '${item.nome.replace(/'/g, "\\'")}')">Excluir</button>
+                <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletar(${item.id}, ${JSON.stringify(item.nome)})">Excluir</button>
               </td>
             </tr>
           `).join('')}
@@ -214,19 +214,19 @@ function renderInventario(itens) {
             return `
               <tr>
                 <td>
-                  <strong>${item.nome}</strong>
-                  ${item.descricao ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.1rem">${item.descricao}</div>` : ''}
+                  <strong>${esc(item.nome)}</strong>
+                  ${item.descricao ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.1rem">${esc(item.descricao)}</div>` : ''}
                 </td>
                 <td style="color:var(--text-secondary)">
-                  ${item.fabricante || ''}${item.fabricante && item.modelo ? ' · ' : ''}${item.modelo || ''}
+                  ${esc(item.fabricante) || ''}${item.fabricante && item.modelo ? ' · ' : ''}${esc(item.modelo) || ''}
                   ${!item.fabricante && !item.modelo ? '—' : ''}
                 </td>
-                <td style="font-family:monospace;font-size:.82rem;color:var(--text-secondary)">${item.numero_serie || '—'}</td>
-                <td style="color:var(--text-secondary)">${item.localizacao || '—'}</td>
+                <td style="font-family:monospace;font-size:.82rem;color:var(--text-secondary)">${esc(item.numero_serie) || '—'}</td>
+                <td style="color:var(--text-secondary)">${esc(item.localizacao) || '—'}</td>
                 <td><span class="inv-status-tag ${st.cls}">${st.label}</span></td>
                 <td style="white-space:nowrap">
                   <button class="btn btn-secondary btn-sm" onclick="abrirModalEditar(${item.id})">Editar</button>
-                  <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletar(${item.id}, '${item.nome.replace(/'/g, "\\'")}')">Excluir</button>
+                  <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletar(${item.id}, ${JSON.stringify(item.nome)})">Excluir</button>
                 </td>
               </tr>
             `;
@@ -271,15 +271,15 @@ function renderCompra(chamados) {
             <tr class="pc-row-clicavel" onclick="abrirChamado(${c.id})">
               <td><span class="badge badge-${c.status}">${STATUS_LABELS[c.status] || c.status}</span></td>
               <td>${c.prioridade ? `<span class="badge badge-${c.prioridade}">${PRIO_LABELS[c.prioridade]}</span>` : '<span style="color:var(--text-muted);font-size:.8rem">—</span>'}</td>
-              <td style="font-weight:500">${c.nome}</td>
-              <td style="color:var(--text-secondary)">${c.setor}</td>
+              <td style="font-weight:500">${esc(c.nome)}</td>
+              <td style="color:var(--text-secondary)">${esc(c.setor)}</td>
               <td style="max-width:280px">
                 <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.82rem;color:var(--text-secondary)">
-                  ${c.descricao.length > 90 ? c.descricao.slice(0, 90) + '…' : c.descricao}
+                  ${esc(c.descricao.length > 90 ? c.descricao.slice(0, 90) + '…' : c.descricao)}
                 </div>
               </td>
               <td style="white-space:nowrap;color:var(--text-muted);font-size:.8rem">${fmtDataHora(c.criado_em)}</td>
-              <td style="color:var(--text-secondary);font-size:.82rem">${c.admin_nome || '<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="color:var(--text-secondary);font-size:.82rem">${c.admin_nome ? esc(c.admin_nome) : '<span style="color:var(--text-muted)">—</span>'}</td>
             </tr>
           `).join('')}
         </tbody>
