@@ -2167,6 +2167,14 @@ function relatorioMes(mes) {
     ORDER BY mes ASC
   `).all(inicio);
 
+  const fechadosUltimos12 = db.prepare(`
+    SELECT strftime('%Y-%m', concluido_em) as mes, COUNT(*) as total
+    FROM chamados
+    WHERE concluido_em >= date(?, '-11 months') AND status IN ('concluido', 'encerrado')
+    GROUP BY mes
+    ORDER BY mes ASC
+  `).all(inicio);
+
   const notaMedia = db.prepare(`
     SELECT AVG(nota) as media, COUNT(nota) as total
     FROM chamados
@@ -2199,19 +2207,14 @@ function relatorioMes(mes) {
     LIMIT 10
   `).all(inicio, fim + ' 23:59:59');
 
-  // Tempo médio de resposta = média do tempo entre criado_em e primeira mensagem do admin
+  // MTTR = tempo médio entre abertura e conclusão dos chamados concluídos no período
   const tempoMedioRespostaRow = db.prepare(`
     SELECT AVG(
-      (julianday(primeira_resposta) - julianday(c.criado_em)) * 86400
+      (julianday(concluido_em) - julianday(criado_em)) * 86400
     ) AS media_seg
-    FROM chamados c
-    JOIN (
-      SELECT chamado_id, MIN(criado_em) AS primeira_resposta
-      FROM mensagens_chamado
-      WHERE autor_tipo = 'admin'
-      GROUP BY chamado_id
-    ) m ON m.chamado_id = c.id
-    WHERE c.criado_em BETWEEN ? AND ?
+    FROM chamados
+    WHERE status = 'concluido'
+      AND concluido_em BETWEEN ? AND ?
   `).get(inicio, fim + ' 23:59:59');
 
   // SLA = % de concluídos dentro do prazo
@@ -2222,7 +2225,7 @@ function relatorioMes(mes) {
     FROM chamados
     WHERE prazo IS NOT NULL
       AND concluido_em IS NOT NULL
-      AND status != 'cancelado'
+      AND status IN ('concluido', 'encerrado')
       AND concluido_em BETWEEN ? AND ?
   `).get(inicio, fim + ' 23:59:59');
 
@@ -2239,9 +2242,9 @@ function relatorioMes(mes) {
     mes, mesAnterior: mesAnt,
     volumeStatus, volumeStatusAnt,
     totalMes, totalMesAnt,
-    abertosUltimos12, notaMedia, tendencia6m,
+    abertosUltimos12, fechadosUltimos12, notaMedia, tendencia6m,
     top10Setores, porCategoria,
-    tempoMedioRespostaSeg: tempoMedioRespostaRow?.media_seg || null,
+    mttrSeg: tempoMedioRespostaRow?.media_seg || null,
     chamadosReabertos,
     sla: {
       totalComPrazo: slaRow?.total_com_prazo || 0,
@@ -2310,6 +2313,7 @@ function rankingAdminsMes(mes) {
       AND h.timestamp BETWEEN ? AND ?
     WHERE a.ativo = 1
     GROUP BY a.id, a.nome_completo
+    HAVING total > 0
     ORDER BY total DESC, concluidos DESC, a.nome_completo ASC
   `).all(
     inicio, fim + ' 23:59:59',  // tempo_medio_seg

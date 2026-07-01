@@ -114,8 +114,8 @@ function padSerie12m(serie, mesAtual) {
 }
 
 function renderConteudo(dados, ranking, mes) {
-  const { volumeStatus, totalMes, totalMesAnt, abertosUltimos12, notaMedia,
-          top10Setores, porCategoria, tempoMedioRespostaSeg, sla, chamadosReabertos } = dados;
+  const { volumeStatus, totalMes, totalMesAnt, abertosUltimos12, fechadosUltimos12, notaMedia,
+          top10Setores, porCategoria, mttrSeg, sla, chamadosReabertos } = dados;
   const tendencia6m = padSerie12m(dados.tendencia6m, mes);
   const mesAntKey = mesAnterior(mes);
   const notaMesAntObj = tendencia6m.find(s => s.mes === mesAntKey) || { media: null, total: 0 };
@@ -180,7 +180,7 @@ function renderConteudo(dados, ranking, mes) {
 
     <div class="meta-strip">
       ${metaCard('Taxa de resolução', fmtPct(taxaResol, 0), `${concluidos} de ${totalMes} finalizados`, '#15803D', taxaResol)}
-      ${metaCard('Tempo médio de resposta', fmtTempo(tempoMedioRespostaSeg), 'da abertura à primeira resposta', '#D4AF37', 0)}
+      ${metaCard('MTTR', fmtTempo(mttrSeg), 'da abertura à conclusão do chamado', '#D4AF37', 0)}
       ${slaPct != null ? metaCard('SLA cumprido', fmtPct(slaPct, 0), `${sla.dentroPrazo} de ${sla.totalComPrazo} concluídos dentro do prazo`, slaPct >= 0.9 ? '#15803D' : '#B45309', slaPct) : ''}
     </div>
 
@@ -189,8 +189,8 @@ function renderConteudo(dados, ranking, mes) {
       <div class="chart-card">
         <div class="chart-head">
           <div class="chart-title-block">
-            <div class="chart-title">Volume de chamados</div>
-            <div class="chart-sub">${abertosUltimos12.length} meses · destaque no mês atual</div>
+            <div class="chart-title">Chamados abertos</div>
+            <div class="chart-sub">por mês de abertura · destaque no mês atual</div>
           </div>
           <span class="chart-pill ${deltaTotal.cls === 'up' ? 'warn' : 'ok'}">${deltaTotal.txt} vs. mês anterior</span>
         </div>
@@ -200,16 +200,27 @@ function renderConteudo(dados, ranking, mes) {
       <div class="chart-card">
         <div class="chart-head">
           <div class="chart-title-block">
-            <div class="chart-title">Satisfação dos usuários</div>
-            <div class="chart-sub">Comparativo de notas · escala 1–10</div>
+            <div class="chart-title">Chamados encerrados</div>
+            <div class="chart-sub">por mês de conclusão · concluídos + encerrados</div>
           </div>
-          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
-            ${notaMedia.media ? `<span class="chart-pill ${notaMedia.media >= 8 ? 'good' : 'warn'}">${notaMedia.media.toFixed(1).replace('.', ',')} este mês</span>` : ''}
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-ver-avaliados" style="font-size:.68rem" title="Ver todos os chamados avaliados">Ver chamados avaliados</button>
-          </div>
+          <span class="chart-pill neutral">${concluidos} este mês</span>
         </div>
-        ${comparacaoNotasHtml(notaMedia, notaMesAntObj, notaAnoMedia, notaAnoTotal, mes)}
+        ${barChartSvg(fechadosUltimos12 || [], mes)}
       </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-head">
+        <div class="chart-title-block">
+          <div class="chart-title">Satisfação dos usuários</div>
+          <div class="chart-sub">Comparativo de notas · escala 1–10</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          ${notaMedia.media ? `<span class="chart-pill ${notaMedia.media >= 8 ? 'good' : 'warn'}">${notaMedia.media.toFixed(1).replace('.', ',')} este mês</span>` : ''}
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-ver-avaliados" style="font-size:.68rem" title="Ver todos os chamados avaliados">Ver chamados avaliados</button>
+        </div>
+      </div>
+      ${comparacaoNotasHtml(notaMedia, notaMesAntObj, notaAnoMedia, notaAnoTotal, mes)}
     </div>
 
     <div class="rel-section-title">Distribuição <span class="right">por origem e tipo</span></div>
