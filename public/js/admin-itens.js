@@ -1334,7 +1334,7 @@ function abrirEditarItemToner(id) {
     <form id="form-toner" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="ft-nome" type="text" value="${esc(item.nome)}">
+        <input class="form-control" id="ft-nome" type="text" value="${esc(unesc(item.nome))}">
       </div>
       <div class="form-group">
         <label class="form-label">Tipo</label>
@@ -1593,25 +1593,25 @@ function abrirModalImpressora(id) {
     <form id="form-imp" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="imp-nome" type="text" value="${esc(item ? item.nome : '')}" placeholder="Ex: RICOH SP 3710SF">
+        <input class="form-control" id="imp-nome" type="text" value="${esc(unesc(item ? item.nome : ''))}" placeholder="Ex: RICOH SP 3710SF">
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">IP</label>
-          <input class="form-control" id="imp-ip" type="text" value="${esc(item ? item.ip : '')}" placeholder="Ex: 10.1.7.17">
+          <input class="form-control" id="imp-ip" type="text" value="${esc(unesc(item ? item.ip : ''))}" placeholder="Ex: 10.1.7.17">
         </div>
         <div class="form-group">
           <label class="form-label">SELB</label>
-          <input class="form-control" id="imp-selb" type="text" value="${esc(item ? item.selb : '')}" placeholder="Ex: 2IY9">
+          <input class="form-control" id="imp-selb" type="text" value="${esc(unesc(item ? item.selb : ''))}" placeholder="Ex: 2IY9">
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Localização</label>
-        <input class="form-control" id="imp-loc" type="text" list="dl-setores" value="${esc(item ? item.localizacao : '')}" placeholder="Ex: RECEPCAO">
+        <input class="form-control" id="imp-loc" type="text" list="dl-setores" value="${esc(unesc(item ? item.localizacao : ''))}" placeholder="Ex: RECEPCAO">
       </div>
       <div class="form-group">
         <label class="form-label">Nº de Série</label>
-        <input class="form-control" id="imp-serie" type="text" value="${esc(item ? item.numero_serie : '')}" placeholder="Ex: X4JK123456">
+        <input class="form-control" id="imp-serie" type="text" value="${esc(unesc(item ? item.numero_serie : ''))}" placeholder="Ex: X4JK123456">
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModalImpressora()">Cancelar</button>
@@ -1666,7 +1666,7 @@ function abrirModalPeriferico(id) {
     <form id="form-per" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="per-nome" type="text" value="${esc(item ? item.nome : '')}" placeholder="Ex: Mouse, Teclado, Patch Cord…">
+        <input class="form-control" id="per-nome" type="text" value="${esc(unesc(item ? item.nome : ''))}" placeholder="Ex: Mouse, Teclado, Patch Cord…">
       </div>
       ${isEdit ? `
       <div class="form-group">
@@ -1677,7 +1677,7 @@ function abrirModalPeriferico(id) {
       ` : ''}
       <div class="form-group">
         <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-        <input class="form-control" id="per-obs" type="text" value="${esc(item ? item.observacao : '')}" placeholder="Ex: em uso Richard, Socket 1151…">
+        <input class="form-control" id="per-obs" type="text" value="${esc(unesc(item ? item.observacao : ''))}" placeholder="Ex: em uso Richard, Socket 1151…">
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
@@ -1792,17 +1792,17 @@ function eqEditar(id) {
 
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="eqe-nome" type="text" value="${esc(eq.nome)}" style="font-size:.95rem">
+        <input class="form-control" id="eqe-nome" type="text" value="${esc(unesc(eq.nome))}" style="font-size:.95rem">
       </div>
 
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Categoria</label>
-          <input class="form-control" id="eqe-cat" type="text" value="${esc(eq.categoria || '')}" placeholder="Ex: Notebook, Impressora…">
+          <input class="form-control" id="eqe-cat" type="text" value="${esc(unesc(eq.categoria || ''))}" placeholder="Ex: Notebook, Impressora…">
         </div>
         <div class="form-group">
           <label class="form-label">ID único (código)${!isMaster ? ' <span style="color:var(--text-muted);font-weight:400;font-size:.75rem">— somente master</span>' : ''}</label>
-          <input class="form-control" id="eqe-codigo" type="text" value="${esc(eq.codigo)}"
+          <input class="form-control" id="eqe-codigo" type="text" value="${esc(unesc(eq.codigo))}"
             ${!isMaster ? 'readonly style="background:var(--surface-2);color:var(--text-muted);cursor:not-allowed"' : ''}>
         </div>
       </div>
@@ -1816,14 +1816,14 @@ function eqEditar(id) {
         </div>
         <div class="form-group">
           <label class="form-label">Setor atual</label>
-          <input class="form-control" id="eqe-setor" type="text" value="${esc(eq.setor_atual || '')}" placeholder="Ex: Recepção, RH…">
+          <input class="form-control" id="eqe-setor" type="text" value="${esc(unesc(eq.setor_atual || ''))}" placeholder="Ex: Recepção, RH…">
           <div style="font-size:.71rem;color:var(--text-muted);margin-top:.2rem">Deixe vazio se estiver no almoxarifado</div>
         </div>
       </div>
 
       <div class="form-group">
         <label class="form-label">Observação</label>
-        <input class="form-control" id="eqe-obs" type="text" value="${esc(eq.observacao || '')}" placeholder="Número de série, detalhes adicionais…">
+        <input class="form-control" id="eqe-obs" type="text" value="${esc(unesc(eq.observacao || ''))}" placeholder="Número de série, detalhes adicionais…">
       </div>
 
       <div style="display:flex;gap:.5rem;justify-content:flex-end;padding-top:.75rem;border-top:1px solid var(--border)">
@@ -2073,7 +2073,7 @@ function abrirModalReservaLegado(id) {
     <form id="form-res" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="res-nome" type="text" value="${esc(item.nome)}">
+        <input class="form-control" id="res-nome" type="text" value="${esc(unesc(item.nome))}">
       </div>
       <div class="form-group">
         <label class="form-label" style="color:var(--text-muted)">Quantidade atual</label>
@@ -2082,11 +2082,11 @@ function abrirModalReservaLegado(id) {
       </div>
       <div class="form-group">
         <label class="form-label">Especificações <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-        <input class="form-control" id="res-spec" type="text" value="${esc(item.especificacao || '')}">
+        <input class="form-control" id="res-spec" type="text" value="${esc(unesc(item.especificacao || ''))}">
       </div>
       <div class="form-group">
         <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-        <input class="form-control" id="res-obs" type="text" value="${esc(item.observacao || '')}">
+        <input class="form-control" id="res-obs" type="text" value="${esc(unesc(item.observacao || ''))}">
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>

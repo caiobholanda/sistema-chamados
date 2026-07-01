@@ -39,6 +39,10 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function unesc(s) {
+  return String(s || '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#x27;/g,"'");
+}
+
 function fmtDataHora(d) {
   if (!d) return '—';
   const iso = d.includes('T') ? d : d.replace(' ', 'T');
@@ -282,7 +286,7 @@ function abrirEditarItem(id) {
     <form id="form-item" style="display:flex;flex-direction:column;gap:.8rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="fi-nome" type="text" value="${esc(item.nome)}">
+        <input class="form-control" id="fi-nome" type="text" value="${esc(unesc(item.nome))}">
       </div>
       <div class="form-row-2">
         <div class="form-group">
@@ -349,21 +353,21 @@ function renderFormImpressora(item, isEdit) {
     <form id="form-imp" style="display:flex;flex-direction:column;gap:.8rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="imp-nome" type="text" value="${esc(item.nome || '')}" placeholder="Ex: RICOH SP 3710SF">
+        <input class="form-control" id="imp-nome" type="text" value="${esc(unesc(item.nome || ''))}" placeholder="Ex: RICOH SP 3710SF">
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">IP</label>
-          <input class="form-control" id="imp-ip" type="text" value="${esc(item.ip || '')}" placeholder="Ex: 10.1.7.17">
+          <input class="form-control" id="imp-ip" type="text" value="${esc(unesc(item.ip || ''))}" placeholder="Ex: 10.1.7.17">
         </div>
         <div class="form-group">
           <label class="form-label">SELB</label>
-          <input class="form-control" id="imp-selb" type="text" value="${esc(item.selb || '')}" placeholder="Ex: 2IY9">
+          <input class="form-control" id="imp-selb" type="text" value="${esc(unesc(item.selb || ''))}" placeholder="Ex: 2IY9">
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Localização</label>
-        <input class="form-control" id="imp-loc" type="text" value="${esc(item.localizacao || '')}" placeholder="Ex: RECEPCAO">
+        <input class="form-control" id="imp-loc" type="text" value="${esc(unesc(item.localizacao || ''))}" placeholder="Ex: RECEPCAO">
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
@@ -732,16 +736,16 @@ function eqEditar(id) {
     <form id="form-eq-edit" style="display:flex;flex-direction:column;gap:.8rem">
       <div class="form-group">
         <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
-        <input class="form-control" id="eqe-nome" type="text" value="${esc(eq.nome)}">
+        <input class="form-control" id="eqe-nome" type="text" value="${esc(unesc(eq.nome))}">
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Categoria</label>
-          <input class="form-control" id="eqe-cat" type="text" value="${esc(eq.categoria || '')}">
+          <input class="form-control" id="eqe-cat" type="text" value="${esc(unesc(eq.categoria || ''))}">
         </div>
         <div class="form-group">
           <label class="form-label">ID único</label>
-          <input class="form-control" id="eqe-codigo" type="text" value="${esc(eq.codigo)}"
+          <input class="form-control" id="eqe-codigo" type="text" value="${esc(unesc(eq.codigo))}"
             ${!isMaster ? 'readonly style="background:var(--bg-subtle);color:var(--text-muted)"' : ''}>
           ${!isMaster ? '<div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem">Apenas master pode alterar</div>' : ''}
         </div>
@@ -755,12 +759,12 @@ function eqEditar(id) {
         </div>
         <div class="form-group">
           <label class="form-label">Setor atual</label>
-          <input class="form-control" id="eqe-setor" type="text" value="${esc(eq.setor_atual || '')}" placeholder="Ex: Recepção…">
+          <input class="form-control" id="eqe-setor" type="text" value="${esc(unesc(eq.setor_atual || ''))}" placeholder="Ex: Recepção…">
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Observação</label>
-        <input class="form-control" id="eqe-obs" type="text" value="${esc(eq.observacao || '')}">
+        <input class="form-control" id="eqe-obs" type="text" value="${esc(unesc(eq.observacao || ''))}">
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>

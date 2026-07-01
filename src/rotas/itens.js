@@ -4,10 +4,8 @@ const db = require('../db');
 const { requireAdmin } = require('../auth');
 
 function san(str) {
-  if (typeof str !== 'string') return str;
-  return str
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#x27;').trim();
+  if (typeof str !== 'string') return String(str || '');
+  return str.trim();
 }
 
 const TIPOS_VALIDOS = ['estoque', 'inventario'];

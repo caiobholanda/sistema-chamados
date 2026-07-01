@@ -112,6 +112,10 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function unesc(s) {
+  return String(s || '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#x27;/g,"'");
+}
+
 // ── Modal ─────────────────────────────────────────────────
 
 function abrirModal(id) {
@@ -146,76 +150,76 @@ function renderFormModal(item, isEdit) {
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Setor <span style="color:var(--danger)">*</span></label>
-          <input class="form-control" id="fi-setor" type="text" value="${esc(item.setor || '')}" placeholder="Ex: CONTROLADORIA">
+          <input class="form-control" id="fi-setor" type="text" value="${esc(unesc(item.setor || ''))}" placeholder="Ex: CONTROLADORIA">
         </div>
         <div class="form-group">
           <label class="form-label">Usuário</label>
-          <input class="form-control" id="fi-usuario" type="text" value="${esc(item.usuario || '')}" placeholder="Nome do usuário">
+          <input class="form-control" id="fi-usuario" type="text" value="${esc(unesc(item.usuario || ''))}" placeholder="Nome do usuário">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Hostname</label>
-          <input class="form-control" id="fi-hostname" type="text" value="${esc(item.hostname || '')}" placeholder="Ex: CONTROL-01">
+          <input class="form-control" id="fi-hostname" type="text" value="${esc(unesc(item.hostname || ''))}" placeholder="Ex: CONTROL-01">
         </div>
         <div class="form-group">
           <label class="form-label">TAG</label>
-          <input class="form-control" id="fi-tag" type="text" value="${esc(item.tag || '')}" placeholder="Código da tag">
+          <input class="form-control" id="fi-tag" type="text" value="${esc(unesc(item.tag || ''))}" placeholder="Código da tag">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Processador</label>
-          <input class="form-control" id="fi-processador" type="text" value="${esc(item.processador || '')}" placeholder="Ex: I5 12500">
+          <input class="form-control" id="fi-processador" type="text" value="${esc(unesc(item.processador || ''))}" placeholder="Ex: I5 12500">
         </div>
         <div class="form-group">
           <label class="form-label">Memória</label>
-          <input class="form-control" id="fi-memoria" type="text" value="${esc(item.memoria || '')}" placeholder="Ex: 8GB">
+          <input class="form-control" id="fi-memoria" type="text" value="${esc(unesc(item.memoria || ''))}" placeholder="Ex: 8GB">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Sistema Operacional</label>
-          <input class="form-control" id="fi-so" type="text" value="${esc(item.sistema_operacional || '')}" placeholder="Ex: WIN 11">
+          <input class="form-control" id="fi-so" type="text" value="${esc(unesc(item.sistema_operacional || ''))}" placeholder="Ex: WIN 11">
         </div>
         <div class="form-group">
           <label class="form-label">HD / SSD</label>
-          <input class="form-control" id="fi-hd" type="text" value="${esc(item.hd_ssd || '')}" placeholder="Ex: SSD 256">
+          <input class="form-control" id="fi-hd" type="text" value="${esc(unesc(item.hd_ssd || ''))}" placeholder="Ex: SSD 256">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Office</label>
-          <input class="form-control" id="fi-office" type="text" value="${esc(item.office || '')}" placeholder="Ex: H & B 2021">
+          <input class="form-control" id="fi-office" type="text" value="${esc(unesc(item.office || ''))}" placeholder="Ex: H & B 2021">
         </div>
         <div class="form-group">
           <label class="form-label">Status</label>
-          <input class="form-control" id="fi-status" type="text" value="${esc(item.status || '')}" placeholder="Ex: NOVO, CONCLUIDO">
+          <input class="form-control" id="fi-status" type="text" value="${esc(unesc(item.status || ''))}" placeholder="Ex: NOVO, CONCLUIDO">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Entradas do Monitor</label>
-          <input class="form-control" id="fi-entradas" type="text" value="${esc(item.entradas_monitor || '')}" placeholder="Ex: VGA-D.P.">
+          <input class="form-control" id="fi-entradas" type="text" value="${esc(unesc(item.entradas_monitor || ''))}" placeholder="Ex: VGA-D.P.">
         </div>
         <div class="form-group">
           <label class="form-label">Modelo do Monitor</label>
-          <input class="form-control" id="fi-monitor" type="text" value="${esc(item.modelo_monitor || '')}" placeholder="Ex: DELL">
+          <input class="form-control" id="fi-monitor" type="text" value="${esc(unesc(item.modelo_monitor || ''))}" placeholder="Ex: DELL">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Data de Troca</label>
-          <input class="form-control" id="fi-troca" type="text" value="${esc(item.data_troca || '')}" placeholder="Ex: 2024">
+          <input class="form-control" id="fi-troca" type="text" value="${esc(unesc(item.data_troca || ''))}" placeholder="Ex: 2024">
         </div>
         <div class="form-group">
           <label class="form-label">Win 11 Atualização</label>
-          <input class="form-control" id="fi-win11" type="text" value="${esc(item.atualizacao_win11 || '')}" placeholder="Ex: CONCLUIDO">
+          <input class="form-control" id="fi-win11" type="text" value="${esc(unesc(item.atualizacao_win11 || ''))}" placeholder="Ex: CONCLUIDO">
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Observação</label>
-        <input class="form-control" id="fi-obs" type="text" value="${esc(item.observacao || '')}" placeholder="Observações">
+        <input class="form-control" id="fi-obs" type="text" value="${esc(unesc(item.observacao || ''))}" placeholder="Observações">
       </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
