@@ -2164,7 +2164,7 @@ async function confirmarDeletarReservaLegado(id, nome) {
       if ($b('badge-perifericos')) $b('badge-perifericos').textContent = n(itens.filter(i => i.tipo === 'periferico').length);
       if ($b('badge-reserva')) $b('badge-reserva').textContent = n(eqs.length + itens.filter(i => i.tipo === 'reserva').length);
       if ($b('badge-impressoras')) $b('badge-impressoras').textContent = n(imps.length);
-      if ($b('badge-compra')) $b('badge-compra').textContent = n(compra.filter(c => c.status === 'aberto').length);
+      if ($b('badge-compra')) $b('badge-compra').textContent = n(compra.filter(c => ['aberto','em_andamento'].includes(c.status)).length);
     }).catch(() => {});
   }
 
