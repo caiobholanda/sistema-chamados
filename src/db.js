@@ -734,15 +734,35 @@ function initDb() {
   `); } catch {}
 
   // One-time: decode HTML entities stored by old san() that was HTML-encoding text
-  if (!db.prepare("SELECT valor FROM config WHERE chave='html_decode_v1'").get()) {
-    const d = f => `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(${f},'&amp;','&'),'&lt;','<'),'&gt;','>'),'&quot;','"'),'&#x27;',char(39))`;
-    try { db.exec(`UPDATE inventario_micros SET setor=${d('setor')},usuario=${d('usuario')},processador=${d('processador')},memoria=${d('memoria')},sistema_operacional=${d('sistema_operacional')},hd_ssd=${d('hd_ssd')},office=${d('office')},tag=${d('tag')},entradas_monitor=${d('entradas_monitor')},modelo_monitor=${d('modelo_monitor')},status=${d('status')},hostname=${d('hostname')},data_troca=${d('data_troca')},observacao=${d('observacao')},atualizacao_win11=${d('atualizacao_win11')},tipo_equipamento=${d('tipo_equipamento')},nobreak=${d('nobreak')}`); } catch (e) { console.error('[DB] html_decode inventario_micros:', e.message); }
-    try { db.exec(`UPDATE estoque_itens SET nome=${d('nome')},tipo=${d('tipo')},observacao=${d('observacao')},especificacao=${d('especificacao')}`); } catch (e) { console.error('[DB] html_decode estoque_itens:', e.message); }
-    try { db.exec(`UPDATE impressoras SET nome=${d('nome')},ip=${d('ip')},selb=${d('selb')},localizacao=${d('localizacao')},numero_serie=${d('numero_serie')}`); } catch (e) { console.error('[DB] html_decode impressoras:', e.message); }
-    try { db.exec(`UPDATE equipamentos SET codigo=${d('codigo')},nome=${d('nome')},categoria=${d('categoria')},setor_atual=${d('setor_atual')},observacao=${d('observacao')}`); } catch (e) { console.error('[DB] html_decode equipamentos:', e.message); }
-    try { db.exec(`UPDATE itens SET nome=${d('nome')},categoria=${d('categoria')},localizacao=${d('localizacao')},descricao=${d('descricao')},numero_serie=${d('numero_serie')},fabricante=${d('fabricante')},modelo=${d('modelo')}`); } catch (e) { console.error('[DB] html_decode itens:', e.message); }
-    try { db.prepare("INSERT OR REPLACE INTO config (chave,valor) VALUES ('html_decode_v1','1')").run(); } catch {}
-  }
+  try {
+    if (!db.prepare("SELECT valor FROM config WHERE chave='html_decode_v1'").get()) {
+      const dec = s => s == null ? s : String(s).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#x27;/g,"'");
+      const run = db.transaction(() => {
+        const updMicro = db.prepare('UPDATE inventario_micros SET setor=?,usuario=?,processador=?,memoria=?,sistema_operacional=?,hd_ssd=?,office=?,tag=?,entradas_monitor=?,modelo_monitor=?,status=?,hostname=?,data_troca=?,observacao=?,atualizacao_win11=?,tipo_equipamento=?,nobreak=? WHERE id=?');
+        for (const r of db.prepare('SELECT * FROM inventario_micros').all()) {
+          updMicro.run(dec(r.setor),dec(r.usuario),dec(r.processador),dec(r.memoria),dec(r.sistema_operacional),dec(r.hd_ssd),dec(r.office),dec(r.tag),dec(r.entradas_monitor),dec(r.modelo_monitor),dec(r.status),dec(r.hostname),dec(r.data_troca),dec(r.observacao),dec(r.atualizacao_win11),dec(r.tipo_equipamento),dec(r.nobreak),r.id);
+        }
+        const updEst = db.prepare('UPDATE estoque_itens SET nome=?,tipo=?,observacao=?,especificacao=? WHERE id=?');
+        for (const r of db.prepare('SELECT * FROM estoque_itens').all()) {
+          updEst.run(dec(r.nome),dec(r.tipo),dec(r.observacao),dec(r.especificacao),r.id);
+        }
+        const updImp = db.prepare('UPDATE impressoras SET nome=?,ip=?,selb=?,localizacao=?,numero_serie=? WHERE id=?');
+        for (const r of db.prepare('SELECT * FROM impressoras').all()) {
+          updImp.run(dec(r.nome),dec(r.ip),dec(r.selb),dec(r.localizacao),dec(r.numero_serie),r.id);
+        }
+        const updEq = db.prepare('UPDATE equipamentos SET codigo=?,nome=?,categoria=?,setor_atual=?,observacao=? WHERE id=?');
+        for (const r of db.prepare('SELECT * FROM equipamentos').all()) {
+          updEq.run(dec(r.codigo),dec(r.nome),dec(r.categoria),dec(r.setor_atual),dec(r.observacao),r.id);
+        }
+        const updIt = db.prepare('UPDATE itens SET nome=?,categoria=?,localizacao=?,descricao=?,numero_serie=?,fabricante=?,modelo=? WHERE id=?');
+        for (const r of db.prepare('SELECT * FROM itens').all()) {
+          updIt.run(dec(r.nome),dec(r.categoria),dec(r.localizacao),dec(r.descricao),dec(r.numero_serie),dec(r.fabricante),dec(r.modelo),r.id);
+        }
+      });
+      run();
+      db.prepare("INSERT OR REPLACE INTO config (chave,valor) VALUES ('html_decode_v1','1')").run();
+    }
+  } catch (err) { console.error('[DB] html_decode migration falhou:', err.message); }
 
   return db;
 }
