@@ -5,7 +5,7 @@ const { requireAdmin, requireMaster } = require('../auth');
 
 function san(s) {
   if (typeof s !== 'string') return String(s || '');
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;').trim();
+  return s.trim();
 }
 
 // GET /api/admin/inventario/autocomplete
