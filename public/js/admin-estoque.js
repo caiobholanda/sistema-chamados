@@ -1064,6 +1064,17 @@ function fecharEqHist() {
       });
     });
 
+    // Popular badges das tabs inativas no carregamento inicial (em paralelo)
+    Promise.all([
+      api('/api/admin/estoque/impressoras').then(r => r.json()).catch(() => []),
+      api('/api/admin/estoque/equipamentos').then(r => r.json()).catch(() => []),
+    ]).then(([imps, eqs]) => {
+      const elI = document.getElementById('badge-impressoras');
+      const elE = document.getElementById('badge-equipamentos');
+      if (elI) elI.textContent = imps.length || '';
+      if (elE) elE.textContent = eqs.length || '';
+    }).catch(() => {});
+
     await carregarDados();
   } catch {}
 })();
