@@ -12,6 +12,8 @@ let _impressorasCache = [];
 let _impressorasFiltered = [];
 let _perifericosCache = [];
 let _perifericosFiltered = [];
+let _suprimentosCache = [];
+let _suprimentosFiltered = [];
 let _reservaCache = [];
 let _reservaFiltered = [];
 let _equipamentosCache = [];
@@ -60,6 +62,45 @@ const COR_LABELS = {
   amarelo: 'Amarelo',
   geral: 'Geral',
 };
+
+const TIPO_BADGE = {
+  periferico:  { label: 'Periférico',  bg: '#dbeafe', color: '#1d4ed8' },
+  toner_mono:  { label: 'Toner Mono',  bg: '#f1f5f9', color: '#475569' },
+  toner_color: { label: 'Toner Color', bg: '#f5f3ff', color: '#7c3aed' },
+  resma:       { label: 'Resma/Papel', bg: '#dcfce7', color: '#15803d' },
+  outro:       { label: 'Outro',       bg: '#f8fafc', color: '#64748b' },
+};
+
+function tipoBadge(tipo) {
+  const t = TIPO_BADGE[tipo] || { label: tipo, bg: '#f1f5f9', color: '#475569' };
+  return `<span style="display:inline-block;padding:.1rem .45rem;border-radius:4px;font-size:.7rem;font-weight:700;background:${t.bg};color:${t.color};letter-spacing:.02em;white-space:nowrap">${t.label}</span>`;
+}
+
+function estoqueCell(item) {
+  if (item.tipo === 'toner_color') {
+    const dots = [
+      { cor: '#1e293b', qtd: item.qtd_preto   || 0, label: 'Preto'   },
+      { cor: '#06b6d4', qtd: item.qtd_ciano   || 0, label: 'Ciano'   },
+      { cor: '#ec4899', qtd: item.qtd_magenta || 0, label: 'Magenta' },
+      { cor: '#f59e0b', qtd: item.qtd_amarelo || 0, label: 'Amarelo' },
+    ];
+    return `<span style="display:inline-flex;gap:.5rem;align-items:center;flex-wrap:wrap">` +
+      dots.map(d =>
+        `<span title="${d.label}" style="display:inline-flex;align-items:center;gap:.2rem;font-size:.78rem">` +
+        `<span style="width:8px;height:8px;border-radius:50%;background:${d.cor};border:1px solid rgba(0,0,0,.12);flex-shrink:0"></span>` +
+        `<span style="${d.qtd === 0 ? 'color:var(--danger);font-weight:700' : ''}">${d.qtd}</span>` +
+        `</span>`
+      ).join('') + `</span>`;
+  }
+  if (item.tipo === 'toner_mono') {
+    const q = item.qtd_preto || 0;
+    return `<span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem">` +
+      `<span style="width:9px;height:9px;border-radius:50%;background:#1e293b;border:1px solid rgba(0,0,0,.2)"></span>` +
+      `<span style="${q === 0 ? 'color:var(--danger);font-weight:700' : ''}">${q}</span>` +
+      `</span>`;
+  }
+  return qtdCell(item.qtd_geral);
+}
 
 function unesc(s) {
   return String(s || '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#x27;/g,"'");
@@ -119,9 +160,6 @@ function atualizarToolbar() {
   } else if (abaAtiva === 'impressoras') {
     btnNovo.style.display = '';
     btnNovo.textContent = '+ Nova Impressora';
-  } else if (abaAtiva === 'toner') {
-    btnNovo.style.display = '';
-    btnNovo.textContent = '+ Novo Item Toner';
   } else if (abaAtiva === 'perifericos') {
     btnNovo.style.display = '';
     btnNovo.textContent = '+ Novo Suprimento';
@@ -638,68 +676,99 @@ function renderTabelaImpressoras(lista) {
   `;
 }
 
-// ── Renderização — Periféricos ────────────────────────────
+// ── Renderização — Suprimentos (toner + periférico unificados) ───
 
-function renderPerifericos(lista) {
+function renderSuprimentos(lista) {
   const el = document.getElementById('itens-lista');
   document.getElementById('badge-perifericos').textContent = lista.length || '';
-  _perifericosFiltered = lista;
+  _suprimentosFiltered = lista;
 
   el.innerHTML = `
     <div class="filter-bar" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem">
-      <div class="lupa-wrap" style="max-width:240px">
+      <div class="lupa-wrap" style="max-width:220px">
         <svg class="lupa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="form-control" id="per-search" type="text" placeholder="Buscar nome…">
+        <input class="form-control" id="sup-search" type="text" placeholder="Buscar nome…">
       </div>
-      <span id="per-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem">${lista.length} item${lista.length !== 1 ? 's' : ''}</span>
+      <select class="form-control" id="sup-tipo" style="max-width:175px">
+        <option value="">Todos os tipos</option>
+        <option value="periferico">Periférico</option>
+        <option value="toner_mono">Toner Mono</option>
+        <option value="toner_color">Toner Color</option>
+        <option value="resma">Resma/Papel</option>
+        <option value="outro">Outro</option>
+      </select>
+      <select class="form-control" id="sup-urgente" style="max-width:145px">
+        <option value="">Todos</option>
+        <option value="1">Urgente / Zerado</option>
+        <option value="0">Normal</option>
+      </select>
+      <span id="sup-count" style="color:var(--text-muted);font-size:.82rem;margin-left:.25rem">${lista.length} item${lista.length !== 1 ? 's' : ''}</span>
     </div>
-    <div id="per-tabela"></div>
+    <div id="sup-tabela"></div>
   `;
 
-  document.getElementById('per-search').addEventListener('input', filtrarPerifericos);
-  renderTabelaPerifericos(lista);
+  document.getElementById('sup-search').addEventListener('input', filtrarSuprimentos);
+  document.getElementById('sup-tipo').addEventListener('change', filtrarSuprimentos);
+  document.getElementById('sup-urgente').addEventListener('change', filtrarSuprimentos);
+
+  renderTabelaSuprimentos(lista);
 }
 
-function filtrarPerifericos() {
-  const search = (document.getElementById('per-search').value || '').toLowerCase();
-  const filtered = _perifericosCache.filter(item =>
-    !search || (item.nome || '').toLowerCase().includes(search) || (item.observacao || '').toLowerCase().includes(search)
-  );
-  document.getElementById('per-count').textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`;
-  renderTabelaPerifericos(filtered);
+function filtrarSuprimentos() {
+  const search  = (document.getElementById('sup-search').value  || '').toLowerCase();
+  const tipo    = document.getElementById('sup-tipo').value;
+  const urgente = document.getElementById('sup-urgente').value;
+  const filtered = _suprimentosCache.filter(item => {
+    const matchSearch  = !search  || (item.nome || '').toLowerCase().includes(search) || (item.observacao || '').toLowerCase().includes(search);
+    const matchTipo    = !tipo    || item.tipo === tipo;
+    const matchUrgente = urgente === '' ? true : urgente === '1' ? autoUrgente(item) : !autoUrgente(item);
+    return matchSearch && matchTipo && matchUrgente;
+  });
+  document.getElementById('sup-count').textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`;
+  renderTabelaSuprimentos(filtered);
 }
 
-function renderTabelaPerifericos(lista) {
-  const el = document.getElementById('per-tabela');
+function renderTabelaSuprimentos(lista) {
+  const el = document.getElementById('sup-tabela');
   if (!el) return;
   const isMaster = adminInfo && adminInfo.is_master;
+  const urgentes = lista.filter(i => autoUrgente(i)).length;
 
   if (!lista.length) {
-    el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum periférico encontrado.</div>`;
+    el.innerHTML = `<div class="empty-state" style="padding:2rem;text-align:center;color:var(--text-muted)">Nenhum suprimento encontrado.</div>`;
     return;
   }
 
   el.innerHTML = `
+    ${urgentes ? `<div class="itens-alerta-bar" style="margin-bottom:.75rem">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      ${urgentes} ${urgentes === 1 ? 'item sem estoque / zerado' : 'itens sem estoque / zerados'}
+    </div>` : ''}
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
             <th>Nome</th>
-            <th style="text-align:center">Quantidade</th>
-            <th>Observação</th>
+            <th>Tipo</th>
+            <th style="text-align:center">Estoque</th>
+            <th style="text-align:center">Urgente</th>
+            <th>Com setores</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           ${lista.map(item => `
-            <tr>
-              <td style="font-weight:500">${esc(item.nome)}</td>
-              <td style="text-align:center">${qtdCell(item.qtd_geral)}</td>
-              <td style="color:var(--text-muted);font-size:.82rem">${esc(item.observacao) || '—'}</td>
+            <tr${autoUrgente(item) ? ' style="background:rgba(220,38,38,.04)"' : ''}>
+              <td style="font-weight:500">${esc(item.nome)}${item.observacao ? `<div style="font-size:.75rem;color:var(--text-muted);margin-top:.1rem">${esc(item.observacao)}</div>` : ''}</td>
+              <td>${tipoBadge(item.tipo)}</td>
+              <td style="text-align:center">${estoqueCell(item)}</td>
+              <td style="text-align:center">${autoUrgente(item) ? '<span style="color:var(--danger);font-weight:700;font-size:.8rem">⚠ SIM</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
+              <td style="font-size:.8rem">${formatAlocacoes(item.alocacoes)}</td>
               <td style="white-space:nowrap">
                 <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
-                <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Histórico</button>
-                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarPeriferico(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
+                <button class="btn btn-secondary btn-sm" onclick="abrirEditarSuprimento(${item.id})">Editar</button>
+                <button class="btn btn-ghost btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Histórico</button>
+                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarSuprimento(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
               </td>
             </tr>
           `).join('')}
@@ -876,16 +945,13 @@ async function carregarItens() {
       const r = await api('/api/admin/inventario');
       _microsCache = await r.json();
       renderMicros(_microsCache);
-    } else if (abaAtiva === 'toner') {
-      const r = await api('/api/admin/estoque/itens');
-      const todos = await r.json();
-      _tonerCache = todos.filter(i => i.tipo !== 'periferico' && i.tipo !== 'reserva');
-      renderToner(_tonerCache);
     } else if (abaAtiva === 'perifericos') {
       const r = await api('/api/admin/estoque/itens');
       const todos = await r.json();
+      _tonerCache      = todos.filter(i => i.tipo !== 'periferico' && i.tipo !== 'reserva');
       _perifericosCache = todos.filter(i => i.tipo === 'periferico');
-      renderPerifericos(_perifericosCache);
+      _suprimentosCache = todos.filter(i => i.tipo !== 'reserva');
+      renderSuprimentos(_suprimentosCache);
     } else if (abaAtiva === 'reserva') {
       const busca = document.getElementById('eq-busca')?.value.trim() || '';
       const status = document.getElementById('eq-status')?.value || '';
@@ -1058,10 +1124,8 @@ function abrirModalNovo() {
     abrirModalMicros(null);
   } else if (abaAtiva === 'impressoras') {
     abrirModalImpressora(null);
-  } else if (abaAtiva === 'toner') {
-    abrirNovoItemToner();
   } else if (abaAtiva === 'perifericos') {
-    abrirModalPeriferico(null);
+    abrirNovoSuprimento();
   } else if (abaAtiva === 'reserva') {
     abrirNovoEquipamento();
   }
@@ -1265,10 +1329,10 @@ async function confirmarDeletarMicro(id, label) {
   } catch {}
 }
 
-// ── Modal Toner (novo/editar) — Estoque TI ───────────────
+// ── Modal Suprimentos — Novo (toner + periférico unificados) ─
 
-function abrirNovoItemToner() {
-  document.getElementById('modal-title').textContent = 'Novo Item';
+function abrirNovoSuprimento() {
+  document.getElementById('modal-title').textContent = 'Novo Suprimento';
   abrirModal();
 
   const EXTRA_NOMES = ['Epson WorkForce Pro WF-M5799'];
@@ -1276,57 +1340,83 @@ function abrirNovoItemToner() {
   const todosNomes = [...new Set([...nomesCache, ...EXTRA_NOMES])].sort((a, b) => a.localeCompare(b));
 
   document.getElementById('modal-body').innerHTML = `
-    <form id="form-toner" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
+    <form id="form-sup-novo" style="display:flex;flex-direction:column;gap:.8rem;padding:1.25rem 1.5rem">
       <div class="form-group">
-        <label class="form-label">Modelo <span style="color:var(--danger)">*</span></label>
-        <select class="form-control" id="ft-nome">
-          <option value="">— selecione um modelo —</option>
-          ${todosNomes.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')}
-          <option value="__outro__">Outro (digitar)…</option>
-        </select>
-        <input class="form-control" id="ft-nome-custom" type="text" placeholder="Digite o nome do modelo" style="display:none;margin-top:.4rem">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Tipo</label>
-        <select class="form-control" id="ft-tipo">
+        <label class="form-label">Categoria <span style="color:var(--danger)">*</span></label>
+        <select class="form-control" id="sup-novo-tipo">
+          <option value="periferico">Periférico</option>
           <option value="toner_mono">Toner Mono</option>
           <option value="toner_color">Toner Color</option>
           <option value="resma">Resma/Papel</option>
           <option value="outro">Outro</option>
         </select>
       </div>
+      <div id="sup-campo-nome-livre" class="form-group">
+        <label class="form-label">Nome <span style="color:var(--danger)">*</span></label>
+        <input class="form-control" id="sup-nome-livre" type="text" placeholder="Ex: Mouse, Teclado, Patch Cord…">
+      </div>
+      <div id="sup-campo-nome-toner" class="form-group" style="display:none">
+        <label class="form-label">Modelo <span style="color:var(--danger)">*</span></label>
+        <select class="form-control" id="sup-nome-toner">
+          <option value="">— selecione um modelo —</option>
+          ${todosNomes.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')}
+          <option value="__outro__">Outro (digitar)…</option>
+        </select>
+        <input class="form-control" id="sup-nome-toner-custom" type="text" placeholder="Digite o nome do modelo" style="display:none;margin-top:.4rem">
+      </div>
+      <div id="sup-campo-obs" class="form-group">
+        <label class="form-label">Observação <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
+        <input class="form-control" id="sup-obs" type="text" placeholder="Ex: em uso Richard, Socket 1151…">
+      </div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
         <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-        <button type="submit" class="btn btn-primary" id="btn-salvar-toner">Adicionar</button>
+        <button type="submit" class="btn btn-primary" id="btn-salvar-sup-novo">Adicionar</button>
       </div>
     </form>
   `;
 
-  document.getElementById('ft-nome').addEventListener('change', function () {
-    document.getElementById('ft-nome-custom').style.display = this.value === '__outro__' ? '' : 'none';
+  function toggleCamposTipo() {
+    const tipo = document.getElementById('sup-novo-tipo').value;
+    const isToner = tipo !== 'periferico';
+    document.getElementById('sup-campo-nome-livre').style.display = isToner ? 'none' : '';
+    document.getElementById('sup-campo-nome-toner').style.display = isToner ? '' : 'none';
+    document.getElementById('sup-campo-obs').style.display = isToner ? 'none' : '';
+  }
+
+  document.getElementById('sup-novo-tipo').addEventListener('change', toggleCamposTipo);
+
+  document.getElementById('sup-nome-toner').addEventListener('change', function () {
+    document.getElementById('sup-nome-toner-custom').style.display = this.value === '__outro__' ? '' : 'none';
   });
 
-  document.getElementById('form-toner').addEventListener('submit', async (e) => {
+  document.getElementById('form-sup-novo').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('btn-salvar-toner');
+    const btn = document.getElementById('btn-salvar-sup-novo');
     btn.disabled = true; btn.textContent = 'Salvando…';
-    const sel = document.getElementById('ft-nome');
-    const nome = sel.value === '__outro__'
-      ? document.getElementById('ft-nome-custom').value.trim()
-      : sel.value;
-    if (!nome) { mostrarToast('Selecione ou digite o modelo', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
+    const tipo = document.getElementById('sup-novo-tipo').value;
+    const isToner = tipo !== 'periferico';
+    let nome;
+    if (isToner) {
+      const sel = document.getElementById('sup-nome-toner');
+      nome = sel.value === '__outro__'
+        ? document.getElementById('sup-nome-toner-custom').value.trim()
+        : sel.value;
+    } else {
+      nome = document.getElementById('sup-nome-livre').value.trim();
+    }
+    if (!nome) { mostrarToast(isToner ? 'Selecione ou digite o modelo' : 'Nome obrigatório', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
+    const body = { nome, tipo };
+    if (!isToner) body.observacao = document.getElementById('sup-obs').value.trim();
     try {
-      const r = await api('/api/admin/estoque/itens', { method: 'POST', body: JSON.stringify({
-        nome, tipo: document.getElementById('ft-tipo').value,
-      }) });
+      const r = await api('/api/admin/estoque/itens', { method: 'POST', body: JSON.stringify(body) });
       if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); btn.disabled = false; btn.textContent = 'Adicionar'; return; }
-      fecharModal(); mostrarToast('Item criado'); carregarItens();
+      fecharModal(); mostrarToast('Suprimento adicionado'); carregarItens();
     } catch { btn.disabled = false; btn.textContent = 'Adicionar'; }
   });
 }
 
 function abrirEditarItemToner(id) {
-  const item = _tonerCache.find(i => i.id === id);
+  const item = _tonerCache.find(i => i.id === id) || _suprimentosCache.find(i => i.id === id);
   if (!item) return;
   document.getElementById('modal-title').textContent = 'Editar Item';
   abrirModal();
@@ -1364,6 +1454,26 @@ function abrirEditarItemToner(id) {
 }
 
 async function confirmarDeletarToner(id, nome) {
+  if (!adminInfo || !adminInfo.is_master) return;
+  if (!confirm(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
+  try {
+    const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
+    mostrarToast('Item excluído'); carregarItens();
+  } catch {}
+}
+
+function abrirEditarSuprimento(id) {
+  const item = _suprimentosCache.find(i => i.id === id);
+  if (!item) return;
+  if (item.tipo === 'periferico') {
+    abrirModalPeriferico(id);
+  } else {
+    abrirEditarItemToner(id);
+  }
+}
+
+async function confirmarDeletarSuprimento(id, nome) {
   if (!adminInfo || !adminInfo.is_master) return;
   if (!confirm(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
   try {
@@ -1411,7 +1521,7 @@ function abrirMovimentacao(itemId, tipoMov) {
     cores.push({ val: 'magenta', label: 'Magenta', atual: item.qtd_magenta || 0 });
     cores.push({ val: 'amarelo', label: 'Amarelo', atual: item.qtd_amarelo || 0 });
   }
-  if (item.tipo === 'resma' || item.tipo === 'outro') cores.push({ val: 'geral', label: 'Geral', atual: item.qtd_geral || 0 });
+  if (item.tipo === 'resma' || item.tipo === 'outro' || item.tipo === 'periferico') cores.push({ val: 'geral', label: 'Geral', atual: item.qtd_geral || 0 });
 
   const showCor = cores.length > 1;
 
@@ -2160,8 +2270,7 @@ async function confirmarDeletarReservaLegado(id, nome) {
     Promise.all([pItens, pEqs, pImps, pCompra]).then(([itens, eqs, imps, compra]) => {
       const $b = id => document.getElementById(id);
       const n = v => v || '';
-      if ($b('badge-toner')) $b('badge-toner').textContent = n(itens.filter(i => i.tipo !== 'periferico' && i.tipo !== 'reserva').length);
-      if ($b('badge-perifericos')) $b('badge-perifericos').textContent = n(itens.filter(i => i.tipo === 'periferico').length);
+      if ($b('badge-perifericos')) $b('badge-perifericos').textContent = n(itens.filter(i => i.tipo !== 'reserva').length);
       if ($b('badge-reserva')) $b('badge-reserva').textContent = n(eqs.length + itens.filter(i => i.tipo === 'reserva').length);
       if ($b('badge-impressoras')) $b('badge-impressoras').textContent = n(imps.length);
       if ($b('badge-compra')) $b('badge-compra').textContent = n(compra.filter(c => ['aberto','em_andamento'].includes(c.status)).length);
