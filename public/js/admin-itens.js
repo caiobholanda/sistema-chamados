@@ -1,5 +1,6 @@
 let adminInfo = null;
 let abaAtiva = 'micros';
+let categoriaAtiva = 'infraestrutura';
 let _itensCache = [];
 let _autocomplete = { setores: [], usuarios: [] };
 
@@ -934,6 +935,16 @@ function verUnidades(nome) {
 // ── Carregar conteúdo da aba ──────────────────────────────
 
 async function carregarItens() {
+  if (categoriaAtiva === 'configuracoes') {
+    document.getElementById('itens-lista').innerHTML = `
+      <div style="padding:3.5rem 2rem;text-align:center;color:var(--text-muted)">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.35;margin-bottom:.75rem"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <p style="font-size:.92rem;font-weight:600;color:var(--text-secondary)">Configurações da TI</p>
+        <p style="font-size:.82rem;margin-top:.35rem">Em construção.</p>
+      </div>`;
+    atualizarToolbar();
+    return;
+  }
   document.getElementById('itens-lista').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   atualizarToolbar();
   try {
@@ -2260,20 +2271,24 @@ async function confirmarDeletarReservaLegado(id, nome) {
     api('/api/admin/inventario/autocomplete')
       .then(r => r.json()).then(d => popularAutocomplete(d)).catch(() => {});
 
-    // Popular badges das tabs inativas no carregamento inicial (em paralelo)
-    const [pItens, pEqs, pImps, pCompra] = [
+    // Popular badges no carregamento inicial (em paralelo)
+    const [pItens, pEqs, pImps, pMicros] = [
       api('/api/admin/estoque/itens').then(r => r.json()).catch(() => []),
       api('/api/admin/estoque/equipamentos').then(r => r.json()).catch(() => []),
       api('/api/admin/estoque/impressoras').then(r => r.json()).catch(() => []),
-      api('/api/admin/itens/chamados-compra').then(r => r.json()).catch(() => []),
+      api('/api/admin/inventario').then(r => r.json()).catch(() => []),
     ];
-    Promise.all([pItens, pEqs, pImps, pCompra]).then(([itens, eqs, imps, compra]) => {
+    Promise.all([pItens, pEqs, pImps, pMicros]).then(([itens, eqs, imps, micros]) => {
       const $b = id => document.getElementById(id);
       const n = v => v || '';
-      if ($b('badge-perifericos')) $b('badge-perifericos').textContent = n(itens.filter(i => i.tipo !== 'reserva').length);
-      if ($b('badge-reserva')) $b('badge-reserva').textContent = n(eqs.length + itens.filter(i => i.tipo === 'reserva').length);
-      if ($b('badge-impressoras')) $b('badge-impressoras').textContent = n(imps.length);
-      if ($b('badge-compra')) $b('badge-compra').textContent = n(compra.filter(c => ['aberto','em_andamento'].includes(c.status)).length);
+      // Sub-abas individuais
+      if ($b('badge-micros'))       $b('badge-micros').textContent       = n(micros.length);
+      if ($b('badge-reserva'))      $b('badge-reserva').textContent      = n(eqs.length + itens.filter(i => i.tipo === 'reserva').length);
+      if ($b('badge-impressoras'))  $b('badge-impressoras').textContent  = n(imps.length);
+      if ($b('badge-perifericos'))  $b('badge-perifericos').textContent  = n(itens.filter(i => i.tipo !== 'reserva').length);
+      // Categorias (agregado)
+      if ($b('badge-infraestrutura')) $b('badge-infraestrutura').textContent = n(micros.length + eqs.length + imps.length);
+      if ($b('badge-insumos'))        $b('badge-insumos').textContent        = n(itens.filter(i => i.tipo !== 'reserva').length);
     }).catch(() => {});
   }
 
@@ -2293,9 +2308,42 @@ async function confirmarDeletarReservaLegado(id, nome) {
   });
 
   try {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    // ── Listeners: botões de categoria ─────────────────
+    document.querySelectorAll('.cat-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+        categoriaAtiva = btn.dataset.cat;
+
+        // Mostra/esconde sub-barras
+        const subInfra = document.getElementById('sub-infraestrutura');
+        const subInsumos = document.getElementById('sub-insumos');
+        const subConf = document.getElementById('sub-configuracoes');
+        if (subInfra)   subInfra.style.display   = categoriaAtiva === 'infraestrutura' ? 'flex' : 'none';
+        if (subInsumos) subInsumos.style.display  = categoriaAtiva === 'insumos'        ? 'flex' : 'none';
+        if (subConf)    subConf.style.display     = categoriaAtiva === 'configuracoes'  ? 'flex' : 'none';
+
+        // Define abaAtiva padrão da categoria
+        if (categoriaAtiva === 'infraestrutura') {
+          const firstSub = document.querySelector('#sub-infraestrutura .cat-sub-btn');
+          document.querySelectorAll('.cat-sub-btn').forEach(b => b.classList.remove('ativo'));
+          if (firstSub) { firstSub.classList.add('ativo'); abaAtiva = firstSub.dataset.tab; }
+        } else if (categoriaAtiva === 'insumos') {
+          abaAtiva = 'perifericos';
+        } else {
+          abaAtiva = null;
+        }
+
+        const filtrosEq = document.getElementById('filtros-equipamentos');
+        if (filtrosEq) filtrosEq.style.display = abaAtiva === 'reserva' ? '' : 'none';
+        carregarItens();
+      });
+    });
+
+    // ── Listeners: bolinhas de sub-aba ─────────────────
+    document.querySelectorAll('.cat-sub-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-sub-btn').forEach(b => b.classList.remove('ativo'));
         btn.classList.add('ativo');
         abaAtiva = btn.dataset.tab;
         const filtrosEq = document.getElementById('filtros-equipamentos');
@@ -2303,7 +2351,7 @@ async function confirmarDeletarReservaLegado(id, nome) {
         carregarItens();
       });
     });
-  } catch (err) { console.error('[init] tab-btn listeners:', err); }
+  } catch (err) { console.error('[init] cat listeners:', err); }
 
   on('btn-novo-item', 'click', abrirModalNovo);
 

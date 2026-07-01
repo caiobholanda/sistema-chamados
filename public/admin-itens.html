@@ -5,6 +5,75 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Itens — Gran Marquise TI</title>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* ── Navegação por categorias ─────────────────────── */
+    .cat-bar {
+      display: flex;
+      gap: .65rem;
+      margin-bottom: 0;
+      flex-wrap: wrap;
+      padding-bottom: .85rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .cat-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .58rem 1.15rem .58rem 1rem;
+      border-radius: var(--radius-lg);
+      border: 1.5px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .14s, color .14s, background .14s, box-shadow .14s;
+      letter-spacing: .02em;
+    }
+    .cat-btn:hover { border-color: var(--navy); color: var(--navy); }
+    .cat-btn.ativo {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: #F5EFE2;
+      box-shadow: 0 1px 4px rgba(32,44,40,.22);
+    }
+    .cat-btn.ativo .tab-badge { background: rgba(245,239,226,.2); color: #F5EFE2; }
+    .cat-btn:not(.ativo) .tab-badge { background: var(--border); color: var(--text-secondary); }
+
+    /* ── Sub-abas (bolinhas) ─────────────────────────── */
+    .cat-sub-bar {
+      display: flex;
+      gap: .45rem;
+      margin: .7rem 0 0;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .cat-sub-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .38rem;
+      padding: .26rem .88rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .13s, color .13s, background .13s;
+      letter-spacing: .02em;
+    }
+    .cat-sub-btn:hover { border-color: var(--gold); color: var(--gold-dark); }
+    .cat-sub-btn.ativo {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #F5EFE2;
+    }
+    .cat-sub-btn.ativo .tab-badge { background: rgba(32,44,40,.18); color: #F5EFE2; }
+    .cat-sub-btn:not(.ativo) .tab-badge { background: var(--border); color: var(--text-secondary); }
+  </style>
 </head>
 <body>
 <header>
@@ -30,23 +99,42 @@
     <button class="btn btn-primary" id="btn-novo-item">+ Novo Item</button>
   </div>
 
-  <div class="tabs-bar">
-    <button class="tab-btn ativo" data-tab="micros">
-      Inventário de Micros <span class="tab-badge" id="badge-micros"></span>
+  <!-- Categorias principais -->
+  <div class="cat-bar">
+    <button class="cat-btn ativo" data-cat="infraestrutura">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Ativos de Infraestrutura
+      <span class="tab-badge" id="badge-infraestrutura"></span>
     </button>
-    <button class="tab-btn" data-tab="perifericos">
-      Suprimentos <span class="tab-badge" id="badge-perifericos"></span>
+    <button class="cat-btn" data-cat="insumos">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Insumos e Estoque
+      <span class="tab-badge" id="badge-insumos"></span>
     </button>
-    <button class="tab-btn" data-tab="reserva">
-      Equipamentos <span class="tab-badge" id="badge-reserva"></span>
-    </button>
-    <button class="tab-btn" data-tab="impressoras">
-      Impressoras na Rede <span class="tab-badge" id="badge-impressoras"></span>
-    </button>
-    <button class="tab-btn" data-tab="compra">
-      Chamados de Compra <span class="tab-badge" id="badge-compra"></span>
+    <button class="cat-btn" data-cat="configuracoes">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configurações da TI
     </button>
   </div>
+
+  <!-- Sub-abas: Ativos de Infraestrutura (bolinhas) -->
+  <div id="sub-infraestrutura" class="cat-sub-bar">
+    <button class="cat-sub-btn ativo" data-tab="micros">
+      Inventário de Micros <span class="tab-badge" id="badge-micros"></span>
+    </button>
+    <button class="cat-sub-btn" data-tab="reserva">
+      Equipamentos <span class="tab-badge" id="badge-reserva"></span>
+    </button>
+    <button class="cat-sub-btn" data-tab="impressoras">
+      Impressoras na Rede <span class="tab-badge" id="badge-impressoras"></span>
+    </button>
+  </div>
+
+  <!-- Sub-abas: Insumos (carrega suprimentos direto, sem bolinhas) -->
+  <div id="sub-insumos" class="cat-sub-bar" style="display:none"></div>
+
+  <!-- Configurações: placeholder -->
+  <div id="sub-configuracoes" class="cat-sub-bar" style="display:none"></div>
 
   <!-- Filtros equipamentos (visível só na aba Equipamentos) -->
   <div id="filtros-equipamentos" style="display:none;margin:.75rem 0 0">
