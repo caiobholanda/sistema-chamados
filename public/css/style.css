@@ -1530,8 +1530,9 @@ tbody tr:hover td { background: var(--surface-2); }
   border-left: 3px solid #9C5843;
   border-radius: var(--radius-sm);
   padding: .65rem 1rem;
-  font-size: .84rem;
-  color: #7a3428;
+  font-size: .85rem;
+  font-weight: 600;
+  color: #4a1000;
   margin-bottom: .75rem;
 }
 
