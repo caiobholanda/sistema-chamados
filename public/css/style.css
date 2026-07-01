@@ -728,6 +728,28 @@ select.form-control:focus {
 .btn-warning { background: var(--warning); color: #fff; }
 .btn-warning:hover { background: #92400e; }
 
+/* Chamado modal — Concluir: Verde Escuro + Sand */
+#btn-concluir,
+#cm-btn-concluir,
+#btn-confirmar-concluir,
+#cm-btn-confirmar-concluir {
+  background: #202C28;
+  color: #ECE4D2;
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+#btn-concluir:hover,
+#cm-btn-concluir:hover,
+#btn-confirmar-concluir:hover,
+#cm-btn-confirmar-concluir:hover { background: #2e3f39; }
+
+/* Chamado modal — Cancelar: Terracota */
+#btn-cancelar-chamado {
+  background: #9C5843;
+  color: #FFF9F7;
+  box-shadow: 0 1px 2px rgba(156,88,67,.3);
+}
+#btn-cancelar-chamado:hover { background: #7a3428; }
+
 .btn-ghost {
   background: transparent;
   color: rgba(255,255,255,.42);
@@ -1503,7 +1525,7 @@ tbody tr:hover td { background: var(--surface-2); }
   display: flex;
   align-items: center;
   gap: .5rem;
-  background: #FDF2EE;
+  background: rgba(156,88,67,.15);
   border: 1px solid #d4957f;
   border-left: 3px solid #9C5843;
   border-radius: var(--radius-sm);
