@@ -733,6 +733,19 @@ function initDb() {
     CREATE INDEX IF NOT EXISTS idx_spa_historico_reserva ON spa_historico(reserva_id);
   `); } catch {}
 
+  // One-time: decode HTML entities stored by old san() that was HTML-encoding text
+  if (!db.prepare("SELECT value FROM config WHERE key='html_decode_v1'").get()) {
+    const d = f => `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(${f},'&amp;','&'),'&lt;','<'),'&gt;','>'),'&quot;','"'),'&#x27;',char(39))`;
+    try {
+      db.exec(`UPDATE inventario_micros SET setor=${d('setor')},usuario=${d('usuario')},processador=${d('processador')},memoria=${d('memoria')},sistema_operacional=${d('sistema_operacional')},hd_ssd=${d('hd_ssd')},office=${d('office')},tag=${d('tag')},entradas_monitor=${d('entradas_monitor')},modelo_monitor=${d('modelo_monitor')},status=${d('status')},hostname=${d('hostname')},data_troca=${d('data_troca')},observacao=${d('observacao')},atualizacao_win11=${d('atualizacao_win11')},tipo_equipamento=${d('tipo_equipamento')},nobreak=${d('nobreak')}`);
+      db.exec(`UPDATE estoque_itens SET nome=${d('nome')},tipo=${d('tipo')},observacao=${d('observacao')},especificacao=${d('especificacao')}`);
+      db.exec(`UPDATE impressoras SET nome=${d('nome')},ip=${d('ip')},selb=${d('selb')},localizacao=${d('localizacao')},numero_serie=${d('numero_serie')}`);
+      db.exec(`UPDATE equipamentos SET codigo=${d('codigo')},nome=${d('nome')},categoria=${d('categoria')},setor_atual=${d('setor_atual')},observacao=${d('observacao')}`);
+      db.exec(`UPDATE itens SET nome=${d('nome')},categoria=${d('categoria')},localizacao=${d('localizacao')},descricao=${d('descricao')},numero_serie=${d('numero_serie')},fabricante=${d('fabricante')},modelo=${d('modelo')}`);
+    } catch (err) { console.error('[DB] html_decode migration falhou:', err.message); }
+    try { db.prepare("INSERT OR REPLACE INTO config (key,value) VALUES ('html_decode_v1','1')").run(); } catch {}
+  }
+
   return db;
 }
 
