@@ -553,6 +553,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let mes = mesAtual();
   document.getElementById('sel-mes').max = mes;
 
+  document.getElementById('cm-btn-fechar-modal').addEventListener('click', () => {
+    if (typeof window.fecharChamadoModal === 'function') window.fecharChamadoModal();
+  });
+
   document.getElementById('btn-mes-anterior').addEventListener('click', () => { mes = mesAnterior(mes); carregar(mes); });
   document.getElementById('btn-mes-proximo').addEventListener('click', () => {
     const prox = mesProximo(mes);
