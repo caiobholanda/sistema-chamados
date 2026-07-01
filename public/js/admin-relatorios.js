@@ -478,33 +478,43 @@ function setoresList(setores) {
 
 function donutCategorias(cats, total) {
   if (!cats.length || total === 0) return '<div class="chart-empty">Sem dados</div>';
-  const r = 58;
-  const C = 2 * Math.PI * r;
+  _catModalDados = { cats, total };
+  const top10 = cats.slice(0, 10);
+  const temMais = cats.length > 10;
+  const r = 58, C = 2 * Math.PI * r;
   let offset = 0;
-  const segs = cats.map(c => {
+  const segs = top10.map(c => {
     const len = (c.total / total) * C;
     const seg = `<circle cx="80" cy="80" r="${r}" stroke="${CAT_COLORS[c.categoria] || CAT_COLORS.outros}" stroke-dasharray="${len.toFixed(1)} ${(C - len).toFixed(1)}" stroke-dashoffset="${(-offset).toFixed(1)}"/>`;
     offset += len;
     return seg;
   }).join('');
-  const legend = cats.map(c => {
+  const legend = top10.map(c => {
     const pct = ((c.total / total) * 100).toFixed(0);
     return `<div class="leg">
       <span class="leg-sw" style="background:${CAT_COLORS[c.categoria] || CAT_COLORS.outros}"></span>
-      <span class="leg-name">${_catLabel(c.categoria)}</span>
+      <span class="leg-name">${_esc(_catLabel(c.categoria))}</span>
       <span class="leg-count">${c.total}</span>
       <span class="leg-pct">${pct}%</span>
     </div>`;
   }).join('');
+  const btnVerTodas = temMais ? `
+    <button type="button" class="btn-cat-ver-todas" onclick="_abrirModalCategorias()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Ver todas · ${cats.length} categorias
+    </button>` : '';
   return `
     <div class="donut-wrap">
       <svg viewBox="0 0 160 160" aria-label="Distribuição por categoria">
-        <g fill="none" stroke-width="22"><circle cx="80" cy="80" r="${r}" stroke="#E5DDD0"/></g>
+        <g fill="none" stroke-width="22"><circle cx="80" cy="80" r="${r}" stroke="${isDark() ? '#2A3448' : '#E5DDD0'}"/></g>
         <g fill="none" stroke-width="22" transform="rotate(-90 80 80)">${segs}</g>
         <text x="80" y="74" font-size="10" fill="#7A726A" letter-spacing="1" text-anchor="middle">TOTAL</text>
-        <text x="80" y="100" font-size="26" text-anchor="middle" font-weight="700">${total}</text>
+        <text x="80" y="100" font-size="26" text-anchor="middle" font-weight="700" fill="${isDark() ? '#ECE4D2' : '#202C28'}">${total}</text>
       </svg>
-      <div class="donut-legend">${legend}</div>
+      <div class="donut-legend">
+        ${legend}
+        ${btnVerTodas}
+      </div>
     </div>`;
 }
 
@@ -585,6 +595,104 @@ document.addEventListener('DOMContentLoaded', () => {
 
   carregar(mes);
 });
+
+// ── Modal "Categorias" ────────────────────────────────────
+let _catModalDados = null;
+let _catEscHandler = null;
+let _catBodyOverflow = '';
+
+function _fecharModalCategorias() {
+  const ov = document.getElementById('cat-overlay');
+  if (ov) ov.remove();
+  document.body.style.overflow = _catBodyOverflow;
+  if (_catEscHandler) { document.removeEventListener('keydown', _catEscHandler); _catEscHandler = null; }
+}
+
+function _abrirModalCategorias() {
+  if (!_catModalDados) return;
+  const { cats, total } = _catModalDados;
+  const ja = document.getElementById('cat-overlay');
+  if (ja) ja.remove();
+  const ov = document.createElement('div');
+  ov.id = 'cat-overlay';
+  ov.className = 'modal-overlay open';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'Todas as categorias');
+  ov.innerHTML = `<div class="modal cat-modal" tabindex="-1">
+    <div class="modal-header">
+      <div>
+        <h2 style="margin:0">Distribuição por categoria</h2>
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:.15rem">${cats.length} categoria${cats.length !== 1 ? 's' : ''} · ${total} chamado${total !== 1 ? 's' : ''} no período</div>
+      </div>
+      <button type="button" class="modal-close" data-cat-close aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body cat-modal-body">
+      ${_renderConteudoModalCategorias(cats, total)}
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  _catBodyOverflow = document.body.style.overflow || '';
+  document.body.style.overflow = 'hidden';
+  _catEscHandler = e => { if (e.key === 'Escape') _fecharModalCategorias(); };
+  document.addEventListener('keydown', _catEscHandler);
+  ov.addEventListener('click', e => { if (e.target === ov) _fecharModalCategorias(); });
+  ov.querySelectorAll('[data-cat-close]').forEach(b => b.addEventListener('click', _fecharModalCategorias));
+  const focusEl = ov.querySelector('.cat-modal');
+  if (focusEl) focusEl.focus();
+}
+
+function _renderConteudoModalCategorias(cats, total) {
+  const max = cats[0]?.total || 1;
+  const rG = 80, CG = 2 * Math.PI * rG;
+  let offG = 0;
+  const segsG = cats.map(c => {
+    const len = (c.total / total) * CG;
+    const s = `<circle cx="110" cy="110" r="${rG}" stroke="${CAT_COLORS[c.categoria] || CAT_COLORS.outros}" stroke-dasharray="${len.toFixed(1)} ${(CG - len).toFixed(1)}" stroke-dashoffset="${(-offG).toFixed(1)}" class="cat-seg-anim"/>`;
+    offG += len;
+    return s;
+  }).join('');
+  const isDk = isDark();
+  const rows = cats.map((c, i) => {
+    const pct = ((c.total / total) * 100).toFixed(1);
+    const barW = ((c.total / max) * 100).toFixed(1);
+    const cor = CAT_COLORS[c.categoria] || CAT_COLORS.outros;
+    return `<div class="cat-row" style="animation-delay:${Math.min(i * 25, 400)}ms">
+      <span class="cat-row-sw" style="background:${cor}"></span>
+      <span class="cat-row-name">${_esc(_catLabel(c.categoria))}</span>
+      <span class="cat-row-bar"><span class="cat-row-bar-fill" style="width:${barW}%;background:${cor}"></span></span>
+      <span class="cat-row-count">${c.total}</span>
+      <span class="cat-row-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+  const top3 = cats.slice(0, 3).map(c => `
+    <div class="cat-top-item">
+      <span class="cat-top-dot" style="background:${CAT_COLORS[c.categoria] || CAT_COLORS.outros}"></span>
+      <span class="cat-top-name">${_esc(_catLabel(c.categoria))}</span>
+      <span class="cat-top-pct">${((c.total / total) * 100).toFixed(0)}%</span>
+    </div>`).join('');
+  return `<div class="cat-modal-inner">
+    <div class="cat-donut-col">
+      <svg viewBox="0 0 220 220" class="cat-donut-svg" aria-label="Distribuição por categoria">
+        <defs>
+          <filter id="cat-shadow"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity=".12"/></filter>
+        </defs>
+        <g fill="none" stroke-width="26">
+          <circle cx="110" cy="110" r="${rG}" stroke="${isDk ? '#2A3448' : '#EAE2D6'}"/>
+        </g>
+        <g fill="none" stroke-width="26" transform="rotate(-90 110 110)" filter="url(#cat-shadow)">${segsG}</g>
+        <text x="110" y="102" font-size="11" fill="${isDk ? '#9A9885' : '#8A8070'}" letter-spacing="1.5" text-anchor="middle" font-weight="600">TOTAL</text>
+        <text x="110" y="130" font-size="34" text-anchor="middle" font-weight="800" fill="${isDk ? '#ECE4D2' : '#202C28'}">${total}</text>
+        <text x="110" y="150" font-size="10" fill="${isDk ? '#7A8078' : '#9A9290'}" text-anchor="middle">chamados</text>
+      </svg>
+      <div class="cat-top3">${top3}</div>
+    </div>
+    <div class="cat-list-col">
+      <div class="cat-list-hd">${cats.length} categoria${cats.length !== 1 ? 's' : ''}</div>
+      <div class="cat-list">${rows}</div>
+    </div>
+  </div>`;
+}
 
 // ── Modal "Chamados avaliados" ─────────────────────────────
 let _avalEscHandler = null;

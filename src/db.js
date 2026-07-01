@@ -2204,7 +2204,7 @@ function relatorioMes(mes) {
     WHERE criado_em BETWEEN ? AND ? AND status != 'cancelado'
     GROUP BY categoria
     ORDER BY total DESC
-    LIMIT 10
+    LIMIT 50
   `).all(inicio, fim + ' 23:59:59');
 
   // MTTR = tempo médio entre abertura e conclusão dos chamados concluídos no período
