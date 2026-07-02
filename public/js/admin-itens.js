@@ -214,8 +214,8 @@ function renderEstoque(itens) {
               <td style="color:var(--text-muted)">${item.quantidade_minima}</td>
               <td style="color:var(--text-secondary)">${esc(item.localizacao) || '—'}</td>
               <td style="white-space:nowrap">
-                <button class="btn btn-secondary btn-sm" onclick="abrirModalEditar(${item.id})">Editar</button>
-                <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletar(${item.id}, ${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>
+                <button class="btn btn-acao-editar btn-sm" onclick="abrirModalEditar(${item.id})">Editar</button>
+                <button class="btn btn-acao-excluir btn-sm" onclick="confirmarDeletar(${item.id}, ${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>
               </td>
             </tr>
           `).join('')}
@@ -264,8 +264,8 @@ function renderInventario(itens) {
                 <td style="color:var(--text-secondary)">${esc(item.localizacao) || '—'}</td>
                 <td><span class="inv-status-tag ${st.cls}">${st.label}</span></td>
                 <td style="white-space:nowrap">
-                  <button class="btn btn-secondary btn-sm" onclick="abrirModalEditar(${item.id})">Editar</button>
-                  <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletar(${item.id}, ${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>
+                  <button class="btn btn-acao-editar btn-sm" onclick="abrirModalEditar(${item.id})">Editar</button>
+                  <button class="btn btn-acao-excluir btn-sm" onclick="confirmarDeletar(${item.id}, ${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>
                 </td>
               </tr>
             `;
@@ -443,8 +443,8 @@ function renderTabelaMicros(lista) {
               <td style="font-size:.78rem;white-space:nowrap">${esc(item.sistema_operacional) || '—'}</td>
               <td style="font-size:.78rem">${esc(item.nobreak) || '—'}</td>
               <td style="white-space:nowrap">
-                <button class="btn btn-secondary btn-sm" onclick="abrirModalMicros(${item.id})">Editar</button>
-                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarMicro(${item.id}, ${JSON.stringify(item.setor + ' - ' + item.usuario).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
+                <button class="btn btn-acao-editar btn-sm" onclick="abrirModalMicros(${item.id})">Editar</button>
+                ${isMaster ? `<button class="btn btn-acao-excluir btn-sm" onclick="confirmarDeletarMicro(${item.id}, ${JSON.stringify(item.setor + ' - ' + item.usuario).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
               </td>
             </tr>
           `).join('')}
@@ -578,7 +578,7 @@ function renderTabelaToner(itens) {
                 <td style="white-space:nowrap">
                   <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Editar</button>
                   <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Histórico</button>
-                  ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarToner(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
+                  ${isMaster ? `<button class="btn btn-acao-excluir btn-sm" onclick="confirmarDeletarToner(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
                 </td>
               </tr>
             `).join('')}
@@ -666,8 +666,8 @@ function renderTabelaImpressoras(lista) {
               <td style="font-family:monospace;font-size:.78rem;color:var(--text-muted)">${esc(item.numero_serie) || '—'}</td>
               <td style="color:var(--text-secondary)">${esc(item.localizacao) || '—'}</td>
               <td style="white-space:nowrap">
-                <button class="btn btn-secondary btn-sm" onclick="abrirModalImpressora(${item.id})">Editar</button>
-                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarImpressora(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
+                <button class="btn btn-acao-editar btn-sm" onclick="abrirModalImpressora(${item.id})">Editar</button>
+                ${isMaster ? `<button class="btn btn-acao-excluir btn-sm" onclick="confirmarDeletarImpressora(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
               </td>
             </tr>
           `).join('')}
@@ -768,9 +768,9 @@ function renderTabelaSuprimentos(lista) {
               <td style="font-size:.8rem">${formatAlocacoes(item.alocacoes)}</td>
               <td style="white-space:nowrap">
                 <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
-                <button class="btn btn-secondary btn-sm" onclick="abrirEditarSuprimento(${item.id})">Editar</button>
+                <button class="btn btn-acao-editar btn-sm" onclick="abrirEditarSuprimento(${item.id})">Editar</button>
                 <button class="btn btn-ghost btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Histórico</button>
-                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarSuprimento(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
+                ${isMaster ? `<button class="btn btn-acao-excluir btn-sm" onclick="confirmarDeletarSuprimento(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
               </td>
             </tr>
           `).join('')}
@@ -848,10 +848,10 @@ function renderEquipamentos(lista, reservaLegado = []) {
         <td style="text-align:center">${qtdHtml}</td>
         <td><span style="font-size:.72rem;color:var(--text-muted);font-style:italic">sem ID individual</span></td>
         <td style="white-space:nowrap">
-          <button class="btn btn-secondary btn-sm" onclick="abrirModalReservaLegado(${item.id})">Editar</button>
+          <button class="btn btn-acao-editar btn-sm" onclick="abrirModalReservaLegado(${item.id})">Editar</button>
           <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Histórico</button>
-          ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmarDeletarReservaLegado(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
+          ${isMaster ? `<button class="btn btn-acao-excluir btn-sm" onclick="confirmarDeletarReservaLegado(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
         </td>
       </tr>
     `;
@@ -922,8 +922,8 @@ function verUnidades(nome) {
               <div style="display:flex;gap:.4rem;flex-shrink:0">
                 <button class="btn btn-primary btn-sm" onclick="fecharEqHist();eqMovimentar(${eq.id})" title="Movimentar">Movimentar</button>
                 <button class="btn btn-secondary btn-sm" onclick="fecharEqHist();eqHistorico(${eq.id},${JSON.stringify(eq.codigo).replace(/"/g,'&quot;')})">Histórico</button>
-                <button class="btn btn-secondary btn-sm" onclick="fecharEqHist();eqEditar(${eq.id})">Editar</button>
-                ${isMaster ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="fecharEqHist();eqDeletar(${eq.id},${JSON.stringify(eq.codigo).replace(/"/g,'&quot;')})">✕</button>` : ''}
+                <button class="btn btn-acao-editar btn-sm" onclick="fecharEqHist();eqEditar(${eq.id})">Editar</button>
+                ${isMaster ? `<button class="btn btn-acao-excluir btn-sm" onclick="fecharEqHist();eqDeletar(${eq.id},${JSON.stringify(eq.codigo).replace(/"/g,'&quot;')})">✕</button>` : ''}
               </div>
             </div>
           `;
