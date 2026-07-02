@@ -769,7 +769,7 @@ function renderTabelaSuprimentos(lista) {
               <td style="white-space:nowrap">
                 <button class="btn btn-primary btn-sm" onclick="abrirMovimentacao(${item.id})">Movimentação</button>
                 <button class="btn btn-acao-editar btn-sm" onclick="abrirEditarSuprimento(${item.id})">Editar</button>
-                <button class="btn btn-ghost btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Histórico</button>
+                <button class="btn btn-secondary btn-sm" onclick="abrirHistoricoMovimentacoes(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Histórico</button>
                 ${isMaster ? `<button class="btn btn-acao-excluir btn-sm" onclick="confirmarDeletarSuprimento(${item.id},${JSON.stringify(item.nome).replace(/"/g,'&quot;')})">Excluir</button>` : ''}
               </td>
             </tr>
