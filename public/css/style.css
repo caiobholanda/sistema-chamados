@@ -5778,3 +5778,40 @@ html.modal-aberto {
 }
 .lupa-wrap > .form-control { padding-left: 2rem; }
 .lupa-wrap > .form-control-sm { padding-left: 2rem !important; }
+
+/* ═══════════════════════════════════════════
+   CUSTOM AUTOCOMPLETE DROPDOWN
+═══════════════════════════════════════════ */
+.custom-ac-dropdown {
+  background: var(--surface);
+  border: 1.5px solid var(--gold);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(32,44,40,.14), 0 1px 4px rgba(32,44,40,.07);
+  padding: .2rem 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+.custom-ac-item {
+  padding: .46rem .85rem;
+  font-size: .87rem;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background .1s, color .1s;
+  line-height: 1.4;
+}
+.custom-ac-item:hover,
+.custom-ac-item.focused {
+  background: rgba(156,88,67,.1);
+  color: var(--gold);
+}
+[data-theme="dark"] .custom-ac-dropdown {
+  box-shadow: 0 4px 20px rgba(0,0,0,.4), 0 1px 6px rgba(0,0,0,.2);
+}
+[data-theme="dark"] .custom-ac-item:hover,
+[data-theme="dark"] .custom-ac-item.focused {
+  background: rgba(156,88,67,.2);
+}

@@ -156,6 +156,81 @@ function mostrarToast(msg, tipo = 'ok') {
   setTimeout(() => el.remove(), 3500);
 }
 
+// ── Custom Autocomplete (datalist nativo não é estilizável pelo CSS) ──────────
+function _initOneCombobox(input) {
+  const listId = input.dataset.acList;
+  let dropdown = null;
+  let focusIdx = -1;
+
+  function getOptions(q) {
+    const dl = document.getElementById(listId);
+    if (!dl) return [];
+    const all = Array.from(dl.options).map(o => o.value).filter(Boolean);
+    if (!q) return all;
+    const ql = q.toLowerCase();
+    return [
+      ...all.filter(v => v.toLowerCase().startsWith(ql)),
+      ...all.filter(v => !v.toLowerCase().startsWith(ql) && v.toLowerCase().includes(ql)),
+    ];
+  }
+
+  function close() {
+    if (dropdown) { dropdown.remove(); dropdown = null; }
+    focusIdx = -1;
+  }
+
+  function open(opts) {
+    close();
+    if (!opts.length) return;
+    focusIdx = -1;
+    dropdown = document.createElement('div');
+    dropdown.className = 'custom-ac-dropdown';
+    const r = input.getBoundingClientRect();
+    dropdown.style.cssText = `position:fixed;top:${r.bottom + 2}px;left:${r.left}px;width:${r.width}px;max-height:200px;z-index:99999`;
+    opts.slice(0, 25).forEach(opt => {
+      const el = document.createElement('div');
+      el.className = 'custom-ac-item';
+      el.textContent = opt;
+      el.addEventListener('mousedown', ev => { ev.preventDefault(); input.value = opt; close(); });
+      dropdown.appendChild(el);
+    });
+    document.body.appendChild(dropdown);
+  }
+
+  function setFocus(idx) {
+    if (!dropdown) return;
+    const items = dropdown.querySelectorAll('.custom-ac-item');
+    items.forEach((el, i) => el.classList.toggle('focused', i === idx));
+    if (items[idx]) items[idx].scrollIntoView({ block: 'nearest' });
+    focusIdx = idx;
+  }
+
+  input.addEventListener('input', () => open(getOptions(input.value)));
+  input.addEventListener('focus', () => { if (!dropdown) open(getOptions(input.value)); });
+  input.addEventListener('blur', () => setTimeout(close, 150));
+  input.addEventListener('keydown', e => {
+    if (!dropdown) return;
+    const items = dropdown.querySelectorAll('.custom-ac-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); setFocus(Math.min(focusIdx + 1, items.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setFocus(Math.max(focusIdx - 1, 0)); }
+    else if (e.key === 'Enter' && focusIdx >= 0) { e.preventDefault(); input.value = items[focusIdx].textContent; close(); }
+    else if (e.key === 'Escape' || e.key === 'Tab') close();
+  });
+  window.addEventListener('scroll', close, { passive: true, once: false });
+  window.addEventListener('resize', close, { passive: true, once: false });
+}
+
+function initCustomComboboxes(container) {
+  (container || document).querySelectorAll('input[list]').forEach(input => {
+    const listId = input.getAttribute('list');
+    if (!listId) return;
+    input.removeAttribute('list');
+    input.setAttribute('autocomplete', 'off');
+    input.dataset.acList = listId;
+    _initOneCombobox(input);
+  });
+}
+
 function popularAutocomplete(data) {
   _autocomplete = data;
   const ds = document.getElementById('dl-setores');
@@ -1399,6 +1474,7 @@ function renderFormMicros(item, isEdit) {
       </div>
     </form>
   `;
+  initCustomComboboxes(document.getElementById('micros-modal-body'));
 
   document.getElementById('form-micros').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1706,6 +1782,7 @@ function abrirMovimentacao(itemId, tipoMov) {
       </div>
     </form>
   `;
+  initCustomComboboxes(document.getElementById('mov-modal-body'));
 
   // Store cores on window for the onchange handler
   window._movCores = cores;
@@ -1863,6 +1940,7 @@ function abrirModalImpressora(id) {
       </div>
     </form>
   `;
+  initCustomComboboxes(document.getElementById('imp-modal-body'));
 
   document.getElementById('form-imp').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -2239,6 +2317,7 @@ function eqMovCampos() {
   if (!extras) return;
   if (tipo === 'saida') {
     extras.innerHTML = `<div class="form-group"><label class="form-label">Setor de destino <span style="color:var(--danger)">*</span></label><input class="form-control" id="eqm-destino" type="text" list="dl-setores" placeholder="Ex: Recepção, RH, Governança…"></div>`;
+    initCustomComboboxes(extras);
   } else if (tipo === 'entrada') {
     extras.innerHTML = _eqMovSetor ? `
       <div class="form-group">
