@@ -116,7 +116,6 @@ function confirmarAcao(msg) {
     document.getElementById('conf-ok').onclick     = () => done(true);
     document.getElementById('conf-cancel').onclick  = () => done(false);
     document.getElementById('conf-close').onclick   = () => done(false);
-    el.onclick = e => { if (e.target === el) done(false); };
   });
 }
 
