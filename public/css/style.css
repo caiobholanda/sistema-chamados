@@ -5784,9 +5784,9 @@ html.modal-aberto {
 ═══════════════════════════════════════════ */
 .custom-ac-dropdown {
   background: var(--surface);
-  border: 1.5px solid var(--gold);
+  border: 1.5px solid #996442;
   border-radius: var(--radius);
-  box-shadow: 0 4px 16px rgba(32,44,40,.14), 0 1px 4px rgba(32,44,40,.07);
+  box-shadow: 0 4px 16px rgba(32,44,40,.18), 0 1px 4px rgba(32,44,40,.09);
   padding: .2rem 0;
   overflow-y: auto;
   scroll-behavior: smooth;
@@ -5800,18 +5800,19 @@ html.modal-aberto {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: background .1s, color .1s;
+  transition: background .12s, color .12s;
   line-height: 1.4;
 }
 .custom-ac-item:hover,
 .custom-ac-item.focused {
-  background: rgba(156,88,67,.1);
-  color: var(--gold);
+  background: #202C28;
+  color: #ECE4D2;
 }
 [data-theme="dark"] .custom-ac-dropdown {
-  box-shadow: 0 4px 20px rgba(0,0,0,.4), 0 1px 6px rgba(0,0,0,.2);
+  box-shadow: 0 4px 20px rgba(0,0,0,.45), 0 1px 6px rgba(0,0,0,.22);
 }
 [data-theme="dark"] .custom-ac-item:hover,
 [data-theme="dark"] .custom-ac-item.focused {
-  background: rgba(156,88,67,.2);
+  background: #996442;
+  color: #ECE4D2;
 }

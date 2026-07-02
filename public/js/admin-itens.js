@@ -1487,6 +1487,47 @@ function renderFormMicros(item, isEdit) {
     if (!setor) { mostrarToast('Setor é obrigatório', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar alterações' : 'Adicionar'; return; }
     if (!usuario) { mostrarToast('Usuário é obrigatório', 'erro'); btn.disabled = false; btn.textContent = isEdit ? 'Salvar alterações' : 'Adicionar'; return; }
 
+    // Valida campos contra Configurações da TI — rejeita valores fora da lista cadastrada
+    const _tiCampos = [
+      { id: 'fm-tipo-equipamento', key: 'equipamento',     label: 'Equipamento' },
+      { id: 'fm-processador',      key: 'processador',     label: 'Processador' },
+      { id: 'fm-nobreak',          key: 'nobreak',         label: 'Nobreak/Nº' },
+      { id: 'fm-memoria',          key: 'memoria',         label: 'Memória' },
+      { id: 'fm-so',               key: 'so',              label: 'S.O.' },
+      { id: 'fm-hd',               key: 'hd_ssd',          label: 'HD/SSD' },
+      { id: 'fm-office',           key: 'office',          label: 'Office' },
+      { id: 'fm-entradas',         key: 'entradas_monitor',label: 'Entradas Monitor' },
+      { id: 'fm-monitor',          key: 'modelo_monitor',  label: 'Modelo Monitor' },
+      { id: 'fm-hostname',         key: 'hostname',        label: 'Hostname' },
+    ];
+    document.querySelectorAll('.cfgti-field-err').forEach(e => e.remove());
+    document.querySelectorAll('#form-micros .form-control').forEach(el => { el.style.borderColor = ''; });
+    const errosCfg = [];
+    for (const c of _tiCampos) {
+      const el = document.getElementById(c.id);
+      const val = el?.value.trim();
+      if (val) {
+        const opcoes = (_configsTI[c.key] || []);
+        if (opcoes.length > 0 && !opcoes.some(o => o.valor.toLowerCase() === val.toLowerCase())) {
+          errosCfg.push({ el, label: c.label });
+        }
+      }
+    }
+    if (errosCfg.length > 0) {
+      errosCfg.forEach(({ el, label }) => {
+        el.style.borderColor = '#9C5843';
+        const span = document.createElement('span');
+        span.className = 'cfgti-field-err';
+        span.textContent = `"${label}": preencha com um valor cadastrado nas Configurações da TI`;
+        el.parentNode.appendChild(span);
+      });
+      mostrarToast(`${errosCfg.length} campo(s) com valor não cadastrado nas Configurações da TI`, 'erro');
+      btn.disabled = false; btn.textContent = isEdit ? 'Salvar alterações' : 'Adicionar';
+      errosCfg[0].el.scrollIntoView({ block: 'nearest' });
+      errosCfg[0].el.focus();
+      return;
+    }
+
     const body = {
       setor,
       usuario,
