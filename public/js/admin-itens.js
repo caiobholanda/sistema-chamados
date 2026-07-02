@@ -161,6 +161,17 @@ function _initOneCombobox(input) {
   const listId = input.dataset.acList;
   let dropdown = null;
   let focusIdx = -1;
+  let _scrollEl = null;
+
+  function _nearestScrollable(el) {
+    let p = el.parentElement;
+    while (p && p !== document.body) {
+      const { overflow, overflowY } = getComputedStyle(p);
+      if (/auto|scroll/.test(overflow + overflowY)) return p;
+      p = p.parentElement;
+    }
+    return null;
+  }
 
   function getOptions(q) {
     const dl = document.getElementById(listId);
@@ -176,6 +187,7 @@ function _initOneCombobox(input) {
 
   function close() {
     if (dropdown) { dropdown.remove(); dropdown = null; }
+    if (_scrollEl) { _scrollEl.removeEventListener('scroll', close); _scrollEl = null; }
     focusIdx = -1;
   }
 
@@ -195,6 +207,8 @@ function _initOneCombobox(input) {
       dropdown.appendChild(el);
     });
     document.body.appendChild(dropdown);
+    _scrollEl = _nearestScrollable(input);
+    if (_scrollEl) _scrollEl.addEventListener('scroll', close, { passive: true });
   }
 
   function setFocus(idx) {
