@@ -1035,7 +1035,6 @@ const _CFG_CAMPOS = [
   { key: 'office',            label: 'Office',              hint: 'H & B 2021, 365…',        icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>' },
   { key: 'entradas_monitor',  label: 'Entradas Monitor',    hint: 'VGA, HDMI, DisplayPort…', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>' },
   { key: 'modelo_monitor',    label: 'Modelo Monitor',      hint: 'Dell, Samsung, LG…',     icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
-  { key: 'hostname',          label: 'Hostname',            hint: 'SETOR-01, PC-TI-01…',    icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg>' },
 ];
 
 function popularDatalistsConfTI(data) {
@@ -1451,7 +1450,7 @@ function renderFormMicros(item, isEdit) {
         </div>
         <div class="form-group">
           <label class="form-label">Hostname</label>
-          <input class="form-control" id="fm-hostname" type="text" list="dl-cfg-hostname" value="${esc(unesc(item.hostname || ''))}" placeholder="Ex: CONTROL-01">
+          <input class="form-control" id="fm-hostname" type="text" autocomplete="off" value="${esc(unesc(item.hostname || ''))}" placeholder="Ex: CONTROL-01">
         </div>
       </div>
       <div class="form-row-2">
@@ -1498,7 +1497,6 @@ function renderFormMicros(item, isEdit) {
       { id: 'fm-office',           key: 'office',          label: 'Office' },
       { id: 'fm-entradas',         key: 'entradas_monitor',label: 'Entradas Monitor' },
       { id: 'fm-monitor',          key: 'modelo_monitor',  label: 'Modelo Monitor' },
-      { id: 'fm-hostname',         key: 'hostname',        label: 'Hostname' },
     ];
     document.querySelectorAll('.cfgti-field-err').forEach(e => e.remove());
     document.querySelectorAll('#form-micros .form-control').forEach(el => { el.style.borderColor = ''; });
