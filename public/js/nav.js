@@ -77,7 +77,7 @@
       Administração <span class="nav-dropdown-arrow">▼</span><span id="nav-admin-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:50%;font-size:.65rem;font-weight:700;padding:1px 5px;margin-left:.35rem;vertical-align:middle;line-height:1.4"></span>
     </button>
     <div class="nav-dropdown-menu">
-      <a href="/admin-itens.html"${path === '/admin-itens.html' ? ' class="ativo"' : ''}>Itens</a>
+      <a href="/admin-itens.html"${path === '/admin-itens.html' ? ' class="ativo"' : ''}>Inventário</a>
       <a href="/admin-sugestoes.html"${path === '/admin-sugestoes.html' ? ' class="ativo"' : ''}>Sugestões <span id="nav-sug-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:50%;font-size:.65rem;font-weight:700;padding:1px 5px;margin-left:.25rem;vertical-align:middle;line-height:1.4"></span></a>
       <a href="/admin-servicos.html"${path === '/admin-servicos.html' ? ' class="ativo"' : ''}>Etiquetas</a>
       <a href="/admin-programados.html"${path === '/admin-programados.html' ? ' class="ativo"' : ''}>Programados</a>
