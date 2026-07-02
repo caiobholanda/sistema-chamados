@@ -1368,6 +1368,7 @@ async function confirmarDeletar(id, nome) {
 // ── Modal Inventário de Micros ────────────────────────────
 
 function fecharModalMicros() {
+  document.querySelectorAll('.cfgti-quick-panel').forEach(p => p.remove());
   document.getElementById('micros-modal-overlay').style.display = 'none';
   document.getElementById('micros-modal-body').innerHTML = '';
 }
