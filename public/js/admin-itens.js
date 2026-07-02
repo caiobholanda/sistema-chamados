@@ -107,6 +107,19 @@ function unesc(s) {
   return String(s || '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#x27;/g,"'");
 }
 
+function confirmarAcao(msg) {
+  return new Promise(resolve => {
+    document.getElementById('conf-msg').textContent = msg;
+    const el = document.getElementById('conf-overlay');
+    el.style.display = 'flex';
+    const done = val => { el.style.display = 'none'; resolve(val); };
+    document.getElementById('conf-ok').onclick     = () => done(true);
+    document.getElementById('conf-cancel').onclick  = () => done(false);
+    document.getElementById('conf-close').onclick   = () => done(false);
+    el.onclick = e => { if (e.target === el) done(false); };
+  });
+}
+
 function esc(s) {
   if (s == null) return '';
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1154,7 +1167,7 @@ async function abrirModalEditar(id) {
 }
 
 async function confirmarDeletar(id, nome) {
-  if (!confirm(`Excluir "${nome}"? Esta ação não pode ser desfeita.`)) return;
+  if (!await confirmarAcao(`Excluir "${nome}"? Esta ação não pode ser desfeita.`)) return;
   try {
     const r = await api(`/api/admin/itens/${id}`, { method: 'DELETE' });
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
@@ -1332,7 +1345,7 @@ function renderFormMicros(item, isEdit) {
 
 async function confirmarDeletarMicro(id, label) {
   if (!adminInfo || !adminInfo.is_master) return;
-  if (!confirm(`Excluir "${label}"? Esta ação não pode ser desfeita.`)) return;
+  if (!await confirmarAcao(`Excluir "${label}"? Esta ação não pode ser desfeita.`)) return;
   try {
     const r = await api(`/api/admin/inventario/${id}`, { method: 'DELETE' });
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
@@ -1467,7 +1480,7 @@ function abrirEditarItemToner(id) {
 
 async function confirmarDeletarToner(id, nome) {
   if (!adminInfo || !adminInfo.is_master) return;
-  if (!confirm(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
+  if (!await confirmarAcao(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
   try {
     const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'DELETE' });
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
@@ -1487,7 +1500,7 @@ function abrirEditarSuprimento(id) {
 
 async function confirmarDeletarSuprimento(id, nome) {
   if (!adminInfo || !adminInfo.is_master) return;
-  if (!confirm(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
+  if (!await confirmarAcao(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
   try {
     const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'DELETE' });
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
@@ -1769,7 +1782,7 @@ function abrirModalImpressora(id) {
 
 async function confirmarDeletarImpressora(id, nome) {
   if (!adminInfo || !adminInfo.is_master) return;
-  if (!confirm(`Excluir "${nome}"?`)) return;
+  if (!await confirmarAcao(`Excluir "${nome}"?`)) return;
   try {
     const r = await api(`/api/admin/estoque/impressoras/${id}`, { method: 'DELETE' });
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); return; }
@@ -1826,7 +1839,7 @@ function abrirModalPeriferico(id) {
 
 async function confirmarDeletarPeriferico(id, nome) {
   if (!adminInfo || !adminInfo.is_master) return;
-  if (!confirm(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
+  if (!await confirmarAcao(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
   try {
     const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'DELETE' });
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }
@@ -1977,7 +1990,7 @@ function eqEditar(id) {
 }
 
 async function eqDeletar(id, codigo) {
-  if (!confirm(`Excluir equipamento "${codigo}"? O histórico será apagado também.`)) return;
+  if (!await confirmarAcao(`Excluir equipamento "${codigo}"? O histórico será apagado também.`)) return;
   try {
     const r = await api(`/api/admin/estoque/equipamentos/${id}`, { method: 'DELETE' });
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro', 'erro'); return; }
@@ -2236,7 +2249,7 @@ function abrirModalReservaLegado(id) {
 
 async function confirmarDeletarReservaLegado(id, nome) {
   if (!adminInfo || !adminInfo.is_master) return;
-  if (!confirm(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
+  if (!await confirmarAcao(`Excluir "${nome}"? Isso apagará também o histórico de movimentações.`)) return;
   try {
     const r = await api(`/api/admin/estoque/itens/${id}`, { method: 'DELETE' });
     if (!r.ok) { const d = await r.json(); mostrarToast(d.erro || 'Erro ao excluir', 'erro'); return; }

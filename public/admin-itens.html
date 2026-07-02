@@ -301,6 +301,26 @@
   </div>
 </div>
 
+<!-- Modal de confirmação de exclusão -->
+<div class="modal-overlay" id="conf-overlay" role="dialog" aria-modal="true" style="display:none">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h2 style="display:flex;align-items:center;gap:.5rem">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9C5843" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        Confirmar exclusão
+      </h2>
+      <button class="modal-close" id="conf-close" aria-label="Fechar">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p id="conf-msg" style="margin:0;color:var(--text-secondary);font-size:.92rem;line-height:1.55"></p>
+    </div>
+    <div style="display:flex;gap:.6rem;justify-content:flex-end;padding:.9rem 1.25rem;border-top:1px solid var(--border)">
+      <button class="btn btn-secondary" id="conf-cancel">Cancelar</button>
+      <button class="btn btn-acao-excluir" id="conf-ok">Excluir</button>
+    </div>
+  </div>
+</div>
+
 <datalist id="dl-setores"></datalist>
 <datalist id="dl-usuarios"></datalist>
 
