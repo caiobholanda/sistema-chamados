@@ -550,6 +550,16 @@ function initDb() {
     );
   `);
 
+  try { db.exec(`
+    CREATE TABLE IF NOT EXISTS configuracoes_ti (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      campo TEXT NOT NULL,
+      valor TEXT NOT NULL,
+      criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(campo, valor)
+    )
+  `); } catch {}
+
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_chamados_status ON chamados(status);
     CREATE INDEX IF NOT EXISTS idx_chamados_admin ON chamados(admin_responsavel_id);
@@ -2941,6 +2951,26 @@ function listarSpaPerfis() {
   ).all();
 }
 
+// ── Configurações da TI (dicionários de campos do inventário) ──────────────
+
+function listarConfiguracoesTI() {
+  const rows = getDb().prepare('SELECT * FROM configuracoes_ti ORDER BY campo ASC, valor ASC').all();
+  const result = {};
+  for (const r of rows) {
+    if (!result[r.campo]) result[r.campo] = [];
+    result[r.campo].push({ id: r.id, valor: r.valor });
+  }
+  return result;
+}
+
+function criarConfiguracaoTI(campo, valor) {
+  return getDb().prepare('INSERT INTO configuracoes_ti (campo, valor) VALUES (?, ?)').run(campo, valor);
+}
+
+function deletarConfiguracaoTI(id) {
+  return getDb().prepare('DELETE FROM configuracoes_ti WHERE id = ?').run(id);
+}
+
 module.exports = {
   getDb,
   initDb,
@@ -3114,6 +3144,9 @@ module.exports = {
   marcarDocumentoEnviado,
   buscarDocumentoToken,
   vincularDocumentoAoPerfil,
+  listarConfiguracoesTI,
+  criarConfiguracaoTI,
+  deletarConfiguracaoTI,
 };
 
 // ── Equipamentos (itens individuais com ID único) ──────────

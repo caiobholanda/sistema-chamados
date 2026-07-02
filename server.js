@@ -122,6 +122,7 @@ app.use('/api/admin/relatorios', require('./src/rotas/relatorios'));
 app.use('/api/admin/itens', require('./src/rotas/itens'));
 app.use('/api/admin/inventario', require('./src/rotas/inventario'));
 app.use('/api/admin/estoque', require('./src/rotas/estoque'));
+app.use('/api/admin/configuracoes-ti', require('./src/rotas/configuracoes-ti'));
 app.use('/api/sugestoes', require('./src/rotas/sugestoes'));
 app.use('/api/servicos', require('./src/rotas/servicos'));
 app.use('/api/setores', require('./src/rotas/setores'));

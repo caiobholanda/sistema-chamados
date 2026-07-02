@@ -2,6 +2,7 @@ let adminInfo = null;
 let abaAtiva = 'micros';
 let categoriaAtiva = 'infraestrutura';
 let _itensCache = [];
+let _configsTI = {};
 let _autocomplete = { setores: [], usuarios: [] };
 
 // ── Caches para as novas abas ─────────────────────────────
@@ -947,14 +948,129 @@ function verUnidades(nome) {
 
 // ── Carregar conteúdo da aba ──────────────────────────────
 
+// ── Configurações da TI ────────────────────────────────────────────────────
+
+const _CFG_CAMPOS = [
+  { key: 'equipamento',       label: 'Tipo de Equipamento', hint: 'NOTEBOOK, DESKTOP…',      icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+  { key: 'processador',       label: 'Processador',         hint: 'I5 12500, I7 13700K…',   icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M9 2v2M15 20v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2"/></svg>' },
+  { key: 'nobreak',           label: 'Nobreak / Nº',        hint: 'SMS 700VA, APC 1500…',   icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>' },
+  { key: 'memoria',           label: 'Memória',             hint: '4GB, 8GB, 16GB, 32GB…',  icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 19v-3M10 19v-3M14 19v-3M18 19v-3M4 7h16a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zM3 7l2-3h14l2 3"/></svg>' },
+  { key: 'so',                label: 'Sistema Operacional', hint: 'WIN 10, WIN 11…',         icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 9h4M6 12h4M14 9h4M14 12h4"/></svg>' },
+  { key: 'hd_ssd',            label: 'HD / SSD',            hint: 'SSD 256GB, HDD 1TB…',    icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>' },
+  { key: 'office',            label: 'Office',              hint: 'H & B 2021, 365…',        icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>' },
+  { key: 'entradas_monitor',  label: 'Entradas Monitor',    hint: 'VGA, HDMI, DisplayPort…', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>' },
+  { key: 'modelo_monitor',    label: 'Modelo Monitor',      hint: 'Dell, Samsung, LG…',     icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+  { key: 'hostname',          label: 'Hostname',            hint: 'SETOR-01, PC-TI-01…',    icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg>' },
+];
+
+function popularDatalistsConfTI(data) {
+  _configsTI = data || {};
+  for (const c of _CFG_CAMPOS) {
+    const dl = document.getElementById(`dl-cfg-${c.key}`);
+    if (!dl) continue;
+    dl.innerHTML = (_configsTI[c.key] || []).map(v => `<option value="${esc(v.valor)}">`).join('');
+  }
+}
+
+function renderConfiguracoesTI(data) {
+  popularDatalistsConfTI(data);
+
+  const cards = _CFG_CAMPOS.map(c => {
+    const vals = (data[c.key] || []);
+    const chips = vals.length > 0
+      ? vals.map(v => `<span class="cfgti-chip">${esc(v.valor)}<button type="button" class="cfgti-chip-rm" onclick="deletarConfTI(${v.id},'${esc(c.key)}','${esc(v.valor).replace(/'/g, "&#39;")}')" title="Remover">✕</button></span>`).join('')
+      : `<span class="cfgti-empty">Nenhum valor cadastrado</span>`;
+
+    return `
+      <div class="cfgti-card">
+        <div class="cfgti-head">
+          <span class="cfgti-icon">${c.icon}</span>
+          <span class="cfgti-label">${c.label}</span>
+          ${vals.length > 0 ? `<span class="cfgti-count">${vals.length}</span>` : ''}
+        </div>
+        <div class="cfgti-body">${chips}</div>
+        <div class="cfgti-add">
+          <input class="form-control cfgti-inp" id="cfgti-inp-${c.key}" type="text"
+            placeholder="${c.hint}"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarConfTI('${c.key}')}">
+          <button class="btn btn-primary btn-sm cfgti-btn-add" onclick="adicionarConfTI('${c.key}')">+ Add</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('itens-lista').innerHTML = `
+    <style>
+      .cfgti-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:.9rem;padding:.1rem 0 1.5rem}
+      .cfgti-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);border-top:2.5px solid var(--gold);transition:box-shadow .15s}
+      .cfgti-card:hover{box-shadow:var(--shadow)}
+      .cfgti-head{display:flex;align-items:center;gap:.5rem;padding:.6rem .85rem;background:var(--surface-2);border-bottom:1px solid var(--border)}
+      .cfgti-icon{color:var(--gold);opacity:.8;flex-shrink:0;display:flex;align-items:center}
+      .cfgti-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-secondary);flex:1}
+      .cfgti-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;font-size:.6rem;font-weight:700;background:var(--gold);color:#F5EFE2}
+      .cfgti-body{display:flex;flex-wrap:wrap;gap:.35rem;padding:.75rem .85rem .5rem;min-height:3.2rem;align-content:flex-start}
+      .cfgti-chip{display:inline-flex;align-items:center;gap:.28rem;padding:.2rem .45rem .2rem .6rem;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:.71rem;font-weight:500;color:var(--text);transition:border-color .12s}
+      .cfgti-chip:hover{border-color:var(--gold)}
+      .cfgti-chip-rm{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.6rem;border-radius:50%;padding:0;line-height:1;transition:color .1s,background .1s}
+      .cfgti-chip-rm:hover{color:#9C5843;background:rgba(156,88,67,.12)}
+      .cfgti-empty{font-size:.72rem;color:var(--text-muted);font-style:italic}
+      .cfgti-add{display:flex;gap:.35rem;padding:.5rem .85rem .75rem;border-top:1px solid var(--border)}
+      .cfgti-inp{font-size:.76rem;padding:.32rem .6rem;height:auto}
+      .cfgti-btn-add{flex-shrink:0;font-size:.7rem;padding:.32rem .65rem;white-space:nowrap}
+      .cfgti-desc{font-size:.8rem;color:var(--text-muted);margin-bottom:1rem}
+    </style>
+    <p class="cfgti-desc">Configure as opções disponíveis nos campos do formulário de inventário de micros. Os valores cadastrados aparecem como sugestões ao preencher um equipamento.</p>
+    <div class="cfgti-grid">${cards}</div>`;
+}
+
+async function carregarConfiguracoesTI() {
+  document.getElementById('itens-lista').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const r = await api('/api/admin/configuracoes-ti');
+    if (!r.ok) throw new Error('falha');
+    const data = await r.json();
+    renderConfiguracoesTI(data);
+  } catch {
+    document.getElementById('itens-lista').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted)">Erro ao carregar configurações.</div>';
+  }
+}
+
+async function adicionarConfTI(campo) {
+  const inp = document.getElementById(`cfgti-inp-${campo}`);
+  if (!inp) return;
+  const valor = inp.value.trim();
+  if (!valor) { mostrarToast('Digite um valor', 'erro'); inp.focus(); return; }
+  const btn = inp.nextElementSibling;
+  if (btn) btn.disabled = true;
+  try {
+    const r = await api('/api/admin/configuracoes-ti', { method: 'POST', body: JSON.stringify({ campo, valor }) });
+    const d = await r.json();
+    if (!r.ok) { mostrarToast(d.erro || 'Erro ao adicionar', 'erro'); return; }
+    inp.value = '';
+    const r2 = await api('/api/admin/configuracoes-ti');
+    const data = await r2.json();
+    renderConfiguracoesTI(data);
+    mostrarToast('Valor adicionado');
+  } catch { mostrarToast('Erro ao adicionar', 'erro'); }
+  finally { if (btn) btn.disabled = false; }
+}
+
+async function deletarConfTI(id, campo, valor) {
+  if (!await confirmarAcao(`Remover "${valor}" de ${campo.replace(/_/g,' ')}?`)) return;
+  try {
+    const r = await api(`/api/admin/configuracoes-ti/${id}`, { method: 'DELETE' });
+    if (!r.ok) { mostrarToast('Erro ao remover', 'erro'); return; }
+    const r2 = await api('/api/admin/configuracoes-ti');
+    const data = await r2.json();
+    renderConfiguracoesTI(data);
+    mostrarToast('Valor removido');
+  } catch { mostrarToast('Erro ao remover', 'erro'); }
+}
+
+// ── Carregar conteúdo da aba ──────────────────────────────
+
 async function carregarItens() {
   if (categoriaAtiva === 'configuracoes') {
-    document.getElementById('itens-lista').innerHTML = `
-      <div style="padding:3.5rem 2rem;text-align:center;color:var(--text-muted)">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.35;margin-bottom:.75rem"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <p style="font-size:.92rem;font-weight:600;color:var(--text-secondary)">Configurações da TI</p>
-        <p style="font-size:.82rem;margin-top:.35rem">Em construção.</p>
-      </div>`;
+    await carregarConfiguracoesTI();
     atualizarToolbar();
     return;
   }
@@ -1206,43 +1322,37 @@ function renderFormMicros(item, isEdit) {
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Equipamento</label>
-          <select class="form-control" id="fm-tipo-equipamento">
-            <option value="">—</option>
-            <option value="NOTEBOOK" ${item.tipo_equipamento === 'NOTEBOOK' ? 'selected' : ''}>Notebook</option>
-            <option value="DESKTOP" ${item.tipo_equipamento === 'DESKTOP' ? 'selected' : ''}>Desktop</option>
-            <option value="DESKTOP MINI" ${item.tipo_equipamento === 'DESKTOP MINI' ? 'selected' : ''}>Desktop Mini</option>
-            <option value="AIO" ${item.tipo_equipamento === 'AIO' ? 'selected' : ''}>AIO</option>
-          </select>
+          <input class="form-control" id="fm-tipo-equipamento" type="text" list="dl-cfg-equipamento" value="${esc(unesc(item.tipo_equipamento || ''))}" placeholder="Ex: NOTEBOOK, DESKTOP">
         </div>
         <div class="form-group">
           <label class="form-label">Nobreak/Nº</label>
-          <input class="form-control" id="fm-nobreak" type="text" value="${esc(unesc(item.nobreak || ''))}" placeholder="Ex: SMS 700VA / Nº série">
+          <input class="form-control" id="fm-nobreak" type="text" list="dl-cfg-nobreak" value="${esc(unesc(item.nobreak || ''))}" placeholder="Ex: SMS 700VA / Nº série">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Processador</label>
-          <input class="form-control" id="fm-processador" type="text" value="${esc(unesc(item.processador || ''))}" placeholder="Ex: I5 12500">
+          <input class="form-control" id="fm-processador" type="text" list="dl-cfg-processador" value="${esc(unesc(item.processador || ''))}" placeholder="Ex: I5 12500">
         </div>
         <div class="form-group">
           <label class="form-label">Memória</label>
-          <input class="form-control" id="fm-memoria" type="text" value="${esc(unesc(item.memoria || ''))}" placeholder="Ex: 8GB">
+          <input class="form-control" id="fm-memoria" type="text" list="dl-cfg-memoria" value="${esc(unesc(item.memoria || ''))}" placeholder="Ex: 8GB">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">S.O.</label>
-          <input class="form-control" id="fm-so" type="text" value="${esc(unesc(item.sistema_operacional || ''))}" placeholder="Ex: WIN 11">
+          <input class="form-control" id="fm-so" type="text" list="dl-cfg-so" value="${esc(unesc(item.sistema_operacional || ''))}" placeholder="Ex: WIN 11">
         </div>
         <div class="form-group">
           <label class="form-label">HD/SSD</label>
-          <input class="form-control" id="fm-hd" type="text" value="${esc(unesc(item.hd_ssd || ''))}" placeholder="Ex: SSD 256">
+          <input class="form-control" id="fm-hd" type="text" list="dl-cfg-hd_ssd" value="${esc(unesc(item.hd_ssd || ''))}" placeholder="Ex: SSD 256">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Office</label>
-          <input class="form-control" id="fm-office" type="text" value="${esc(unesc(item.office || ''))}" placeholder="Ex: H & B 2021">
+          <input class="form-control" id="fm-office" type="text" list="dl-cfg-office" value="${esc(unesc(item.office || ''))}" placeholder="Ex: H & B 2021">
         </div>
         <div class="form-group">
           <label class="form-label">TAG</label>
@@ -1252,11 +1362,11 @@ function renderFormMicros(item, isEdit) {
       <div class="form-row-2">
         <div class="form-group">
           <label class="form-label">Entradas Monitor</label>
-          <input class="form-control" id="fm-entradas" type="text" value="${esc(unesc(item.entradas_monitor || ''))}" placeholder="Ex: VGA-D.P.">
+          <input class="form-control" id="fm-entradas" type="text" list="dl-cfg-entradas_monitor" value="${esc(unesc(item.entradas_monitor || ''))}" placeholder="Ex: VGA-D.P.">
         </div>
         <div class="form-group">
           <label class="form-label">Modelo Monitor</label>
-          <input class="form-control" id="fm-monitor" type="text" value="${esc(unesc(item.modelo_monitor || ''))}" placeholder="Ex: DELL">
+          <input class="form-control" id="fm-monitor" type="text" list="dl-cfg-modelo_monitor" value="${esc(unesc(item.modelo_monitor || ''))}" placeholder="Ex: DELL">
         </div>
       </div>
       <div class="form-row-2">
@@ -1266,7 +1376,7 @@ function renderFormMicros(item, isEdit) {
         </div>
         <div class="form-group">
           <label class="form-label">Hostname</label>
-          <input class="form-control" id="fm-hostname" type="text" value="${esc(unesc(item.hostname || ''))}" placeholder="Ex: CONTROL-01">
+          <input class="form-control" id="fm-hostname" type="text" list="dl-cfg-hostname" value="${esc(unesc(item.hostname || ''))}" placeholder="Ex: CONTROL-01">
         </div>
       </div>
       <div class="form-row-2">
@@ -2283,6 +2393,9 @@ async function confirmarDeletarReservaLegado(id, nome) {
   if (adminOk) {
     api('/api/admin/inventario/autocomplete')
       .then(r => r.json()).then(d => popularAutocomplete(d)).catch(() => {});
+
+    api('/api/admin/configuracoes-ti')
+      .then(r => r.json()).then(d => popularDatalistsConfTI(d)).catch(() => {});
 
     // Popular badges no carregamento inicial (em paralelo)
     const [pItens, pEqs, pImps, pMicros] = [
