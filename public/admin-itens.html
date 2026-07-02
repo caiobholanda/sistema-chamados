@@ -148,22 +148,23 @@
       width: 34px;
       flex-shrink: 0;
       padding: 0;
-      background: var(--gold);
-      border: none;
+      background: #202C28;
+      border: 1.5px solid #202C28;
       border-radius: var(--radius-sm);
       color: #F5EFE2;
       font-size: 16px;
       font-weight: 700;
       line-height: 1;
       cursor: pointer;
-      transition: background .15s, box-shadow .15s;
-      box-shadow: 0 1px 4px rgba(156,88,67,.3);
+      transition: background .15s, border-color .15s, box-shadow .15s;
+      box-shadow: 0 1px 3px rgba(32,44,40,.2);
     }
     .cfgti-quick-add:hover {
-      background: #7A4334;
-      box-shadow: 0 2px 8px rgba(156,88,67,.45);
+      background: #2d3d38;
+      border-color: #2d3d38;
+      box-shadow: 0 3px 8px rgba(32,44,40,.28);
     }
-    .cfgti-quick-add:active { background: #5c2e22; box-shadow: none; }
+    .cfgti-quick-add:active { background: #161f1c; border-color: #161f1c; box-shadow: none; }
 
     /* ── Painel flutuante quick-add ── */
     .cfgti-quick-panel {
