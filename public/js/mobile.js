@@ -494,7 +494,7 @@ async function abrirFormNovoChamado() {
 
         <div class="mob-field">
           <label class="mob-label">Anexos <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
-          <input type="file" id="mob-nc-anexos" accept="image/*,video/*,.pdf,.txt,.log,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.zip,.rar,.7z" style="display:none" multiple>
+          <input type="file" id="mob-nc-anexos" style="display:none" multiple>
           <button type="button" id="mob-nc-btn-anexo" style="display:flex;align-items:center;gap:.5rem;background:var(--bg,#F7F3ED);border:1.5px dashed var(--border,#E5DDD0);border-radius:8px;padding:.65rem .9rem;width:100%;cursor:pointer;font-size:.83rem;color:var(--text-muted)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Selecionar arquivos&hellip;
@@ -896,7 +896,7 @@ async function renderDetalhe(c) {
         <div style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem">
           <label class="mob-btn mob-btn-ghost mob-btn-sm" style="cursor:pointer;flex-shrink:0;margin:0">
             + Anexar
-            <input type="file" id="mob-input-foto" accept="image/*,video/*,.pdf,.txt,.log,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.zip,.rar,.7z" style="display:none" multiple>
+            <input type="file" id="mob-input-foto" style="display:none" multiple>
           </label>
           <div id="mob-fotos-msg" style="font-size:.78rem;color:var(--text-muted)"></div>
         </div>
@@ -917,7 +917,7 @@ async function renderDetalhe(c) {
           <button type="button" id="mob-btn-chat-file-clear" style="background:none;border:none;cursor:pointer;padding:0;font-size:.9rem;color:var(--text-muted)" title="Remover">✕</button>
         </div>
         <form class="mob-chat-form" id="mob-chat-form" autocomplete="off">
-          <input type="file" id="mob-chat-file" style="display:none" accept="image/*,video/*,.pdf,.txt,.log,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.zip,.rar,.7z">
+          <input type="file" id="mob-chat-file" style="display:none">
           <button type="button" id="mob-btn-chat-anexo" class="mob-chat-send-btn" aria-label="Anexar arquivo" style="background:var(--surface-2);color:var(--text-secondary)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
           </button>
@@ -968,7 +968,7 @@ async function renderDetalhe(c) {
           <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-btn-remover-admin-anexo" style="flex-shrink:0">✕</button>
         </div>` : ''}
         <div style="display:flex;align-items:center;gap:.5rem">
-          <input type="file" id="mob-input-admin-anexo" accept="image/*,video/*,.pdf,.txt,.log,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.zip,.rar,.7z" style="flex:1;font-size:.8rem">
+          <input type="file" id="mob-input-admin-anexo" style="flex:1;font-size:.8rem">
           <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-btn-enviar-admin-anexo" style="flex-shrink:0">Enviar</button>
         </div>
         <div id="mob-msg-admin-anexo" style="font-size:.78rem;margin-top:.25rem"></div>

@@ -106,11 +106,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // Rotas da API
 app.get('/api/uploads/allowed-types', (_req, res) => {
-  const { EXTENSOES_PERMITIDAS, TIPOS_PERMITIDOS } = require('./src/upload');
   res.json({
-    extensoes: EXTENSOES_PERMITIDAS,
-    mimes: TIPOS_PERMITIDOS,
-    accept: ['image/*', 'video/*', ...EXTENSOES_PERMITIDAS].join(','),
+    extensoes: [],
+    mimes: [],
+    accept: '*',
     maxFileSizeMB: 200,
     maxFiles: 10,
   });
@@ -195,10 +194,6 @@ app.get('*', (req, res) => {
 app.use((err, req, res, next) => {
   if (err && err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ erro: 'Arquivo muito grande. Máximo 200 MB.' });
-  }
-  if (err && err.code === 'TIPO_ARQUIVO_INVALIDO') {
-    const { MSG_TIPO_INVALIDO } = require('./src/upload');
-    return res.status(400).json({ erro: MSG_TIPO_INVALIDO });
   }
   if (err && err.code === 'LIMIT_UNEXPECTED_FILE') {
     return res.status(400).json({ erro: `Campo de upload inválido: recebido "${err.field}".` });
