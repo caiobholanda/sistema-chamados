@@ -15,8 +15,8 @@ router.post('/', requireAdmin, (req, res) => {
   if (!campo || !CAMPOS_VALIDOS.includes(campo)) return res.status(400).json({ erro: 'Campo inválido' });
   if (!valor?.trim()) return res.status(400).json({ erro: 'Valor é obrigatório' });
   try {
-    db.criarConfiguracaoTI(campo, valor.trim());
-    res.status(201).json({ mensagem: 'Criado' });
+    const result = db.criarConfiguracaoTI(campo, valor.trim());
+    res.status(201).json({ id: result.lastInsertRowid, mensagem: 'Criado' });
   } catch (err) {
     if (err.message && err.message.includes('UNIQUE')) return res.status(409).json({ erro: 'Valor já existe' });
     res.status(500).json({ erro: err.message });

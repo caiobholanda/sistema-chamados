@@ -1372,6 +1372,79 @@ function fecharModalMicros() {
   document.getElementById('micros-modal-body').innerHTML = '';
 }
 
+function _quickAddConfTI(campo, label, inputId, btn) {
+  document.querySelectorAll('.cfgti-quick-panel').forEach(p => p.remove());
+
+  const panel = document.createElement('div');
+  panel.className = 'cfgti-quick-panel';
+
+  const rect = btn.getBoundingClientRect();
+  const PW = 240;
+  let top = rect.bottom + 6;
+  let left = rect.right - PW;
+  if (left < 8) left = 8;
+  if (left + PW > window.innerWidth - 8) left = window.innerWidth - PW - 8;
+  if (top + 130 > window.innerHeight - 8) top = rect.top - 130 - 6;
+  panel.style.cssText = `top:${top}px;left:${left}px;width:${PW}px`;
+
+  panel.innerHTML = `
+    <div class="cfgti-quick-panel-title">+ ${esc(label)}</div>
+    <div class="cfgti-quick-row">
+      <input id="_qac-inp" class="form-control" type="text" placeholder="Novo valor" autocomplete="off">
+      <button id="_qac-ok" class="btn btn-primary btn-sm" type="button">OK</button>
+    </div>
+    <button id="_qac-cancel" class="cfgti-quick-cancel" type="button">Cancelar</button>
+  `;
+  document.body.appendChild(panel);
+
+  const inp = panel.querySelector('#_qac-inp');
+  const okBtn = panel.querySelector('#_qac-ok');
+  const cancelBtn = panel.querySelector('#_qac-cancel');
+  inp.focus();
+
+  const close = () => {
+    panel.remove();
+    document.removeEventListener('mousedown', onOut);
+    document.removeEventListener('keydown', onEsc);
+  };
+
+  const onOut = (e) => { if (!panel.contains(e.target) && e.target !== btn) close(); };
+  const onEsc = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('mousedown', onOut);
+  document.addEventListener('keydown', onEsc);
+  cancelBtn.addEventListener('click', close);
+
+  const save = async () => {
+    const valor = inp.value.trim();
+    if (!valor) { inp.focus(); return; }
+    okBtn.disabled = true;
+    okBtn.textContent = '…';
+    try {
+      const r = await api('/api/admin/configuracoes-ti', { method: 'POST', body: JSON.stringify({ campo, valor }) });
+      const d = await r.json();
+      if (!r.ok) {
+        mostrarToast(r.status === 409 ? 'Valor já existe' : (d.erro || 'Erro ao adicionar'), 'erro');
+        okBtn.disabled = false; okBtn.textContent = 'OK';
+        return;
+      }
+      if (!_configsTI[campo]) _configsTI[campo] = [];
+      _configsTI[campo].push({ id: d.id, valor });
+      const dl = document.getElementById(`dl-cfg-${campo}`);
+      if (dl) { const opt = document.createElement('option'); opt.value = valor; dl.appendChild(opt); }
+      const fieldEl = document.getElementById(inputId);
+      if (fieldEl) { fieldEl.value = valor; fieldEl.dispatchEvent(new Event('input')); }
+      mostrarToast(`"${valor}" adicionado`, 'ok');
+      close();
+    } catch {
+      mostrarToast('Erro de conexão', 'erro');
+      okBtn.disabled = false; okBtn.textContent = 'OK';
+    }
+  };
+
+  okBtn.addEventListener('click', save);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+}
+
 function abrirModalMicros(id) {
   document.getElementById('micros-modal-overlay').style.display = 'flex';
   const item = id ? _microsCache.find(i => i.id === id) : null;
@@ -1395,37 +1468,37 @@ function renderFormMicros(item, isEdit) {
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label">Equipamento</label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Equipamento</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('equipamento','Tipo de Equipamento','fm-tipo-equipamento',this)" title="Adicionar novo valor">+</button></label>
           <input class="form-control" id="fm-tipo-equipamento" type="text" list="dl-cfg-equipamento" value="${esc(unesc(item.tipo_equipamento || ''))}" placeholder="Ex: NOTEBOOK, DESKTOP">
         </div>
         <div class="form-group">
-          <label class="form-label">Nobreak/Nº</label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Nobreak/Nº</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('nobreak','Nobreak/Nº','fm-nobreak',this)" title="Adicionar novo valor">+</button></label>
           <input class="form-control" id="fm-nobreak" type="text" list="dl-cfg-nobreak" value="${esc(unesc(item.nobreak || ''))}" placeholder="Ex: SMS 700VA / Nº série">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label">Processador</label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Processador</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('processador','Processador','fm-processador',this)" title="Adicionar novo valor">+</button></label>
           <input class="form-control" id="fm-processador" type="text" list="dl-cfg-processador" value="${esc(unesc(item.processador || ''))}" placeholder="Ex: I5 12500">
         </div>
         <div class="form-group">
-          <label class="form-label">Memória</label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Memória</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('memoria','Memória','fm-memoria',this)" title="Adicionar novo valor">+</button></label>
           <input class="form-control" id="fm-memoria" type="text" list="dl-cfg-memoria" value="${esc(unesc(item.memoria || ''))}" placeholder="Ex: 8GB">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label">S.O.</label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>S.O.</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('so','S.O.','fm-so',this)" title="Adicionar novo valor">+</button></label>
           <input class="form-control" id="fm-so" type="text" list="dl-cfg-so" value="${esc(unesc(item.sistema_operacional || ''))}" placeholder="Ex: WIN 11">
         </div>
         <div class="form-group">
-          <label class="form-label">HD/SSD</label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>HD/SSD</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('hd_ssd','HD/SSD','fm-hd',this)" title="Adicionar novo valor">+</button></label>
           <input class="form-control" id="fm-hd" type="text" list="dl-cfg-hd_ssd" value="${esc(unesc(item.hd_ssd || ''))}" placeholder="Ex: SSD 256">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label">Office</label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Office</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('office','Office','fm-office',this)" title="Adicionar novo valor">+</button></label>
           <input class="form-control" id="fm-office" type="text" list="dl-cfg-office" value="${esc(unesc(item.office || ''))}" placeholder="Ex: H & B 2021">
         </div>
         <div class="form-group">
@@ -1435,11 +1508,11 @@ function renderFormMicros(item, isEdit) {
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label">Entradas Monitor</label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Entradas Monitor</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('entradas_monitor','Entradas Monitor','fm-entradas',this)" title="Adicionar novo valor">+</button></label>
           <input class="form-control" id="fm-entradas" type="text" list="dl-cfg-entradas_monitor" value="${esc(unesc(item.entradas_monitor || ''))}" placeholder="Ex: VGA-D.P.">
         </div>
         <div class="form-group">
-          <label class="form-label">Modelo Monitor</label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Modelo Monitor</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('modelo_monitor','Modelo Monitor','fm-monitor',this)" title="Adicionar novo valor">+</button></label>
           <input class="form-control" id="fm-monitor" type="text" list="dl-cfg-modelo_monitor" value="${esc(unesc(item.modelo_monitor || ''))}" placeholder="Ex: DELL">
         </div>
       </div>
