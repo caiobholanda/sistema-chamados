@@ -1618,7 +1618,7 @@ function renderFormMicros(item, isEdit) {
         const span = document.createElement('span');
         span.className = 'cfgti-field-err';
         span.textContent = `"${label}": preencha com um valor cadastrado nas Configurações da TI`;
-        el.parentNode.appendChild(span);
+        el.closest('.form-group').appendChild(span);
       });
       mostrarToast(`${errosCfg.length} campo(s) com valor não cadastrado nas Configurações da TI`, 'erro');
       btn.disabled = false; btn.textContent = isEdit ? 'Salvar alterações' : 'Adicionar';
