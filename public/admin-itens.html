@@ -145,26 +145,27 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 15px;
-      height: 15px;
+      width: 20px;
+      height: 20px;
       padding: 0;
-      background: none;
-      border: 1.5px solid var(--gold);
+      background: var(--gold);
+      border: none;
       border-radius: 50%;
-      color: var(--gold);
-      font-size: .72rem;
+      color: #F5EFE2;
+      font-size: 14px;
+      font-weight: 700;
       line-height: 1;
       cursor: pointer;
       flex-shrink: 0;
-      transition: background .15s, color .15s, transform .12s;
-      margin-bottom: 1px;
+      transition: background .15s, transform .12s, box-shadow .15s;
+      box-shadow: 0 1px 4px rgba(156,88,67,.35);
     }
     .cfgti-quick-add:hover {
-      background: var(--gold);
-      color: var(--surface);
-      transform: scale(1.15);
+      background: #7A4334;
+      transform: scale(1.12);
+      box-shadow: 0 2px 8px rgba(156,88,67,.5);
     }
-    .cfgti-quick-add:active { transform: scale(.95); }
+    .cfgti-quick-add:active { transform: scale(.92); box-shadow: none; }
 
     /* ── Painel flutuante quick-add ── */
     .cfgti-quick-panel {

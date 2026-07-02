@@ -1469,37 +1469,37 @@ function renderFormMicros(item, isEdit) {
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Equipamento</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('equipamento','Tipo de Equipamento','fm-tipo-equipamento',this)" title="Adicionar novo valor">+</button></label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Equipamento</span>${!isEdit ? `<button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('equipamento','Tipo de Equipamento','fm-tipo-equipamento',this)" title="Adicionar novo valor">+</button>` : ''}</label>
           <input class="form-control" id="fm-tipo-equipamento" type="text" list="dl-cfg-equipamento" value="${esc(unesc(item.tipo_equipamento || ''))}" placeholder="Ex: NOTEBOOK, DESKTOP">
         </div>
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Nobreak/Nº</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('nobreak','Nobreak/Nº','fm-nobreak',this)" title="Adicionar novo valor">+</button></label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Nobreak/Nº</span>${!isEdit ? `<button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('nobreak','Nobreak/Nº','fm-nobreak',this)" title="Adicionar novo valor">+</button>` : ''}</label>
           <input class="form-control" id="fm-nobreak" type="text" list="dl-cfg-nobreak" value="${esc(unesc(item.nobreak || ''))}" placeholder="Ex: SMS 700VA / Nº série">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Processador</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('processador','Processador','fm-processador',this)" title="Adicionar novo valor">+</button></label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Processador</span>${!isEdit ? `<button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('processador','Processador','fm-processador',this)" title="Adicionar novo valor">+</button>` : ''}</label>
           <input class="form-control" id="fm-processador" type="text" list="dl-cfg-processador" value="${esc(unesc(item.processador || ''))}" placeholder="Ex: I5 12500">
         </div>
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Memória</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('memoria','Memória','fm-memoria',this)" title="Adicionar novo valor">+</button></label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Memória</span>${!isEdit ? `<button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('memoria','Memória','fm-memoria',this)" title="Adicionar novo valor">+</button>` : ''}</label>
           <input class="form-control" id="fm-memoria" type="text" list="dl-cfg-memoria" value="${esc(unesc(item.memoria || ''))}" placeholder="Ex: 8GB">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>S.O.</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('so','S.O.','fm-so',this)" title="Adicionar novo valor">+</button></label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>S.O.</span>${!isEdit ? `<button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('so','S.O.','fm-so',this)" title="Adicionar novo valor">+</button>` : ''}</label>
           <input class="form-control" id="fm-so" type="text" list="dl-cfg-so" value="${esc(unesc(item.sistema_operacional || ''))}" placeholder="Ex: WIN 11">
         </div>
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>HD/SSD</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('hd_ssd','HD/SSD','fm-hd',this)" title="Adicionar novo valor">+</button></label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>HD/SSD</span>${!isEdit ? `<button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('hd_ssd','HD/SSD','fm-hd',this)" title="Adicionar novo valor">+</button>` : ''}</label>
           <input class="form-control" id="fm-hd" type="text" list="dl-cfg-hd_ssd" value="${esc(unesc(item.hd_ssd || ''))}" placeholder="Ex: SSD 256">
         </div>
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Office</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('office','Office','fm-office',this)" title="Adicionar novo valor">+</button></label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Office</span>${!isEdit ? `<button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('office','Office','fm-office',this)" title="Adicionar novo valor">+</button>` : ''}</label>
           <input class="form-control" id="fm-office" type="text" list="dl-cfg-office" value="${esc(unesc(item.office || ''))}" placeholder="Ex: H & B 2021">
         </div>
         <div class="form-group">
@@ -1509,11 +1509,11 @@ function renderFormMicros(item, isEdit) {
       </div>
       <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Entradas Monitor</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('entradas_monitor','Entradas Monitor','fm-entradas',this)" title="Adicionar novo valor">+</button></label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Entradas Monitor</span>${!isEdit ? `<button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('entradas_monitor','Entradas Monitor','fm-entradas',this)" title="Adicionar novo valor">+</button>` : ''}</label>
           <input class="form-control" id="fm-entradas" type="text" list="dl-cfg-entradas_monitor" value="${esc(unesc(item.entradas_monitor || ''))}" placeholder="Ex: VGA-D.P.">
         </div>
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Modelo Monitor</span><button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('modelo_monitor','Modelo Monitor','fm-monitor',this)" title="Adicionar novo valor">+</button></label>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;gap:.3rem"><span>Modelo Monitor</span>${!isEdit ? `<button type="button" class="cfgti-quick-add" onclick="_quickAddConfTI('modelo_monitor','Modelo Monitor','fm-monitor',this)" title="Adicionar novo valor">+</button>` : ''}</label>
           <input class="form-control" id="fm-monitor" type="text" list="dl-cfg-modelo_monitor" value="${esc(unesc(item.modelo_monitor || ''))}" placeholder="Ex: DELL">
         </div>
       </div>
