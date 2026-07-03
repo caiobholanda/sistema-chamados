@@ -131,7 +131,7 @@ function _inserirChamadoComAnexos(prog, nome, setor, ramal, prefixo) {
     try {
       const anexos = JSON.parse(prog.anexos_json);
       for (const a of anexos) {
-        inserirAnexoExtra({ chamado_id: chamadoId, path: a.path, nome_original: a.nome_original });
+        inserirAnexoExtra({ chamado_id: chamadoId, path: a.path, nome_original: a.nome_original, autor_tipo: null, autor_id: null, autor_nome: '[Automático]' });
       }
     } catch (e) {
       console.warn(`[Programados] Erro ao inserir anexos para prog #${prog.id}:`, e.message);

@@ -89,7 +89,7 @@ router.post('/', uploadChamadoMiddleware(), async (req, res) => {
         .run(novoNome, principal.originalname, id);
       for (let i = 1; i < arquivos.length; i++) {
         const extra = arquivos[i];
-        const anexoId = db.inserirAnexoExtra({ chamado_id: id, path: 'pendente', nome_original: extra.originalname });
+        const anexoId = db.inserirAnexoExtra({ chamado_id: id, path: 'pendente', nome_original: extra.originalname, autor_tipo: 'usuario', autor_id: usuario_id, autor_nome: nome });
         const nomeFinal = renomearAnexoExtra(id, anexoId, extra.path, extra.originalname);
         db.getDb().prepare('UPDATE chamado_anexos SET path = ? WHERE id = ?').run(nomeFinal, anexoId);
       }

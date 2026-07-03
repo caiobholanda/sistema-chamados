@@ -1641,9 +1641,10 @@ async function _carregarAnexosExtras(chamadoId) {
     box.innerHTML = lista.map(a => {
       const url = `/api/chamados/${chamadoId}/anexos/${a.id}`;
       const _btnExtra = `<button class="btn btn-danger btn-sm btn-remover-anexo-extra" data-anexo-id="${a.id}" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo (útil quando foi enviado no chamado errado)">✕</button>`;
+      const _meta = `<span style="font-size:.68rem;color:var(--text-muted);white-space:nowrap">${a.autor_nome ? a.autor_nome + ' · ' : ''}${fmtData(a.criado_em)}</span>`;
       return _isImgAnexo(a.nome_original)
-        ? `<div class="anexo-preview-wrap" style="margin-top:.4rem"><img class="lbx-img anexo-preview-img" src="${url}" alt="${a.nome_original}"><div style="display:flex;align-items:center;gap:.4rem;margin-top:.15rem"><a href="${url}" download class="anexo-preview-dl">⬇ baixar</a>${_btnExtra}</div></div>`
-        : `<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.4rem"><a href="${url}" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${a.nome_original}</a>${_btnExtra}</div>`;
+        ? `<div class="anexo-preview-wrap" style="margin-top:.4rem"><img class="lbx-img anexo-preview-img" src="${url}" alt="${a.nome_original}"><div style="display:flex;align-items:center;gap:.4rem;margin-top:.15rem"><a href="${url}" download class="anexo-preview-dl">⬇ baixar</a>${_btnExtra}</div><div style="margin-top:.1rem">${_meta}</div></div>`
+        : `<div style="display:flex;flex-direction:column;gap:.15rem;margin-top:.4rem"><div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap"><a href="${url}" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${a.nome_original}</a>${_btnExtra}</div>${_meta}</div>`;
     }).join('');
     if (!box.dataset.removeReady) {
       box.dataset.removeReady = '1';

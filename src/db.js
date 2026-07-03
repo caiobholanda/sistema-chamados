@@ -184,6 +184,9 @@ function initDb() {
     )
   `); } catch {}
   try { db.exec(`CREATE INDEX IF NOT EXISTS idx_chamado_anexos_chamado ON chamado_anexos(chamado_id)`); } catch {}
+  try { db.exec(`ALTER TABLE chamado_anexos ADD COLUMN autor_tipo TEXT`) } catch {}
+  try { db.exec(`ALTER TABLE chamado_anexos ADD COLUMN autor_id INTEGER`) } catch {}
+  try { db.exec(`ALTER TABLE chamado_anexos ADD COLUMN autor_nome TEXT`) } catch {}
   try { db.exec(`
     CREATE TABLE IF NOT EXISTS admin_atendimento_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2565,16 +2568,16 @@ function listarInfosAdicionais(chamadoId) {
   ).all(chamadoId);
 }
 
-function inserirAnexoExtra({ chamado_id, path, nome_original }) {
+function inserirAnexoExtra({ chamado_id, path, nome_original, autor_tipo = null, autor_id = null, autor_nome = null }) {
   return getDb().prepare(`
-    INSERT INTO chamado_anexos (chamado_id, path, nome_original)
-    VALUES (?, ?, ?)
-  `).run(chamado_id, path, nome_original).lastInsertRowid;
+    INSERT INTO chamado_anexos (chamado_id, path, nome_original, autor_tipo, autor_id, autor_nome)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(chamado_id, path, nome_original, autor_tipo, autor_id, autor_nome).lastInsertRowid;
 }
 
 function listarAnexosExtras(chamadoId) {
   return getDb().prepare(
-    'SELECT id, path, nome_original, criado_em FROM chamado_anexos WHERE chamado_id = ? ORDER BY id ASC'
+    'SELECT id, path, nome_original, criado_em, autor_tipo, autor_id, autor_nome FROM chamado_anexos WHERE chamado_id = ? ORDER BY id ASC'
   ).all(chamadoId);
 }
 

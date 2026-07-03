@@ -278,7 +278,7 @@ router.post('/chamados', requireAdmin, uploadChamadoMiddleware(), async (req, re
         .run(novoNome, principal.originalname, id);
       for (let i = 1; i < arquivos.length; i++) {
         const extra = arquivos[i];
-        const anexoId = db.inserirAnexoExtra({ chamado_id: id, path: 'pendente', nome_original: extra.originalname });
+        const anexoId = db.inserirAnexoExtra({ chamado_id: id, path: 'pendente', nome_original: extra.originalname, autor_tipo: 'admin', autor_id: req.admin.sub, autor_nome: adminCriador ? adminCriador.nome_completo : 'Admin' });
         const nomeFinal = renomearAnexoExtra(id, anexoId, extra.path, extra.originalname);
         db.getDb().prepare('UPDATE chamado_anexos SET path = ? WHERE id = ?').run(nomeFinal, anexoId);
       }
@@ -1119,7 +1119,7 @@ router.post('/chamados/:id/anexos', requireAdmin, uploadChamadoMiddleware(), asy
     const adminInfo = db.buscarAdminPorId(req.admin.sub);
     const adicionados = [];
     for (const arq of arquivos) {
-      const anexoId = db.inserirAnexoExtra({ chamado_id: chamado.id, path: 'pendente', nome_original: arq.originalname });
+      const anexoId = db.inserirAnexoExtra({ chamado_id: chamado.id, path: 'pendente', nome_original: arq.originalname, autor_tipo: 'admin', autor_id: req.admin.sub, autor_nome: adminInfo ? adminInfo.nome_completo : 'Admin' });
       const nomeFinal = renomearAnexoExtra(chamado.id, anexoId, arq.path, arq.originalname);
       db.getDb().prepare('UPDATE chamado_anexos SET path = ? WHERE id = ?').run(nomeFinal, anexoId);
       adicionados.push(arq.originalname);
