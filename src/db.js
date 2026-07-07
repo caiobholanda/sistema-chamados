@@ -157,6 +157,10 @@ function initDb() {
   try { db.exec("ALTER TABLE usuarios ADD COLUMN matricula TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE admins ADD COLUMN cargo TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE admins ADD COLUMN matricula TEXT DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE usuarios ADD COLUMN data_admissao TEXT DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE usuarios ADD COLUMN data_nascimento TEXT DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE admins ADD COLUMN data_admissao TEXT DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE admins ADD COLUMN data_nascimento TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE termos_aceite ADD COLUMN cargo TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE termos_aceite ADD COLUMN setor TEXT DEFAULT ''"); } catch {}
   try { db.exec("ALTER TABLE termos_aceite ADD COLUMN equipamentos TEXT DEFAULT ''"); } catch {}
@@ -1901,9 +1905,9 @@ function assinarChamado(id, assinatura) {
 
 function registrarUsuario(dados) {
   const result = getDb().prepare(`
-    INSERT INTO usuarios (nome, email, senha_hash, senha_plain, ramal, setor, cargo, matricula)
-    VALUES (@nome, @email, @senha_hash, @senha_plain, @ramal, @setor, @cargo, @matricula)
-  `).run({ senha_plain: null, ramal: null, setor: null, cargo: null, matricula: null, ...dados });
+    INSERT INTO usuarios (nome, email, senha_hash, senha_plain, ramal, setor, cargo, matricula, data_admissao, data_nascimento)
+    VALUES (@nome, @email, @senha_hash, @senha_plain, @ramal, @setor, @cargo, @matricula, @data_admissao, @data_nascimento)
+  `).run({ senha_plain: null, ramal: null, setor: null, cargo: null, matricula: null, data_admissao: null, data_nascimento: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -1916,7 +1920,7 @@ function buscarUsuarioPorId(id) {
 }
 
 function listarUsuarios() {
-  return getDb().prepare('SELECT id, nome, email, ativo, ramal, setor, cargo, matricula, senha_plain, criado_em FROM usuarios ORDER BY criado_em DESC').all();
+  return getDb().prepare('SELECT id, nome, email, ativo, ramal, setor, cargo, matricula, data_admissao, data_nascimento, senha_plain, criado_em FROM usuarios ORDER BY criado_em DESC').all();
 }
 
 function atualizarUsuario(id, dados) {
@@ -1931,6 +1935,8 @@ function atualizarUsuario(id, dados) {
   if (dados.setor !== undefined) { campos.push('setor = ?'); values.push(dados.setor); }
   if (dados.cargo !== undefined) { campos.push('cargo = ?'); values.push(dados.cargo); }
   if (dados.matricula !== undefined) { campos.push('matricula = ?'); values.push(dados.matricula); }
+  if (dados.data_admissao !== undefined) { campos.push('data_admissao = ?'); values.push(dados.data_admissao || null); }
+  if (dados.data_nascimento !== undefined) { campos.push('data_nascimento = ?'); values.push(dados.data_nascimento || null); }
   if (campos.length === 0) return;
   values.push(id);
   getDb().prepare(`UPDATE usuarios SET ${campos.join(', ')} WHERE id = ?`).run(...values);
@@ -2010,7 +2016,7 @@ function buscarAdminPorEmail(email) {
 }
 
 function listarAdmins() {
-  return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, cargo, matricula, is_master, ativo, senha_plain, criado_em, COALESCE(is_test,0) as is_test FROM admins ORDER BY criado_em ASC').all();
+  return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, cargo, matricula, data_admissao, data_nascimento, is_master, ativo, senha_plain, criado_em, COALESCE(is_test,0) as is_test FROM admins ORDER BY criado_em ASC').all();
 }
 
 function listarAdminsTransferencia() {
@@ -2019,9 +2025,9 @@ function listarAdminsTransferencia() {
 
 function criarAdmin(dados) {
   const result = getDb().prepare(`
-    INSERT INTO admins (usuario, nome_completo, email, ramal, cargo, matricula, senha_hash, senha_plain, is_master)
-    VALUES (@usuario, @nome_completo, @email, @ramal, @cargo, @matricula, @senha_hash, @senha_plain, @is_master)
-  `).run({ senha_plain: null, ramal: null, cargo: null, matricula: null, ...dados });
+    INSERT INTO admins (usuario, nome_completo, email, ramal, cargo, matricula, data_admissao, data_nascimento, senha_hash, senha_plain, is_master)
+    VALUES (@usuario, @nome_completo, @email, @ramal, @cargo, @matricula, @data_admissao, @data_nascimento, @senha_hash, @senha_plain, @is_master)
+  `).run({ senha_plain: null, ramal: null, cargo: null, matricula: null, data_admissao: null, data_nascimento: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -2033,6 +2039,8 @@ function atualizarAdmin(id, dados) {
   if (dados.ramal !== undefined) { campos.push('ramal = ?'); values.push(dados.ramal); }
   if (dados.cargo !== undefined) { campos.push('cargo = ?'); values.push(dados.cargo); }
   if (dados.matricula !== undefined) { campos.push('matricula = ?'); values.push(dados.matricula); }
+  if (dados.data_admissao !== undefined) { campos.push('data_admissao = ?'); values.push(dados.data_admissao || null); }
+  if (dados.data_nascimento !== undefined) { campos.push('data_nascimento = ?'); values.push(dados.data_nascimento || null); }
   if (dados.senha_hash !== undefined) { campos.push('senha_hash = ?'); values.push(dados.senha_hash); }
   if (dados.senha_plain !== undefined) { campos.push('senha_plain = ?'); values.push(dados.senha_plain); }
   if (dados.ativo !== undefined) { campos.push('ativo = ?'); values.push(dados.ativo); }

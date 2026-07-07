@@ -60,8 +60,11 @@ router.post('/admins', async (req, res) => {
     if (db.buscarUsuarioPorEmail(email)) return res.status(409).json({ ok: false, erro: 'Já existe um usuário ativo com este e-mail' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
+    const data_admissao = sanit(req.body.data_admissao || '') || null;
+    const data_nascimento = sanit(req.body.data_nascimento || '') || null;
     const id = db.criarAdmin({
       usuario, nome_completo, email, ramal: ramal || null,
+      data_admissao, data_nascimento,
       senha_hash, senha_plain: senha, is_master,
     });
     db.atualizarAdmin(id, { precisa_trocar_senha: 1 });
@@ -100,6 +103,8 @@ router.patch('/admins/:id', async (req, res) => {
       dados.ativo = req.body.ativo ? 1 : 0;
     }
     if (req.body.is_master !== undefined) dados.is_master = req.body.is_master ? 1 : 0;
+    if (req.body.data_admissao !== undefined) dados.data_admissao = sanit(req.body.data_admissao || '') || null;
+    if (req.body.data_nascimento !== undefined) dados.data_nascimento = sanit(req.body.data_nascimento || '') || null;
     if (req.body.senha) {
       const mesma = await bcrypt.compare(req.body.senha, alvo.senha_hash);
       if (mesma) {
@@ -156,8 +161,10 @@ router.post('/portal-usuarios', async (req, res) => {
     if (db.buscarUsuarioPorEmail(email)) return res.status(409).json({ ok: false, erro: 'Já existe um usuário ativo com este e-mail' });
     if (db.buscarAdminPorEmail(email)) return res.status(409).json({ ok: false, erro: 'Já existe um admin ativo com este e-mail' });
 
+    const data_admissao = sanit(req.body.data_admissao || '') || null;
+    const data_nascimento = sanit(req.body.data_nascimento || '') || null;
     const senha_hash = await bcrypt.hash(senha, 12);
-    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null });
+    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null, data_admissao, data_nascimento });
     db.atualizarUsuario(id, { precisa_trocar_senha: 1 });
     res.status(201).json({ ok: true, id });
   } catch (err) {
@@ -213,6 +220,8 @@ router.patch('/portal-usuarios/:id', async (req, res) => {
       dados.ramal = ramal || null;
     }
     if (req.body.setor !== undefined) dados.setor = sanit(req.body.setor || '') || null;
+    if (req.body.data_admissao !== undefined) dados.data_admissao = sanit(req.body.data_admissao || '') || null;
+    if (req.body.data_nascimento !== undefined) dados.data_nascimento = sanit(req.body.data_nascimento || '') || null;
 
     db.atualizarUsuario(u.id, dados);
     res.json({ ok: true });
