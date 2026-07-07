@@ -845,11 +845,13 @@ router.get('/portal-usuarios/:id/logs', requireAdmin, (req, res) => {
 
 router.post('/usuarios', requireMaster, async (req, res) => {
   try {
-    let { nome_completo, email, senha, is_master, ramal } = req.body;
+    let { nome_completo, email, senha, is_master, ramal, cargo, matricula } = req.body;
     nome_completo = sanitizarTexto(nome_completo || '');
     email = (email || '').trim().toLowerCase();
     senha = (senha || '').trim();
     ramal = sanitizarTexto(ramal || '');
+    cargo = sanitizarTexto(cargo || '');
+    matricula = sanitizarTexto(matricula || '');
 
     if (!nome_completo || nome_completo.length < 2) return res.status(400).json({ erro: 'Nome completo obrigatório' });
     if (!email || !email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
@@ -869,6 +871,8 @@ router.post('/usuarios', requireMaster, async (req, res) => {
       nome_completo,
       email,
       ramal: ramal || null,
+      cargo: cargo || null,
+      matricula: matricula || null,
       senha_hash,
       senha_plain: senha,
       is_master: is_master ? 1 : 0,
@@ -891,6 +895,8 @@ router.patch('/usuarios/:id', requireMaster, async (req, res) => {
     const dados = {};
     if (req.body.nome_completo !== undefined) dados.nome_completo = sanitizarTexto(req.body.nome_completo);
     if (req.body.ramal !== undefined) dados.ramal = sanitizarTexto(req.body.ramal || '') || null;
+    if (req.body.cargo !== undefined) dados.cargo = sanitizarTexto(req.body.cargo || '') || null;
+    if (req.body.matricula !== undefined) dados.matricula = sanitizarTexto(req.body.matricula || '') || null;
     if (req.body.email !== undefined) {
       const email = (req.body.email || '').trim().toLowerCase();
       if (email && !email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
@@ -979,12 +985,14 @@ router.get('/portal-usuarios', requireAdmin, (req, res) => {
 
 router.post('/portal-usuarios', requireAdmin, async (req, res) => {
   try {
-    let { nome, email, senha, ramal, setor } = req.body;
+    let { nome, email, senha, ramal, setor, cargo, matricula } = req.body;
     nome = sanitizarTexto(nome || '');
     email = (email || '').trim().toLowerCase();
     senha = (senha || '').trim();
     ramal = (ramal || '').trim();
     setor = sanitizarTexto(setor || '');
+    cargo = sanitizarTexto(cargo || '');
+    matricula = sanitizarTexto(matricula || '');
 
     if (!nome || nome.length < 2) return res.status(400).json({ erro: 'Nome deve ter ao menos 2 caracteres' });
     if (!email || !email.endsWith(DOMINIO_EMAIL)) return res.status(400).json({ erro: `E-mail deve terminar com ${DOMINIO_EMAIL}` });
@@ -997,7 +1005,7 @@ router.post('/portal-usuarios', requireAdmin, async (req, res) => {
       return res.status(409).json({ erro: 'Já existe um admin ativo com este e-mail' });
 
     const senha_hash = await bcrypt.hash(senha, 12);
-    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null });
+    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null, cargo: cargo || null, matricula: matricula || null });
     return res.status(201).json({ id, mensagem: 'Usuário criado com sucesso' });
   } catch (err) {
     console.error(err);
@@ -1055,6 +1063,12 @@ router.patch('/portal-usuarios/:id', requireAdmin, async (req, res) => {
     }
     if (req.body.setor !== undefined) {
       dados.setor = sanitizarTexto(req.body.setor || '') || null;
+    }
+    if (req.body.cargo !== undefined) {
+      dados.cargo = sanitizarTexto(req.body.cargo || '') || null;
+    }
+    if (req.body.matricula !== undefined) {
+      dados.matricula = sanitizarTexto(req.body.matricula || '') || null;
     }
 
     db.atualizarUsuario(u.id, dados);
