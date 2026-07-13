@@ -2153,7 +2153,7 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .card-atu {
   display: inline-flex; align-items: center; gap: .28rem;
   font-size: .71rem; color: var(--text-muted);
-  margin: 0 0 .3rem; opacity: .85; letter-spacing: .01em;
+  margin: 0; opacity: .85; letter-spacing: .01em;
 }
 .card-atu svg { flex-shrink: 0; opacity: .7; }
 .card-atu--recente { color: var(--success); opacity: 1; }
