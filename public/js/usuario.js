@@ -668,6 +668,18 @@ function renderPainel(usuario) {
               <textarea class="form-control" id="sug-texto" rows="5" maxlength="2000"
                 placeholder="Descreva sua sugestão de melhoria ou modificação para o sistema..."></textarea>
             </div>
+            <div class="sug-anexo-wrap">
+              <input type="file" id="sug-file-input" style="display:none">
+              <button type="button" class="btn-sug-anexo" id="btn-sug-anexo">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                Adicionar anexo
+              </button>
+              <div class="sug-file-chip" id="sug-file-chip" style="display:none">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                <span id="sug-file-nome"></span>
+                <button type="button" id="btn-sug-file-remove" style="background:none;border:none;cursor:pointer;padding:0 0 0 .15rem;line-height:1;color:var(--text-muted);font-size:.85rem" title="Remover">✕</button>
+              </div>
+            </div>
             <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.5rem" id="btn-enviar-sugestao">Enviar</button>
             <button type="button" class="btn btn-secondary" style="width:100%;margin-top:.4rem" id="btn-cancelar-sugestao">Cancelar</button>
           </form>
@@ -726,12 +738,26 @@ function renderPainel(usuario) {
     document.getElementById('form-sugestao').reset();
     document.getElementById('modal-sugestao-overlay').classList.add('open');
   });
-  const _fecharModalSug = () => document.getElementById('modal-sugestao-overlay').classList.remove('open');
+  let _sugSelectedFile = null;
+  const _limparAnexoSug = () => {
+    _sugSelectedFile = null;
+    const fi = document.getElementById('sug-file-input');
+    if (fi) fi.value = '';
+    document.getElementById('sug-file-chip').style.display = 'none';
+  };
+  const _fecharModalSug = () => { document.getElementById('modal-sugestao-overlay').classList.remove('open'); _limparAnexoSug(); };
   document.getElementById('btn-fechar-sugestao').addEventListener('click', _fecharModalSug);
   document.getElementById('btn-cancelar-sugestao').addEventListener('click', _fecharModalSug);
   document.getElementById('modal-sugestao-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('modal-sugestao-overlay')) _fecharModalSug();
   });
+  document.getElementById('btn-sug-anexo').addEventListener('click', () => document.getElementById('sug-file-input').click());
+  document.getElementById('sug-file-input').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (f) { _sugSelectedFile = f; document.getElementById('sug-file-nome').textContent = f.name; document.getElementById('sug-file-chip').style.display = 'flex'; }
+    else _limparAnexoSug();
+  });
+  document.getElementById('btn-sug-file-remove').addEventListener('click', _limparAnexoSug);
 
   document.getElementById('form-sugestao').addEventListener('submit', async e => {
     e.preventDefault();
@@ -741,7 +767,10 @@ function renderPainel(usuario) {
     if (!texto) return;
     btn.disabled = true; btn.textContent = 'Enviando...';
     try {
-      const r = await apiFetch('/api/sugestoes', { method: 'POST', body: JSON.stringify({ texto }) });
+      const fd = new FormData();
+      fd.append('texto', texto);
+      if (_sugSelectedFile) fd.append('anexo', _sugSelectedFile, _sugSelectedFile.name || 'arquivo');
+      const r = await fetch('/api/sugestoes', { method: 'POST', credentials: 'same-origin', body: fd });
       const d = await r.json();
       if (r.ok) {
         document.getElementById('form-sugestao').reset();
@@ -862,6 +891,7 @@ function renderPainel(usuario) {
           </div>
           <div style="margin-top:.75rem;font-size:.88rem;line-height:1.6;white-space:pre-wrap">${s.texto}</div>
           ${campoExtra}
+          ${s.anexo_path ? `<a class="sug-anexo-link" href="/api/sugestoes/${s.id}/anexo" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${_s(s.anexo_nome_original) || 'Arquivo anexado'}</a>` : ''}
           <div class="chat-wrap" style="margin-top:.85rem">
             <div class="chat-header">Chat com suporte</div>
             <div class="chat-messages" id="chat-msgs-sug-u-${s.id}"></div>

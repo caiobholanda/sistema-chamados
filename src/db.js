@@ -2475,13 +2475,15 @@ function initSugestoes() {
   try { db.exec('ALTER TABLE sugestoes ADD COLUMN vista_admin INTEGER NOT NULL DEFAULT 0') } catch {}
   try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN chat_anexo_path TEXT') } catch {}
   try { db.exec('ALTER TABLE sugestao_mensagens ADD COLUMN chat_anexo_nome_original TEXT') } catch {}
+  try { db.exec('ALTER TABLE sugestoes ADD COLUMN anexo_path TEXT') } catch {}
+  try { db.exec('ALTER TABLE sugestoes ADD COLUMN anexo_nome_original TEXT') } catch {}
 }
 
-function criarSugestao({ usuario_id, usuario_nome, texto }) {
+function criarSugestao({ usuario_id, usuario_nome, texto, anexo_path = null, anexo_nome_original = null }) {
   const db = getDb();
   const r = db.prepare(
-    'INSERT INTO sugestoes (usuario_id, usuario_nome, texto) VALUES (?, ?, ?)'
-  ).run(usuario_id || null, usuario_nome, texto);
+    'INSERT INTO sugestoes (usuario_id, usuario_nome, texto, anexo_path, anexo_nome_original) VALUES (?, ?, ?, ?, ?)'
+  ).run(usuario_id || null, usuario_nome, texto, anexo_path, anexo_nome_original);
   return r.lastInsertRowid;
 }
 

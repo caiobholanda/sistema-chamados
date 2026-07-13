@@ -20,14 +20,32 @@ function sanitizar(str) {
 
 // ── Rotas do usuário ────────────────────────────────────────
 
-router.post('/', requireUsuario, (req, res) => {
+router.post('/', uploadMiddleware('anexo'), requireUsuario, (req, res) => {
   try {
     const texto = sanitizar(req.body.texto || '');
-    if (!texto || texto.length < 10) return res.status(400).json({ erro: 'Sugestão muito curta (mín. 10 caracteres)' });
-    if (texto.length > 2000) return res.status(400).json({ erro: 'Sugestão muito longa (máx. 2000 caracteres)' });
+    if (!texto || texto.length < 10) { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} return res.status(400).json({ erro: 'Sugestão muito curta (mín. 10 caracteres)' }); }
+    if (texto.length > 2000) { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} return res.status(400).json({ erro: 'Sugestão muito longa (máx. 2000 caracteres)' }); }
 
     const usuario = db.buscarUsuarioPorId(req.usuario.sub);
-    if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
+    if (!usuario) { if (req.file) try { fs.unlinkSync(req.file.path); } catch {} return res.status(404).json({ erro: 'Usuário não encontrado' }); }
+
+    let anexo_path = null, anexo_nome_original = null;
+    if (req.file) {
+      const MIME_EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp', 'image/heic': '.heic', 'image/avif': '.avif' };
+      let nomeOrig = req.file.originalname || '';
+      let ext = path.extname(nomeOrig).toLowerCase();
+      if (!ext && req.file.mimetype) ext = MIME_EXT[req.file.mimetype] || '';
+      if (!nomeOrig || !path.extname(nomeOrig)) nomeOrig = `arquivo${ext || ''}`;
+      const base = path.basename(nomeOrig, ext).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 100) || 'arquivo';
+      const tmpNome = `sug_${Date.now()}__${base}${ext}`;
+      fs.renameSync(req.file.path, path.join(UPLOADS_DIR, tmpNome));
+      const id = db.criarSugestao({ usuario_id: usuario.id, usuario_nome: usuario.nome, texto, anexo_path: tmpNome, anexo_nome_original: nomeOrig });
+      const novoNome = `sug_${id}__${base}${ext}`;
+      fs.renameSync(path.join(UPLOADS_DIR, tmpNome), path.join(UPLOADS_DIR, novoNome));
+      db.getDb().prepare('UPDATE sugestoes SET anexo_path = ? WHERE id = ?').run(novoNome, id);
+      push.enviarParaTodos('💡 Nova sugestão recebida', `${usuario.nome}: ${texto.slice(0, 80)}${texto.length > 80 ? '…' : ''}`).catch(() => {});
+      return res.status(201).json({ id, mensagem: 'Sugestão enviada com sucesso!' });
+    }
 
     const id = db.criarSugestao({ usuario_id: usuario.id, usuario_nome: usuario.nome, texto });
     push.enviarParaTodos('💡 Nova sugestão recebida', `${usuario.nome}: ${texto.slice(0, 80)}${texto.length > 80 ? '…' : ''}`).catch(() => {});
@@ -53,6 +71,21 @@ router.get('/:id/mensagens', requireUsuario, (req, res) => {
     if (s.usuario_id !== req.usuario.sub) return res.status(403).json({ erro: 'Acesso negado' });
     db.marcarMensagensLidasUsuario(s.id);
     return res.json(db.listarMensagensSugestao(s.id));
+  } catch (err) {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
+router.get('/:id/anexo', requireUsuario, (req, res) => {
+  try {
+    const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
+    if (!s) return res.status(404).json({ erro: 'Sugestão não encontrada' });
+    if (s.usuario_id !== req.usuario.sub) return res.status(403).json({ erro: 'Acesso negado' });
+    if (!s.anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
+    const filePath = path.join(UPLOADS_DIR, s.anexo_path);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(s.anexo_nome_original || s.anexo_path)}`);
+    return res.sendFile(path.resolve(filePath));
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });
   }
