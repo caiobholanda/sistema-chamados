@@ -1914,6 +1914,21 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
           <label for="ch-ramal-problema">Qual ramal está com problema? <span class="req">*</span></label>
           <input type="text" class="form-control" id="ch-ramal-problema" placeholder="Ex: 3201" maxlength="20" autocomplete="off">
         </div>
+        <div id="banner-ramal-detec" class="ramal-detec-banner" style="display:none" role="status" aria-live="polite">
+          <div class="ramal-detec-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l.97-.97a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div class="ramal-detec-body">
+            <span class="ramal-detec-texto">Parece que é sobre <strong>Ramal / Telefone</strong> — informe o número com problema para agilizar o atendimento:</span>
+            <div class="ramal-detec-row">
+              <input type="text" id="ch-ramal-detec" class="form-control ramal-detec-input" placeholder="Ex: 3201" maxlength="20" autocomplete="off">
+              <button type="button" class="btn btn-primary btn-sm ramal-detec-btn-ok">Confirmar</button>
+            </div>
+          </div>
+          <button type="button" class="ramal-detec-dismiss" aria-label="Dispensar sugestão" title="Dispensar">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
         <div class="form-group">
           <label for="ch-descricao">Descrição do problema <span class="req">*</span></label>
           <textarea class="form-control" id="ch-descricao" required minlength="10" maxlength="2000" placeholder="Descreva o problema com detalhes..."></textarea>
@@ -1949,6 +1964,41 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
   }
   _catTxtEl.addEventListener('input', _syncRamalField);
   _catTxtEl.addEventListener('blur', () => setTimeout(_syncRamalField, 200));
+
+  // Detecção em tempo real de ramal/telefone na descrição
+  const _bannerRamal   = document.getElementById('banner-ramal-detec');
+  const _inputDetec    = document.getElementById('ch-ramal-detec');
+  const _RE_RAMAL      = /\b(ramal|ramais|telefone|telefones|fone|fones|pabx|discagem|discando|ligar|liga[çc][aã]o|ligando|chamada|chamadas|tocando|atendimento|voip|extensão|extensao|aparelho de telefone)\b/i;
+  let _ramalDetecDismissed = false;
+
+  function _atualizarBannerRamal() {
+    if (_ramalDetecDismissed) return;
+    if (_catHiddenEl.value === 'ramal') { _bannerRamal.style.display = 'none'; return; }
+    const texto = document.getElementById('ch-descricao').value;
+    _bannerRamal.style.display = _RE_RAMAL.test(texto) ? '' : 'none';
+  }
+
+  document.getElementById('ch-descricao').addEventListener('input', _atualizarBannerRamal);
+
+  _bannerRamal.querySelector('.ramal-detec-dismiss').addEventListener('click', () => {
+    _ramalDetecDismissed = true;
+    _bannerRamal.style.display = 'none';
+  });
+
+  _bannerRamal.querySelector('.ramal-detec-btn-ok').addEventListener('click', () => {
+    const val = _inputDetec.value.trim();
+    _catHiddenEl.value = 'ramal';
+    _catTxtEl.value    = 'Ramal / Telefone';
+    _syncRamalField();
+    if (val) _inputRamalProblema.value = val;
+    _bannerRamal.style.display = 'none';
+    _inputRamalProblema.focus();
+  });
+
+  // Esconder banner se usuário selecionar manualmente "Ramal / Telefone"
+  _catTxtEl.addEventListener('input', () => {
+    if (_catHiddenEl.value === 'ramal') _bannerRamal.style.display = 'none';
+  });
 
   document.getElementById('btn-cancelar-chamado').addEventListener('click', onCancel);
 

@@ -2200,6 +2200,72 @@ body.auth-mode main { max-width: none; padding: 0; margin: 0; }
 .sug-anexo-link:hover { border-color: var(--gold); color: var(--gold); }
 .sug-anexo-link svg { flex-shrink: 0; opacity: .8; }
 
+/* ─── Banner de detecção automática de ramal/telefone ─── */
+@keyframes ramal-detec-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ramal-detec-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  padding: .65rem .85rem .65rem .75rem;
+  background: color-mix(in srgb, var(--gold) 7%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--gold) 28%, transparent);
+  border-left: 3px solid var(--gold);
+  border-radius: 6px;
+  margin-bottom: .75rem;
+  animation: ramal-detec-in .2s ease-out both;
+}
+[data-theme="dark"] .ramal-detec-banner {
+  background: color-mix(in srgb, var(--gold) 6%, #1e2a24);
+}
+.ramal-detec-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  margin-top: .1rem;
+}
+.ramal-detec-body { flex: 1; min-width: 0; }
+.ramal-detec-texto {
+  display: block;
+  font-size: .8rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  margin-bottom: .45rem;
+}
+.ramal-detec-texto strong { color: var(--text); font-weight: 600; }
+.ramal-detec-row { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+.ramal-detec-input {
+  width: 110px !important;
+  flex-shrink: 0;
+  font-size: .82rem !important;
+  padding: .28rem .55rem !important;
+  height: auto !important;
+}
+.ramal-detec-btn-ok { padding: .28rem .65rem !important; font-size: .78rem !important; white-space: nowrap; }
+.ramal-detec-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: .2rem;
+  border-radius: 4px;
+  line-height: 1;
+  margin-top: .05rem;
+  transition: color .15s, background .15s;
+  display: flex;
+  align-items: center;
+}
+.ramal-detec-dismiss:hover { color: var(--text); background: var(--border); }
+
 .solucao-box {
   margin-top: .65rem;
   background: rgba(21,128,61,.06);
