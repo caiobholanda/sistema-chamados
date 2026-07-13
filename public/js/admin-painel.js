@@ -1372,11 +1372,18 @@ async function carregarChamados(silencioso = false, { retries = 2, baseDelayMs =
   const params = new URLSearchParams();
   const setor = document.getElementById('filtro-setor').value;
   const adminId = document.getElementById('filtro-admin').value;
+  const filtroBusca = (document.getElementById('filtro-busca')?.value || '').trim().replace(/^#/, '');
 
   if (statusFiltroAtual) {
     params.set('status', statusFiltroAtual);
   } else {
-    params.set('status', STATUS_ABERTOS.join(','));
+    // Só força STATUS_ABERTOS no carregamento padrão (sem filtro de conteúdo ativo).
+    // Com busca, responsável, setor ou etiqueta ativos, a busca deve varrer todos os status —
+    // mesma lógica já aplicada para filtro por data (params.delete abaixo).
+    const temFiltroConteudo = filtroBusca || adminId || setor || _etiquetaFiltroAtual;
+    if (!temFiltroConteudo) {
+      params.set('status', STATUS_ABERTOS.join(','));
+    }
   }
   if (adminId) params.set('admin_id', adminId);
 
@@ -1404,7 +1411,6 @@ async function carregarChamados(silencioso = false, { retries = 2, baseDelayMs =
     }
   }
 
-  const filtroBusca = (document.getElementById('filtro-busca')?.value || '').trim().replace(/^#/, '');
   if (filtroBusca) {
     params.set('q', filtroBusca);
     if (_etiquetasDin.length && !_etiquetaFiltroAtual) {
