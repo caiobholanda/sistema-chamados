@@ -295,6 +295,7 @@ function renderDetalhe(s) {
         <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.4rem">Sugestão</div>
         <div style="font-size:.88rem;line-height:1.6;white-space:pre-wrap">${_esc(s.texto)}</div>
         ${campoExtra}
+        ${s.anexo_path ? `<a href="/api/sugestoes/admin/${s.id}/anexo" target="_blank" rel="noopener noreferrer" class="sug-anexo-link" style="margin-top:.5rem"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${_esc(s.anexo_nome_original) || 'Arquivo anexado'}</a>` : ''}
       </div>
 
       <div>

@@ -321,6 +321,20 @@ router.post('/admin/:id/mensagens', uploadMiddleware('chat_anexo'), requireAdmin
   }
 });
 
+router.get('/admin/:id/anexo', requireAdmin, (req, res) => {
+  try {
+    const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
+    if (!s) return res.status(404).json({ erro: 'Sugestão não encontrada' });
+    if (!s.anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
+    const filePath = path.join(UPLOADS_DIR, s.anexo_path);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(s.anexo_nome_original || s.anexo_path)}`);
+    return res.sendFile(path.resolve(filePath));
+  } catch (err) {
+    return res.status(500).json({ erro: 'Erro interno' });
+  }
+});
+
 router.get('/admin/:id/mensagens/:msgId/chat-anexo', requireAdmin, (req, res) => {
   try {
     const s = db.buscarSugestaoPorId(parseInt(req.params.id, 10));
