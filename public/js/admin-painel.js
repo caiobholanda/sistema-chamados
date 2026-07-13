@@ -657,6 +657,17 @@ function fmtData(d) {
   return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
 }
 
+function fmtRelativo(d) {
+  if (!d) return null;
+  const iso = d.includes('T') ? d : d.replace(' ', 'T');
+  const t = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  const s = (Date.now() - t) / 1000;
+  if (s < 60) return 'agora';
+  if (s < 3600) return `há ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `há ${Math.floor(s / 3600)} h`;
+  return `há ${Math.floor(s / 86400)} dias`;
+}
+
 // Converte prazo UTC armazenado → valor para input datetime-local em Fortaleza
 function utcParaInputFortaleza(prazo) {
   if (!prazo) return '';
@@ -1596,6 +1607,7 @@ function renderChamadoItem(c) {
           Ramal ${c.ramal}
         </span>
         ${c.prazo ? `<span class="chamado-footer-prazo${atrasado ? ' prazo-vencido' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Prazo: ${fmtData(c.prazo)}</span>` : ''}
+        ${(c.atualizado_em && c.atualizado_em !== c.criado_em) ? (() => { const iso = c.atualizado_em.includes('T') ? c.atualizado_em : c.atualizado_em.replace(' ','T'); const recente = (Date.now() - new Date(iso.endsWith('Z') ? iso : iso+'Z')) / 1000 < 300; return `<span class="card-atu${recente ? ' card-atu--recente' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Atualizada ${fmtRelativo(c.atualizado_em)}</span>`; })() : ''}
         ${c.admin_nome ? `<span class="tag">Administrador responsável: ${_s(c.admin_nome)}</span>` : ''}
       </div>
     </div>

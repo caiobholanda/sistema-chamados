@@ -375,17 +375,6 @@ function fmtData(d) {
   return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Fortaleza' });
 }
 
-function fmtRelativo(d) {
-  if (!d) return null;
-  const iso = d.includes('T') ? d : d.replace(' ', 'T');
-  const t = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
-  const s = (Date.now() - t) / 1000;
-  if (s < 60) return 'agora';
-  if (s < 3600) return `há ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `há ${Math.floor(s / 3600)} h`;
-  return `há ${Math.floor(s / 86400)} dias`;
-}
-
 function badgeStatus(s) {
   return `<span class="badge badge-${s}">${STATUS_LABELS[s] || s}</span>`;
 }
@@ -1853,7 +1842,6 @@ function renderCardChamado(c) {
         ${c.aberto_por_admin_is_master ? 'Admin Master' : 'Administrador'} <strong>${_s(c.aberto_por_admin_nome)}</strong> criou esse chamado por você
       </div>` : '')}
       <div class="chamado-card-setor">${_s(c.setor)} <span style="color:var(--text-muted);font-family:Inter,sans-serif;font-size:.8rem;font-weight:400">· Ramal ${c.ramal}</span></div>
-      ${(c.atualizado_em && c.atualizado_em !== c.criado_em) ? (() => { const iso = c.atualizado_em.includes('T') ? c.atualizado_em : c.atualizado_em.replace(' ','T'); const recente = (Date.now() - new Date(iso.endsWith('Z') ? iso : iso+'Z')) / 1000 < 300; return `<div class="card-atu${recente ? ' card-atu--recente' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Atualizada ${fmtRelativo(c.atualizado_em)}</div>`; })() : ''}
       <div class="chamado-card-desc">${_s(c.descricao)}</div>
       ${c.admin_nome ? `<div style="font-size:.75rem;color:var(--gold-dark);font-weight:600;margin-top:.4rem;letter-spacing:.02em">Responsável: <span style="color:var(--text-secondary);font-weight:400">${_s(c.admin_nome)}</span>${c.admin_ramal ? `<span style="color:var(--text-muted);font-weight:400"> · Ramal <strong style="color:var(--text-secondary);font-weight:600">${c.admin_ramal}</strong></span>` : ''}</div>` : ''}
       ${c.prazo ? `<div style="font-size:.74rem;color:var(--text-muted);margin-top:.2rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
