@@ -295,7 +295,17 @@ function renderDetalhe(s) {
         <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.4rem">Sugestão</div>
         <div style="font-size:.88rem;line-height:1.6;white-space:pre-wrap">${_esc(s.texto)}</div>
         ${campoExtra}
-        ${s.anexo_path ? `<a href="/api/sugestoes/admin/${s.id}/anexo" target="_blank" rel="noopener noreferrer" class="sug-anexo-link" style="margin-top:.5rem"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${_esc(s.anexo_nome_original) || 'Arquivo anexado'}</a>` : ''}
+        ${s.anexo_path ? (() => {
+          const url = `/api/sugestoes/admin/${s.id}/anexo`;
+          const nome = s.anexo_nome_original || s.anexo_path;
+          const ext = nome.split('.').pop().toLowerCase();
+          const vids = ['mp4','webm','mov','avi','mkv','wmv'];
+          if (_IMGS_EXT.includes(ext))
+            return `<div class="anexo-preview-wrap" style="margin-top:.5rem"><img class="lbx-img anexo-preview-img" src="${url}" alt="${_esc(nome)}"><div style="display:flex;align-items:center;gap:.4rem;margin-top:.15rem"><a href="${url}" download class="anexo-preview-dl">⬇ baixar</a></div></div>`;
+          if (vids.includes(ext))
+            return `<div style="margin-top:.5rem"><video class="chat-msg-video" src="${url}" controls preload="metadata" style="max-width:100%"></video><div style="margin-top:.25rem"><a href="${url}" class="mv2-anexo-btn" download><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${_esc(nome)}</a></div></div>`;
+          return `<div style="margin-top:.5rem"><a href="${url}" class="mv2-anexo-btn" download><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${_esc(nome)}</a></div>`;
+        })() : ''}
       </div>
 
       <div>

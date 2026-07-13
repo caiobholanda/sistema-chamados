@@ -84,7 +84,9 @@ router.get('/:id/anexo', requireUsuario, (req, res) => {
     if (!s.anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
     const filePath = path.join(UPLOADS_DIR, s.anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(s.anexo_nome_original || s.anexo_path)}`);
+    const nomeAnexo = s.anexo_nome_original || s.anexo_path;
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(nomeAnexo);
+    res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(nomeAnexo)}`);
     return res.sendFile(path.resolve(filePath));
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });
@@ -328,7 +330,9 @@ router.get('/admin/:id/anexo', requireAdmin, (req, res) => {
     if (!s.anexo_path) return res.status(404).json({ erro: 'Sem anexo' });
     const filePath = path.join(UPLOADS_DIR, s.anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(s.anexo_nome_original || s.anexo_path)}`);
+    const nomeAnexo = s.anexo_nome_original || s.anexo_path;
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(nomeAnexo);
+    res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(nomeAnexo)}`);
     return res.sendFile(path.resolve(filePath));
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });
