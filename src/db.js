@@ -1392,6 +1392,7 @@ function criarMensagem({ chamado_id, autor_tipo, autor_id, autor_nome, mensagem,
     INSERT INTO mensagens_chamado (chamado_id, autor_tipo, autor_id, autor_nome, mensagem, chat_anexo_path, chat_anexo_nome_original)
     VALUES (@chamado_id, @autor_tipo, @autor_id, @autor_nome, @mensagem, @chat_anexo_path, @chat_anexo_nome_original)
   `).run({ chamado_id, autor_tipo, autor_id: autor_id || null, autor_nome, mensagem: mensagem || '', chat_anexo_path: chat_anexo_path || null, chat_anexo_nome_original: chat_anexo_nome_original || null });
+  getDb().prepare('UPDATE chamados SET atualizado_em = CURRENT_TIMESTAMP WHERE id = ?').run(chamado_id);
   return result.lastInsertRowid;
 }
 
@@ -2401,9 +2402,9 @@ function buscarTermoAceite(chamado_id) {
 
 function marcarRequerAcordo(chamadoId, valor, equipamentos) {
   if (valor) {
-    return getDb().prepare('UPDATE chamados SET requer_acordo = 1, acordo_equipamentos = ? WHERE id = ?').run(equipamentos || null, chamadoId);
+    return getDb().prepare('UPDATE chamados SET requer_acordo = 1, acordo_equipamentos = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?').run(equipamentos || null, chamadoId);
   }
-  return getDb().prepare('UPDATE chamados SET requer_acordo = 0, acordo_equipamentos = NULL WHERE id = ?').run(chamadoId);
+  return getDb().prepare('UPDATE chamados SET requer_acordo = 0, acordo_equipamentos = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?').run(chamadoId);
 }
 
 // ── Reset de senha ────────────────────────────────────────
@@ -2572,10 +2573,12 @@ function contarNaoVistaAdmin() {
 }
 
 function inserirInfoAdicional({ chamado_id, texto, autor_tipo, autor_id, autor_nome }) {
-  return getDb().prepare(`
+  const id = getDb().prepare(`
     INSERT INTO chamado_infos_adicionais (chamado_id, texto, autor_tipo, autor_id, autor_nome)
     VALUES (?, ?, ?, ?, ?)
   `).run(chamado_id, texto, autor_tipo, autor_id, autor_nome).lastInsertRowid;
+  getDb().prepare('UPDATE chamados SET atualizado_em = CURRENT_TIMESTAMP WHERE id = ?').run(chamado_id);
+  return id;
 }
 
 function listarInfosAdicionais(chamadoId) {
@@ -2585,10 +2588,12 @@ function listarInfosAdicionais(chamadoId) {
 }
 
 function inserirAnexoExtra({ chamado_id, path, nome_original, autor_tipo = null, autor_id = null, autor_nome = null }) {
-  return getDb().prepare(`
+  const id = getDb().prepare(`
     INSERT INTO chamado_anexos (chamado_id, path, nome_original, autor_tipo, autor_id, autor_nome)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(chamado_id, path, nome_original, autor_tipo, autor_id, autor_nome).lastInsertRowid;
+  getDb().prepare('UPDATE chamados SET atualizado_em = CURRENT_TIMESTAMP WHERE id = ?').run(chamado_id);
+  return id;
 }
 
 function listarAnexosExtras(chamadoId) {
