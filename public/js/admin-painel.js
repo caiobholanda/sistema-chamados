@@ -1378,9 +1378,10 @@ async function carregarChamados(silencioso = false, { retries = 2, baseDelayMs =
     params.set('status', statusFiltroAtual);
   } else {
     // Só força STATUS_ABERTOS no carregamento padrão (sem filtro de conteúdo ativo).
-    // Com busca, responsável, setor ou etiqueta ativos, a busca deve varrer todos os status —
-    // mesma lógica já aplicada para filtro por data (params.delete abaixo).
-    const temFiltroConteudo = filtroBusca || adminId || setor || _etiquetaFiltroAtual;
+    // Busca por texto e etiqueta devem varrer todos os status (o usuário quer encontrar
+    // um chamado específico, seja qual for o status). Filtros de setor e responsável
+    // continuam mostrando apenas abertos (gestão de workload — comportamento esperado).
+    const temFiltroConteudo = filtroBusca || _etiquetaFiltroAtual;
     if (!temFiltroConteudo) {
       params.set('status', STATUS_ABERTOS.join(','));
     }
