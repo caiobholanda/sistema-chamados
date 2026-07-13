@@ -1910,6 +1910,10 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
             </div>
           </div>
         </div>
+        <div class="form-group" id="grupo-ramal-problema" style="display:none">
+          <label for="ch-ramal-problema">Qual ramal está com problema? <span class="req">*</span></label>
+          <input type="text" class="form-control" id="ch-ramal-problema" placeholder="Ex: 3201" maxlength="20" autocomplete="off">
+        </div>
         <div class="form-group">
           <label for="ch-descricao">Descrição do problema <span class="req">*</span></label>
           <textarea class="form-control" id="ch-descricao" required minlength="10" maxlength="2000" placeholder="Descreva o problema com detalhes..."></textarea>
@@ -1933,6 +1937,18 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
   `;
 
   _preencherSelectsChamado(usuario);
+
+  const _grupoRamalProblema = document.getElementById('grupo-ramal-problema');
+  const _inputRamalProblema = document.getElementById('ch-ramal-problema');
+  const _catTxtEl           = document.getElementById('ch-cat-txt');
+  const _catHiddenEl        = document.getElementById('ch-categoria');
+  function _syncRamalField() {
+    const mostrar = _catHiddenEl.value === 'ramal';
+    _grupoRamalProblema.style.display = mostrar ? '' : 'none';
+    if (!mostrar) _inputRamalProblema.value = '';
+  }
+  _catTxtEl.addEventListener('input', _syncRamalField);
+  _catTxtEl.addEventListener('blur', () => setTimeout(_syncRamalField, 200));
 
   document.getElementById('btn-cancelar-chamado').addEventListener('click', onCancel);
 
@@ -2026,6 +2042,15 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       document.getElementById('ch-descricao').focus();
       return;
     }
+    const categoria = document.getElementById('ch-categoria').value;
+    if (categoria === 'ramal') {
+      const ramalProblema = document.getElementById('ch-ramal-problema').value.trim();
+      if (!ramalProblema) {
+        msg.innerHTML = '<div class="alert alert-danger">Informe o número do ramal com problema.</div>';
+        document.getElementById('ch-ramal-problema').focus();
+        return;
+      }
+    }
     if (_chArquivos.length > 10) {
       msg.innerHTML = '<div class="alert alert-danger">Máximo 10 anexos por chamado.</div>';
       return;
@@ -2037,8 +2062,9 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       fd.append('nome', usuario.nome);
       fd.append('setor', setor);
       fd.append('ramal', usuario.ramal || '');
-      fd.append('descricao', document.getElementById('ch-descricao').value);
-      const categoria = document.getElementById('ch-categoria').value;
+      const _ramalProblema = categoria === 'ramal' ? document.getElementById('ch-ramal-problema').value.trim() : '';
+      const _descricaoFinal = _ramalProblema ? `Ramal com problema: ${_ramalProblema}\n\n${document.getElementById('ch-descricao').value}` : document.getElementById('ch-descricao').value;
+      fd.append('descricao', _descricaoFinal);
       if (categoria) fd.append('categoria', categoria);
       _chArquivos.forEach(f => fd.append('anexos', f, f.name));
 
