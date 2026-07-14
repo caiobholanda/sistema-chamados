@@ -12,11 +12,7 @@ RUN npm ci --production
 
 COPY --chown=node:node . .
 
-# Roda como usuário não-root (node, uid 1000 da imagem oficial).
-# chown garante escrita em /app/data (volume) e node_modules.
-RUN mkdir -p data data/uploads && chmod +x /app/start.sh && chown -R node:node /app
-
-USER node
+RUN mkdir -p data data/uploads && chmod +x /app/start.sh
 
 EXPOSE 3000
 
