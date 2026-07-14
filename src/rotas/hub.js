@@ -14,10 +14,17 @@ function senhaForte(s) {
 }
 function sanit(s) { return typeof s === 'string' ? s.trim() : s; }
 
+function compararSegredo(token, segredo) {
+  if (!token || !segredo) return false;
+  const a = crypto.createHash('sha256').update(token).digest();
+  const b = crypto.createHash('sha256').update(segredo).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
 function requireHubBearer(req, res, next) {
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  if (!token || token !== process.env.SSO_SECRET) return res.status(403).json({ ok: false, erro: 'Acesso negado' });
+  if (!compararSegredo(token, process.env.SSO_SECRET)) return res.status(403).json({ ok: false, erro: 'Acesso negado' });
   next();
 }
 
@@ -65,7 +72,7 @@ router.post('/admins', async (req, res) => {
     const id = db.criarAdmin({
       usuario, nome_completo, email, ramal: ramal || null,
       data_admissao, data_nascimento,
-      senha_hash, senha_plain: senha, is_master,
+      senha_hash, is_master,
     });
     db.atualizarAdmin(id, { precisa_trocar_senha: 1 });
     res.status(201).json({ ok: true, id });
@@ -107,12 +114,9 @@ router.patch('/admins/:id', async (req, res) => {
     if (req.body.data_nascimento !== undefined) dados.data_nascimento = sanit(req.body.data_nascimento || '') || null;
     if (req.body.senha) {
       const mesma = await bcrypt.compare(req.body.senha, alvo.senha_hash);
-      if (mesma) {
-        dados.senha_plain = req.body.senha;
-      } else {
+      if (!mesma) {
         if (!senhaForte(req.body.senha)) return res.status(400).json({ ok: false, erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(req.body.senha, 12);
-        dados.senha_plain = req.body.senha;
         // Senha redefinida pelo admin para OUTRA conta vira temporaria (target deve trocar no proximo login).
         // Se for auto-edicao (_self_edit), nao marcar - ele acabou de escolher essa senha.
         if (!req.body._self_edit) dados.precisa_trocar_senha = 1;
@@ -164,7 +168,7 @@ router.post('/portal-usuarios', async (req, res) => {
     const data_admissao = sanit(req.body.data_admissao || '') || null;
     const data_nascimento = sanit(req.body.data_nascimento || '') || null;
     const senha_hash = await bcrypt.hash(senha, 12);
-    const id = db.registrarUsuario({ nome, email, senha_hash, senha_plain: senha, ramal: ramal || null, setor: setor || null, data_admissao, data_nascimento });
+    const id = db.registrarUsuario({ nome, email, senha_hash, ramal: ramal || null, setor: setor || null, data_admissao, data_nascimento });
     db.atualizarUsuario(id, { precisa_trocar_senha: 1 });
     res.status(201).json({ ok: true, id });
   } catch (err) {
@@ -204,12 +208,9 @@ router.patch('/portal-usuarios/:id', async (req, res) => {
     if (req.body.senha) {
       const senha = req.body.senha;
       const mesma = await bcrypt.compare(senha, u.senha_hash);
-      if (mesma) {
-        dados.senha_plain = senha;
-      } else {
+      if (!mesma) {
         if (!senhaForte(senha)) return res.status(400).json({ ok: false, erro: 'Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula, número e caractere especial.' });
         dados.senha_hash = await bcrypt.hash(senha, 12);
-        dados.senha_plain = senha;
         if (!req.body._self_edit) dados.precisa_trocar_senha = 1;
         else dados.precisa_trocar_senha = 0;
       }
@@ -369,9 +370,6 @@ router.post('/login', async (req, res) => {
     if (admin && admin.ativo) {
       const ok = await bcrypt.compare(senha, admin.senha_hash);
       if (!ok) return res.status(401).json({ ok: false, erro: 'E-mail ou senha inválidos' });
-      if (!admin.senha_plain || admin.senha_plain !== senha) {
-        try { db.atualizarAdmin(admin.id, { senha_plain: senha }); } catch {}
-      }
       return res.json({
         ok: true,
         tipo: 'admin',
@@ -391,9 +389,6 @@ router.post('/login', async (req, res) => {
       const ok = await bcrypt.compare(senha, usuario.senha_hash);
       if (!ok) return res.status(401).json({ ok: false, erro: 'E-mail ou senha inválidos' });
       if (usuario.ativo === 0) return res.status(403).json({ ok: false, erro: 'Conta desativada. Entre em contato com o suporte.' });
-      if (!usuario.senha_plain || usuario.senha_plain !== senha) {
-        try { db.atualizarUsuario(usuario.id, { senha_plain: senha }); } catch {}
-      }
       return res.json({
         ok: true,
         tipo: 'usuario',
@@ -469,14 +464,14 @@ router.post('/trocar-primeira-senha', async (req, res) => {
     const ok = await bcrypt.compare(senha_atual, alvo.senha_hash);
     if (!ok) return res.status(401).json({ ok: false, erro: 'Senha atual incorreta' });
 
-    // Hash novo SEMPRE (mesmo se senha_nova == senha_atual): garante consistencia
-    // hash/plain e for�a o bcrypt a regenerar o salt. UPDATE atomico (SQL direto)
-    // grava senha_hash, senha_plain E zera precisa_trocar_senha de uma vez.
+    // Hash novo SEMPRE (mesmo se senha_nova == senha_atual): for�a o bcrypt a
+    // regenerar o salt. UPDATE atomico (SQL direto) grava senha_hash E zera
+    // precisa_trocar_senha de uma vez.
     const senha_hash = await bcrypt.hash(senha_nova, 12);
     const sql = tipo === 'admin'
-      ? 'UPDATE admins   SET senha_hash = ?, senha_plain = ?, precisa_trocar_senha = 0 WHERE id = ?'
-      : 'UPDATE usuarios SET senha_hash = ?, senha_plain = ?, precisa_trocar_senha = 0 WHERE id = ?';
-    const result = db.getDb().prepare(sql).run(senha_hash, senha_nova, alvo.id);
+      ? 'UPDATE admins   SET senha_hash = ?, precisa_trocar_senha = 0 WHERE id = ?'
+      : 'UPDATE usuarios SET senha_hash = ?, precisa_trocar_senha = 0 WHERE id = ?';
+    const result = db.getDb().prepare(sql).run(senha_hash, alvo.id);
     console.log('[trocar-primeira-senha]', { email, tipo, id: alvo.id, changes: result.changes });
 
     if (result.changes !== 1) {

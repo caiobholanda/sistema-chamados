@@ -49,6 +49,13 @@ function requireUsuario(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
+    // Revalida no banco: usuário pode ter sido desativado/excluído depois do login.
+    const db = require('./db');
+    const usuario = db.buscarUsuarioPorId(payload.sub);
+    if (!usuario || !usuario.ativo) {
+      res.clearCookie('token_usuario');
+      return res.status(401).json({ erro: 'Conta desativada ou removida' });
+    }
     req.usuario = payload;
     _renovar(payload, res, 'token_usuario');
     next();

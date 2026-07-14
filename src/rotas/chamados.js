@@ -6,6 +6,7 @@ const router = express.Router();
 const db = require('../db');
 const { upload, uploadMiddleware, uploadChamadoMiddleware, renomearAnexoComId, renomearAnexoExtra, UPLOADS_DIR } = require('../upload');
 const { classificarInteligente } = require('../categorizador');
+const { criarRateLimit } = require('../ratelimit');
 const { extrairEquipamentos } = require('../analisador-equipamentos');
 const push = require('../push');
 const sse = require('../sse');
@@ -25,7 +26,11 @@ function getUsuarioIdFromCookie(req) {
 function getAuthChamado(req) {
   try {
     const t = req.cookies && req.cookies.token;
-    if (t) { jwt.verify(t, process.env.JWT_SECRET); return { admin: true }; }
+    if (t) {
+      const payload = jwt.verify(t, process.env.JWT_SECRET);
+      const admin = db.buscarAdminPorId(payload.sub);
+      if (admin && admin.ativo) return { admin: true };
+    }
   } catch {}
   const usuario_id = getUsuarioIdFromCookie(req);
   if (usuario_id) return { admin: false, usuario_id };
@@ -40,9 +45,18 @@ function sanitizarTexto(str) {
   return str.trim();
 }
 
-router.post('/', uploadChamadoMiddleware(), async (req, res) => {
+const limiteCriacaoChamado = criarRateLimit({ max: 20, janelaMs: 15 * 60 * 1000, mensagem: 'Muitos chamados abertos. Aguarde alguns minutos.' });
+
+router.post('/', limiteCriacaoChamado, uploadChamadoMiddleware(), async (req, res) => {
   const arquivos = req.arquivos || [];
+  const renomeados = new Map(); // tmp path -> caminho final (pós-rename)
   try {
+    const usuario_id = getUsuarioIdFromCookie(req);
+    if (usuario_id === null && !getAuthChamado(req)) {
+      arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
+      return res.status(401).json({ erro: 'Não autenticado' });
+    }
+
     let { nome, setor, ramal, descricao } = req.body;
     nome = sanitizarTexto(nome);
     setor = sanitizarTexto(setor);
@@ -60,8 +74,6 @@ router.post('/', uploadChamadoMiddleware(), async (req, res) => {
       return res.status(400).json({ erro: erros.join('; ') });
     }
 
-    const usuario_id = getUsuarioIdFromCookie(req);
-
     const categoriaEnviada = (req.body.categoria || '').trim();
     let categoria;
     if (categoriaEnviada) {
@@ -77,23 +89,29 @@ router.post('/', uploadChamadoMiddleware(), async (req, res) => {
       categoria = cat ? cat.id : null;
     }
 
-    const id = db.inserirChamado({ usuario_id, nome, setor, ramal, descricao, anexo_path: null, anexo_nome_original: null, categoria });
-    if (categoria === 'impressora') {
-      db.atualizarPrazo(id, db.prazo2DiasUteis(), null);
-    }
-
-    if (arquivos.length > 0) {
-      const principal = arquivos[0];
-      const novoNome = renomearAnexoComId(id, principal.path, principal.originalname);
-      db.getDb().prepare('UPDATE chamados SET anexo_path = ?, anexo_nome_original = ? WHERE id = ?')
-        .run(novoNome, principal.originalname, id);
-      for (let i = 1; i < arquivos.length; i++) {
-        const extra = arquivos[i];
-        const anexoId = db.inserirAnexoExtra({ chamado_id: id, path: 'pendente', nome_original: extra.originalname, autor_tipo: 'usuario', autor_id: usuario_id, autor_nome: nome });
-        const nomeFinal = renomearAnexoExtra(id, anexoId, extra.path, extra.originalname);
-        db.getDb().prepare('UPDATE chamado_anexos SET path = ? WHERE id = ?').run(nomeFinal, anexoId);
+    let id;
+    const criarTx = db.getDb().transaction(() => {
+      id = db.inserirChamado({ usuario_id, nome, setor, ramal, descricao, anexo_path: null, anexo_nome_original: null, categoria });
+      if (categoria === 'impressora') {
+        db.atualizarPrazo(id, db.prazo2DiasUteis(), null);
       }
-    }
+
+      if (arquivos.length > 0) {
+        const principal = arquivos[0];
+        const novoNome = renomearAnexoComId(id, principal.path, principal.originalname);
+        renomeados.set(principal.path, path.join(UPLOADS_DIR, novoNome));
+        db.getDb().prepare('UPDATE chamados SET anexo_path = ?, anexo_nome_original = ? WHERE id = ?')
+          .run(novoNome, principal.originalname, id);
+        for (let i = 1; i < arquivos.length; i++) {
+          const extra = arquivos[i];
+          const anexoId = db.inserirAnexoExtra({ chamado_id: id, path: 'pendente', nome_original: extra.originalname, autor_tipo: 'usuario', autor_id: usuario_id, autor_nome: nome });
+          const nomeFinal = renomearAnexoExtra(id, anexoId, extra.path, extra.originalname);
+          renomeados.set(extra.path, path.join(UPLOADS_DIR, nomeFinal));
+          db.getDb().prepare('UPDATE chamado_anexos SET path = ? WHERE id = ?').run(nomeFinal, anexoId);
+        }
+      }
+    });
+    criarTx();
 
     extrairEquipamentos(descricao).then(equipamentos => {
       if (equipamentos.length > 0) {
@@ -104,7 +122,14 @@ router.post('/', uploadChamadoMiddleware(), async (req, res) => {
     push.enviarParaTodos('🆕 Novo chamado aberto', `${nome} (${setor}): ${descricao.slice(0, 80)}${descricao.length > 80 ? '…' : ''}`).catch(() => {});
     return res.status(201).json({ id, mensagem: 'Chamado aberto com sucesso' });
   } catch (err) {
-    arquivos.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
+    arquivos.forEach(f => {
+      const final = renomeados.get(f.path);
+      if (final && fs.existsSync(final)) {
+        try { fs.unlinkSync(final); } catch {}
+      } else {
+        try { fs.unlinkSync(f.path); } catch {}
+      }
+    });
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno ao abrir chamado' });
   }
@@ -160,7 +185,7 @@ router.get('/:id/anexo', (req, res) => {
     const filePath = path.join(UPLOADS_DIR, chamado.anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado no servidor' });
     const nomeAnexo = chamado.anexo_nome_original || chamado.anexo_path;
-    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(nomeAnexo);
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|heic|avif)$/i.test(nomeAnexo);
     res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(nomeAnexo)}"`);
     return res.sendFile(filePath);
   } catch (err) {
@@ -196,7 +221,7 @@ router.get('/:id/anexos/:anexoId', (req, res) => {
       return res.status(404).json({ erro: 'Anexo não encontrado' });
     const filePath = path.join(UPLOADS_DIR, anexo.path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado no servidor' });
-    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(anexo.nome_original);
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|heic|avif)$/i.test(anexo.nome_original);
     res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(anexo.nome_original)}"`);
     return res.sendFile(filePath);
   } catch (err) {
@@ -309,7 +334,8 @@ router.get('/:id/mensagens/:msgId/chat-anexo', (req, res) => {
     if (req.headers['if-none-match'] === etag) return res.status(304).end();
     res.setHeader('ETag', etag);
     res.setHeader('Cache-Control', 'private, max-age=3600');
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|heic|avif)$/i.test(msg.chat_anexo_nome_original || '');
+    res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
     return res.sendFile(filePath);
   } catch (err) {
     console.error(err);

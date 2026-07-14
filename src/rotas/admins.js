@@ -6,9 +6,9 @@ const path = require('path');
 const router = express.Router();
 const db = require('../db');
 const { requireAdmin, requireMaster } = require('../auth');
-const { loginRateLimit } = require('../ratelimit');
+const { loginRateLimit, registrarFalhaLogin, limparFalhasLogin } = require('../ratelimit');
 const push = require('../push');
-const { upload, uploadMiddleware, uploadChamadoMiddleware, renomearAnexoComId, renomearAnexoExtra } = require('../upload');
+const { upload, uploadMiddleware, uploadChamadoMiddleware, renomearAnexoComId, renomearAnexoExtra, UPLOADS_DIR } = require('../upload');
 const sse = require('../sse');
 
 const PRIORIDADES_VALIDAS = ['baixa', 'media', 'alta', 'urgente'];
@@ -47,15 +47,18 @@ router.post('/login', loginRateLimit, async (req, res) => {
     if (!email || !senha) return res.status(400).json({ erro: 'E-mail e senha obrigatórios' });
 
     const admin = db.buscarAdminPorEmail(email.trim().toLowerCase());
-    if (!admin || !admin.ativo) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
+    if (!admin || !admin.ativo) {
+      registrarFalhaLogin(req);
+      return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
+    }
 
     const ok = await bcrypt.compare(senha, admin.senha_hash);
-    if (!ok) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
-
-    // Captura senha em texto plano para visualizacao do master (auditoria).
-    if (!admin.senha_plain || admin.senha_plain !== senha) {
-      db.atualizarAdmin(admin.id, { senha_plain: senha });
+    if (!ok) {
+      registrarFalhaLogin(req);
+      return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
     }
+
+    limparFalhasLogin(req);
 
     const token = jwt.sign(
       { sub: admin.id, is_master: admin.is_master === 1, nome: admin.nome_completo },

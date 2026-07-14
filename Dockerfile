@@ -7,12 +7,16 @@ RUN wget -q https://github.com/benbjohnson/litestream/releases/download/v0.5.11/
     && mv litestream /usr/local/bin/litestream \
     && rm litestream-0.5.11-linux-x86_64.tar.gz
 
-COPY package*.json ./
+COPY --chown=node:node package*.json ./
 RUN npm ci --production
 
-COPY . .
+COPY --chown=node:node . .
 
-RUN mkdir -p data data/uploads && chmod +x /app/start.sh
+# Roda como usuário não-root (node, uid 1000 da imagem oficial).
+# chown garante escrita em /app/data (volume) e node_modules.
+RUN mkdir -p data data/uploads && chmod +x /app/start.sh && chown -R node:node /app
+
+USER node
 
 EXPOSE 3000
 

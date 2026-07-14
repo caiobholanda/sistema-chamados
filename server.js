@@ -20,6 +20,9 @@ const push = require('./src/push');
 const { executarChamadosProgramados } = require('./src/scheduler');
 
 const app = express();
+// Atrás de exatamente 1 hop de proxy (Fly.io) — necessário para req.ip correto
+// no rate limiting e nos logs de auditoria.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const BUILD_TS = Date.now(); // deploy-test
 
@@ -46,6 +49,30 @@ app.use(compression({
     return compression.filter(req, res);
   },
 }));
+
+// Headers de segurança. CSP mapeada do frontend real: inline <script> em 4 páginas,
+// style= inline em toda parte, Google Fonts via @import, imagens do S3 (letsimage),
+// previews blob:, SVGs data: no CSS e service worker /sw.js. SSE é same-origin
+// (connect-src 'self' cobre). COEP desabilitado de propósito.
+const helmet = require('helmet');
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:  ["'self'"],
+      scriptSrc:   ["'self'", "'unsafe-inline'"],
+      styleSrc:    ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc:     ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc:      ["'self'", 'data:', 'blob:', 'https://letsimage.s3.amazonaws.com'],
+      connectSrc:  ["'self'"],
+      workerSrc:   ["'self'"],
+      manifestSrc: ["'self'"],
+      frameSrc:    ["'none'"],
+      objectSrc:   ["'none'"],
+      baseUri:     ["'self'"],
+    },
+  },
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

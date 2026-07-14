@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const router = express.Router();
 const db = require('../db');
 const { requireUsuario } = require('../auth');
-const { loginRateLimit } = require('../ratelimit');
+const { loginRateLimit, registrarFalhaLogin, limparFalhasLogin, criarRateLimit } = require('../ratelimit');
 const push = require('../push');
 const { enviarResetSenha } = require('../email');
 const sse = require('../sse');
@@ -31,19 +31,23 @@ router.post('/login', loginRateLimit, async (req, res) => {
     if (!email || !senha) return res.status(400).json({ erro: 'E-mail e senha obrigatórios' });
 
     const usuario = db.buscarUsuarioPorEmail(email.trim().toLowerCase());
-    if (!usuario) return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
+    if (!usuario) {
+      registrarFalhaLogin(req);
+      return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
+    }
 
     const ok = await bcrypt.compare(senha, usuario.senha_hash);
     if (!ok) {
+      registrarFalhaLogin(req);
       try { db.registrarLogUsuario(usuario.id, 'login_falha', normIp(req.ip)); } catch {}
       return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
     }
-    if (usuario.ativo === 0) return res.status(403).json({ erro: 'Conta desativada. Entre em contato com o suporte.' });
-
-    // Captura senha em texto plano para visualizacao do master (auditoria).
-    if (!usuario.senha_plain || usuario.senha_plain !== senha) {
-      db.atualizarUsuario(usuario.id, { senha_plain: senha });
+    if (usuario.ativo === 0) {
+      registrarFalhaLogin(req);
+      return res.status(403).json({ erro: 'Conta desativada. Entre em contato com o suporte.' });
     }
+
+    limparFalhasLogin(req);
 
     const token = jwt.sign({ sub: usuario.id, nome: usuario.nome, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: 30 * 24 * 60 * 60 });
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
@@ -234,8 +238,10 @@ function senhaForte(s) {
   return s.length >= 8 && /[A-Z]/.test(s) && /[a-z]/.test(s) && /[0-9]/.test(s) && /[^A-Za-z0-9]/.test(s);
 }
 
+const esqueciSenhaRateLimit = criarRateLimit({ max: 5, janelaMs: 15 * 60 * 1000, mensagem: 'Muitas solicitações. Tente novamente mais tarde.' });
+
 // POST /api/usuarios/esqueci-senha
-router.post('/esqueci-senha', async (req, res) => {
+router.post('/esqueci-senha', esqueciSenhaRateLimit, async (req, res) => {
   try {
     const email = (req.body.email || '').trim().toLowerCase();
     if (!email) return res.status(400).json({ erro: 'E-mail obrigatório' });
@@ -310,13 +316,13 @@ router.post('/redefinir-senha', async (req, res) => {
       return res.status(400).json({ erro: 'A senha não atende aos requisitos mínimos de segurança' });
     }
 
-    const senha_hash = await bcrypt.hash(senha, 10);
+    const senha_hash = await bcrypt.hash(senha, 12);
     if (isAdmin) {
-      db.atualizarAdmin(registro.admin_id, { senha_hash, senha_plain: senha, precisa_trocar_senha: 0 });
+      db.atualizarAdmin(registro.admin_id, { senha_hash, precisa_trocar_senha: 0 });
       db.marcarAdminResetTokenUsado(token);
       try { db.registrarLogAdmin(registro.admin_id, 'reset_concluido', normIp(req.ip)); } catch {}
     } else {
-      db.atualizarUsuario(registro.usuario_id, { senha_hash, senha_plain: senha, precisa_trocar_senha: 0 });
+      db.atualizarUsuario(registro.usuario_id, { senha_hash, precisa_trocar_senha: 0 });
       db.marcarResetTokenUsado(token);
       try { db.registrarLogUsuario(registro.usuario_id, 'reset_concluido', normIp(req.ip)); } catch {}
     }

@@ -16,7 +16,7 @@ function getVapidKeys() {
     console.log('[Push] VAPID keys carregadas do banco. Para nunca perder notificações,');
     console.log('[Push] defina estas variáveis de ambiente permanentes no Fly.io:');
     console.log('[Push]   VAPID_PUBLIC_KEY=' + keys.publicKey);
-    console.log('[Push]   VAPID_PRIVATE_KEY=' + keys.privateKey);
+    console.log('[Push]   VAPID_PRIVATE_KEY=<oculta — leia da tabela config (chave vapid_keys) ou defina no Fly>');
     console.log('[Push]   VAPID_EMAIL=ti@granmarquise.com.br');
     console.log('='.repeat(72));
     return keys;
@@ -26,7 +26,7 @@ function getVapidKeys() {
   console.log('='.repeat(72));
   console.log('[Push] NOVAS VAPID keys geradas! COPIE PARA O FLY.IO IMEDIATAMENTE:');
   console.log('[Push]   VAPID_PUBLIC_KEY=' + keys.publicKey);
-  console.log('[Push]   VAPID_PRIVATE_KEY=' + keys.privateKey);
+  console.log('[Push]   VAPID_PRIVATE_KEY=<oculta — leia da tabela config (chave vapid_keys) ou defina no Fly>');
   console.log('[Push]   VAPID_EMAIL=ti@granmarquise.com.br');
   console.log('[Push] Sem isso, as notificações param a cada redeploy do banco.');
   console.log('='.repeat(72));
