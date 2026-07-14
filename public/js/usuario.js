@@ -16,6 +16,9 @@ function _s(s) { return _esc(_decode(s)); }
 
 let _refreshInterval = null;
 let _visibilityController = null;
+// Dispensa do banner de detecção de ramal: vive em escopo de módulo para
+// sobreviver a re-renders do formulário. Resetado após envio bem-sucedido.
+let _ramalDetecDismissed = false;
 let _sseSource = null;
 let _sseOk = false; // true assim que o SSE confirma conexão
 function _pararRefresh() {
@@ -116,12 +119,13 @@ const _IMGS_EXT = ['jpg','jpeg','png','gif','webp','bmp','svg','heic','avif'];
 function _chatAnexoHtmlUsr(url, nome) {
   if (!nome) return '';
   const ext = nome.split('.').pop().toLowerCase();
+  const nomeEsc = _esc(nome);
   const vids = ['mp4','webm','mov','avi','mkv','wmv'];
   if (_IMGS_EXT.includes(ext))
-    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}" loading="lazy">`;
+    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nomeEsc}" loading="lazy">`;
   if (vids.includes(ext))
     return `<video class="chat-msg-video" src="${url}" controls preload="metadata"></video>`;
-  return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
+  return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nomeEsc}</a>`;
 }
 
 function _renderMsgChat(m) {
@@ -376,7 +380,7 @@ function fmtData(d) {
 }
 
 function badgeStatus(s) {
-  return `<span class="badge badge-${s}">${STATUS_LABELS[s] || s}</span>`;
+  return `<span class="badge badge-${_esc(s)}">${STATUS_LABELS[s] || _esc(s)}</span>`;
 }
 
 async function apiFetch(url, opts = {}) {
@@ -442,7 +446,7 @@ function _renderAuth_legacy_unused() {
       }
 
       const d = await rA.json();
-      msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'E-mail ou senha incorretos.'}</div>`;
+      msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro) || 'E-mail ou senha incorretos.'}</div>`;
     } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Entrar'; }
   });
@@ -482,7 +486,7 @@ function _renderAuth_legacy_unused() {
     msgEl.innerHTML = `
       <div class="_gm-errmsg" role="alert">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger,#dc2626)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div class="_gm-errmsg__body"><div class="_gm-errmsg__title">${titulo}</div>${detalhe}</div>
+        <div class="_gm-errmsg__body"><div class="_gm-errmsg__title">${_esc(titulo)}</div>${_esc(detalhe)}</div>
       </div>`;
   }
 
@@ -541,8 +545,8 @@ function _mostrarToastU(titulo, corpo) {
   t.style.borderLeftColor = '#22c55e';
   t.innerHTML = `
     <button class="toast-close" onclick="this.closest('.toast-notif').remove()">✕</button>
-    <strong>${titulo}</strong>
-    ${corpo ? `<span>${corpo}</span>` : ''}
+    <strong>${_esc(titulo)}</strong>
+    ${corpo ? `<span>${_esc(corpo)}</span>` : ''}
   `;
   container.appendChild(t);
   requestAnimationFrame(() => t.classList.add('show'));
@@ -556,7 +560,7 @@ function renderPainel(usuario) {
     const nav = header.querySelector('nav');
     const ajudaVista = localStorage.getItem('ajuda_vista') === '1';
     if (nav) nav.innerHTML = `
-      <span style="font-size:.95rem;font-weight:600;color:var(--gold-light);letter-spacing:.01em;margin-right:1rem">${usuario.nome}</span>
+      <span style="font-size:.95rem;font-weight:600;color:var(--gold-light);letter-spacing:.01em;margin-right:1rem">${_s(usuario.nome)}</span>
       <button id="btn-ajuda-usuario" class="btn-ajuda" title="Guia rápido de como usar o sistema">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <span class="ajuda-label">Guia rápido</span>
@@ -571,10 +575,10 @@ function renderPainel(usuario) {
     <div class="page-header">
       <div>
         <div class="page-title">Meus Chamados</div>
-        <div class="page-subtitle">Acompanhe suas solicitações de TI — ${usuario.email}</div>
+        <div class="page-subtitle">Acompanhe suas solicitações de TI — ${_s(usuario.email)}</div>
         <div style="margin-top:.4rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:.78rem;color:var(--text-muted)">
-          <span><strong style="color:var(--text-secondary)">Setor:</strong> ${usuario.setor || '—'}</span>
-          <span><strong style="color:var(--text-secondary)">Ramal:</strong> ${usuario.ramal || '—'}</span>
+          <span><strong style="color:var(--text-secondary)">Setor:</strong> ${_s(usuario.setor) || '—'}</span>
+          <span><strong style="color:var(--text-secondary)">Ramal:</strong> ${_s(usuario.ramal) || '—'}</span>
         </div>
       </div>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap">
@@ -778,7 +782,7 @@ function renderPainel(usuario) {
         _carregarSugestoesUsuario();
         setTimeout(() => _mostrarToastU('Sugestão enviada com sucesso!', 'Acompanhe o andamento na aba Sugestões.'), 150);
       } else {
-        msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
+        msgEl.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`;
       }
     } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Enviar'; }
@@ -878,18 +882,18 @@ function renderPainel(usuario) {
       const campoExtra = s.campo_extra ? `
         <div style="margin-top:.6rem;padding:.55rem .75rem;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
           <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.25rem">${campoExtraLabel}</div>
-          <div style="font-size:.82rem;color:var(--text-secondary);font-style:italic">${s.campo_extra}</div>
+          <div style="font-size:.82rem;color:var(--text-secondary);font-style:italic">${_s(s.campo_extra)}</div>
         </div>` : '';
       return `
         <div class="card" style="margin-bottom:1rem;padding:1.25rem 1.4rem${fechado ? ';opacity:.8' : ''}" data-sug-id="${s.id}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;flex-wrap:wrap">
             <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
               <span style="font-size:.72rem;color:var(--text-muted)">#${s.id}</span>
-              <span class="badge badge-${s.status}">${statusLabel}</span>
+              <span class="badge badge-${_esc(s.status)}">${_esc(statusLabel)}</span>
               <span style="font-size:.72rem;color:var(--text-muted)">${fmtData(s.criado_em)}</span>
             </div>
           </div>
-          <div style="margin-top:.75rem;font-size:.88rem;line-height:1.6;white-space:pre-wrap">${s.texto}</div>
+          <div style="margin-top:.75rem;font-size:.88rem;line-height:1.6;white-space:pre-wrap">${_s(s.texto)}</div>
           ${campoExtra}
           ${s.anexo_path ? `<a class="sug-anexo-link" href="/api/sugestoes/${s.id}/anexo" target="_blank" rel="noopener noreferrer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${_s(s.anexo_nome_original) || 'Arquivo anexado'}</a>` : ''}
           <div class="chat-wrap" style="margin-top:.85rem">
@@ -967,10 +971,10 @@ function renderPainel(usuario) {
 
   function _renderMsgSugUsr(m) {
     const mine = m.autor_tipo === 'usuario';
-    const texto = m.mensagem ? `<div class="chat-msg-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+    const texto = m.mensagem ? `<div class="chat-msg-bubble">${_esc(m.mensagem)}</div>` : '';
     const anexoHtml = m.chat_anexo_nome_original ? _chatAnexoHtmlUsr(`/api/sugestoes/${m.sugestao_id}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original) : '';
     return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}" data-msg-id="${m.id}">
-      <div class="chat-msg-author">${m.autor_nome}</div>
+      <div class="chat-msg-author">${_esc(m.autor_nome)}</div>
       ${texto}${anexoHtml}
       <div class="chat-msg-time">${fmtData(m.criado_em)}</div>
     </div>`;
@@ -1294,11 +1298,11 @@ function renderPainel(usuario) {
             </div>
             <span class="text-muted" style="font-size:.76rem">${fmtData(c.criado_em)}</span>
           </div>
-          <div class="chamado-card-setor">${_s(c.setor)}${c.ramal ? ` <span style="color:var(--text-muted);font-size:.8rem;font-weight:400">· Ramal ${c.ramal}</span>` : ''}</div>
+          <div class="chamado-card-setor">${_s(c.setor)}${c.ramal ? ` <span style="color:var(--text-muted);font-size:.8rem;font-weight:400">· Ramal ${_s(c.ramal)}</span>` : ''}</div>
           <div class="chamado-card-desc">${_s(c.descricao)}</div>
           <div class="solucao-box" style="border-left-color:#fca5a5;background:#fef2f2">
             <strong style="color:#b91c1c">Motivo do cancelamento:</strong>
-            <span style="color:#7f1d1d">${c.cancelamento_motivo || '<em style="opacity:.7">Não informado.</em>'}</span>
+            <span style="color:#7f1d1d">${c.cancelamento_motivo ? _s(c.cancelamento_motivo) : '<em style="opacity:.7">Não informado.</em>'}</span>
           </div>
         </div>
       `).join('');
@@ -1371,15 +1375,15 @@ function renderPainel(usuario) {
             <svg class="filtro-busca-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" id="filtro-nome-u" class="filtro-busca-input"
               placeholder="Buscar por nome, descrição, etiqueta, #id, setor, ramal, responsável…"
-              value="${(filtroNome || '').replace(/"/g, '&quot;')}" autocomplete="off">
+              value="${_esc(filtroNome || '')}" autocomplete="off">
             ${filtroNome ? `<button type="button" id="filtro-nome-clear" class="filtro-busca-clear" title="Limpar">✕</button>` : ''}
           </div>
           <div class="filtro-cat-wrap" style="position:relative">
             <select id="filtro-cat-u" class="filtro-busca-input" style="padding-right:1.6rem;min-width:170px;cursor:pointer">
               <option value="">Todas as etiquetas</option>
               ${_catsDisponiveis.map(cat => `
-                <option value="${cat.slug}"${filtroCategoria === cat.slug ? ' selected' : ''}>
-                  ${cat.nome} (${_cntPorCat[cat.slug]})
+                <option value="${_esc(cat.slug)}"${filtroCategoria === cat.slug ? ' selected' : ''}>
+                  ${_esc(cat.nome)} (${_cntPorCat[cat.slug]})
                 </option>
               `).join('')}
             </select>
@@ -1391,8 +1395,8 @@ function renderPainel(usuario) {
         </div>
         ${filtroCategoria ? `
           <div style="margin-top:.5rem;font-size:.78rem;color:var(--text-muted)">
-            Etiqueta: <strong style="color:${(_catalogoCats.find(x => x.slug === filtroCategoria)?.cor) || '#666'};font-weight:600">
-              ${_catalogoCats.find(x => x.slug === filtroCategoria)?.nome || filtroCategoria}
+            Etiqueta: <strong style="color:${_esc((_catalogoCats.find(x => x.slug === filtroCategoria)?.cor) || '#666')};font-weight:600">
+              ${_esc(_catalogoCats.find(x => x.slug === filtroCategoria)?.nome || filtroCategoria)}
             </strong>
             · ${filtrados.length} resultado${filtrados.length === 1 ? '' : 's'}
           </div>
@@ -1403,7 +1407,7 @@ function renderPainel(usuario) {
     if (!filtrados.length) {
       _limparChats();
       const msg = filtroNome
-        ? `Nenhum chamado encontrado para "${filtroNome}".`
+        ? `Nenhum chamado encontrado para "${_esc(filtroNome)}".`
         : aba === 'abertos'
         ? (escopoAbertos === 'meus' ? 'Você não tem chamados em aberto.' : 'Nenhum chamado em aberto no seu setor.')
         : aba === 'avaliacao'
@@ -1489,7 +1493,7 @@ function renderPainel(usuario) {
             body: JSON.stringify({ nota: parseInt(nota), comentario_avaliacao: form.querySelector('.comentario-av').value }),
           });
           const d = await r.json();
-          if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+          if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`; return; }
           await carregarChamados();
         } catch { msg.innerHTML = '<div class="alert alert-danger">Erro ao enviar.</div>'; }
         finally { btn.disabled = false; btn.textContent = 'Enviar avaliação'; }
@@ -1588,7 +1592,7 @@ function renderPainel(usuario) {
           body: JSON.stringify({ nova_descricao: texto }),
         });
         const d = await r.json();
-        if (!r.ok) { msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+        if (!r.ok) { msgEl.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`; return; }
         overlay.remove();
         await carregarChamados();
       } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
@@ -1649,7 +1653,7 @@ function renderPainel(usuario) {
 
             <div class="termo-field-row">
               <span class="termo-label">Eu</span>
-              <span class="termo-value-fixed">${nomeUsuario}</span>
+              <span class="termo-value-fixed">${_s(nomeUsuario)}</span>
               <span class="termo-label">Empresa:</span>
               <span class="termo-value-fixed">Hotel Gran Marquise</span>
             </div>
@@ -1668,7 +1672,7 @@ function renderPainel(usuario) {
             </div>
 
             ${temEquipamentosAdmin ? `<div class="termo-texto" style="margin-top:.5rem">
-              <strong>Equipamento: ${equipamentosAdmin.map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ')}</strong>
+              <strong>Equipamento: ${_esc(equipamentosAdmin.map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', '))}</strong>
             </div>` : ''}
 
             <table class="termo-table">
@@ -1683,10 +1687,10 @@ function renderPainel(usuario) {
               <tbody id="termo-table-body">
                 ${temEquipamentosAdmin
                   ? equipamentosAdmin.map(r => `<tr>
-                      <td style="text-align:center;font-weight:600">${r.quantidade || 1}</td>
-                      <td>${r.tipo || ''}</td>
-                      <td>${r.marca || ''}</td>
-                      <td>${r.modelo || ''}</td>
+                      <td style="text-align:center;font-weight:600">${_esc(r.quantidade || 1)}</td>
+                      <td>${_esc(r.tipo || '')}</td>
+                      <td>${_esc(r.marca || '')}</td>
+                      <td>${_esc(r.modelo || '')}</td>
                     </tr>`).join('')
                   : `<tr><td></td><td></td><td></td><td></td></tr>
                      <tr><td></td><td></td><td></td><td></td></tr>`}
@@ -1697,7 +1701,7 @@ function renderPainel(usuario) {
               <div class="termo-date">Fortaleza, ${hoje}</div>
               <div style="display:flex;justify-content:center">
                 <div class="termo-sig" style="text-align:center;min-width:220px">
-                  <div style="font-weight:600;font-size:.85rem;margin-bottom:.4rem">${nomeUsuario.split(' ')[0]}</div>
+                  <div style="font-weight:600;font-size:.85rem;margin-bottom:.4rem">${_s(nomeUsuario.split(' ')[0])}</div>
                   <div class="termo-sig-line"></div>
                   <div class="termo-sig-label" style="color:#94a3b8">Assinatura do Funcionário</div>
                 </div>
@@ -1737,7 +1741,7 @@ function renderPainel(usuario) {
           body: JSON.stringify({ cargo, setor, equipamentos: JSON.stringify(rows) }),
         });
         const d = await r.json();
-        if (!r.ok) { msgEl.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+        if (!r.ok) { msgEl.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`; return; }
         overlay.remove();
         await carregarChamados();
       } catch { msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
@@ -1866,14 +1870,14 @@ function renderCardChamado(c) {
       </div>
       ${setor ? `<div class="badge-criado-por-admin" style="background:#eef2ff;border-color:#c7d2fe;color:#3730a3">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Aberto por <strong>${_s(c.nome)}</strong>${c.ramal ? ` · Ramal ${c.ramal}` : ''}
+        Aberto por <strong>${_s(c.nome)}</strong>${c.ramal ? ` · Ramal ${_s(c.ramal)}` : ''}
       </div>` : (c.aberto_por_admin_id ? `<div class="badge-criado-por-admin">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         ${c.aberto_por_admin_is_master ? 'Admin Master' : 'Administrador'} <strong>${_s(c.aberto_por_admin_nome)}</strong> criou esse chamado por você
       </div>` : '')}
-      <div class="chamado-card-setor">${_s(c.setor)} <span style="color:var(--text-muted);font-family:Inter,sans-serif;font-size:.8rem;font-weight:400">· Ramal ${c.ramal}</span></div>
+      <div class="chamado-card-setor">${_s(c.setor)} <span style="color:var(--text-muted);font-family:Inter,sans-serif;font-size:.8rem;font-weight:400">· Ramal ${_s(c.ramal)}</span></div>
       <div class="chamado-card-desc">${_s(c.descricao)}</div>
-      ${c.admin_nome ? `<div style="font-size:.75rem;color:var(--gold-dark);font-weight:600;margin-top:.4rem;letter-spacing:.02em">Responsável: <span style="color:var(--text-secondary);font-weight:400">${_s(c.admin_nome)}</span>${c.admin_ramal ? `<span style="color:var(--text-muted);font-weight:400"> · Ramal <strong style="color:var(--text-secondary);font-weight:600">${c.admin_ramal}</strong></span>` : ''}</div>` : ''}
+      ${c.admin_nome ? `<div style="font-size:.75rem;color:var(--gold-dark);font-weight:600;margin-top:.4rem;letter-spacing:.02em">Responsável: <span style="color:var(--text-secondary);font-weight:400">${_s(c.admin_nome)}</span>${c.admin_ramal ? `<span style="color:var(--text-muted);font-weight:400"> · Ramal <strong style="color:var(--text-secondary);font-weight:600">${_s(c.admin_ramal)}</strong></span>` : ''}</div>` : ''}
       ${c.prazo ? `<div style="font-size:.74rem;color:var(--text-muted);margin-top:.2rem">Prazo: ${fmtData(c.prazo)}</div>` : ''}
       ${c.solucao ? `<div class="solucao-box"><strong>Solução:</strong> ${_s(c.solucao)}</div>` : ''}
       ${termoHtml()}
@@ -1957,19 +1961,32 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
   const _inputRamalProblema = document.getElementById('ch-ramal-problema');
   const _catTxtEl           = document.getElementById('ch-cat-txt');
   const _catHiddenEl        = document.getElementById('ch-categoria');
+  // Prefixo adicionado à descrição no envio quando a categoria é "ramal".
+  // O limite do backend (2000) vale para prefixo + descrição, então o
+  // maxlength do textarea é reduzido dinamicamente para compensar.
+  const _DESC_MAX = 2000;
+  function _prefixoRamal() {
+    const ramal = _catHiddenEl.value === 'ramal' ? _inputRamalProblema.value.trim() : '';
+    return ramal ? `Ramal com problema: ${ramal}\n\n` : '';
+  }
+  function _ajustarLimiteDescricao() {
+    const descEl = document.getElementById('ch-descricao');
+    if (descEl) descEl.maxLength = Math.max(10, _DESC_MAX - _prefixoRamal().length);
+  }
   function _syncRamalField() {
     const mostrar = _catHiddenEl.value === 'ramal';
     _grupoRamalProblema.style.display = mostrar ? '' : 'none';
     if (!mostrar) _inputRamalProblema.value = '';
+    _ajustarLimiteDescricao();
   }
   _catTxtEl.addEventListener('input', _syncRamalField);
   _catTxtEl.addEventListener('blur', () => setTimeout(_syncRamalField, 200));
+  _inputRamalProblema.addEventListener('input', _ajustarLimiteDescricao);
 
   // Detecção em tempo real de ramal/telefone na descrição
   const _bannerRamal   = document.getElementById('banner-ramal-detec');
   const _inputDetec    = document.getElementById('ch-ramal-detec');
-  const _RE_RAMAL      = /\b(ramal|ramais|telefone|telefones|fone|fones|pabx|discagem|discando|ligar|liga[çc][aã]o|ligando|chamada|chamadas|tocando|atendimento|voip|extensão|extensao|aparelho de telefone)\b/i;
-  let _ramalDetecDismissed = false;
+  const _RE_RAMAL      = /\b(ramal|ramais|telefone|telefones|telef[ôo]nic[oa]|fone|fones|pabx|discagem|discando|liga[çc][aã]o|liga[çc][õo]es|voip|extens[aã]o|extens[õo]es|headset|linha telef[ôo]nica|aparelho (de )?telefone|aparelho telef[ôo]nico)\b|\btel\./i;
 
   function _atualizarBannerRamal() {
     if (_ramalDetecDismissed) return;
@@ -1991,6 +2008,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
     _catTxtEl.value    = 'Ramal / Telefone';
     _syncRamalField();
     if (val) _inputRamalProblema.value = val;
+    _ajustarLimiteDescricao();
     _bannerRamal.style.display = 'none';
     _inputRamalProblema.focus();
   });
@@ -2019,7 +2037,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       return;
     }
     box.innerHTML = _chArquivos.map((f, i) => {
-      const nome = f.name.replace(/"/g, '&quot;');
+      const nome = _esc(f.name);
       let media;
       if (_CH_IMG_RE.test(f.name)) media = `<img src="${URL.createObjectURL(f)}" alt="${nome}" loading="lazy">`;
       else if (_CH_VID_RE.test(f.name)) media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`;
@@ -2114,13 +2132,21 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       fd.append('ramal', usuario.ramal || '');
       const _ramalProblema = categoria === 'ramal' ? document.getElementById('ch-ramal-problema').value.trim() : '';
       const _descricaoFinal = _ramalProblema ? `Ramal com problema: ${_ramalProblema}\n\n${document.getElementById('ch-descricao').value}` : document.getElementById('ch-descricao').value;
+      if (_descricaoFinal.length > _DESC_MAX) {
+        const excesso = _descricaoFinal.length - _DESC_MAX;
+        msg.innerHTML = `<div class="alert alert-danger">Com a identificação do ramal, a descrição ultrapassa o limite de ${_DESC_MAX} caracteres. Reduza o texto em ${excesso} caractere${excesso > 1 ? 's' : ''}.</div>`;
+        document.getElementById('ch-descricao').focus();
+        btn.disabled = false; btn.textContent = 'Enviar Chamado';
+        return;
+      }
       fd.append('descricao', _descricaoFinal);
       if (categoria) fd.append('categoria', categoria);
       _chArquivos.forEach(f => fd.append('anexos', f, f.name));
 
       const r = await fetch('/api/chamados', { method: 'POST', body: fd });
       const d = await r.json();
-      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`; return; }
+      _ramalDetecDismissed = false; // novo formulário volta a poder sugerir
       onSuccess();
     } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Enviar Chamado'; }
@@ -2144,15 +2170,15 @@ function _montarCombo(inputEl, hiddenEl, ddEl, estrutura) {
         const filhos = estrutura.filter(n => n.type === 'item' && n.group === node.label);
         const visiveis = filhos.filter(f => !q || f.label.toLowerCase().includes(q));
         if (visiveis.length) {
-          html += `<div class="combo-dd-group">${node.label}</div>`;
+          html += `<div class="combo-dd-group">${_esc(node.label)}</div>`;
           for (const f of visiveis) {
-            html += `<div class="combo-dd-item in-group" data-value="${f.value}">${f.label}</div>`;
+            html += `<div class="combo-dd-item in-group" data-value="${_esc(f.value)}">${_esc(f.label)}</div>`;
             algumVisivel = true;
           }
         }
       } else if (!node.group) {
         if (!q || node.label.toLowerCase().includes(q)) {
-          html += `<div class="combo-dd-item" data-value="${node.value}">${node.label}</div>`;
+          html += `<div class="combo-dd-item" data-value="${_esc(node.value)}">${_esc(node.label)}</div>`;
           algumVisivel = true;
         }
       }

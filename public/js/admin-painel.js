@@ -120,7 +120,7 @@ function _addSetorDropdown(inp, onSelect) {
   function _render(q) {
     const list = q ? SETORES.filter(s => s.toLowerCase().includes(q.toLowerCase())) : SETORES;
     if (!list.length) { dd.style.display = 'none'; return; }
-    dd.innerHTML = list.map(s => `<div class="_setor-dd-item">${s.replace(/&/g,'&amp;')}</div>`).join('');
+    dd.innerHTML = list.map(s => `<div class="_setor-dd-item">${_esc(s)}</div>`).join('');
     dd.querySelectorAll('._setor-dd-item').forEach(el => {
       el.addEventListener('mousedown', e => {
         e.preventDefault();
@@ -226,10 +226,10 @@ function _chatAnexoHtml(url, nome) {
   const ext = nome.split('.').pop().toLowerCase();
   const vids = ['mp4','webm','mov','avi','mkv','wmv'];
   if (_IMGS_EXT.includes(ext))
-    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}" loading="lazy">`;
+    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${_esc(nome)}" loading="lazy">`;
   if (vids.includes(ext))
     return `<video class="chat-msg-video" src="${url}" controls preload="metadata"></video>`;
-  return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
+  return `<a class="chat-msg-anexo" href="${url}" target="_blank" rel="noopener"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${_esc(nome)}</a>`;
 }
 
 function _renderMsgAdmin(m, chamadoId) {
@@ -438,7 +438,7 @@ function _sincronizarSubSelects(cat, preselSub) {
     const sel = document.createElement('select');
     sel.className = 'form-control form-control-sm sub-cat-sel';
     sel.innerHTML = '<option value="">— selecionar tipo —</option>'
-      + kids.map(e => `<option value="${e.slug}"${e.slug === presel ? ' selected' : ''}>${e.nome}</option>`).join('');
+      + kids.map(e => `<option value="${_esc(e.slug)}"${e.slug === presel ? ' selected' : ''}>${_esc(e.nome)}</option>`).join('');
     container.appendChild(sel);
     if (presel) addLevel(presel, chainIdx + 1);
     sel.addEventListener('change', () => {
@@ -514,10 +514,10 @@ function _criarComboEtiqueta(wrapEl, cfg = {}) {
         const bc = _bc(e);
         const cor = e.cor || '#6B7280';
         const sel = e.slug === valI.value;
-        return `<div class="et-combo-item${sel ? ' et-combo-sel' : ''}" data-slug="${e.slug}"
+        return `<div class="et-combo-item${sel ? ' et-combo-sel' : ''}" data-slug="${_esc(e.slug)}"
           style="padding:.42rem .75rem;cursor:pointer;display:flex;align-items:center;gap:.45rem;font-size:.83rem">
-          <span style="width:7px;height:7px;border-radius:50%;background:${cor};flex-shrink:0"></span>
-          <span>${bc ? `<span style="color:var(--text-muted);font-size:.74rem">${bc} › </span>` : ''}<strong style="font-weight:600">${e.nome}</strong></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:${_esc(cor)};flex-shrink:0"></span>
+          <span>${bc ? `<span style="color:var(--text-muted);font-size:.74rem">${_esc(bc)} › </span>` : ''}<strong style="font-weight:600">${_esc(e.nome)}</strong></span>
         </div>`;
       }).join('');
     }
@@ -647,7 +647,7 @@ function _addServicoDropdown(inp) {
 function badgeCategoria(cat) {
   if (!cat || !CATEGORIAS_MAP[cat]) return '';
   const { nome, cor, icone } = CATEGORIAS_MAP[cat];
-  return `<span class="badge-categoria" style="--cat-cor:${cor}">${icone} ${nome}</span>`;
+  return `<span class="badge-categoria" style="--cat-cor:${_esc(cor)}">${icone} ${_esc(nome)}</span>`;
 }
 
 function fmtData(d) {
@@ -686,7 +686,7 @@ function inputFortalezaParaUtc(val) {
 }
 
 function badgeStatus(s) {
-  return `<span class="badge badge-${s}" data-status="${s}" title="Filtrar por: ${STATUS_LABELS[s] || s}" style="cursor:pointer">${STATUS_LABELS[s] || s}</span>`;
+  return `<span class="badge badge-${_esc(s)}" data-status="${_esc(s)}" title="Filtrar por: ${_esc(STATUS_LABELS[s] || s)}" style="cursor:pointer">${_esc(STATUS_LABELS[s] || s)}</span>`;
 }
 
 function filtrarPorStatus(status) {
@@ -700,7 +700,7 @@ function filtrarPorStatus(status) {
 }
 function badgePrio(p) {
   if (!p) return `<span class="badge badge-sem-prioridade">Sem prioridade</span>`;
-  return `<span class="badge badge-${p}">${PRIO_LABELS[p]}</span>`;
+  return `<span class="badge badge-${_esc(p)}">${_esc(PRIO_LABELS[p] || p)}</span>`;
 }
 
 async function api(url, opts = {}) {
@@ -983,7 +983,7 @@ document.getElementById('btn-cancelar-confirmar').addEventListener('click', asyn
       carregarEstatisticas();
       mostrarToast('Chamado cancelado', `Chamado #${chamadoId} cancelado com sucesso.`);
     } else {
-      msgEl.innerHTML = `<span style="font-size:.8rem;color:#b91c1c">${d.erro}</span>`;
+      msgEl.innerHTML = `<span style="font-size:.8rem;color:#b91c1c">${_esc(d.erro)}</span>`;
     }
   } catch (e) {
     console.error('[cancelar]', e);
@@ -1030,16 +1030,16 @@ async function _carregarUsuariosNc() {
       resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
     } else {
       resultados.innerHTML = filtrados.map(u => `
-        <div class="nc-usuario-item" data-id="${u.id}" data-nome="${u.nome.replace(/"/g,'&quot;')}" data-setor="${(u.setor||'').replace(/"/g,'&quot;')}"
+        <div class="nc-usuario-item" data-id="${u.id}" data-nome="${_esc(u.nome)}" data-setor="${_esc(u.setor||'')}"
           style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">
-          ${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}
+          ${_esc(u.nome)}${u.setor ? ' · <span style="color:var(--text-muted)">' + _esc(u.setor) + '</span>' : ''}
         </div>`).join('');
       resultados.querySelectorAll('.nc-usuario-item').forEach(el => {
         el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover,#f3f4f6)');
         el.addEventListener('mouseleave', () => el.style.background = '');
         el.addEventListener('click', () => {
           const setor = el.dataset.setor;
-          selecionado.innerHTML = '✓ ' + el.dataset.nome + (setor ? ' · <span style="color:var(--text-muted);font-weight:400">' + setor + '</span>' : '');
+          selecionado.innerHTML = '✓ ' + _esc(el.dataset.nome) + (setor ? ' · <span style="color:var(--text-muted);font-weight:400">' + _esc(setor) + '</span>' : '');
           selecionado.dataset.usuarioId = el.dataset.id;
           selecionado.style.display = 'block';
           busca.value = el.dataset.nome;
@@ -1125,16 +1125,16 @@ async function _abrirFormTrocarUsuario(chamadoId) {
       resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
     } else {
       resultados.innerHTML = filtrados.map(u => `
-        <div class="tu-item" data-id="${u.id}" data-nome="${(u.nome||'').replace(/"/g,'&quot;')}" data-setor="${(u.setor||'').replace(/"/g,'&quot;')}"
+        <div class="tu-item" data-id="${u.id}" data-nome="${_esc(u.nome||'')}" data-setor="${_esc(u.setor||'')}"
           style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;color:var(--text);border-bottom:1px solid var(--border)">
-          ${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}
+          ${_esc(u.nome)}${u.setor ? ' · <span style="color:var(--text-muted)">' + _esc(u.setor) + '</span>' : ''}
         </div>`).join('');
       resultados.querySelectorAll('.tu-item').forEach(el => {
         el.addEventListener('mouseenter', () => el.style.background = 'var(--surface-2)');
         el.addEventListener('mouseleave', () => el.style.background = '');
         el.addEventListener('click', () => {
           const setor = el.dataset.setor;
-          selecionado.innerHTML = '✓ ' + el.dataset.nome + (setor ? ' · <span style="color:var(--text-muted);font-weight:400">' + setor + '</span>' : '');
+          selecionado.innerHTML = '✓ ' + _esc(el.dataset.nome) + (setor ? ' · <span style="color:var(--text-muted);font-weight:400">' + _esc(setor) + '</span>' : '');
           selecionado.dataset.usuarioId = el.dataset.id;
           selecionado.style.display = 'block';
           busca.value = el.dataset.nome;
@@ -1159,10 +1159,10 @@ async function _abrirFormTrocarUsuario(chamadoId) {
       });
       const d = await r.json();
       if (r.ok) {
-        msgEl.innerHTML = `<span style="color:var(--success)">✓ ${d.mensagem}</span>`;
+        msgEl.innerHTML = `<span style="color:var(--success)">✓ ${_esc(d.mensagem)}</span>`;
         setTimeout(() => { abrirModal(chamadoId); carregarChamados(); }, 700);
       } else {
-        msgEl.innerHTML = `<span style="color:#b91c1c">${d.erro || 'Erro ao transferir.'}</span>`;
+        msgEl.innerHTML = `<span style="color:#b91c1c">${_esc(d.erro || 'Erro ao transferir.')}</span>`;
         btnConfirmar.disabled = false;
         btnConfirmar.textContent = 'Confirmar troca';
       }
@@ -1239,7 +1239,7 @@ function _renderNcTiles() {
   }
 
   box.innerHTML = _ncArquivos.map((f, i) => {
-    const nome = f.name.replace(/"/g, '&quot;');
+    const nome = _esc(f.name);
     let media;
     if (_IMGS_EXT_RE.test(f.name)) {
       media = `<img src="${URL.createObjectURL(f)}" alt="${nome}" loading="lazy">`;
@@ -1336,7 +1336,7 @@ document.getElementById('form-novo-chamado').addEventListener('submit', async (e
       const novoId = d && d.id;
       if (novoId) setTimeout(() => { abrirModal(novoId); }, 200);
     } else {
-      msgEl.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao abrir chamado.'}</div>`;
+      msgEl.innerHTML = `<div class="alert alert-danger">${_esc(d.erro || 'Erro ao abrir chamado.')}</div>`;
     }
   } catch {
     msgEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>';
@@ -1574,11 +1574,11 @@ function renderChamadoItem(c) {
   const ehMinhaArea = _minhasEtiquetas.size > 0 && c.categoria && _minhasEtiquetas.has(c.categoria);
   const jaResponsavel = adminInfo && c.admin_responsavel_id && Number(c.admin_responsavel_id) === Number(adminInfo.id);
   const foraArea = _minhasEtiquetas.size > 0 && !ehMinhaArea;
-  const cor = CATEGORIAS_MAP[c.categoria]?.cor || '#C5A55A';
+  const cor = _esc(CATEGORIAS_MAP[c.categoria]?.cor || '#C5A55A');
   const areaClass = ehMinhaArea && !jaResponsavel ? ' chamado-minha-area' : foraArea ? ' chamado-fora-area' : '';
   const areaStyle = ehMinhaArea && !jaResponsavel ? ` style="--area-cor:${cor};background:linear-gradient(90deg,${cor}14 0%,transparent 320px)"` : '';
   return `
-    <div class="chamado-item prioridade-${c.prioridade || 'sem'}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}${areaClass}"
+    <div class="chamado-item prioridade-${_esc(c.prioridade || 'sem')}${encerrado ? ' chamado-encerrado' : ''}${atrasado ? ' chamado-atraso' : ''}${areaClass}"
          data-id="${c.id}" tabindex="0" role="button" aria-label="Abrir chamado #${c.id}"${areaStyle}>
       <div class="chamado-item-header">
         <span class="chamado-id-badge" style="font-family:monospace;font-size:.74rem;font-weight:700;color:var(--text-muted);background:rgba(0,0,0,.04);padding:.15rem .4rem;border-radius:4px">#${c.id}</span>
@@ -1611,7 +1611,7 @@ function renderChamadoItem(c) {
         </span>
         <span class="chamado-footer-meta">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13 19.79 19.79 0 0 1 1.61 4.47 2 2 0 0 1 3.6 2.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.12 6.12l1.83-1.83a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          Ramal ${c.ramal}
+          Ramal ${_s(c.ramal)}
         </span>
         ${c.prazo ? `<span class="chamado-footer-prazo${atrasado ? ' prazo-vencido' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Prazo: ${fmtData(c.prazo)}</span>` : ''}
         ${(c.atualizado_em && c.atualizado_em !== c.criado_em) ? (() => { const iso = c.atualizado_em.includes('T') ? c.atualizado_em : c.atualizado_em.replace(' ','T'); const recente = (Date.now() - new Date(iso.endsWith('Z') ? iso : iso+'Z')) / 1000 < 300; return `<span class="card-atu${recente ? ' card-atu--recente' : ''}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Atualizada ${fmtRelativo(c.atualizado_em)}</span>`; })() : ''}
@@ -1661,10 +1661,10 @@ async function _carregarAnexosExtras(chamadoId) {
       const url = `/api/chamados/${chamadoId}/anexos/${a.id}`;
       const _btnExtra = `<button class="btn btn-danger btn-sm btn-remover-anexo-extra" data-anexo-id="${a.id}" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo (útil quando foi enviado no chamado errado)">✕</button>`;
       const _icoUser = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-      const _meta = `<span class="anexo-extra-meta">${_icoUser}${a.autor_nome ? `<span class="anexo-extra-meta-autor">${a.autor_nome}</span><span class="anexo-extra-meta-sep"></span>` : ''}${fmtData(a.criado_em)}</span>`;
+      const _meta = `<span class="anexo-extra-meta">${_icoUser}${a.autor_nome ? `<span class="anexo-extra-meta-autor">${_s(a.autor_nome)}</span><span class="anexo-extra-meta-sep"></span>` : ''}${fmtData(a.criado_em)}</span>`;
       return _isImgAnexo(a.nome_original)
-        ? `<div class="anexo-extra-item"><div class="anexo-preview-wrap" style="margin:0"><img class="lbx-img anexo-preview-img" src="${url}" alt="${a.nome_original}"><div style="display:flex;align-items:center;gap:.4rem;margin-top:.15rem"><a href="${url}" download class="anexo-preview-dl">⬇ baixar</a>${_btnExtra}</div></div>${_meta}</div>`
-        : `<div class="anexo-extra-item"><div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap"><a href="${url}" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${a.nome_original}</a>${_btnExtra}</div>${_meta}</div>`;
+        ? `<div class="anexo-extra-item"><div class="anexo-preview-wrap" style="margin:0"><img class="lbx-img anexo-preview-img" src="${url}" alt="${_esc(a.nome_original)}"><div style="display:flex;align-items:center;gap:.4rem;margin-top:.15rem"><a href="${url}" download class="anexo-preview-dl">⬇ baixar</a>${_btnExtra}</div></div>${_meta}</div>`
+        : `<div class="anexo-extra-item"><div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap"><a href="${url}" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${_esc(a.nome_original)}</a>${_btnExtra}</div>${_meta}</div>`;
     }).join('');
     if (!box.dataset.removeReady) {
       box.dataset.removeReady = '1';
@@ -1766,13 +1766,13 @@ function renderModalBody(c) {
           <div class="mv2-logo-user-nome">${_s(c.nome)}</div>
           <div class="mv2-logo-user-setor">
             <span>${_s(c.usuario_setor || c.setor)}</span>
-            ${(c.usuario_ramal || c.ramal) ? `<span class="mv2-sep">·</span><span>Ramal ${c.usuario_ramal || c.ramal}</span>` : ''}
+            ${(c.usuario_ramal || c.ramal) ? `<span class="mv2-sep">·</span><span>Ramal ${_s(c.usuario_ramal || c.ramal)}</span>` : ''}
             ${c.prioridade ? `<span class="mv2-sep">·</span><span>${PRIO_LABELS[c.prioridade]}</span>` : ''}
           </div>
           ${c.aberto_por_admin_nome ? `<div style="margin-top:.45rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center">
             <span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--navy);color:#fff;font-size:.72rem;font-weight:600;padding:.22rem .6rem;border-radius:20px;letter-spacing:.02em">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              Aberto por ${c.aberto_por_admin_nome} · ${c.aberto_por_admin_is_master ? 'Master' : 'Admin'}
+              Aberto por ${_s(c.aberto_por_admin_nome)} · ${c.aberto_por_admin_is_master ? 'Master' : 'Admin'}
             </span>
             ${adminInfo && adminInfo.is_master ? `<button type="button" id="btn-trocar-usuario" class="btn-trocar-usuario" title="Trocar o usuário deste chamado">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
@@ -1784,7 +1784,7 @@ function renderModalBody(c) {
         </div>
         <div style="text-align:right;justify-self:end">
           <div style="font-family:monospace;font-size:1.05rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.02em">#${c.id}</div>
-          <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.38);margin-top:.2rem">${CATEGORIAS_MAP[c.categoria]?.nome || 'Chamado'}</div>
+          <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.38);margin-top:.2rem">${_esc(CATEGORIAS_MAP[c.categoria]?.nome || 'Chamado')}</div>
         </div>
       </div>
 
@@ -1804,7 +1804,7 @@ function renderModalBody(c) {
             </div>
             <div>
               <div class="mv2-card-label">Administrador responsável</div>
-              <div class="mv2-card-val">${c.admin_nome || 'Não atribuído'}</div>
+              <div class="mv2-card-val">${_s(c.admin_nome) || 'Não atribuído'}</div>
             </div>
           </div>
 
@@ -1853,8 +1853,8 @@ function renderModalBody(c) {
 
           ${c.anexo_nome_original ? `
             ${_isImgAnexo(c.anexo_nome_original)
-              ? `<div class="anexo-preview-wrap" style="margin-top:.4rem"><img class="lbx-img anexo-preview-img" src="/api/chamados/${c.id}/anexo" alt="${c.anexo_nome_original}"><div style="display:flex;align-items:center;gap:.4rem;margin-top:.15rem"><a href="/api/chamados/${c.id}/anexo" download class="anexo-preview-dl">⬇ baixar</a><button class="btn btn-danger btn-sm" id="btn-remover-anexo-usuario" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo (útil quando foi enviado no chamado errado)">✕</button></div></div>`
-              : `<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.4rem"><a href="/api/chamados/${c.id}/anexo" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${c.anexo_nome_original}</a><button class="btn btn-danger btn-sm" id="btn-remover-anexo-usuario" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo (útil quando foi enviado no chamado errado)">✕</button></div>`
+              ? `<div class="anexo-preview-wrap" style="margin-top:.4rem"><img class="lbx-img anexo-preview-img" src="/api/chamados/${c.id}/anexo" alt="${_esc(c.anexo_nome_original)}"><div style="display:flex;align-items:center;gap:.4rem;margin-top:.15rem"><a href="/api/chamados/${c.id}/anexo" download class="anexo-preview-dl">⬇ baixar</a><button class="btn btn-danger btn-sm" id="btn-remover-anexo-usuario" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo (útil quando foi enviado no chamado errado)">✕</button></div></div>`
+              : `<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.4rem"><a href="/api/chamados/${c.id}/anexo" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${_esc(c.anexo_nome_original)}</a><button class="btn btn-danger btn-sm" id="btn-remover-anexo-usuario" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo (útil quando foi enviado no chamado errado)">✕</button></div>`
             }` : ''}
           <div id="mv2-anexos-extras" data-chamado-id="${c.id}"></div>
 
@@ -1867,8 +1867,8 @@ function renderModalBody(c) {
             <div id="admin-anexo-atual" style="margin-bottom:.4rem">
               ${c.admin_anexo_nome_original ? `
                 ${_isImgAnexo(c.admin_anexo_nome_original)
-                  ? `<div class="anexo-preview-wrap" style="margin-top:.4rem"><img class="lbx-img anexo-preview-img" src="/api/admin/chamados/${c.id}/admin-anexo" alt="${c.admin_anexo_nome_original}"><div style="display:flex;align-items:center;gap:.4rem;margin-top:.15rem"><a href="/api/admin/chamados/${c.id}/admin-anexo" download class="anexo-preview-dl">⬇ baixar</a><button class="btn btn-danger btn-sm" id="btn-remover-admin-anexo" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo">✕</button></div></div>`
-                  : `<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap"><a href="/api/admin/chamados/${c.id}/admin-anexo" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${c.admin_anexo_nome_original}</a><button class="btn btn-danger btn-sm" id="btn-remover-admin-anexo" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo">✕</button></div>`
+                  ? `<div class="anexo-preview-wrap" style="margin-top:.4rem"><img class="lbx-img anexo-preview-img" src="/api/admin/chamados/${c.id}/admin-anexo" alt="${_esc(c.admin_anexo_nome_original)}"><div style="display:flex;align-items:center;gap:.4rem;margin-top:.15rem"><a href="/api/admin/chamados/${c.id}/admin-anexo" download class="anexo-preview-dl">⬇ baixar</a><button class="btn btn-danger btn-sm" id="btn-remover-admin-anexo" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo">✕</button></div></div>`
+                  : `<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap"><a href="/api/admin/chamados/${c.id}/admin-anexo" class="mv2-anexo-btn" download style="flex:1;margin:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${_esc(c.admin_anexo_nome_original)}</a><button class="btn btn-danger btn-sm" id="btn-remover-admin-anexo" style="padding:.25rem .55rem;font-size:.75rem;flex-shrink:0" title="Remover anexo">✕</button></div>`
                 }` : `<p style="font-size:.78rem;color:var(--text-muted);margin:0 0 .3rem">Nenhum arquivo anexado.</p>`}
             </div>
             <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
@@ -1999,7 +1999,7 @@ function renderModalBody(c) {
             <div class="mv2-conclusion-panel">
               <div class="mv2-conclusion-block">
                 <div class="mv2-conclusion-label">Motivo do cancelamento</div>
-                <div class="mv2-conclusion-text">${c.cancelamento_motivo || '<span style="color:var(--text-muted);font-style:italic">Não informado.</span>'}</div>
+                <div class="mv2-conclusion-text">${c.cancelamento_motivo ? _s(c.cancelamento_motivo) : '<span style="color:var(--text-muted);font-style:italic">Não informado.</span>'}</div>
               </div>
               ${c.cancelado_em ? `<div class="mv2-conclusion-block">
                 <div class="mv2-conclusion-label">Cancelado em</div>
@@ -2055,7 +2055,7 @@ function renderModalBody(c) {
                   Avaliação do usuário
                 </div>
                 <div class="mv2-rating-num">${c.nota}<span style="font-size:.9rem;color:var(--text-muted)">/10</span></div>
-                ${c.comentario_avaliacao ? `<div class="mv2-rating-comment">"${c.comentario_avaliacao}"</div>` : ''}
+                ${c.comentario_avaliacao ? `<div class="mv2-rating-comment">"${_s(c.comentario_avaliacao)}"</div>` : ''}
               </div>` : ''}
 
               ${c.assinado_em ? `
@@ -2065,7 +2065,7 @@ function renderModalBody(c) {
                   Recebimento confirmado
                 </div>
                 <div style="font-size:.79rem;color:var(--text-muted);margin:.1rem 0 .4rem">${fmtData(c.assinado_em)}</div>
-                ${c.assinatura ? `<img src="${c.assinatura}" alt="Assinatura" class="assinatura-img-admin" style="max-height:60px">` : ''}
+                ${c.assinatura ? `<img src="${_esc(c.assinatura)}" alt="Assinatura" class="assinatura-img-admin" style="max-height:60px">` : ''}
               </div>` : ''}
 
               ${(c.requer_acordo || ['hardware', 'processo_compra'].includes(c.categoria)) ? `
@@ -2118,7 +2118,7 @@ function setupModalEventos(c) {
         const r = await api(`/api/admin/chamados/${c.id}/info-adicional`, { method: 'POST', body: JSON.stringify({ texto }) });
         const d = await r.json();
         if (r.ok) { setTimeout(() => abrirModal(c.id), 300); }
-        else { msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${d.erro}</span>`; }
+        else { msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${_esc(d.erro)}</span>`; }
       } catch { msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>'; }
       btnSalvar.disabled = false;
       btnSalvar.textContent = 'Salvar';
@@ -2141,7 +2141,7 @@ function setupModalEventos(c) {
       return;
     }
     tilesBoxAdmin.innerHTML = _adminAnexos.map((f, i) => {
-      const nome = f.name.replace(/"/g, '&quot;');
+      const nome = _esc(f.name);
       let media;
       if (_IMGS_EXT_RE.test(f.name)) media = `<img src="${URL.createObjectURL(f)}" alt="${nome}" loading="lazy">`;
       else if (_VID_EXT_RE.test(f.name)) media = `<svg class="anexo-tile-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`;
@@ -2299,7 +2299,7 @@ function setupModalEventos(c) {
           }
           _carregarAnexosExtras(c.id);
         } else if (msgEl) {
-          msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${d.erro || 'Erro ao enviar.'}</span>`;
+          msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${_esc(d.erro || 'Erro ao enviar.')}</span>`;
         }
       } catch {
         if (msgEl) msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>';
@@ -2368,7 +2368,7 @@ function setupModalEventos(c) {
       if (!cat) { _catErrMostrar('Selecione uma etiqueta para o chamado.'); return; }
       const r = await api(`/api/admin/chamados/${c.id}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoria: cat }) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Categoria atualizada.</div>' : `<div class="alert alert-danger">${_esc(d.erro)}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
@@ -2380,7 +2380,7 @@ function setupModalEventos(c) {
       const prio = document.getElementById('sel-prioridade').value;
       const r = await api(`/api/admin/chamados/${c.id}/prioridade`, { method: 'PATCH', body: JSON.stringify({ prioridade: prio || null }) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Prioridade salva.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Prioridade salva.</div>' : `<div class="alert alert-danger">${_esc(d.erro)}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
@@ -2391,7 +2391,7 @@ function setupModalEventos(c) {
       const prazoUtc = inputFortalezaParaUtc(document.getElementById('input-prazo').value);
       const r = await api(`/api/admin/chamados/${c.id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: prazoUtc }) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Prazo atualizado.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Prazo atualizado.</div>' : `<div class="alert alert-danger">${_esc(d.erro)}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
@@ -2401,7 +2401,7 @@ function setupModalEventos(c) {
     btnRemoverPrazo.addEventListener('click', async () => {
       const r = await api(`/api/admin/chamados/${c.id}/prazo`, { method: 'PATCH', body: JSON.stringify({ prazo: null }) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Prazo removido.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Prazo removido.</div>' : `<div class="alert alert-danger">${_esc(d.erro)}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
@@ -2411,7 +2411,7 @@ function setupModalEventos(c) {
     btnAssumir.addEventListener('click', async () => {
       const r = await api(`/api/admin/chamados/${c.id}/assumir`, { method: 'PATCH', body: JSON.stringify({}) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado assumido.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Chamado assumido.</div>' : `<div class="alert alert-danger">${_esc(d.erro)}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
@@ -2448,9 +2448,9 @@ function setupModalEventos(c) {
               resultados.innerHTML = '<div style="padding:.5rem .8rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
             } else {
               resultados.innerHTML = filtrados.map(a => `
-                <div class="transferir-item" data-id="${a.id}" data-nome="${a.nome_completo.replace(/"/g,'&quot;')}"
+                <div class="transferir-item" data-id="${a.id}" data-nome="${_esc(a.nome_completo)}"
                   style="padding:.45rem .8rem;cursor:pointer;font-size:.82rem;color:var(--text);border-bottom:1px solid var(--border)">
-                  ${a.nome_completo}${a.is_master ? ' ★' : ''}
+                  ${_esc(a.nome_completo)}${a.is_master ? ' ★' : ''}
                 </div>`).join('');
               resultados.querySelectorAll('.transferir-item').forEach(el => {
                 el.addEventListener('mouseenter', () => el.style.background = 'var(--surface-2)');
@@ -2487,7 +2487,7 @@ function setupModalEventos(c) {
       if (!adminId) { setMsg('<div class="alert alert-danger">Selecione um admin na busca.</div>'); return; }
       const r = await api(`/api/admin/chamados/${c.id}/transferir`, { method: 'PATCH', body: JSON.stringify({ admin_id: parseInt(adminId) }) });
       const d = await r.json();
-      setMsg(r.ok ? `<div class="alert alert-success">${d.mensagem}</div>` : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? `<div class="alert alert-success">${_esc(d.mensagem)}</div>` : `<div class="alert alert-danger">${_esc(d.erro)}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 700);
     });
   }
@@ -2520,7 +2520,7 @@ function setupModalEventos(c) {
       try {
         const r = await api(`/api/admin/chamados/${c.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
         const d = await r.json();
-        if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${d.erro}</div>`); }
+        if (r.ok) { fecharModal(); } else { setMsg(`<div class="alert alert-danger">${_esc(d.erro)}</div>`); }
       } finally {
         if (btnConfConcluir.isConnected) { btnConfConcluir.disabled = false; btnConfConcluir.textContent = 'Confirmar conclusão'; }
       }
@@ -2534,7 +2534,7 @@ function setupModalEventos(c) {
       try {
         const r = await api(`/api/admin/chamados/${c.id}/aguardar-compra`, { method: 'PATCH', body: JSON.stringify({}) });
         const d = await r.json();
-        setMsg(r.ok ? '<div class="alert alert-success">Status: aguardando compra.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        setMsg(r.ok ? '<div class="alert alert-success">Status: aguardando compra.</div>' : `<div class="alert alert-danger">${_esc(d.erro)}</div>`);
         if (r.ok) setTimeout(() => abrirModal(c.id), 600);
       } finally {
         if (btnAguardarCompra.isConnected) btnAguardarCompra.disabled = false;
@@ -2549,7 +2549,7 @@ function setupModalEventos(c) {
       try {
         const r = await api(`/api/admin/chamados/${c.id}/aguardar-chegar`, { method: 'PATCH', body: JSON.stringify({}) });
         const d = await r.json();
-        setMsg(r.ok ? '<div class="alert alert-success">Status: aguardando chegar.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+        setMsg(r.ok ? '<div class="alert alert-success">Status: aguardando chegar.</div>' : `<div class="alert alert-danger">${_esc(d.erro)}</div>`);
         if (r.ok) setTimeout(() => abrirModal(c.id), 600);
       } finally {
         if (btnAguardarChegar.isConnected) btnAguardarChegar.disabled = false;
@@ -2563,7 +2563,7 @@ function setupModalEventos(c) {
       if (!confirm(`Reabrir o chamado? Ele voltará para o status "Aberto".`)) return;
       const r = await api(`/api/admin/chamados/${c.id}/reabrir`, { method: 'PATCH', body: JSON.stringify({}) });
       const d = await r.json();
-      setMsg(r.ok ? '<div class="alert alert-success">Chamado reaberto.</div>' : `<div class="alert alert-danger">${d.erro}</div>`);
+      setMsg(r.ok ? '<div class="alert alert-success">Chamado reaberto.</div>' : `<div class="alert alert-danger">${_esc(d.erro)}</div>`);
       if (r.ok) setTimeout(() => abrirModal(c.id), 600);
     });
   }
@@ -2689,7 +2689,7 @@ function setupModalEventos(c) {
         btnToggleAcordo.disabled = true;
         try {
           const r = await api(`/api/admin/chamados/${c.id}/requer-acordo`, { method: 'PATCH', body: JSON.stringify({ ativo: false }) });
-          if (!r.ok) { const d = await r.json(); setMsg(`<div class="alert alert-danger">${d.erro}</div>`); return; }
+          if (!r.ok) { const d = await r.json(); setMsg(`<div class="alert alert-danger">${_esc(d.erro)}</div>`); return; }
           await abrirModal(c.id);
         } finally { if (btnToggleAcordo.isConnected) btnToggleAcordo.disabled = false; }
       } else {
@@ -2735,7 +2735,7 @@ function setupModalEventos(c) {
             termoVal.style.color = '';
             const hora = t.aceito_em ? (t.aceito_em.includes('T') ? t.aceito_em : t.aceito_em.replace(' ', 'T') + 'Z') : null;
             const dataFormatada = hora ? new Date(hora.endsWith('Z') ? hora : hora + 'Z').toLocaleString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-            termoVal.innerHTML = `<div style="font-weight:600;color:var(--text);margin-bottom:.15rem">${t.usuario_nome}</div><div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.75rem;color:var(--text-muted)">${dataFormatada ? `<span>${dataFormatada}</span>` : ''}${t.setor ? `<span>· ${t.setor}</span>` : ''}</div>`;
+            termoVal.innerHTML = `<div style="font-weight:600;color:var(--text);margin-bottom:.15rem">${_s(t.usuario_nome)}</div><div style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:.75rem;color:var(--text-muted)">${dataFormatada ? `<span>${dataFormatada}</span>` : ''}${t.setor ? `<span>· ${_s(t.setor)}</span>` : ''}</div>`;
           }
         }
         if (c.requer_acordo && isAberto) {
@@ -2782,16 +2782,16 @@ function abrirModalDocumentoAcordo(c, termo) {
   let conteudo;
   if (termo) {
     // Acordo assinado
-    const usuarioNome = termo.usuario_nome || '';
-    const setor = termo.setor || '—';
-    const cargo = termo.cargo || '—';
+    const usuarioNome = _s(termo.usuario_nome || '');
+    const setor = _s(termo.setor) || '—';
+    const cargo = _s(termo.cargo) || '—';
     const linhasEquip = (() => { try { return JSON.parse(termo.equipamentos || '[]'); } catch { return equipamentosAdmin; } })();
     const hora = termo.aceito_em ? (termo.aceito_em.includes('T') ? termo.aceito_em : termo.aceito_em.replace(' ', 'T') + 'Z') : null;
     const dtObj = hora ? new Date(hora.endsWith('Z') ? hora : hora + 'Z') : null;
     const dataFmt = dtObj ? dtObj.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza', day: '2-digit', month: '2-digit', year: 'numeric' }) : hoje;
 
     const equipRows = linhasEquip.filter(r => r.tipo || r.marca || r.modelo).map(r =>
-      `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${r.quantidade||1}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.tipo||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.marca||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.modelo||''}</td></tr>`
+      `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${_esc(r.quantidade||1)}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${_esc(r.tipo||'')}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${_esc(r.marca||'')}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${_esc(r.modelo||'')}</td></tr>`
     ).join('');
     const equipSummary = linhasEquip.filter(r => r.tipo || r.marca || r.modelo).map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ');
 
@@ -2817,7 +2817,7 @@ function abrirModalDocumentoAcordo(c, termo) {
         estado de funcionamento. Em caso de quebra, roubo ou avaria estarei me
         responsabilizando pelo equipamento abaixo.
       </div>
-      ${equipSummary ? `<div class="termo-texto" style="margin-top:.5rem"><strong>Equipamento: ${equipSummary}</strong></div>` : ''}
+      ${equipSummary ? `<div class="termo-texto" style="margin-top:.5rem"><strong>Equipamento: ${_esc(equipSummary)}</strong></div>` : ''}
       <table class="termo-table">
         <thead><tr><th style="width:90px">Quantidade</th><th>Tipo</th><th>Marca</th><th>Modelo</th></tr></thead>
         <tbody>${equipRows || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:.4rem">Nenhum equipamento registrado</td></tr>'}</tbody>
@@ -2834,9 +2834,9 @@ function abrirModalDocumentoAcordo(c, termo) {
       </div>`;
   } else {
     // Acordo pendente — mostra como o usuário vai ver
-    const nomeUsuario = c.usuario_nome || c.nome || '';
+    const nomeUsuario = _s(c.usuario_nome || c.nome || '');
     const equipRows = equipamentosAdmin.filter(r => r.tipo || r.marca || r.modelo).map(r =>
-      `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${r.quantidade||1}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.tipo||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.marca||''}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${r.modelo||''}</td></tr>`
+      `<tr><td style="padding:.3rem .5rem;border:1px solid #c8a951;text-align:center;font-weight:600">${_esc(r.quantidade||1)}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${_esc(r.tipo||'')}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${_esc(r.marca||'')}</td><td style="padding:.3rem .5rem;border:1px solid #c8a951">${_esc(r.modelo||'')}</td></tr>`
     ).join('');
     const equipSummary = equipamentosAdmin.filter(r => r.tipo || r.marca || r.modelo).map(r => [r.quantidade, r.tipo, r.marca, r.modelo].filter(Boolean).join(' ')).join(', ');
 
@@ -2862,7 +2862,7 @@ function abrirModalDocumentoAcordo(c, termo) {
         estado de funcionamento. Em caso de quebra, roubo ou avaria estarei me
         responsabilizando pelo equipamento abaixo.
       </div>
-      ${equipSummary ? `<div class="termo-texto" style="margin-top:.5rem"><strong>Equipamento: ${equipSummary}</strong></div>` : ''}
+      ${equipSummary ? `<div class="termo-texto" style="margin-top:.5rem"><strong>Equipamento: ${_esc(equipSummary)}</strong></div>` : ''}
       <table class="termo-table">
         <thead><tr><th style="width:90px">Quantidade</th><th>Tipo</th><th>Marca</th><th>Modelo</th></tr></thead>
         <tbody>${equipRows || '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:.4rem">Nenhum equipamento cadastrado ainda</td></tr>'}</tbody>
@@ -2965,9 +2965,9 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       }
       drop.innerHTML = res.map(e => `
         <div class="eq-drop-item" data-id="${e.id}">
-          <span class="eq-drop-codigo">${e.codigo}</span>
-          <span class="eq-drop-nome">${e.nome}</span>
-          ${e.categoria ? `<span class="eq-drop-cat">${e.categoria}</span>` : ''}
+          <span class="eq-drop-codigo">${_esc(e.codigo)}</span>
+          <span class="eq-drop-nome">${_esc(e.nome)}</span>
+          ${e.categoria ? `<span class="eq-drop-cat">${_esc(e.categoria)}</span>` : ''}
         </div>`).join('');
       abrir();
       drop.querySelectorAll('.eq-drop-item').forEach(el => {
@@ -2977,7 +2977,7 @@ function abrirModalEquipamentosAcordo(chamadoId) {
           if (!eq) return;
           busca.value = `${eq.codigo} — ${eq.nome}`;
           idHid.value = eq.id;
-          badge.innerHTML = `<span class="eq-badge-chip">✓ Vinculado ao estoque: ${eq.codigo} — ${eq.nome}</span>`;
+          badge.innerHTML = `<span class="eq-badge-chip">✓ Vinculado ao estoque: ${_esc(eq.codigo)} — ${_esc(eq.nome)}</span>`;
           badge.style.display = 'block';
           drop.style.display = 'none';
         });
@@ -3393,7 +3393,7 @@ function abrirModalEquipamentosAcordo(chamadoId) {
       });
       if (!r.ok) {
         const d = await r.json();
-        msgEl.innerHTML = `<div class="msg-erro">⚠ ${d.erro}</div>`;
+        msgEl.innerHTML = `<div class="msg-erro">⚠ ${_esc(d.erro)}</div>`;
         return;
       }
       fechar();
@@ -3426,7 +3426,7 @@ async function carregarEquipamentos() {
         <div class="eq-item" title="Último chamado: ${fmtData(item.ultimo_chamado)}">
           <div class="eq-rank">${i + 1}</div>
           <div class="eq-info">
-            <div class="eq-nome">${item.equipamento}</div>
+            <div class="eq-nome">${_s(item.equipamento)}</div>
             <div class="eq-bar-wrap">
               <div class="eq-bar" style="width:${pct}%;background:${cor}"></div>
             </div>
@@ -3571,7 +3571,7 @@ function mostrarToast(titulo, corpo) {
   }
   const el = document.createElement('div');
   el.className = 'toast-notif';
-  el.innerHTML = `<button class="toast-close" aria-label="Fechar">✕</button><strong>${titulo}</strong><span>${corpo}</span>`;
+  el.innerHTML = `<button class="toast-close" aria-label="Fechar">✕</button><strong>${_esc(titulo)}</strong><span>${_esc(corpo)}</span>`;
   el.querySelector('.toast-close').addEventListener('click', () => {
     el.classList.remove('show');
     setTimeout(() => el.remove(), 350);
@@ -3636,7 +3636,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
     return '<option value="">— selecione —</option>' +
       itens.map(i => {
         const qtd = i.qtd_geral ?? 0;
-        return `<option value="${i.id}">${i.nome} — qtd: ${qtd}${qtd === 0 ? ' ⚠' : ''}</option>`;
+        return `<option value="${i.id}">${_esc(i.nome)} — qtd: ${qtd}${qtd === 0 ? ' ⚠' : ''}</option>`;
       }).join('');
   }
 
@@ -3708,7 +3708,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
   ov.innerHTML = `
     <div class="modal" style="max-width:660px;max-height:90vh;display:flex;flex-direction:column">
       <div class="modal-header" style="flex-shrink:0">
-        <h2>Movimentação de Estoque — ${catNome}</h2>
+        <h2>Movimentação de Estoque — ${_esc(catNome)}</h2>
         <button class="modal-close" id="wiz-fechar">&#x2715;</button>
       </div>
       <div class="modal-body" style="overflow-y:auto;flex:1;padding:.75rem 1.25rem .5rem">
@@ -3798,7 +3798,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
         });
         if (!r.ok) {
           const d = await r.json();
-          if (msg) msg.innerHTML = `<div class="alert alert-danger">Erro no estoque: ${d.erro}</div>`;
+          if (msg) msg.innerHTML = `<div class="alert alert-danger">Erro no estoque: ${_esc(d.erro)}</div>`;
           if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
           return;
         }
@@ -3806,7 +3806,7 @@ async function abrirWizardEstoque(chamado, solucao, onDone) {
       const r = await api(`/api/admin/chamados/${chamado.id}/concluir`, { method: 'PATCH', body: JSON.stringify({ solucao }) });
       const d = await r.json();
       if (!r.ok) {
-        if (msg) msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`;
+        if (msg) msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`;
         if (btnConf) { btnConf.disabled = false; btnConf.textContent = 'Registrar e concluir ✓'; }
         return;
       }
@@ -4022,10 +4022,10 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
     filtered.forEach(e => {
       const rot = _nceRotuloEtiqueta(e);
       itensHtml.push(
-        `<div class="nce-opt" role="option" data-slug="${e.slug}" data-label="${rot.replace(/"/g, '&quot;')}" data-cor="${e.cor || ''}"
+        `<div class="nce-opt" role="option" data-slug="${_esc(e.slug)}" data-label="${_esc(rot)}" data-cor="${_esc(e.cor || '')}"
           style="padding:.42rem .75rem;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:.45rem">
-          <span style="width:7px;height:7px;border-radius:50%;background:${e.cor || '#94a3b8'};flex-shrink:0"></span>
-          <span>${rot}</span>
+          <span style="width:7px;height:7px;border-radius:50%;background:${_esc(e.cor || '#94a3b8')};flex-shrink:0"></span>
+          <span>${_esc(rot)}</span>
         </div>`
       );
     });
@@ -4115,7 +4115,7 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
         body: JSON.stringify({ nome, email, senha, setor: setor || null, ramal: ramal || null }),
       });
       const d = await r.json();
-      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao criar.'}</div>`; return; }
+      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro || 'Erro ao criar.')}</div>`; return; }
       // Adiciona à lista em memória e auto-seleciona
       const novoUsuario = { id: d.id, nome, email, setor: setor || null, ativo: 1 };
       if (!_usuariosPortalNc) _usuariosPortalNc = [];
@@ -4124,7 +4124,7 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
       const selecionado = document.getElementById('nc-usuario-selecionado');
       if (busca) busca.value = nome;
       if (selecionado) {
-        selecionado.innerHTML = '✓ ' + nome + (setor ? ` · <span style="color:var(--text-muted);font-weight:400">${setor}</span>` : '');
+        selecionado.innerHTML = '✓ ' + _esc(nome) + (setor ? ` · <span style="color:var(--text-muted);font-weight:400">${_esc(setor)}</span>` : '');
         selecionado.dataset.usuarioId = d.id;
         selecionado.style.display = 'block';
       }
@@ -4153,7 +4153,7 @@ _addSetorDropdown(document.getElementById('filtro-setor'), carregarChamados);
         body: JSON.stringify({ nome, cor, parent_slug: parent, descricao }),
       });
       const d = await r.json();
-      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro || 'Erro ao criar.'}</div>`; return; }
+      if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro || 'Erro ao criar.')}</div>`; return; }
       // Recarrega etiquetas e auto-seleciona a nova
       await _carregarEtiquetasDinamicas();
       if (_ncCombo && d.slug) _ncCombo.setValue(d.slug);

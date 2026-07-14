@@ -125,7 +125,7 @@ function mostrarToastMob(titulo, corpo) {
   }
   const el = document.createElement('div');
   el.style.cssText = 'background:var(--navy,#1a2340);color:#fff;padding:.8rem 1rem;border-radius:10px;font-size:.85rem;box-shadow:0 4px 16px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:.15rem;pointer-events:auto';
-  el.innerHTML = `<strong style="font-size:.9rem">${titulo}</strong><span style="opacity:.85;line-height:1.4">${corpo}</span>`;
+  el.innerHTML = `<strong style="font-size:.9rem">${_esc(titulo)}</strong><span style="opacity:.85;line-height:1.4">${_esc(corpo)}</span>`;
   container.appendChild(el);
   setTimeout(() => el.remove(), 5500);
 }
@@ -188,6 +188,16 @@ window.addEventListener('focus', () => {
 window.addEventListener('online', () => {
   if (Notification.permission === 'granted') _subscribePush();
 });
+
+// Escapa texto não confiável para interpolação em innerHTML
+function _esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 const STATUS_LABELS = { aberto: 'Aberto', em_andamento: 'Em andamento', aguardando_compra: 'Ag. compra', aguardando_chegar: 'Ag. chegar', concluido: 'Concluído', encerrado: 'Encerrado' };
 const PRIO_LABELS   = { urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
@@ -315,7 +325,7 @@ function renderLogin() {
       });
       const d = await r.json();
       if (r.ok) {
-        msg.innerHTML = '<div class="mob-alert mob-alert-success">' + d.mensagem + '</div>'
+        msg.innerHTML = '<div class="mob-alert mob-alert-success">' + _esc(d.mensagem) + '</div>'
           + '<button type="button" id="mob-btn-reenviar"'
           + ' style="background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted);text-decoration:underline;padding:0;margin-top:.4rem;display:block">'
           + 'Não recebeu? Reenviar link</button>';
@@ -327,7 +337,7 @@ function renderLogin() {
           document.getElementById('mob-form-esqueci').style.display = '';
         });
       } else {
-        msg.innerHTML = '<div class="mob-alert mob-alert-danger">' + (d.erro || 'Erro ao processar.') + '</div>';
+        msg.innerHTML = '<div class="mob-alert mob-alert-danger">' + _esc(d.erro || 'Erro ao processar.') + '</div>';
       }
     } catch {
       msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão.</div>';
@@ -370,7 +380,7 @@ function renderLogin() {
       }
 
       const dU = await rU.json().catch(() => ({}));
-      msg.innerHTML = `<div class="mob-alert mob-alert-danger">${dU.erro || 'E-mail ou senha inválidos.'}</div>`;
+      msg.innerHTML = `<div class="mob-alert mob-alert-danger">${_esc(dU.erro || 'E-mail ou senha inválidos.')}</div>`;
     } catch { msg.innerHTML = '<div class="mob-alert mob-alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Entrar'; }
   });
@@ -384,7 +394,7 @@ async function renderLista() {
     <div class="mob-header">
       <div class="mob-header-info">
         <div class="mob-header-title">Chamados em aberto</div>
-        ${adminInfo ? `<div class="mob-header-sub">${adminInfo.nome_completo}</div>` : ''}
+        ${adminInfo ? `<div class="mob-header-sub">${_esc(adminInfo.nome_completo)}</div>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
         <button id="mob-btn-push" title="Notificações" aria-label="Notificações"
@@ -556,7 +566,7 @@ async function abrirFormNovoChamado() {
         (u.setor && u.setor.toLowerCase().includes(f)) ||
         (u.email && u.email.toLowerCase().includes(f)));
       res.innerHTML = filtrados.length
-        ? filtrados.map(u => `<div class="mob-nc-user-item" data-id="${u.id}" data-nome="${u.nome.replace(/"/g,'&quot;')}" data-setor="${(u.setor||'').replace(/"/g,'&quot;')}" style="padding:.4rem .7rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">${u.nome}${u.setor ? ' · <span style="color:var(--text-muted)">' + u.setor + '</span>' : ''}</div>`).join('')
+        ? filtrados.map(u => `<div class="mob-nc-user-item" data-id="${u.id}" data-nome="${_esc(u.nome)}" data-setor="${_esc(u.setor||'')}" style="padding:.4rem .7rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">${_esc(u.nome)}${u.setor ? ' · <span style="color:var(--text-muted)">' + _esc(u.setor) + '</span>' : ''}</div>`).join('')
         : '<div style="padding:.4rem .7rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
       res.style.display = 'block';
       res.querySelectorAll('.mob-nc-user-item').forEach(el => {
@@ -586,7 +596,7 @@ async function abrirFormNovoChamado() {
     const box = document.getElementById('mob-nc-tiles');
     box.innerHTML = _arquivos.map((f, i) =>
       `<div style="display:inline-flex;align-items:center;gap:.3rem;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:.2rem .5rem;font-size:.75rem;max-width:200px">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(f.name)}</span>
         <button type="button" data-idx="${i}" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;padding:0;flex-shrink:0;line-height:1">✕</button>
       </div>`).join('');
     box.querySelectorAll('button[data-idx]').forEach(btn => {
@@ -620,7 +630,7 @@ async function abrirFormNovoChamado() {
       _arquivos.forEach(f => fd.append('anexos', f, f.name));
       const r = await fetch('/api/admin/chamados', { method: 'POST', body: fd });
       const d = await r.json();
-      if (!r.ok) { msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`; return; }
+      if (!r.ok) { msg.innerHTML = `<div class="mob-alert mob-alert-danger">${_esc(d.erro)}</div>`; return; }
       overlay.remove();
       mostrarToastMob('✅ Chamado aberto!', d.mensagem || `#${d.id}`);
       carregarChamados();
@@ -715,10 +725,10 @@ function renderCards() {
         ${c.prioridade ? `<span class="badge badge-${c.prioridade}">${PRIO_LABELS[c.prioridade]}</span>` : ''}
         <span class="mob-card-data">${fmtData(c.criado_em)}</span>
       </div>
-      <div class="mob-card-nome">${c.nome}</div>
-      <div class="mob-card-setor">${c.usuario_setor || c.setor}</div>
-      <div class="mob-card-desc">${c.descricao.length > 120 ? c.descricao.slice(0, 120) + '…' : c.descricao}</div>
-      ${c.admin_nome ? `<div class="mob-card-resp">Responsável: ${c.admin_nome}</div>` : ''}
+      <div class="mob-card-nome">${_esc(c.nome)}</div>
+      <div class="mob-card-setor">${_esc(c.usuario_setor || c.setor)}</div>
+      <div class="mob-card-desc">${_esc(c.descricao.length > 120 ? c.descricao.slice(0, 120) + '…' : c.descricao)}</div>
+      ${c.admin_nome ? `<div class="mob-card-resp">Responsável: ${_esc(c.admin_nome)}</div>` : ''}
       ${fmtPrazo(c.prazo)}
     </div>
   `).join('');
@@ -752,7 +762,7 @@ function mobWizHtml(cat, itens) {
     return '<option value="">— selecione —</option>' +
       lista.map(i => {
         const q = i.qtd_geral ?? 0;
-        return `<option value="${i.id}">${i.nome} (${q}${q === 0 ? ' ⚠' : ''})`;
+        return `<option value="${_esc(i.id)}">${_esc(i.nome)} (${q}${q === 0 ? ' ⚠' : ''})`;
       }).join('');
   }
 
@@ -869,14 +879,14 @@ async function renderDetalhe(c) {
 
     <div class="mob-detalhe">
       <div style="font-family:monospace;font-size:.78rem;font-weight:700;color:var(--text-muted);margin-bottom:.3rem">Chamado #${c.id}</div>
-      <div class="mob-detalhe-nome">${c.nome}</div>
-      <div class="mob-detalhe-setor">${c.usuario_setor || c.setor} · Ramal ${c.usuario_ramal || c.ramal}</div>
-      <div class="mob-detalhe-desc">${c.descricao}</div>
+      <div class="mob-detalhe-nome">${_esc(c.nome)}</div>
+      <div class="mob-detalhe-setor">${_esc(c.usuario_setor || c.setor)} · Ramal ${_esc(c.usuario_ramal || c.ramal)}</div>
+      <div class="mob-detalhe-desc">${_esc(c.descricao)}</div>
       <div id="mob-infos-adicionais-lista">
         ${(c.infos_adicionais || []).map(info => `
           <div class="mob-info-adicional">
-            <div class="mob-info-adicional-meta"><strong>${info.autor_nome}</strong> &mdash; ${fmtData(info.criado_em)}</div>
-            <div class="mob-info-adicional-texto">${info.texto}</div>
+            <div class="mob-info-adicional-meta"><strong>${_esc(info.autor_nome)}</strong> &mdash; ${fmtData(info.criado_em)}</div>
+            <div class="mob-info-adicional-texto">${_esc(info.texto)}</div>
           </div>
         `).join('')}
       </div>
@@ -891,7 +901,7 @@ async function renderDetalhe(c) {
 
       <div class="mob-fotos-section">
         <div class="mob-fotos-head">Fotos e Anexos</div>
-        ${c.anexo_nome_original ? `<div class="mob-fotos-grid" style="margin-bottom:.4rem">${_isImgAnexo(c.anexo_nome_original) ? `<div class="mob-foto-thumb-wrap"><img src="/api/chamados/${c.id}/anexo" class="mob-foto-thumb lbx-img" loading="lazy" alt="${c.anexo_nome_original}"><a href="/api/chamados/${c.id}/anexo" download class="mob-foto-dl" title="Baixar">⬇</a></div>` : `<a href="/api/chamados/${c.id}/anexo" download class="mob-btn mob-btn-ghost mob-btn-sm" style="font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">⬇ ${c.anexo_nome_original}</a>`}</div>` : ''}
+        ${c.anexo_nome_original ? `<div class="mob-fotos-grid" style="margin-bottom:.4rem">${_isImgAnexo(c.anexo_nome_original) ? `<div class="mob-foto-thumb-wrap"><img src="/api/chamados/${c.id}/anexo" class="mob-foto-thumb lbx-img" loading="lazy" alt="${_esc(c.anexo_nome_original)}"><a href="/api/chamados/${c.id}/anexo" download class="mob-foto-dl" title="Baixar">⬇</a></div>` : `<a href="/api/chamados/${c.id}/anexo" download class="mob-btn mob-btn-ghost mob-btn-sm" style="font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">⬇ ${_esc(c.anexo_nome_original)}</a>`}</div>` : ''}
         <div id="mob-fotos-grid" class="mob-fotos-grid"><span style="font-size:.78rem;color:var(--text-muted)">Carregando…</span></div>
         <div style="display:flex;align-items:center;gap:.5rem;margin-top:.6rem">
           <label class="mob-btn mob-btn-ghost mob-btn-sm" style="cursor:pointer;flex-shrink:0;margin:0">
@@ -962,8 +972,8 @@ async function renderDetalhe(c) {
         ${c.admin_anexo_nome_original ? `
         <div style="display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
           ${_isImgAnexo(c.admin_anexo_nome_original)
-            ? `<div class="anexo-preview-wrap" style="flex:1"><img class="lbx-img anexo-preview-img" src="/api/admin/chamados/${c.id}/admin-anexo" alt="${c.admin_anexo_nome_original}"><a href="/api/admin/chamados/${c.id}/admin-anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
-            : `<a href="/api/admin/chamados/${c.id}/admin-anexo" class="mob-btn mob-btn-ghost mob-btn-sm" download style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">⬇ ${c.admin_anexo_nome_original}</a>`
+            ? `<div class="anexo-preview-wrap" style="flex:1"><img class="lbx-img anexo-preview-img" src="/api/admin/chamados/${c.id}/admin-anexo" alt="${_esc(c.admin_anexo_nome_original)}"><a href="/api/admin/chamados/${c.id}/admin-anexo" download class="anexo-preview-dl">⬇ baixar</a></div>`
+            : `<a href="/api/admin/chamados/${c.id}/admin-anexo" class="mob-btn mob-btn-ghost mob-btn-sm" download style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">⬇ ${_esc(c.admin_anexo_nome_original)}</a>`
           }
           <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-btn-remover-admin-anexo" style="flex-shrink:0">✕</button>
         </div>` : ''}
@@ -1279,7 +1289,7 @@ async function renderDetalhe(c) {
           if (!r.ok) {
             const d = await r.json();
             if (btn.isConnected) {
-              msg.innerHTML = `<div class="mob-alert mob-alert-danger">Erro no estoque: ${d.erro}</div>`;
+              msg.innerHTML = `<div class="mob-alert mob-alert-danger">Erro no estoque: ${_esc(d.erro)}</div>`;
               btn.disabled = false; btn.textContent = 'Concluir chamado';
             } else {
               mostrarToastMob('⚠ Erro no estoque', d.erro || 'Não foi possível registrar a movimentação.');
@@ -1297,7 +1307,7 @@ async function renderDetalhe(c) {
       });
       const d = await r.json();
       if (!r.ok) {
-        if (btn.isConnected) msg.innerHTML = `<div class="mob-alert mob-alert-danger">${d.erro}</div>`;
+        if (btn.isConnected) msg.innerHTML = `<div class="mob-alert mob-alert-danger">${_esc(d.erro)}</div>`;
         else mostrarToastMob('⚠ Chamado não concluído', d.erro || 'Tente novamente.');
         return;
       }
@@ -1351,9 +1361,9 @@ async function _carregarFotosMob(chamadoId) {
     grid.innerHTML = lista.map(a => {
       const url = `/api/chamados/${chamadoId}/anexos/${a.id}`;
       if (_isImgAnexo(a.nome_original)) {
-        return `<div class="mob-foto-thumb-wrap"><img src="${url}" class="mob-foto-thumb lbx-img" alt="${a.nome_original}" loading="lazy"><a href="${url}" download class="mob-foto-dl" title="Baixar">⬇</a></div>`;
+        return `<div class="mob-foto-thumb-wrap"><img src="${url}" class="mob-foto-thumb lbx-img" alt="${_esc(a.nome_original)}" loading="lazy"><a href="${url}" download class="mob-foto-dl" title="Baixar">⬇</a></div>`;
       }
-      return `<a href="${url}" download class="mob-btn mob-btn-ghost mob-btn-sm" style="font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">⬇ ${a.nome_original}</a>`;
+      return `<a href="${url}" download class="mob-btn mob-btn-ghost mob-btn-sm" style="font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">⬇ ${_esc(a.nome_original)}</a>`;
     }).join('');
   } catch { grid.innerHTML = '<span style="font-size:.78rem;color:var(--text-muted)">Erro ao carregar.</span>'; }
 }
@@ -1364,12 +1374,12 @@ function _renderMsgMob(m, chamadoId) {
   const iso = m.criado_em.includes('T') ? m.criado_em : m.criado_em.replace(' ', 'T');
   const hora = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
     .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Fortaleza' });
-  const textoHtml = m.mensagem ? `<div class="mob-chat-bubble">${m.mensagem.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : '';
+  const textoHtml = m.mensagem ? `<div class="mob-chat-bubble">${_esc(m.mensagem)}</div>` : '';
   const anexoHtml = _mobChatAnexoHtml(`/api/admin/chamados/${chamadoId}/mensagens/${m.id}/chat-anexo`, m.chat_anexo_nome_original);
   return `<div class="mob-chat-msg ${isAdmin ? 'mob-chat-msg-admin' : 'mob-chat-msg-user'}" data-msg-id="${m.id}">
     ${textoHtml}${anexoHtml}
     <div class="mob-chat-meta">
-      <span class="mob-chat-autor">${m.autor_nome || (isAdmin ? 'Admin' : 'Usuário')}</span>
+      <span class="mob-chat-autor">${_esc(m.autor_nome || (isAdmin ? 'Admin' : 'Usuário'))}</span>
       <span class="mob-chat-time">${hora}</span>
     </div>
   </div>`;
@@ -1380,10 +1390,10 @@ function _mobChatAnexoHtml(url, nome) {
   const ext = nome.split('.').pop().toLowerCase();
   const vids = ['mp4','webm','mov','avi','mkv','wmv'];
   if (_IMGS_EXT.includes(ext))
-    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${nome}" loading="lazy">`;
+    return `<img class="lbx-img chat-msg-img" src="${url}" alt="${_esc(nome)}" loading="lazy">`;
   if (vids.includes(ext))
     return `<video class="chat-msg-video" src="${url}" controls preload="metadata"></video>`;
-  return `<a class="mob-chat-anexo" href="${url}" target="_blank" rel="noopener"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${nome}</a>`;
+  return `<a class="mob-chat-anexo" href="${url}" target="_blank" rel="noopener"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${_esc(nome)}</a>`;
 }
 
 async function _atualizarChatMob(chamadoId) {
@@ -1450,7 +1460,7 @@ function renderSucesso(c) {
              stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div class="mob-sucesso-titulo">Chamado concluído!</div>
-      <div class="mob-sucesso-sub">${c.nome}</div>
+      <div class="mob-sucesso-sub">${_esc(c.nome)}</div>
       ${termoAviso}
       <button class="mob-btn mob-btn-primary" id="mob-btn-voltar-lista">Ver chamados em aberto</button>
     </div>

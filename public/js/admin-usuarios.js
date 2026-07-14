@@ -57,8 +57,8 @@ function _renderAdminEtChips(filtro) {
     const ativo = _adminEtSelecionados.has(e.slug);
     const cor = e.cor || '#C5A55A';
     const s = ativo ? `background:${cor}22;border-color:${cor}88;color:${cor};font-weight:600` : '';
-    const label = bc(e).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    return `<button type="button" class="admin-et-chip${ativo?' ativo':''}" data-slug="${e.slug}" data-cor="${cor}" style="${s}" title="${label}">${label}</button>`;
+    const label = _esc(bc(e));
+    return `<button type="button" class="admin-et-chip${ativo?' ativo':''}" data-slug="${_esc(e.slug)}" data-cor="${_esc(cor)}" style="${_esc(s)}" title="${label}">${label}</button>`;
   }).join('');
   container.querySelectorAll('.admin-et-chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -112,7 +112,7 @@ function _addSetorDropdown(inp) {
   function _render(q) {
     const list = q ? SETORES.filter(s => s.toLowerCase().includes(q.toLowerCase())) : SETORES;
     if (!list.length) { dd.style.display = 'none'; return; }
-    dd.innerHTML = list.map(s => `<div class="_setor-dd-item">${s.replace(/&/g,'&amp;')}</div>`).join('');
+    dd.innerHTML = list.map(s => `<div class="_setor-dd-item">${_esc(s)}</div>`).join('');
     dd.querySelectorAll('._setor-dd-item').forEach(el => {
       el.addEventListener('mousedown', e => {
         e.preventDefault();
@@ -128,23 +128,6 @@ function _addSetorDropdown(inp) {
   inp.addEventListener('blur', () => setTimeout(() => { dd.style.display = 'none'; }, 150));
 }
 
-
-function toggleSenha(el) {
-  if (el.dataset.shown === '1') {
-    el.textContent = '••••••••';
-    el.dataset.shown = '0';
-  } else {
-    el.textContent = el.dataset.senha || '—';
-    el.dataset.shown = '1';
-  }
-}
-
-function senhaCell(senhaPlain) {
-  if (!meAdmin || !meAdmin.is_master) return '';
-  const safe = (senhaPlain || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-  const display = senhaPlain ? '••••••••' : '—';
-  return `<td style="text-align:center"><span data-senha="${safe}" data-shown="0" style="font-family:monospace;font-size:.82rem;cursor:pointer;user-select:all" title="Clique para revelar" onclick="toggleSenha(this)">${display}</span></td>`;
-}
 
 function verificarSenha(senha) {
   return {
@@ -438,7 +421,7 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
       r = await api('/api/admin/usuarios', { method: 'POST', body: JSON.stringify(body) });
     }
     const d = await r.json();
-    if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+    if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`; return; }
 
     if (idSalvoAdmin) {
       const a = todosAdmins.find(x => x.id === idSalvoAdmin);
@@ -447,15 +430,14 @@ document.getElementById('form-admin').addEventListener('submit', async (e) => {
         a.email = body.email;
         a.ramal = body.ramal;
         a.is_master = body.is_master ? 1 : 0;
-        if (body.senha) a.senha_plain = body.senha;
       }
       renderAdmins();
       fecharModalAdmin();
-      msgGlobal(`<div class="alert alert-success">${d.mensagem || 'Admin atualizado'}</div>`);
+      msgGlobal(`<div class="alert alert-success">${_esc(d.mensagem || 'Admin atualizado')}</div>`);
     } else {
       await carregarAdmins();
       fecharModalAdmin();
-      msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+      msgGlobal(`<div class="alert alert-success">${_esc(d.mensagem)}</div>`);
     }
   } catch (err) {
     if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
@@ -500,7 +482,7 @@ function renderAdmins() {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
       </svg></div>
-      <p>${q ? `Nenhum administrador encontrado para "${filtroAdminsTexto}".` : `Nenhum administrador ${abaAdmins === 'ativos' ? 'ativo' : 'inativo'}.`}</p>
+      <p>${q ? `Nenhum administrador encontrado para "${_esc(filtroAdminsTexto)}".` : `Nenhum administrador ${abaAdmins === 'ativos' ? 'ativo' : 'inativo'}.`}</p>
     </div>`;
     return;
   }
@@ -510,7 +492,7 @@ function renderAdmins() {
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Ramal</th><th style="text-align:center">Tipo</th>${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}<th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
+            <th style="text-align:center">Usuário</th><th style="text-align:center">Nome</th><th style="text-align:center">E-mail</th><th style="text-align:center">Ramal</th><th style="text-align:center">Tipo</th><th style="text-align:center">Criado em</th><th style="text-align:center">Ações</th>
           </tr></thead>
           <tbody>
             ${filtrados.map(a => `
@@ -520,7 +502,6 @@ function renderAdmins() {
                 <td style="text-align:center;font-size:.82rem">${a.email ? _esc(a.email) : '<span class="text-muted">—</span>'}</td>
                 <td style="text-align:center;font-size:.85rem">${a.ramal ? `<code>${_esc(a.ramal)}</code>` : '<span style="color:var(--text-muted)">—</span>'}</td>
                 <td style="text-align:center">${a.is_master ? '<span class="badge badge-urgente">Master</span>' : '<span style="font-size:.78rem;color:var(--text-secondary)">Admin</span>'}</td>
-                ${senhaCell(a.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(a.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
                   <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
@@ -571,20 +552,12 @@ async function abrirModalAdmin(id) {
       const eSiMesmo = id === meAdmin.id;
       document.getElementById('f-master').disabled = eSiMesmo;
       document.getElementById('f-master').title = eSiMesmo ? 'Você não pode remover seu próprio status de master' : '';
+      // Senha nunca é pré-preenchida: campo vazio significa "não alterar"
       const dicaF = document.getElementById('dica-senha-f');
-      if (admin.senha_plain) {
-        document.getElementById('f-senha').value = admin.senha_plain;
-        document.getElementById('f-senha').dataset.original = admin.senha_plain;
-        document.getElementById('f-senha').type = 'password';
-        document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-        dicaF.style.display = 'none';
-      } else {
-        document.getElementById('f-senha').value = '';
-        document.getElementById('f-senha').dataset.original = '';
-        document.getElementById('f-senha').type = 'password';
-        document.getElementById('icon-eye-f').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-        dicaF.style.display = '';
-      }
+      document.getElementById('f-senha').value = '';
+      document.getElementById('f-senha').dataset.original = '';
+      document.getElementById('f-senha').placeholder = 'Deixe em branco para manter a senha atual';
+      if (dicaF) dicaF.style.display = '';
     }
     if (etWrap) {
       etWrap.style.display = '';
@@ -605,6 +578,7 @@ async function abrirModalAdmin(id) {
     document.getElementById('modal-admin-title').textContent = 'Novo administrador';
     document.getElementById('f-nome').value = '';
     document.getElementById('f-email').value = DOMINIO_EMAIL;
+    document.getElementById('f-senha').placeholder = '••••••••';
     document.getElementById('lbl-senha-dica').textContent = '(mín. 6 caracteres)';
     document.getElementById('dica-senha-f').style.display = 'none';
   }
@@ -636,7 +610,7 @@ async function toggleAdmin(id, ativo) {
   if (!ok) return;
   const r = await api(`/api/admin/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
   const d = await r.json();
-  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
+  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${_esc(d.erro)}</div>`); return; }
   const a = todosAdmins.find(x => x.id === id);
   if (a) a.ativo = !ativo ? 1 : 0;
   const ativos = todosAdmins.filter(x => x.ativo);
@@ -644,7 +618,7 @@ async function toggleAdmin(id, ativo) {
   document.getElementById('badge-admins-ativos').textContent = ativos.length || '';
   document.getElementById('badge-admins-inativos').textContent = inativos.length || '';
   renderAdmins();
-  msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+  msgGlobal(`<div class="alert alert-success">${_esc(d.mensagem)}</div>`);
 }
 
 
@@ -681,10 +655,10 @@ document.getElementById('form-usuario').addEventListener('submit', async (e) => 
     const r = await api('/api/admin/portal-usuarios', { method: 'POST', body: JSON.stringify(body) });
     let d;
     try { d = await r.json(); } catch { d = { erro: `Erro ${r.status} — reinicie o servidor.` }; }
-    if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+    if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`; return; }
     fecharModalUsuario();
     await carregarUsuarios();
-    msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+    msgGlobal(`<div class="alert alert-success">${_esc(d.mensagem)}</div>`);
   } catch (err) {
     if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro de conexão. Verifique se o servidor está rodando.</div>';
   } finally {
@@ -727,7 +701,7 @@ function renderUsuarios() {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
       </svg></div>
-      <p>${q ? `Nenhum usuário encontrado para "${filtroUsuariosTexto}".` : `Nenhum usuário ${abaUsuarios === 'ativos' ? 'ativo' : 'inativo'}.`}</p>
+      <p>${q ? `Nenhum usuário encontrado para "${_esc(filtroUsuariosTexto)}".` : `Nenhum usuário ${abaUsuarios === 'ativos' ? 'ativo' : 'inativo'}.`}</p>
     </div>`;
     return;
   }
@@ -741,7 +715,6 @@ function renderUsuarios() {
             <th style="text-align:center">E-mail</th>
             <th style="text-align:center">Setor</th>
             <th style="text-align:center">Ramal</th>
-            ${meAdmin && meAdmin.is_master ? '<th style="text-align:center">Senha</th>' : ''}
             <th style="text-align:center">Cadastrado em</th>
             <th style="text-align:center">Ações</th>
           </tr></thead>
@@ -752,7 +725,6 @@ function renderUsuarios() {
                 <td style="text-align:center;font-size:.82rem">${_esc(u.email)}</td>
                 <td style="text-align:center;font-size:.82rem">${u.setor ? _esc(u.setor) : '<span class="text-muted">—</span>'}</td>
                 <td style="text-align:center;font-size:.82rem;font-family:monospace">${u.ramal ? _esc(u.ramal) : '<span class="text-muted">—</span>'}</td>
-                ${senhaCell(u.senha_plain)}
                 <td style="text-align:center;font-size:.8rem">${new Date(u.criado_em.replace(' ','T')+'Z').toLocaleDateString('pt-BR',{timeZone:'America/Fortaleza'})}</td>
                 <td style="text-align:center">
                   <div style="display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm)">
@@ -816,23 +788,15 @@ async function abrirModalEditarUsuario(id) {
   document.getElementById('feu-setor').value = _decode(usuario.setor || '');
   document.getElementById('feu-ramal').value = usuario.ramal || '';
 
+  // Senha nunca é pré-preenchida: campo vazio significa "não alterar"
   const senhaInput = document.getElementById('feu-senha');
   const dicaSenha  = document.getElementById('dica-senha-feu');
-  if (usuario.senha_plain) {
-    senhaInput.value = usuario.senha_plain;
-    senhaInput.dataset.original = usuario.senha_plain;
-    senhaInput.type  = 'password';
-    senhaInput.placeholder = '••••••••';
-    document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-    dicaSenha.style.display = 'none';
-  } else {
-    senhaInput.value = '';
-    senhaInput.dataset.original = '';
-    senhaInput.type  = 'password';
-    senhaInput.placeholder = '••••••••';
-    document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-    dicaSenha.style.display = '';
-  }
+  senhaInput.value = '';
+  senhaInput.dataset.original = '';
+  senhaInput.type  = 'password';
+  senhaInput.placeholder = 'Deixe em branco para manter a senha atual';
+  document.getElementById('icon-eye-feu').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  if (dicaSenha) dicaSenha.style.display = '';
 
   resetarForca('forca-editar-usuario', 'barra-editar-usuario', 'reqs-editar-usuario');
   atualizarEmailDica('feu-email', 'dica-email-editar-usuario');
@@ -881,7 +845,7 @@ document.getElementById('form-editar-usuario').addEventListener('submit', async 
     const idSalvo = editandoUsuarioId;
     const r = await api(`/api/admin/portal-usuarios/${idSalvo}`, { method: 'PATCH', body: JSON.stringify(body) });
     const d = await r.json();
-    if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${d.erro}</div>`; return; }
+    if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`; return; }
 
     const u = todosUsuarios.find(x => x.id === idSalvo);
     if (u) {
@@ -889,11 +853,10 @@ document.getElementById('form-editar-usuario').addEventListener('submit', async 
       u.email = body.email;
       u.setor = body.setor;
       u.ramal = body.ramal;
-      if (body.senha) u.senha_plain = body.senha;
     }
     renderUsuarios();
     fecharModalEditarUsuario();
-    msgGlobal(`<div class="alert alert-success">${d.mensagem || 'Usuário atualizado com sucesso'}</div>`);
+    msgGlobal(`<div class="alert alert-success">${_esc(d.mensagem || 'Usuário atualizado com sucesso')}</div>`);
   } catch (err) {
     if (err.message !== '401') msg.innerHTML = '<div class="alert alert-danger">Erro ao salvar.</div>';
   } finally {
@@ -932,7 +895,7 @@ async function toggleUsuario(id, ativo) {
   if (!ok) return;
   const r = await api(`/api/admin/portal-usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ ativo: !ativo }) });
   const d = await r.json();
-  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${d.erro}</div>`); return; }
+  if (!r.ok) { msgGlobal(`<div class="alert alert-danger">${_esc(d.erro)}</div>`); return; }
   const u = todosUsuarios.find(x => x.id === id);
   if (u) u.ativo = !ativo ? 1 : 0;
   const ativos = todosUsuarios.filter(x => x.ativo !== 0);
@@ -940,7 +903,7 @@ async function toggleUsuario(id, ativo) {
   document.getElementById('badge-usuarios-ativos').textContent = ativos.length || '';
   document.getElementById('badge-usuarios-inativos').textContent = inativos.length || '';
   renderUsuarios();
-  msgGlobal(`<div class="alert alert-success">${d.mensagem}</div>`);
+  msgGlobal(`<div class="alert alert-success">${_esc(d.mensagem)}</div>`);
 }
 
 // ── Histórico de chamados de um usuário ───────────────────────────
@@ -990,7 +953,7 @@ function renderTimelineAtividade(logs) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${ev.cor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ev.icone}</svg>
         </div>
         <div style="flex:1;min-width:0;padding-bottom:1rem;border-bottom:1px solid var(--border)">
-          <div style="font-size:.88rem;font-weight:600;color:var(--text);line-height:1.3">${ev.label}</div>
+          <div style="font-size:.88rem;font-weight:600;color:var(--text);line-height:1.3">${escHist(ev.label)}</div>
           <div style="display:flex;align-items:center;gap:.75rem;margin-top:.3rem;flex-wrap:wrap">
             <span style="font-size:.74rem;color:var(--text-muted);font-variant-numeric:tabular-nums">${fmtDHist(l.criado_em)}</span>
             ${l.ip ? `<span style="font-size:.72rem;color:var(--text-muted);font-family:'SF Mono',Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--border);padding:.1rem .4rem;border-radius:3px">${escHist(l.ip)}</span>` : ''}
@@ -1190,7 +1153,7 @@ async function abrirHistoricoChamadosUsuario(usuarioId, nomeUsuario) {
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </button>
                 <span style="height:14px;width:1px;background:var(--border-strong)"></span>
-                <span style="background:${corStatus};color:#fff;font-size:.66rem;font-weight:700;padding:.22rem .55rem;border-radius:3px;text-transform:uppercase;letter-spacing:.06em">${statusLabel}</span>
+                <span style="background:${corStatus};color:#fff;font-size:.66rem;font-weight:700;padding:.22rem .55rem;border-radius:3px;text-transform:uppercase;letter-spacing:.06em">${escHist(statusLabel)}</span>
                 ${prioLabel ? `<span style="color:${prioCor};border:1px solid ${prioCor};font-size:.66rem;font-weight:600;padding:.18rem .5rem;border-radius:3px;text-transform:uppercase;letter-spacing:.05em">${prioLabel}</span>` : ''}
                 ${c.categoria ? `<span style="background:var(--gold-pale);color:var(--gold-dark);font-size:.66rem;font-weight:600;padding:.18rem .5rem;border-radius:3px;text-transform:uppercase;letter-spacing:.05em">${escHist(c.categoria)}</span>` : ''}
                 <span style="margin-left:auto;font-size:.74rem;color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap">${fmtDHist(c.criado_em)}</span>

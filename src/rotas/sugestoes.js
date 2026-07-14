@@ -85,7 +85,7 @@ router.get('/:id/anexo', requireUsuario, (req, res) => {
     const filePath = path.join(UPLOADS_DIR, s.anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
     const nomeAnexo = s.anexo_nome_original || s.anexo_path;
-    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(nomeAnexo);
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|heic|avif)$/i.test(nomeAnexo);
     res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(nomeAnexo)}`);
     return res.sendFile(path.resolve(filePath));
   } catch (err) {
@@ -165,7 +165,9 @@ router.get('/:id/mensagens/:msgId/chat-anexo', requireUsuario, (req, res) => {
     if (req.headers['if-none-match'] === etag) return res.status(304).end();
     res.setHeader('ETag', etag);
     res.setHeader('Cache-Control', 'private, max-age=3600');
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
+    const nomeAnexoChat = msg.chat_anexo_nome_original || msg.chat_anexo_path;
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|heic|avif)$/i.test(nomeAnexoChat);
+    res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(nomeAnexoChat)}"`);
     return res.sendFile(filePath);
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });
@@ -331,7 +333,7 @@ router.get('/admin/:id/anexo', requireAdmin, (req, res) => {
     const filePath = path.join(UPLOADS_DIR, s.anexo_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ erro: 'Arquivo não encontrado' });
     const nomeAnexo = s.anexo_nome_original || s.anexo_path;
-    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|svg|heic|avif)$/i.test(nomeAnexo);
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|heic|avif)$/i.test(nomeAnexo);
     res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(nomeAnexo)}`);
     return res.sendFile(path.resolve(filePath));
   } catch (err) {
@@ -351,7 +353,9 @@ router.get('/admin/:id/mensagens/:msgId/chat-anexo', requireAdmin, (req, res) =>
     if (req.headers['if-none-match'] === etag) return res.status(304).end();
     res.setHeader('ETag', etag);
     res.setHeader('Cache-Control', 'private, max-age=3600');
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(msg.chat_anexo_nome_original)}"`);
+    const nomeAnexoChat = msg.chat_anexo_nome_original || msg.chat_anexo_path;
+    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|heic|avif)$/i.test(nomeAnexoChat);
+    res.setHeader('Content-Disposition', `${isImg ? 'inline' : 'attachment'}; filename="${encodeURIComponent(nomeAnexoChat)}"`);
     return res.sendFile(filePath);
   } catch (err) {
     return res.status(500).json({ erro: 'Erro interno' });

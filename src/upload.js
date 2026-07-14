@@ -89,6 +89,8 @@ function uploadChamadoMiddleware() {
       if (err.code === 'LIMIT_FILE_COUNT') return res.status(400).json({ erro: 'Máx. 10 anexos por chamado.' });
       if (err.code === 'LIMIT_UNEXPECTED_FILE')
         return res.status(400).json({ erro: `Campo de upload inválido: recebido "${err.field}", esperado "anexos" ou "anexo".` });
+      if (err.message === 'Tipo de arquivo não permitido')
+        return res.status(400).json({ erro: 'Tipo de arquivo não permitido por motivos de segurança.' });
       return res.status(400).json({ erro: 'Erro no upload', detalhe: err.message });
     });
   };
