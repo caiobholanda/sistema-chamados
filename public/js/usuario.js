@@ -1986,7 +1986,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
   }
   _catTxtEl.addEventListener('input', () => setTimeout(_syncRamalField, 0));
   _catTxtEl.addEventListener('blur', () => setTimeout(_syncRamalField, 200));
-  _ramalTxtEl.addEventListener('input', _ajustarLimiteDescricao);
+  _ramalTxtEl.addEventListener('input', () => setTimeout(_ajustarLimiteDescricao, 0));
 
   const _estruturaRamal = Array.from(RAMAIS_VALIDOS).sort().map(r => ({ type: 'item', value: r, label: r }));
   _montarCombo(_ramalTxtEl, _inputRamalProblema, document.getElementById('ch-ramal-dd'), _estruturaRamal, _ajustarLimiteDescricao);
