@@ -1915,8 +1915,12 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
           </div>
         </div>
         <div class="form-group" id="grupo-ramal-problema" style="display:none">
-          <label for="ch-ramal-problema">Qual ramal está com problema? <span class="req">*</span></label>
-          <input type="text" class="form-control" id="ch-ramal-problema" placeholder="Ex: 3201" maxlength="20" autocomplete="off">
+          <label for="ch-ramal-txt">Qual ramal está com problema? <span class="req">*</span></label>
+          <div class="combo-wrap">
+            <input type="text" class="form-control combo-input" id="ch-ramal-txt" placeholder="Digite ou selecione o ramal..." autocomplete="off">
+            <input type="hidden" id="ch-ramal-problema">
+            <div class="combo-dd" id="ch-ramal-dd"></div>
+          </div>
         </div>
         <div id="banner-ramal-detec" class="ramal-detec-banner" style="display:none" role="status" aria-live="polite">
           <div class="ramal-detec-icon">
@@ -1955,9 +1959,10 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
     </div>
   `;
 
-  _preencherSelectsChamado(usuario);
+  _preencherSelectsChamado(usuario, _syncRamalField);
 
   const _grupoRamalProblema = document.getElementById('grupo-ramal-problema');
+  const _ramalTxtEl         = document.getElementById('ch-ramal-txt');
   const _inputRamalProblema = document.getElementById('ch-ramal-problema');
   const _catTxtEl           = document.getElementById('ch-cat-txt');
   const _catHiddenEl        = document.getElementById('ch-categoria');
@@ -1976,12 +1981,15 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
   function _syncRamalField() {
     const mostrar = _catHiddenEl.value === 'ramal';
     _grupoRamalProblema.style.display = mostrar ? '' : 'none';
-    if (!mostrar) _inputRamalProblema.value = '';
+    if (!mostrar) { _inputRamalProblema.value = ''; _ramalTxtEl.value = ''; }
     _ajustarLimiteDescricao();
   }
   _catTxtEl.addEventListener('input', _syncRamalField);
   _catTxtEl.addEventListener('blur', () => setTimeout(_syncRamalField, 200));
-  _inputRamalProblema.addEventListener('input', _ajustarLimiteDescricao);
+  _ramalTxtEl.addEventListener('input', _ajustarLimiteDescricao);
+
+  const _estruturaRamal = Array.from(RAMAIS_VALIDOS).sort().map(r => ({ type: 'item', value: r, label: r }));
+  _montarCombo(_ramalTxtEl, _inputRamalProblema, document.getElementById('ch-ramal-dd'), _estruturaRamal);
 
   // Detecção em tempo real de ramal/telefone na descrição
   const _bannerRamal   = document.getElementById('banner-ramal-detec');
@@ -2007,10 +2015,10 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
     _catHiddenEl.value = 'ramal';
     _catTxtEl.value    = 'Ramal / Telefone';
     _syncRamalField();
-    if (val) _inputRamalProblema.value = val;
+    if (val) { _inputRamalProblema.value = val; _ramalTxtEl.value = val; }
     _ajustarLimiteDescricao();
     _bannerRamal.style.display = 'none';
-    _inputRamalProblema.focus();
+    _ramalTxtEl.focus();
   });
 
   // Esconder banner se usuário selecionar manualmente "Ramal / Telefone"
@@ -2115,7 +2123,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       const ramalProblema = document.getElementById('ch-ramal-problema').value.trim();
       if (!ramalProblema) {
         msg.innerHTML = '<div class="alert alert-danger">Informe o número do ramal com problema.</div>';
-        document.getElementById('ch-ramal-problema').focus();
+        document.getElementById('ch-ramal-txt').focus();
         return;
       }
     }
@@ -2153,7 +2161,7 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
   });
 }
 
-function _montarCombo(inputEl, hiddenEl, ddEl, estrutura) {
+function _montarCombo(inputEl, hiddenEl, ddEl, estrutura, onSelect) {
   let focusIdx = -1;
 
   function itensVisiveis() {
@@ -2212,6 +2220,7 @@ function _montarCombo(inputEl, hiddenEl, ddEl, estrutura) {
     hiddenEl.value = value;
     inputEl.value = label;
     fechar();
+    if (onSelect) onSelect(value, label);
   }
 
   function navegar(dir) {
@@ -2252,7 +2261,7 @@ function _montarCombo(inputEl, hiddenEl, ddEl, estrutura) {
   });
 }
 
-async function _preencherSelectsChamado(usuario) {
+async function _preencherSelectsChamado(usuario, onCatSelect) {
   const [etiquetas, setores] = await Promise.all([
     fetch('/api/etiquetas').then(r => r.json()).catch(() => []),
     fetch('/api/setores').then(r => r.json()).catch(() => []),
@@ -2284,7 +2293,7 @@ async function _preencherSelectsChamado(usuario) {
     filhos.filter(f => !slugsPais.has(f.parent_slug))
       .forEach(o => estruturaCat.push({ type: 'item', value: o.slug, label: o.nome }));
   }
-  _montarCombo(catTxt, catHidden, catDd, estruturaCat);
+  _montarCombo(catTxt, catHidden, catDd, estruturaCat, onCatSelect);
 
   // Setor: lista plana
   const estruturaSetor = [];
