@@ -1984,12 +1984,12 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
     if (!mostrar) { _inputRamalProblema.value = ''; _ramalTxtEl.value = ''; }
     _ajustarLimiteDescricao();
   }
-  _catTxtEl.addEventListener('input', _syncRamalField);
+  _catTxtEl.addEventListener('input', () => setTimeout(_syncRamalField, 0));
   _catTxtEl.addEventListener('blur', () => setTimeout(_syncRamalField, 200));
   _ramalTxtEl.addEventListener('input', _ajustarLimiteDescricao);
 
   const _estruturaRamal = Array.from(RAMAIS_VALIDOS).sort().map(r => ({ type: 'item', value: r, label: r }));
-  _montarCombo(_ramalTxtEl, _inputRamalProblema, document.getElementById('ch-ramal-dd'), _estruturaRamal);
+  _montarCombo(_ramalTxtEl, _inputRamalProblema, document.getElementById('ch-ramal-dd'), _estruturaRamal, _ajustarLimiteDescricao);
 
   // Detecção em tempo real de ramal/telefone na descrição
   const _bannerRamal   = document.getElementById('banner-ramal-detec');
