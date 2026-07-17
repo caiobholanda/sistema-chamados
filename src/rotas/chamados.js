@@ -120,7 +120,7 @@ router.post('/', limiteCriacaoChamado, uploadChamadoMiddleware(), async (req, re
     }).catch(() => {});
 
     push.enviarParaTodos('🆕 Novo chamado aberto', `${nome} (${setor}): ${descricao.slice(0, 80)}${descricao.length > 80 ? '…' : ''}`).catch(() => {});
-    return res.status(201).json({ id, mensagem: 'Chamado aberto com sucesso' });
+    return res.status(201).json({ id, categoria: categoria || null, mensagem: 'Chamado aberto com sucesso' });
   } catch (err) {
     arquivos.forEach(f => {
       const final = renomeados.get(f.path);
@@ -132,6 +132,27 @@ router.post('/', limiteCriacaoChamado, uploadChamadoMiddleware(), async (req, re
     });
     console.error(err);
     return res.status(500).json({ erro: 'Erro interno ao abrir chamado' });
+  }
+});
+
+router.patch('/:id/ramal-problema', async (req, res) => {
+  try {
+    const usuario_id = getUsuarioIdFromCookie(req);
+    if (!usuario_id) return res.status(401).json({ erro: 'Não autenticado' });
+    const chamado = db.buscarChamadoPorId(req.params.id);
+    if (!chamado) return res.status(404).json({ erro: 'Chamado não encontrado' });
+    if (chamado.usuario_id !== usuario_id) return res.status(403).json({ erro: 'Acesso negado' });
+    const ramal = (req.body.ramal || '').trim();
+    if (!ramal || !/^\d{4}$/.test(ramal)) return res.status(400).json({ erro: 'Ramal inválido' });
+    const prefixo = `Ramal com problema: ${ramal}\n\n`;
+    const novaDescricao = prefixo + chamado.descricao;
+    if (novaDescricao.length > 2000) return res.status(400).json({ erro: 'Descrição excede o limite com o ramal' });
+    db.getDb().prepare('UPDATE chamados SET descricao = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(novaDescricao, chamado.id);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: 'Erro interno' });
   }
 });
 

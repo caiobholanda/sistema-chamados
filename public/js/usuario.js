@@ -2154,11 +2154,102 @@ function renderFormChamado(usuario, container, onSuccess, onCancel = onSuccess) 
       const r = await fetch('/api/chamados', { method: 'POST', body: fd });
       const d = await r.json();
       if (!r.ok) { msg.innerHTML = `<div class="alert alert-danger">${_esc(d.erro)}</div>`; return; }
-      _ramalDetecDismissed = false; // novo formulário volta a poder sugerir
-      onSuccess();
+      _ramalDetecDismissed = false;
+      if (d.categoria === 'ramal' && !_ramalProblema) {
+        btn.disabled = false; btn.textContent = 'Enviar Chamado';
+        _mostrarPopupRamalPos(d.id, onSuccess);
+      } else {
+        onSuccess();
+      }
     } catch { msg.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>'; }
     finally { btn.disabled = false; btn.textContent = 'Enviar Chamado'; }
   });
+}
+
+function _mostrarPopupRamalPos(chamadoId, onDone) {
+  const overlay = document.createElement('div');
+  overlay.className = 'popup-ramal-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'popup-ramal-titulo');
+  overlay.innerHTML = `
+    <div class="popup-ramal">
+      <div class="popup-ramal-header">
+        <div class="popup-ramal-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l.97-.97a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div>
+          <div class="popup-ramal-titulo" id="popup-ramal-titulo">Qual ramal está com problema?</div>
+          <div class="popup-ramal-sub">Nossa IA identificou que é um chamado de ramal. Informe o número para agilizar o atendimento.</div>
+        </div>
+      </div>
+      <div class="popup-ramal-body">
+        <div class="form-group" style="margin:0">
+          <label for="popup-ramal-txt" style="display:block;font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:.35rem">Número do ramal <span class="req">*</span></label>
+          <div class="combo-wrap">
+            <input type="text" class="form-control combo-input" id="popup-ramal-txt" placeholder="Digite ou selecione o ramal..." autocomplete="off">
+            <input type="hidden" id="popup-ramal-hidden">
+            <div class="combo-dd" id="popup-ramal-dd"></div>
+          </div>
+          <div id="popup-ramal-erro" style="margin-top:.5rem;display:none"></div>
+        </div>
+      </div>
+      <div class="popup-ramal-footer">
+        <button type="button" class="popup-ramal-pular">Pular por agora</button>
+        <button type="button" class="btn btn-primary" id="popup-ramal-confirmar">Confirmar ramal</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('open'));
+
+  const txtEl    = overlay.querySelector('#popup-ramal-txt');
+  const hiddenEl = overlay.querySelector('#popup-ramal-hidden');
+  const ddEl     = overlay.querySelector('#popup-ramal-dd');
+  const erroEl   = overlay.querySelector('#popup-ramal-erro');
+
+  const estruturaRamal = Array.from(RAMAIS_VALIDOS).sort().map(r => ({ type: 'item', value: r, label: r }));
+  _montarCombo(txtEl, hiddenEl, ddEl, estruturaRamal);
+  setTimeout(() => txtEl.focus(), 120);
+
+  function fechar() { overlay.remove(); }
+
+  overlay.querySelector('.popup-ramal-pular').addEventListener('click', () => { fechar(); onDone(); });
+
+  overlay.querySelector('#popup-ramal-confirmar').addEventListener('click', async () => {
+    const ramal = hiddenEl.value.trim();
+    if (!ramal) {
+      erroEl.innerHTML = '<div class="alert alert-danger">Selecione um ramal da lista.</div>';
+      erroEl.style.display = '';
+      txtEl.focus();
+      return;
+    }
+    erroEl.style.display = 'none';
+    const btn = overlay.querySelector('#popup-ramal-confirmar');
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    try {
+      const r = await fetch(`/api/chamados/${chamadoId}/ramal-problema`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ramal }),
+      });
+      if (!r.ok) {
+        const d = await r.json();
+        erroEl.innerHTML = `<div class="alert alert-danger">${_esc(d.erro || 'Erro ao salvar ramal.')}</div>`;
+        erroEl.style.display = '';
+        return;
+      }
+      fechar();
+      onDone();
+    } catch {
+      erroEl.innerHTML = '<div class="alert alert-danger">Erro de conexão.</div>';
+      erroEl.style.display = '';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Confirmar ramal';
+    }
+  });
+
+  overlay.addEventListener('keydown', e => { if (e.key === 'Escape') { fechar(); onDone(); } });
 }
 
 function _montarCombo(inputEl, hiddenEl, ddEl, estrutura, onSelect) {
