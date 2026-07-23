@@ -295,9 +295,7 @@ router.post('/chamados', requireAdmin, uploadChamadoMiddleware(), async (req, re
       gravarAnexos();
     }
 
-    if (categoria === 'impressora') {
-      db.atualizarPrazo(id, db.prazo2DiasUteis(), null);
-    }
+    db.atualizarPrazo(id, db.prazo24Horas(), req.admin.sub);
 
     push.enviarParaTodos('🆕 Novo chamado aberto', `${nome} (${setor}): ${descricao.slice(0, 80)}${descricao.length > 80 ? '…' : ''}`).catch(() => {});
     return res.status(201).json({ id, mensagem: `Chamado #${id} aberto por ${nome}` });

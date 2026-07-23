@@ -2388,6 +2388,10 @@ function isFeriado(d) {
   return FERIADOS_FIXOS.has(`${mm}-${dd}`) || FERIADOS_MOVEIS.has(`${yyyy}-${mm}-${dd}`);
 }
 
+function prazo24Horas() {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
+}
+
 function prazo2DiasUteis() {
   const fortaleza = new Date(Date.now() - 3 * 60 * 60 * 1000);
   const hora = fortaleza.getUTCHours();
@@ -3103,6 +3107,7 @@ module.exports = {
   criarImpressora,
   atualizarImpressora,
   deletarImpressora,
+  prazo24Horas,
   prazo2DiasUteis,
   listarEquipamentos,
   buscarEquipamentoPorId,

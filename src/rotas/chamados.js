@@ -92,9 +92,7 @@ router.post('/', limiteCriacaoChamado, uploadChamadoMiddleware(), async (req, re
     let id;
     const criarTx = db.getDb().transaction(() => {
       id = db.inserirChamado({ usuario_id, nome, setor, ramal, descricao, anexo_path: null, anexo_nome_original: null, categoria });
-      if (categoria === 'impressora') {
-        db.atualizarPrazo(id, db.prazo2DiasUteis(), null);
-      }
+      db.atualizarPrazo(id, db.prazo24Horas(), null);
 
       if (arquivos.length > 0) {
         const principal = arquivos[0];
