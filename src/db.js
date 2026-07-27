@@ -2394,6 +2394,23 @@ function prazo24Horas() {
   return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
 }
 
+function prazo1DiaUtil() {
+  const fortaleza = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  const hora = fortaleza.getUTCHours();
+  const min  = fortaleza.getUTCMinutes();
+  const seg  = fortaleza.getUTCSeconds();
+  let current = new Date(Date.UTC(fortaleza.getUTCFullYear(), fortaleza.getUTCMonth(), fortaleza.getUTCDate(), 12));
+  let encontrou = false;
+  while (!encontrou) {
+    current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
+    const dow = current.getUTCDay();
+    if (dow !== 0 && dow !== 6 && !isFeriado(current)) encontrou = true;
+  }
+  // hora/min/seg são Fortaleza (UTC-3); Date.UTC trata overflow de hora automaticamente
+  return new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate(), hora + 3, min, seg))
+    .toISOString().replace('T', ' ').substring(0, 19);
+}
+
 function prazo2DiasUteis() {
   const fortaleza = new Date(Date.now() - 3 * 60 * 60 * 1000);
   const hora = fortaleza.getUTCHours();
@@ -3110,6 +3127,7 @@ module.exports = {
   atualizarImpressora,
   deletarImpressora,
   prazo24Horas,
+  prazo1DiaUtil,
   prazo2DiasUteis,
   listarEquipamentos,
   buscarEquipamentoPorId,
