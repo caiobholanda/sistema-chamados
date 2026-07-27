@@ -1403,7 +1403,9 @@ function marcarMensagensLidas(adminId, chamadoId) {
 
 function listarMensagensChamado(chamadoId) {
   return getDb().prepare(
-    'SELECT * FROM mensagens_chamado WHERE chamado_id = ? ORDER BY criado_em ASC'
+    // Desempate por id: criado_em tem resolucao de 1s; duas mensagens no mesmo
+    // segundo podiam sair fora de ordem. id e monotonico (ordem de insercao).
+    'SELECT * FROM mensagens_chamado WHERE chamado_id = ? ORDER BY criado_em ASC, id ASC'
   ).all(chamadoId);
 }
 
