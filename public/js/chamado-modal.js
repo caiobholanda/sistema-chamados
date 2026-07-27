@@ -62,8 +62,13 @@ function _fmtData(d) {
 }
 
 function _badgeCategoria(cat) {
-  if (!cat || !CATEGORIAS_MAP[cat]) return '';
-  const { nome, cor, icone } = CATEGORIAS_MAP[cat];
+  if (!cat) return '';
+  const info = CATEGORIAS_MAP[cat];
+  // Fallback para etiqueta desativada/removida: preserva o vinculo historico
+  // do chamado (slug humanizado + cor neutra) em vez de sumir o badge.
+  const nome  = info ? info.nome  : (cat.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' '));
+  const cor   = info ? info.cor   : '#9CA3AF';
+  const icone = info ? info.icone : '';
   return `<span class="badge-categoria" style="--cat-cor:${cor}">${icone} ${nome}</span>`;
 }
 

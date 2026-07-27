@@ -243,6 +243,12 @@ function initDb() {
     )
   `); } catch {}
   try { db.exec("ALTER TABLE etiquetas ADD COLUMN sistema INTEGER DEFAULT 0"); } catch {}
+  // Soft-delete de etiquetas: guarda o vinculo hierarquico original para
+  // restaurar ao reativar. parent_slug_original = slug do pai ANTES da
+  // desativacao (da propria etiqueta, ou o slug da etiqueta desativada no caso
+  // de um filho que foi promovido). desativado_em para auditoria.
+  try { db.exec("ALTER TABLE etiquetas ADD COLUMN parent_slug_original TEXT"); } catch {}
+  try { db.exec("ALTER TABLE etiquetas ADD COLUMN desativado_em DATETIME"); } catch {}
   // Seed das categorias do sistema (INSERT OR IGNORE garante idempotência)
   const _seedEtiquetas = [
     { slug: 'software',        nome: 'Software',                cor: '#6366F1', parent_slug: null,       descricao: 'Chamados relacionados a problemas em sistemas operacionais, aplicativos, softwares e plataformas digitais instalados nos computadores ou dispositivos.' },
@@ -2719,8 +2725,97 @@ function deletarEtiqueta(id) {
   const novoPai = alvo.parent_slug || null;
   db.transaction(() => {
     db.prepare('UPDATE etiquetas SET parent_slug = ? WHERE parent_slug = ?').run(novoPai, alvo.slug);
+    // Limpa marcadores de restauracao que apontavam para esta etiqueta (evita
+    // marcador orfao e falsa re-adocao caso o slug seja reutilizado depois).
+    db.prepare('UPDATE etiquetas SET parent_slug_original = NULL WHERE parent_slug_original = ?').run(alvo.slug);
     db.prepare('DELETE FROM etiquetas WHERE id = ?').run(id);
   })();
+}
+
+// ── Soft-delete de etiquetas (desativar/reativar preservando a hierarquia) ──
+
+// True se candidateSlug for descendente (ou igual) de ancestorSlug, varrendo
+// parent_slug para cima. Usado para impedir ciclos ao restaurar vinculos.
+function _etiquetaEhDescendente(dbh, ancestorSlug, candidateSlug) {
+  if (!candidateSlug || !ancestorSlug) return false;
+  const bySlug = new Map(dbh.prepare('SELECT slug, parent_slug FROM etiquetas').all().map(e => [e.slug, e.parent_slug]));
+  let cur = candidateSlug, guard = 0;
+  while (cur && guard++ < 10000) {
+    if (cur === ancestorSlug) return true;
+    cur = bySlug.get(cur) || null;
+  }
+  return false;
+}
+
+// Desativa (soft-delete) a etiqueta X. Nao apaga: seta ativo=0 e guarda o
+// vinculo original. Os filhos DIRETOS ATIVOS sobem de nivel (avo/raiz), como no
+// delete fisico antigo, mas gravam parent_slug_original = X.slug para poder
+// voltar ao reativar. Nao cascateia a desativacao nos filhos.
+function desativarEtiqueta(id, dbh = getDb()) {
+  const alvo = dbh.prepare('SELECT id, slug, parent_slug, parent_slug_original, ativo FROM etiquetas WHERE id = ?').get(id);
+  if (!alvo || !alvo.ativo) return false;
+  const novoPai = alvo.parent_slug || null; // avo (ou raiz)
+  dbh.transaction(() => {
+    // Vinculo original da propria X: preserva um valor ja pendente (caso X ja
+    // tenha sido promovida por uma desativacao anterior), senao grava o atual.
+    const xOrig = (alvo.parent_slug_original != null) ? alvo.parent_slug_original : (alvo.parent_slug || null);
+    dbh.prepare("UPDATE etiquetas SET ativo = 0, desativado_em = CURRENT_TIMESTAMP, parent_slug_original = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?")
+      .run(xOrig, id);
+    // Filhos diretos ATIVOS: registram X como pai original (se ainda nao houver
+    // um pendente) e sobem para o avo/raiz.
+    const filhos = dbh.prepare('SELECT id, parent_slug_original FROM etiquetas WHERE parent_slug = ? AND ativo = 1').all(alvo.slug);
+    const upd = dbh.prepare('UPDATE etiquetas SET parent_slug = ?, parent_slug_original = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?');
+    for (const f of filhos) {
+      const orig = (f.parent_slug_original != null) ? f.parent_slug_original : alvo.slug;
+      upd.run(novoPai, orig, f.id);
+    }
+  })();
+  return true;
+}
+
+// Reativa a etiqueta X e restaura a hierarquia registrada, com fallback seguro:
+// nunca cria ciclo; se o pai original sumiu/esta inativo, mantem onde esta.
+function reativarEtiqueta(id, dbh = getDb()) {
+  const alvo = dbh.prepare('SELECT id, slug, parent_slug, parent_slug_original, ativo FROM etiquetas WHERE id = ?').get(id);
+  if (!alvo) return false;
+  dbh.transaction(() => {
+    // 1) Restaura o pai da propria X, se o original ainda existir, estiver ativo
+    //    e nao gerar ciclo. Senao, mantem o parent_slug atual.
+    let novoParent = alvo.parent_slug || null;
+    let limparMarcador = true;
+    const origSlug = alvo.parent_slug_original || null;
+    if (origSlug) {
+      const pai = dbh.prepare('SELECT ativo FROM etiquetas WHERE slug = ?').get(origSlug);
+      if (pai && pai.ativo && !_etiquetaEhDescendente(dbh, alvo.slug, origSlug)) {
+        novoParent = origSlug; // pai original existe e esta ativo: restaura
+      } else if (pai && !pai.ativo) {
+        // Pai original existe mas ainda esta INATIVO: mantem X onde esta e
+        // PRESERVA o marcador, para que a reativacao futura do pai re-adote X
+        // (restauracao encadeada da hierarquia). Se o pai nem existe mais,
+        // limpa o marcador (nao ha o que readotar).
+        limparMarcador = false;
+      }
+    }
+    if (limparMarcador) {
+      dbh.prepare("UPDATE etiquetas SET ativo = 1, desativado_em = NULL, parent_slug = ?, parent_slug_original = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?").run(novoParent, id);
+    } else {
+      dbh.prepare("UPDATE etiquetas SET ativo = 1, desativado_em = NULL, parent_slug = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?").run(novoParent, id);
+    }
+    // 2) Restaura os filhos promovidos quando X foi desativada
+    //    (parent_slug_original == X.slug). Decisao documentada: restauramos com
+    //    base no vinculo original registrado (contrato "reativar restaura a
+    //    hierarquia"); nao tentamos detectar re-parent manual feito enquanto X
+    //    estava inativa, pois nao ha como reconstruir com confianca. A operacao
+    //    e sempre segura (sem ciclo, sem perda de dado) e limpa o marcador.
+    const filhos = dbh.prepare('SELECT id, slug FROM etiquetas WHERE parent_slug_original = ? AND ativo = 1').all(alvo.slug);
+    const voltar = dbh.prepare('UPDATE etiquetas SET parent_slug = ?, parent_slug_original = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?');
+    const soLimpar = dbh.prepare('UPDATE etiquetas SET parent_slug_original = NULL, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?');
+    for (const f of filhos) {
+      if (!_etiquetaEhDescendente(dbh, f.slug, alvo.slug)) voltar.run(alvo.slug, f.id);
+      else soLimpar.run(f.id);
+    }
+  })();
+  return true;
 }
 
 function incrementarNovidadesUsuario(chamadoId) {
@@ -3154,6 +3249,8 @@ module.exports = {
   criarEtiqueta,
   atualizarEtiqueta,
   deletarEtiqueta,
+  desativarEtiqueta,
+  reativarEtiqueta,
   initSugestoes,
   criarSugestao,
   buscarSugestaoPorId,

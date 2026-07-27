@@ -24,7 +24,10 @@ router.post('/', requireMaster, (req, res) => {
 });
 
 router.patch('/:id', requireMaster, (req, res) => {
-  const { nome, descricao, parent_slug, cor, ativo } = req.body;
+  // 'ativo' NAO e aceito aqui de proposito: ativar/desativar tem endpoints
+  // dedicados (/desativar e /reativar) que preservam/restauram a hierarquia.
+  // Permitir o toggle por aqui contornaria essa logica.
+  const { nome, descricao, parent_slug, cor } = req.body;
   try {
     const id = Number(req.params.id);
     if (parent_slug) {
@@ -44,16 +47,47 @@ router.patch('/:id', requireMaster, (req, res) => {
         }
       }
     }
-    db.atualizarEtiqueta(id, { nome, descricao, parent_slug, cor, ativo });
+    db.atualizarEtiqueta(id, { nome, descricao, parent_slug, cor });
     res.json({ mensagem: 'Atualizado' });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
 });
 
+// Desativar (soft-delete reversivel): substitui a exclusao no fluxo normal.
+router.patch('/:id/desativar', requireMaster, (req, res) => {
+  try {
+    const ok = db.desativarEtiqueta(Number(req.params.id));
+    if (!ok) return res.status(400).json({ erro: 'Etiqueta não encontrada ou já inativa' });
+    res.json({ mensagem: 'Desativada' });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// Reativar: restaura a etiqueta e a hierarquia original.
+router.patch('/:id/reativar', requireMaster, (req, res) => {
+  try {
+    const ok = db.reativarEtiqueta(Number(req.params.id));
+    if (!ok) return res.status(404).json({ erro: 'Etiqueta não encontrada' });
+    res.json({ mensagem: 'Reativada' });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// Exclusao definitiva (fisica): so permitida para etiquetas JA inativas.
 router.delete('/:id', requireMaster, (req, res) => {
-  db.deletarEtiqueta(Number(req.params.id));
-  res.json({ mensagem: 'Removido' });
+  try {
+    const id = Number(req.params.id);
+    const alvo = db.listarEtiquetasAdmin().find(e => e.id === id);
+    if (!alvo) return res.status(404).json({ erro: 'Etiqueta não encontrada' });
+    if (alvo.ativo) return res.status(400).json({ erro: 'Desative a etiqueta antes de excluir definitivamente.' });
+    db.deletarEtiqueta(id);
+    res.json({ mensagem: 'Removido' });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
 });
 
 module.exports = router;

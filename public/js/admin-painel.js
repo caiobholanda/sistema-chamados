@@ -644,9 +644,19 @@ function _addServicoDropdown(inp) {
   inp.addEventListener('keydown', e => { if (e.key === 'Escape') { dd.style.display = 'none'; inp.blur(); } });
 }
 
+function _humanizeSlug(s) {
+  return s ? s.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ') : '';
+}
+
 function badgeCategoria(cat) {
-  if (!cat || !CATEGORIAS_MAP[cat]) return '';
-  const { nome, cor, icone } = CATEGORIAS_MAP[cat];
+  if (!cat) return '';
+  const info = CATEGORIAS_MAP[cat];
+  // Fallback: uma etiqueta desativada/removida sai do CATEGORIAS_MAP (que vem de
+  // /api/etiquetas, so ativas). Em vez de sumir o badge de um chamado ja
+  // classificado, mostramos o vinculo historico (slug humanizado + cor neutra).
+  const nome  = info ? info.nome  : _humanizeSlug(cat);
+  const cor   = info ? info.cor   : '#9CA3AF';
+  const icone = info ? info.icone : '';
   return `<span class="badge-categoria" style="--cat-cor:${_esc(cor)}">${icone} ${_esc(nome)}</span>`;
 }
 
@@ -1784,7 +1794,7 @@ function renderModalBody(c) {
         </div>
         <div style="text-align:right;justify-self:end">
           <div style="font-family:monospace;font-size:1.05rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.02em">#${c.id}</div>
-          <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.38);margin-top:.2rem">${_esc(CATEGORIAS_MAP[c.categoria]?.nome || 'Chamado')}</div>
+          <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.38);margin-top:.2rem">${_esc(CATEGORIAS_MAP[c.categoria]?.nome || _humanizeSlug(c.categoria) || 'Chamado')}</div>
         </div>
       </div>
 

@@ -106,57 +106,69 @@
 
   function renderizar() {
     const el = document.getElementById('lista-etiquetas');
-    const lista = etiquetasFiltradas();
+    const filtro = etiquetasFiltradas();
+    const ativas = filtro.filter(e => e.ativo);
+    const inativas = filtro.filter(e => !e.ativo);
 
-    if (!lista.length) {
+    if (!ativas.length && !inativas.length) {
       el.innerHTML = '<div class="empty-state">Nenhuma etiqueta encontrada.</div>';
       return;
     }
 
-    const byParent = {};
-    lista.forEach(e => {
-      const p = e.parent_slug || '__root__';
-      if (!byParent[p]) byParent[p] = [];
-      byParent[p].push(e);
-    });
+    let html = '';
 
-    function countAll(slug) {
-      return (byParent[slug] || []).reduce((n, k) => n + 1 + countAll(k.slug), 0);
+    if (ativas.length) {
+      const byParent = {};
+      ativas.forEach(e => {
+        const p = e.parent_slug || '__root__';
+        if (!byParent[p]) byParent[p] = [];
+        byParent[p].push(e);
+      });
+
+      const countAll = slug => (byParent[slug] || []).reduce((n, k) => n + 1 + countAll(k.slug), 0);
+      const renderSub = slug => (byParent[slug] || []).map(k => renderCard(k, breadcrumb(k)) + renderSub(k.slug)).join('');
+
+      const roots = byParent['__root__'] || [];
+      html += '<div class="et-grid">';
+      for (const p of roots) {
+        const total = 1 + countAll(p.slug);
+        html += '<div>';
+        html += `<div class="et-section-label">
+          <span style="width:8px;height:8px;border-radius:50%;background:${esc(p.cor||'#6B7280')};display:inline-block;flex-shrink:0"></span>
+          ${esc(p.nome)}
+          <span>${total} etiqueta${total>1?'s':''}</span>
+        </div>`;
+        html += '<div class="et-cards">';
+        html += renderCard(p);
+        html += renderSub(p.slug);
+        html += '</div></div>';
+      }
+
+      // Órfãos ATIVOS: pai fora da lista de ativas (ex.: pai inativo/filtrado)
+      const ativasSet = new Set(ativas.map(e => e.slug));
+      const orfaos = ativas.filter(e => e.parent_slug && !ativasSet.has(e.parent_slug));
+      if (orfaos.length) {
+        html += '<div><div class="et-section-label">Sub-etiquetas</div><div class="et-cards">';
+        for (const s of orfaos) html += renderCard(s, breadcrumb(s) || nomePai(s.parent_slug));
+        html += '</div></div>';
+      }
+      html += '</div>';
+    } else {
+      html += '<div class="empty-state">Nenhuma etiqueta ativa.</div>';
     }
 
-    function renderSub(slug) {
-      return (byParent[slug] || []).map(k => {
-        const bc = breadcrumb(k);
-        return renderCard(k, bc) + renderSub(k.slug);
-      }).join('');
+    // Seção "Etiquetas desativadas" (accordion recolhido). Restauráveis.
+    if (inativas.length) {
+      html += `<details class="et-desativadas" style="margin-top:1.5rem">
+        <summary style="cursor:pointer;font-weight:600;color:var(--text-muted);padding:.5rem 0">
+          Etiquetas desativadas (${inativas.length})
+        </summary>
+        <div class="et-cards" style="margin-top:.75rem">
+          ${inativas.map(e => renderCard(e, breadcrumb(e) || nomePai(e.parent_slug))).join('')}
+        </div>
+      </details>`;
     }
 
-    const roots = byParent['__root__'] || [];
-    let html = '<div class="et-grid">';
-    for (const p of roots) {
-      const total = 1 + countAll(p.slug);
-      html += '<div>';
-      html += `<div class="et-section-label">
-        <span style="width:8px;height:8px;border-radius:50%;background:${esc(p.cor||'#6B7280')};display:inline-block;flex-shrink:0"></span>
-        ${esc(p.nome)}
-        <span>${total} etiqueta${total>1?'s':''}</span>
-      </div>`;
-      html += '<div class="et-cards">';
-      html += renderCard(p);
-      html += renderSub(p.slug);
-      html += '</div></div>';
-    }
-
-    // Órfãos: etiquetas cujo pai não está na lista filtrada
-    const listaSet = new Set(lista.map(e => e.slug));
-    const orfaos = lista.filter(e => e.parent_slug && !listaSet.has(e.parent_slug));
-    if (orfaos.length) {
-      html += '<div><div class="et-section-label">Sub-etiquetas</div><div class="et-cards">';
-      for (const s of orfaos) html += renderCard(s, breadcrumb(s) || nomePai(s.parent_slug));
-      html += '</div></div>';
-    }
-
-    html += '</div>';
     el.innerHTML = html;
     bindAcoes();
   }
@@ -176,15 +188,22 @@
           ${e.descricao ? `<div class="et-card-desc">${esc(e.descricao)}</div>` : '<div class="et-card-desc" style="font-style:italic;opacity:.5">Sem descrição</div>'}
         </div>
         <div class="et-card-actions">
-          <button class="btn btn-sm btn-secondary btn-editar-et" data-id="${e.id}">Editar</button>
-          <button class="btn btn-sm btn-danger btn-del-et" data-id="${e.id}">✕</button>
+          ${e.ativo ? `
+            <button class="btn btn-sm btn-secondary btn-editar-et" data-id="${e.id}">Editar</button>
+            <button class="btn btn-sm btn-danger btn-del-et" data-id="${e.id}" title="Desativar">✕</button>
+          ` : `
+            <button class="btn btn-sm btn-secondary btn-reativar-et" data-id="${e.id}">Reativar</button>
+            <button class="btn btn-sm btn-danger btn-excluir-def-et" data-id="${e.id}">Excluir definitivamente</button>
+          `}
         </div>
       </div>`;
   }
 
   function bindAcoes() {
     document.querySelectorAll('.btn-editar-et').forEach(b => b.addEventListener('click', () => abrirEdicao(+b.dataset.id)));
-    document.querySelectorAll('.btn-del-et').forEach(b => b.addEventListener('click', () => confirmarDelete(+b.dataset.id)));
+    document.querySelectorAll('.btn-del-et').forEach(b => b.addEventListener('click', () => confirmarDesativar(+b.dataset.id)));
+    document.querySelectorAll('.btn-reativar-et').forEach(b => b.addEventListener('click', () => reativar(+b.dataset.id)));
+    document.querySelectorAll('.btn-excluir-def-et').forEach(b => b.addEventListener('click', () => confirmarExclusaoDefinitiva(+b.dataset.id)));
   }
 
   /* ── Modal ── */
@@ -368,33 +387,66 @@
     abrirModal('Editar Etiqueta', e);
   }
 
-  function confirmarDelete(id) {
+  function confirmarDesativar(id) {
     const e = etiquetas.find(x => x.id === id);
     if (!e) return;
-    const filhos = etiquetas.filter(x => x.parent_slug === e.slug);
+    const filhos = etiquetas.filter(x => x.parent_slug === e.slug && x.ativo);
     const msgEl = document.getElementById('confirm-msg');
 
     if (filhos.length === 0) {
-      msgEl.textContent = `Excluir permanentemente "${e.nome}"? Chamados com essa etiqueta não serão afetados.`;
+      msgEl.innerHTML = `Desativar <strong>"${esc(e.nome)}"</strong>?<br><br>
+        Ela sai das opções de classificação, mas <strong>pode ser reativada a qualquer momento</strong>
+        na seção "Etiquetas desativadas". Chamados existentes não são afetados.`;
     } else {
       const nomesFilhos = filhos.map(f => `"${esc(f.nome)}"`).join(', ');
       const destino = e.parent_slug
-        ? `passarão a ser sub-etiquetas de "${esc(nomePai(e.parent_slug))}"`
-        : `passarão a ser etiquetas principais`;
-      msgEl.innerHTML = `
-        <strong>A etiqueta "${esc(e.nome)}" possui ${filhos.length === 1 ? 'uma sub-etiqueta' : `${filhos.length} sub-etiquetas`}:</strong>
-        ${nomesFilhos}.<br><br>
-        Ao excluir, elas ${destino} automaticamente. Chamados existentes não serão afetados.<br><br>
-        <strong>Deseja confirmar a exclusão?</strong>`;
+        ? `sobem para "${esc(nomePai(e.parent_slug))}"`
+        : `viram etiquetas principais`;
+      msgEl.innerHTML = `Desativar <strong>"${esc(e.nome)}"</strong>?<br><br>
+        Suas ${filhos.length === 1 ? 'sub-etiqueta' : `${filhos.length} sub-etiquetas`} (${nomesFilhos})
+        ${destino} <strong>temporariamente</strong>. Ao reativar, a hierarquia original é restaurada.
+        Chamados existentes não são afetados.`;
     }
 
     confirmCallback = async () => {
       try {
-        await api(`/api/etiquetas/${id}`, { method: 'DELETE' });
-        toast('Etiqueta excluída.');
+        await api(`/api/etiquetas/${id}/desativar`, { method: 'PATCH' });
+        toast('Etiqueta desativada.');
         fecharConfirm();
         await carregar();
       } catch (err) { toast(err.message, 'erro'); }
+    };
+    document.getElementById('modal-confirm-overlay').classList.add('open');
+  }
+
+  async function reativar(id) {
+    try {
+      await api(`/api/etiquetas/${id}/reativar`, { method: 'PATCH' });
+      toast('Etiqueta reativada.');
+      await carregar();
+    } catch (err) { toast(err.message, 'erro'); }
+  }
+
+  function confirmarExclusaoDefinitiva(id) {
+    const e = etiquetas.find(x => x.id === id);
+    if (!e) return;
+    const msgEl = document.getElementById('confirm-msg');
+    msgEl.innerHTML = `<strong>Excluir DEFINITIVAMENTE "${esc(e.nome)}"?</strong><br><br>
+      Esta ação é <strong>irreversível</strong> — o registro será apagado do banco.
+      Sub-etiquetas ainda vinculadas sobem de nível. Chamados existentes não são afetados.`;
+
+    // Dupla confirmação: o primeiro OK troca a mensagem e re-arma o callback.
+    confirmCallback = () => {
+      msgEl.innerHTML = `<strong>Tem certeza absoluta?</strong><br><br>
+        Não há como desfazer a exclusão de "${esc(e.nome)}".`;
+      confirmCallback = async () => {
+        try {
+          await api(`/api/etiquetas/${id}`, { method: 'DELETE' });
+          toast('Etiqueta excluída definitivamente.');
+          fecharConfirm();
+          await carregar();
+        } catch (err) { toast(err.message, 'erro'); }
+      };
     };
     document.getElementById('modal-confirm-overlay').classList.add('open');
   }
