@@ -48,6 +48,9 @@ router.post('/login', loginRateLimit, async (req, res) => {
 
     const admin = db.buscarAdminPorEmail(email.trim().toLowerCase());
     if (!admin || !admin.ativo) {
+      // Compare descartavel (hash cost-12 valido) para igualar o tempo de
+      // resposta e evitar enumeracao de contas de admin por timing.
+      try { await bcrypt.compare(senha, '$2b$12$x7XbRngkgOC3FXIqv3ScTegCLXWpDIuiou11zrr4OekbmN4ozUH42'); } catch {}
       registrarFalhaLogin(req);
       return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
     }

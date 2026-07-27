@@ -325,11 +325,6 @@ router.post('/:id/mensagens', uploadMiddleware('chat_anexo'), (req, res) => {
     const msgCompletaUsr = db.buscarMensagemChamadoPorId(msgIdFinal);
     // SSE broadcast pros admins: payload completo → injeção direta sem fetch
     try { sse.notifyAllAdmins('mensagem:new', { chamado_id: chamado.id, msg: msgCompletaUsr }); } catch {}
-    // Marca novidade no chamado para o painel admin (badge na lista). Antes, a
-    // mensagem do usuário só chegava via SSE (se um admin estivesse com aquele
-    // chamado aberto) ou web-push; a lista não sinalizava resposta não-lida,
-    // então um admin sem o chamado aberto podia não perceber a resposta.
-    try { db.incrementarNovidadesAdmin(chamado.id); } catch {}
     const notifMsg = mensagem || `[Arquivo: ${req.file ? req.file.originalname : ''}]`;
     if (chamado.admin_responsavel_id) {
       push.enviarParaAdmin(chamado.admin_responsavel_id, `💬 ${nomeAutor}`, notifMsg.slice(0, 100)).catch(() => {});

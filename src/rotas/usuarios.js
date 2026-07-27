@@ -24,6 +24,11 @@ router.post('/registro', (req, res) => {
   return res.status(403).json({ erro: 'Cadastro público desativado. Solicite acesso ao administrador.' });
 });
 
+// Hash bcrypt cost-12 descartavel: usado para igualar o tempo de resposta
+// quando o e-mail nao existe. Sem isso, o 401 imediato (sem bcrypt) revelava
+// por timing quais e-mails sao contas validas (enumeracao).
+const DUMMY_BCRYPT_HASH = '$2b$12$x7XbRngkgOC3FXIqv3ScTegCLXWpDIuiou11zrr4OekbmN4ozUH42';
+
 // POST /api/usuarios/login
 router.post('/login', loginRateLimit, async (req, res) => {
   try {
@@ -32,6 +37,9 @@ router.post('/login', loginRateLimit, async (req, res) => {
 
     const usuario = db.buscarUsuarioPorEmail(email.trim().toLowerCase());
     if (!usuario) {
+      // Compare descartavel para manter o tempo equivalente ao caminho de
+      // usuario existente (anti-enumeracao por timing).
+      try { await bcrypt.compare(senha, DUMMY_BCRYPT_HASH); } catch {}
       registrarFalhaLogin(req);
       return res.status(401).json({ erro: 'E-mail ou senha inválidos' });
     }
