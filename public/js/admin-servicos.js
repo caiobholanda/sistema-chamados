@@ -19,6 +19,7 @@
   // automatica de cor (ao escolher etiqueta pai) sobrescreva uma escolha
   // explicita do usuario.
   let _corManual = false;
+  let _mostrarInativas = false;
 
   /* ── Utils ── */
   function esc(s) {
@@ -104,11 +105,43 @@
     });
   }
 
+  function _renderToggleInativas(total) {
+    const wrap = document.getElementById('et-toggle-inativas-wrap');
+    if (!wrap) return;
+    if (!total) { wrap.innerHTML = ''; return; }
+    const on = _mostrarInativas;
+    wrap.innerHTML = `<button id="btn-toggle-inativas" style="
+      display:inline-flex;align-items:center;gap:.4rem;
+      padding:.32rem .8rem;border-radius:20px;font-size:.78rem;font-weight:600;
+      cursor:pointer;white-space:nowrap;transition:all .15s;
+      border:1.5px solid ${on ? 'var(--navy,#1e3a5f)' : 'var(--border)'};
+      background:${on ? 'var(--navy,#1e3a5f)' : 'transparent'};
+      color:${on ? '#fff' : 'var(--text-muted)'}
+    ">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        ${on ? '<polyline points="18 15 12 9 6 15"/>' : '<polyline points="6 9 12 15 18 9"/>'}
+      </svg>
+      Desativadas
+      <span style="
+        background:${on ? 'rgba(255,255,255,.22)' : 'var(--surface-2)'};
+        color:${on ? '#fff' : 'var(--text-secondary)'};
+        border:1px solid ${on ? 'transparent' : 'var(--border)'};
+        border-radius:10px;padding:0 6px;font-size:.7rem;font-weight:700
+      ">${total}</span>
+    </button>`;
+    document.getElementById('btn-toggle-inativas').addEventListener('click', () => {
+      _mostrarInativas = !_mostrarInativas;
+      renderizar();
+    });
+  }
+
   function renderizar() {
     const el = document.getElementById('lista-etiquetas');
     const filtro = etiquetasFiltradas();
     const ativas = filtro.filter(e => e.ativo);
     const inativas = filtro.filter(e => !e.ativo);
+
+    _renderToggleInativas(etiquetas.filter(e => !e.ativo).length);
 
     if (!ativas.length && !inativas.length) {
       el.innerHTML = '<div class="empty-state">Nenhuma etiqueta encontrada.</div>';
@@ -116,6 +149,17 @@
     }
 
     let html = '';
+
+    if (_mostrarInativas && inativas.length) {
+      html += `<div style="margin-bottom:1.5rem;padding:1rem 1.1rem;background:var(--surface-2);border:1px solid var(--border);border-radius:8px">
+        <div style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:.75rem">
+          Desativadas (${inativas.length})
+        </div>
+        <div class="et-cards">
+          ${inativas.map(e => renderCard(e, breadcrumb(e) || nomePai(e.parent_slug))).join('')}
+        </div>
+      </div>`;
+    }
 
     if (ativas.length) {
       const byParent = {};
@@ -157,18 +201,6 @@
       html += '<div class="empty-state">Nenhuma etiqueta ativa.</div>';
     }
 
-    // Seção "Etiquetas desativadas" (accordion recolhido). Restauráveis.
-    if (inativas.length) {
-      html += `<details class="et-desativadas" style="margin-top:1.5rem">
-        <summary style="cursor:pointer;font-weight:600;color:var(--text-muted);padding:.5rem 0">
-          Etiquetas desativadas (${inativas.length})
-        </summary>
-        <div class="et-cards" style="margin-top:.75rem">
-          ${inativas.map(e => renderCard(e, breadcrumb(e) || nomePai(e.parent_slug))).join('')}
-        </div>
-      </details>`;
-    }
-
     el.innerHTML = html;
     bindAcoes();
   }
@@ -190,7 +222,7 @@
         <div class="et-card-actions">
           ${e.ativo ? `
             <button class="btn btn-sm btn-secondary btn-editar-et" data-id="${e.id}">Editar</button>
-            <button class="btn btn-sm btn-danger btn-del-et" data-id="${e.id}" title="Desativar">✕</button>
+            <button class="btn btn-sm btn-danger btn-del-et" data-id="${e.id}">Desativar</button>
           ` : `
             <button class="btn btn-sm btn-secondary btn-reativar-et" data-id="${e.id}">Reativar</button>
             <button class="btn btn-sm btn-danger btn-excluir-def-et" data-id="${e.id}">Excluir definitivamente</button>
