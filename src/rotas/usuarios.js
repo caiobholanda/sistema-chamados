@@ -273,8 +273,11 @@ router.post('/esqueci-senha', esqueciSenhaRateLimit, async (req, res) => {
       return res.json({ mensagem: 'E-mail enviado com sucesso.' });
     }
 
+    // Resposta uniforme (mesma dos casos de sucesso acima) para nao permitir
+    // enumeracao de contas: existindo ou nao o e-mail, a resposta e identica.
+    // O envio real de e-mail so ocorre nos ramos acima, quando ha conta ativa.
     console.log(`[esqueci-senha] E-mail não encontrado no sistema: ${email}`);
-    return res.status(404).json({ erro: 'E-mail não encontrado no sistema. Verifique o endereço informado.' });
+    return res.json({ mensagem: 'E-mail enviado com sucesso.' });
   } catch (err) {
     console.error('[esqueci-senha]', err);
     return res.status(500).json({ erro: 'Erro ao processar solicitação' });
