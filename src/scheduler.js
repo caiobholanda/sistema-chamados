@@ -1,6 +1,6 @@
 'use strict';
 
-const { getProgramadosPendentes, registrarExecucaoProgramado, inserirChamado, buscarUsuarioPorId, inserirAnexoExtra, toggleChamadoProgramado } = require('./db');
+const { getProgramadosPendentes, registrarExecucaoProgramado, inserirChamado, buscarUsuarioPorId, inserirAnexoExtra, toggleChamadoProgramado, atualizarPrazo, prazo1DiaUtil } = require('./db');
 const push = require('./push');
 const { avancarCanonica, aplicarSkip, SENTINELA_DATA_UNICA_PASSADA } = require('./programados');
 
@@ -51,6 +51,7 @@ async function executarChamadosProgramados() {
         // data_unica: dispara 1 vez e desativa. Sem backfill (nao aplicavel).
         if (prog.frequencia === 'data_unica') {
           const chamadoId = _inserirChamadoComAnexos(prog, nome, setor, ramal, '[Automático]');
+          atualizarPrazo(chamadoId, prazo1DiaUtil(), null);
           const sentISO = _toISO(SENTINELA_DATA_UNICA_PASSADA);
           registrarExecucaoProgramado(prog.id, chamadoId, sentISO, sentISO);
           toggleChamadoProgramado(prog.id, 0);
@@ -81,6 +82,7 @@ async function executarChamadosProgramados() {
           : '[Automático]';
 
         const chamadoId = _inserirChamadoComAnexos(prog, nome, setor, ramal, prefixo);
+        atualizarPrazo(chamadoId, prazo1DiaUtil(), null);
         const efetivaNext = aplicarSkip(proxCanon, prog.pular_feriados, prog.hora);
         registrarExecucaoProgramado(prog.id, chamadoId, _toISO(efetivaNext), _toISO(proxCanon));
 
