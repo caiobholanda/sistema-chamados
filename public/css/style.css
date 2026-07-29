@@ -4076,8 +4076,8 @@ select.is-invalid { border-color: var(--danger, #ef4444) !important; box-shadow:
   content-visibility: auto; contain-intrinsic-size: 0 110px;
 }
 .mob-card:active { box-shadow: 0 0 0 2px var(--gold); }
-.mob-card-head { display: flex; gap: .35rem; align-items: center; flex-wrap: wrap; margin-bottom: .4rem; }
-.mob-card-data { margin-left: auto; font-size: .72rem; color: var(--text-muted); }
+.mob-card-head { display: flex; gap: .35rem; align-items: center; flex-wrap: nowrap; margin-bottom: .4rem; overflow: hidden; }
+.mob-card-data { margin-left: auto; font-size: .72rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
 .mob-card-nome { font-weight: 600; color: var(--text); font-size: .95rem; margin-bottom: .15rem; }
 .mob-card-setor { font-size: .78rem; color: var(--text-muted); margin-bottom: .35rem; }
 .mob-card-desc { font-size: .83rem; color: var(--text-secondary); line-height: 1.4; }

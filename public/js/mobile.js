@@ -6,6 +6,7 @@ let _chatMobIv = null;
 let buscaTexto = '';
 let _chamadosCache = [];
 let _carregando = false;
+let _reqId = 0;
 const _etiquetaNome = {};        // slug → nome (para busca por etiqueta)
 let _etiquetasPromise = null;
 
@@ -477,7 +478,7 @@ async function abrirFormNovoChamado() {
           <label class="mob-label">Direcionar para usu&aacute;rio <span style="color:var(--text-muted);font-size:.78rem">(opcional)</span></label>
           <div style="position:relative">
             <input class="mob-input" type="text" id="mob-nc-usuario-busca" placeholder="Buscar por nome ou setor&hellip;" autocomplete="off">
-            <div id="mob-nc-usuario-resultados" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--card,#fff);border:1px solid var(--border);border-radius:var(--radius);max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+            <div id="mob-nc-usuario-resultados" style="display:none;position:fixed;z-index:1200;background:var(--card,#fff);border:1px solid var(--border);border-radius:var(--radius);max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
           </div>
           <div id="mob-nc-usuario-selecionado" style="display:none;font-size:.8rem;margin-top:.3rem;padding:.3rem .6rem;background:var(--surface-2);border-radius:var(--radius)"></div>
           <input type="hidden" id="mob-nc-usuario-id">
@@ -568,6 +569,10 @@ async function abrirFormNovoChamado() {
       res.innerHTML = filtrados.length
         ? filtrados.map(u => `<div class="mob-nc-user-item" data-id="${u.id}" data-nome="${_esc(u.nome)}" data-setor="${_esc(u.setor||'')}" style="padding:.4rem .7rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border)">${_esc(u.nome)}${u.setor ? ' · <span style="color:var(--text-muted)">' + _esc(u.setor) + '</span>' : ''}</div>`).join('')
         : '<div style="padding:.4rem .7rem;font-size:.8rem;color:var(--text-muted)">Nenhum resultado</div>';
+      const rect = buscaEl.getBoundingClientRect();
+      res.style.left = rect.left + 'px';
+      res.style.top = (rect.bottom + 2) + 'px';
+      res.style.width = rect.width + 'px';
       res.style.display = 'block';
       res.querySelectorAll('.mob-nc-user-item').forEach(el => {
         el.addEventListener('click', () => {
@@ -646,15 +651,18 @@ async function carregarChamados() {
   const lista = document.getElementById('mob-lista');
   if (lista) lista.innerHTML = '<div class="mob-loading">Carregando…</div>';
   _carregando = true;
+  const myId = ++_reqId;
   try {
     const params = new URLSearchParams({ status: 'aberto,em_andamento,aguardando_compra,aguardando_chegar' });
     if (filtroAtivo === 'meus' && adminInfo) params.set('admin_id', adminInfo.id);
     const r = await api('/api/admin/chamados?' + params);
-    if (!r.ok) { _carregando = false; return; }
+    if (myId !== _reqId) return;
+    if (!r.ok) { _carregando = false; renderCards(); return; }
     _chamadosCache = await r.json();
+    if (myId !== _reqId) return;
     _carregando = false;
     renderCards();
-  } catch { _carregando = false; }
+  } catch { if (myId === _reqId) { _carregando = false; renderCards(); } }
 }
 
 // Mapa slug→nome das etiquetas, carregado uma vez (para permitir busca por etiqueta)
