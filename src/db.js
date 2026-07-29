@@ -647,6 +647,11 @@ function initDb() {
     )
   `);
   try { db.prepare('ALTER TABLE setores ADD COLUMN ativo INTEGER NOT NULL DEFAULT 1').run(); } catch {}
+  db.prepare(`CREATE TABLE IF NOT EXISTS setores_usuarios_snapshot (
+    setor_id INTEGER NOT NULL,
+    usuario_id INTEGER NOT NULL,
+    PRIMARY KEY (setor_id, usuario_id)
+  )`).run();
   if (db.prepare('SELECT COUNT(*) as c FROM setores').get().c === 0) {
     const _ins = db.prepare('INSERT OR IGNORE INTO setores (nome) VALUES (?)');
     db.transaction(() => {
@@ -2865,11 +2870,31 @@ function editarSetor(id, nome) {
 }
 
 function inativarSetor(id) {
-  getDb().prepare('UPDATE setores SET ativo = 0 WHERE id = ?').run(id);
+  const d = getDb();
+  const setor = d.prepare('SELECT nome FROM setores WHERE id = ?').get(id);
+  if (!setor) return;
+  const usuarios = d.prepare("SELECT id FROM usuarios WHERE setor = ? AND ativo != 0").all(setor.nome);
+  d.transaction(() => {
+    d.prepare('DELETE FROM setores_usuarios_snapshot WHERE setor_id = ?').run(id);
+    const ins = d.prepare('INSERT INTO setores_usuarios_snapshot (setor_id, usuario_id) VALUES (?, ?)');
+    for (const u of usuarios) ins.run(id, u.id);
+    if (usuarios.length) d.prepare("UPDATE usuarios SET setor = NULL WHERE setor = ?").run(setor.nome);
+    d.prepare('UPDATE setores SET ativo = 0 WHERE id = ?').run(id);
+  })();
 }
 
 function reativarSetor(id) {
-  getDb().prepare('UPDATE setores SET ativo = 1 WHERE id = ?').run(id);
+  const d = getDb();
+  const setor = d.prepare('SELECT nome FROM setores WHERE id = ?').get(id);
+  if (!setor) return;
+  const snapshot = d.prepare('SELECT usuario_id FROM setores_usuarios_snapshot WHERE setor_id = ?').all(id);
+  d.transaction(() => {
+    for (const row of snapshot) {
+      d.prepare("UPDATE usuarios SET setor = ? WHERE id = ? AND (setor IS NULL OR setor = '')").run(setor.nome, row.usuario_id);
+    }
+    d.prepare('DELETE FROM setores_usuarios_snapshot WHERE setor_id = ?').run(id);
+    d.prepare('UPDATE setores SET ativo = 1 WHERE id = ?').run(id);
+  })();
 }
 
 function excluirSetor(id) {
