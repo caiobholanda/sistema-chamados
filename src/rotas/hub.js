@@ -331,10 +331,19 @@ router.put('/setores/:id', (req, res) => {
 });
 router.delete('/setores/:id', (req, res) => {
   try {
-    db.excluirSetor(+req.params.id);
+    db.inativarSetor(+req.params.id);
     res.json({ ok: true });
   } catch (e) {
     console.error('[hub setores DELETE]', e);
+    res.status(500).json({ ok: false, erro: 'Erro interno' });
+  }
+});
+router.patch('/setores/:id/reativar', (req, res) => {
+  try {
+    db.reativarSetor(+req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[hub setores PATCH reativar]', e);
     res.status(500).json({ ok: false, erro: 'Erro interno' });
   }
 });

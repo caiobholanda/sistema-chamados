@@ -646,6 +646,7 @@ function initDb() {
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  try { db.prepare('ALTER TABLE setores ADD COLUMN ativo INTEGER NOT NULL DEFAULT 1').run(); } catch {}
   if (db.prepare('SELECT COUNT(*) as c FROM setores').get().c === 0) {
     const _ins = db.prepare('INSERT OR IGNORE INTO setores (nome) VALUES (?)');
     db.transaction(() => {
@@ -2848,7 +2849,11 @@ function sincronizarEtiquetasAdmin(adminId, slugs) {
 }
 
 function listarSetores() {
-  return getDb().prepare('SELECT id, nome FROM setores ORDER BY nome ASC').all();
+  return getDb().prepare('SELECT id, nome, ativo FROM setores ORDER BY nome ASC').all();
+}
+
+function listarSetoresAtivos() {
+  return getDb().prepare('SELECT id, nome FROM setores WHERE ativo = 1 ORDER BY nome ASC').all();
 }
 
 function criarSetor(nome) {
@@ -2857,6 +2862,14 @@ function criarSetor(nome) {
 
 function editarSetor(id, nome) {
   getDb().prepare('UPDATE setores SET nome = ? WHERE id = ?').run(nome, id);
+}
+
+function inativarSetor(id) {
+  getDb().prepare('UPDATE setores SET ativo = 0 WHERE id = ?').run(id);
+}
+
+function reativarSetor(id) {
+  getDb().prepare('UPDATE setores SET ativo = 1 WHERE id = ?').run(id);
 }
 
 function excluirSetor(id) {
@@ -3266,8 +3279,11 @@ module.exports = {
   listarEtiquetasDeAdmin,
   sincronizarEtiquetasAdmin,
   listarSetores,
+  listarSetoresAtivos,
   criarSetor,
   editarSetor,
+  inativarSetor,
+  reativarSetor,
   excluirSetor,
   listarChamadosProgramados,
   buscarProgramadoPorId,

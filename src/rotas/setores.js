@@ -8,7 +8,7 @@ function san(str) {
 }
 
 router.get('/', (req, res) => {
-  res.json(db.listarSetores());
+  res.json(db.listarSetoresAtivos());
 });
 
 router.post('/', requireAdmin, (req, res) => {
