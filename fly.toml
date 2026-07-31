@@ -18,8 +18,8 @@ primary_region = "gru"
   min_machines_running = 1
 
   [[http_service.checks]]
-    grace_period = "10s"
-    interval = "30s"
+    grace_period = "3s"
+    interval = "15s"
     method = "GET"
     timeout = "5s"
     path = "/healthz"
