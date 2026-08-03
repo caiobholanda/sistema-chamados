@@ -1026,7 +1026,8 @@ function fecharEqHist() {
     adminInfo = await r.json();
 
     if (adminInfo.is_master) {
-      document.getElementById('nav-usuarios-wrap').innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
+      const navWrap = document.getElementById('nav-usuarios-wrap');
+      if (navWrap) navWrap.innerHTML = '<a href="/admin-usuarios.html">Usuários</a>';
     }
 
     document.getElementById('btn-logout')?.addEventListener('click', async () => {
