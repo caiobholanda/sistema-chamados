@@ -105,6 +105,24 @@ test('categorizador local: histórico e etiquetas competem juntos', () => {
   );
 });
 
+test('categorizador local: a palavra "teste" não sequestra a classificação', () => {
+  // Caso real relatado em produção: "impressora teste" saía como 'outros'.
+  // Causa: 30 dos 69 chamados com "teste" na descrição estavam rotulados
+  // como 'outros' (tickets que a equipe abriu testando o sistema), então o
+  // termo — raro, logo de IDF alto — dominava "impressora".
+  const historico = [
+    ...HISTORICO,
+    { categoria: 'outros', descricao: 'teste' },
+    { categoria: 'outros', descricao: 'teste de teste mais o teste' },
+    { categoria: 'outros', descricao: 'MAIS UM TESTE' },
+    { categoria: 'outros', descricao: 'testeeeeeeeeeeeeeeeeeeee' },
+    { categoria: 'outros', descricao: 'teste admin abrir chamado' },
+  ];
+  assert.strictEqual(classificar('impressora teste', historico), 'impressora');
+  assert.strictEqual(classificar('teste impressora', historico), 'impressora');
+  assert.strictEqual(classificar('teste do ramal mudo', historico), 'ramal');
+});
+
 test('extração de equipamentos: identifica tipo e local', async () => {
   assert.deepStrictEqual(
     await extrairEquipamentos('A impressora da Nutrição está atolando papel'),

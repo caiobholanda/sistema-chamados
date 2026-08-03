@@ -540,11 +540,22 @@ function _vocabCurto(dinamicas) {
   return vocab;
 }
 
+// Termos que a equipe usa ao TESTAR o sistema, não ao relatar um problema.
+// Sem isto o classificador aprende que "teste" significa "outros" — foi
+// exatamente o que aconteceu: dos 69 chamados com "teste" na descrição, 30
+// estavam rotulados como 'outros', e a palavra (rara, logo de IDF alto)
+// passava a dominar termos reais como "impressora".
+const _RUIDO_PREFIXOS = ['test', 'xxx', 'asdf', 'qwer', 'aaaa', 'lorem'];
+
+function _ehRuido(termo) {
+  return _RUIDO_PREFIXOS.some(p => termo.startsWith(p));
+}
+
 function _tokensClassificador(texto, vocabCurto) {
   const brutos = normalizar(texto).split(/\s+/).filter(Boolean);
   const uni = [];
   for (const t of brutos) {
-    if (_LOCAIS.has(t) || _STOP.has(t)) continue;
+    if (_LOCAIS.has(t) || _STOP.has(t) || _ehRuido(t)) continue;
     if (t.length >= 4 || (vocabCurto && vocabCurto.has(t))) {
       // Radical pragmático: tira o plural e trunca em 6 caracteres. Junta as
       // variações do português ("aprovar/aprovação/aprovações" → "aprova",
@@ -601,7 +612,13 @@ function _construirCorpus(historico, dinamicas) {
   const docs = [];
 
   for (const c of historico) {
-    docs.push({ id: c.categoria, peso: 1, tokens: _tokensClassificador(c.descricao, vocabCurto) });
+    const tokens = _tokensClassificador(c.descricao, vocabCurto);
+    // Chamado sem conteúdo informativo (descrição só com ruído, ex.: "teste
+    // do teste mais teste") não ensina nada — só empurra a categoria em que
+    // foi despejado. Fica de fora do treino.
+    const unigramas = tokens.filter(t => !t.includes('§'));
+    if (unigramas.length < 2) continue;
+    docs.push({ id: c.categoria, peso: 1, tokens });
   }
   for (const et of dinamicas) {
     // Nome entra 2x (é o sinal mais forte) + descrição + palavras estáticas
