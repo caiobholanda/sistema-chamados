@@ -10,8 +10,15 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { _classificarPorVizinhos } = require('../src/categorizador');
+const { _classificarPorVizinhos, _resetCorpusCache } = require('../src/categorizador');
 const { extrairEquipamentos } = require('../src/analisador-equipamentos');
+
+// O corpus é cacheado entre chamadas; cada teste parte de cache limpo para
+// corpora diferentes de mesmo tamanho não se contaminarem.
+const classificar = (desc, hist, etiquetas) => {
+  _resetCorpusCache();
+  return _classificarPorVizinhos(desc, hist, etiquetas);
+};
 
 // Histórico mínimo representativo. O classificador real usa os 400 chamados
 // mais recentes do banco; aqui basta amostra suficiente para exercitar a lógica.
@@ -51,7 +58,7 @@ test('categorizador local: acerta a categoria por similaridade com o histórico'
     ['hardware', 'Desktop do financeiro nao liga, sem nenhuma luz'],
   ];
   for (const [esperado, descricao] of casos) {
-    assert.strictEqual(_classificarPorVizinhos(descricao, HISTORICO), esperado, descricao);
+    assert.strictEqual(classificar(descricao, HISTORICO), esperado, descricao);
   }
 });
 
@@ -59,18 +66,43 @@ test('categorizador local: nome de setor não decide a categoria', () => {
   // "governanca" aparece num chamado de impressora do histórico. O assunto
   // aqui é telefone — o setor não pode puxar a classificação.
   assert.strictEqual(
-    _classificarPorVizinhos('O telefone da governanca esta mudo', HISTORICO),
+    classificar('O telefone da governanca esta mudo', HISTORICO),
     'ramal',
   );
 });
 
 test('categorizador local: devolve null quando não há base para decidir', () => {
   // Histórico pequeno demais.
-  assert.strictEqual(_classificarPorVizinhos('impressora', HISTORICO.slice(0, 3)), null);
+  assert.strictEqual(classificar('impressora', HISTORICO.slice(0, 3)), null);
   // Texto sem nenhuma relação com o histórico.
-  assert.strictEqual(_classificarPorVizinhos('xyzzy plugh frobnicate', HISTORICO), null);
+  assert.strictEqual(classificar('xyzzy plugh frobnicate', HISTORICO), null);
   // Entrada inválida.
-  assert.strictEqual(_classificarPorVizinhos('teste', null), null);
+  assert.strictEqual(classificar('teste', null), null);
+});
+
+test('categorizador local: etiquetas classificam mesmo sem histórico', () => {
+  const etiquetas = [
+    { slug: 'modulo_rad', nome: 'Módulo RAD', descricao: 'Chamados sobre o módulo RAD (Relatórios e Análises) da TOTVS: aprovações e relatórios' },
+    { slug: 'radzap', nome: 'RadZap', descricao: 'Sistema de aprovação do RAD pelo whatsapp' },
+    { slug: 'wifi_hospedes', nome: 'WIFI Hóspedes', descricao: 'Chamados relacionados a internet wifi nas UHs' },
+  ];
+  // Sigla curta ("RAD") precisa sobreviver ao tokenizador.
+  assert.strictEqual(classificar('Erro ao gerar relatorio de analise no modulo RAD do TOTVS', [], etiquetas), 'modulo_rad');
+  // Citação textual do nome da etiqueta é o sinal mais forte.
+  assert.strictEqual(classificar('O radzap parou de mandar as aprovacoes no whatsapp', [], etiquetas), 'radzap');
+  assert.strictEqual(classificar('Hospede do 1812 reclamando do wifi da UH, sem internet', [], etiquetas), 'wifi_hospedes');
+});
+
+test('categorizador local: histórico e etiquetas competem juntos', () => {
+  const etiquetas = [
+    { slug: 'resmas', nome: 'Resmas', descricao: 'Solicitação de papel/resmas impressora A4/A3' },
+  ];
+  // Pedido de resma não pode cair em "impressora" só porque o histórico de
+  // impressora é maior — o pseudo-documento da etiqueta segura o caso.
+  assert.strictEqual(
+    classificar('Solicito duas resmas de papel A4 para o setor', HISTORICO, etiquetas),
+    'resmas',
+  );
 });
 
 test('extração de equipamentos: identifica tipo e local', async () => {

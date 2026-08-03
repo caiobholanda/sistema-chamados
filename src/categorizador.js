@@ -435,19 +435,6 @@ const _STOP = new Set([
   'quando','onde','qual','quem','isso','isto','aquilo','esse','essa','esses','essas',
 ]);
 
-function _tokens(texto) {
-  return normalizar(texto).split(/\s+/).filter(w => w.length >= 4 && !_STOP.has(w));
-}
-
-function _similaridade(a, b) {
-  const ta = new Set(_tokens(a));
-  const tb = new Set(_tokens(b));
-  if (!ta.size || !tb.size) return 0;
-  let inter = 0;
-  for (const w of ta) if (tb.has(w)) inter++;
-  return inter / Math.sqrt(ta.size * tb.size);
-}
-
 function classificar(descricao) {
   const texto = normalizar(descricao || '');
   const scores = {};
@@ -480,28 +467,34 @@ function _chamadosCategorizados(limite = 400) {
   } catch { return []; }
 }
 
-function _scorePorHistorico(descricao, chamados) {
-  const scores = {};
-  for (const c of chamados) {
-    const sim = _similaridade(descricao, c.descricao);
-    if (sim >= 0.06) scores[c.categoria] = (scores[c.categoria] || 0) + sim;
-  }
-  return scores;
-}
-
 /* ─────────────────────────────────────────────────────────────────────────
  * Classificador local (TF-IDF + k vizinhos mais próximos)
  *
- * Substitui a chamada de IA que existia aqui. A diferença para o
- * _similaridade acima é o peso IDF: termos raros e discriminativos ("toner",
- * "pabx", "nobreak") pesam muito mais que termos que aparecem em quase todo
- * chamado ("computador", "sistema"), que é justamente o que fazia a
- * similaridade simples errar nos casos ambíguos.
+ * Substitui a chamada de IA que existia aqui. Três decisões de projeto,
+ * todas ditadas pelos dados reais deste helpdesk:
+ *
+ * 1. IDF: termos raros e discriminativos ("toner", "pabx", "sangria") pesam
+ *    mais que termos onipresentes ("sistema", "computador").
+ * 2. O corpus mistura chamados já categorizados COM um pseudo-documento por
+ *    etiqueta (nome + descrição + palavras-chave). Etiqueta recém-criada ou
+ *    com pouco histórico compete desde o primeiro chamado, e o ruído das
+ *    descrições ("Chamados sobre...", "TOTVS") se auto-corrige pelo IDF,
+ *    porque esses termos aparecem em dezenas de documentos.
+ * 3. O vocabulário deste hotel é cheio de siglas curtas (RAD, PMS, POS, CAF,
+ *    TEF, CP, CR, W8...) que um corte por tamanho descartaria — justamente
+ *    os termos que decidem a etiqueta. A allowlist de termos curtos é
+ *    extraída automaticamente dos nomes/slugs das etiquetas.
  * ───────────────────────────────────────────────────────────────────────── */
 
-const _MIN_HISTORICO = 8;   // abaixo disso a amostra não sustenta a decisão
-const _K_VIZINHOS = 12;
-const _MIN_CONFIANCA = 0.25;
+// Calibrados por backtest leave-one-out nos 876 chamados reais (2026-08-03):
+// K=40/conf=0.18 maximizou o acerto do pipeline completo (59,6%), contra
+// 39,5% do motor anterior. Se recalibrar, rode o backtest de novo — não
+// ajuste no olho.
+const _MIN_HISTORICO = 8;   // abaixo disso (e sem etiquetas) não há base
+const _K_VIZINHOS = 40;
+const _MIN_CONFIANCA = 0.18;
+const _PESO_DOC_ETIQUETA = 1.15; // pseudo-doc de etiqueta vale um pouco mais
+const _BONUS_NOME_ETIQUETA = 0.9; // nome da etiqueta citado textualmente
 
 // Setores do hotel. Aparecem o tempo todo nas descrições ("impressora da
 // nutrição", "telefone da governança") mas indicam ONDE está o problema, não
@@ -532,33 +525,52 @@ const _LOCAIS = (() => {
   return new Set(_LOCAIS_BRUTOS.filter(l => !vocabCategorias.has(l)));
 })();
 
-function _tokensClassificador(texto) {
-  return _tokens(texto).filter(t => !_LOCAIS.has(t));
+// Termos curtos (2-3 letras) que fazem parte do vocabulário do domínio.
+// Vêm dos nomes/slugs das etiquetas e das palavras-chave estáticas, então
+// etiqueta nova com sigla nova entra sozinha na allowlist.
+function _vocabCurto(dinamicas) {
+  const vocab = new Set();
+  const coletar = texto => {
+    for (const t of normalizar(texto || '').split(/[\s_]+/)) {
+      if (t.length >= 2 && t.length <= 3 && !_STOP.has(t)) vocab.add(t);
+    }
+  };
+  for (const et of dinamicas) { coletar(et.nome); coletar(et.slug); }
+  for (const cat of CATEGORIAS) for (const p of cat.palavras) coletar(p);
+  return vocab;
 }
 
-function _construirIdf(chamados) {
-  const freqDoc = new Map();
-  for (const c of chamados) {
-    for (const termo of new Set(_tokensClassificador(c.descricao))) {
-      freqDoc.set(termo, (freqDoc.get(termo) || 0) + 1);
+function _tokensClassificador(texto, vocabCurto) {
+  const brutos = normalizar(texto).split(/\s+/).filter(Boolean);
+  const uni = [];
+  for (const t of brutos) {
+    if (_LOCAIS.has(t) || _STOP.has(t)) continue;
+    if (t.length >= 4 || (vocabCurto && vocabCurto.has(t))) {
+      // Radical pragmático: tira o plural e trunca em 6 caracteres. Junta as
+      // variações do português ("aprovar/aprovação/aprovações" → "aprova",
+      // "mudo/mudos" → "mudo", "impressora/impressão" → "impres") sem
+      // carregar um stemmer de verdade.
+      const semPlural = t.length >= 5 && t.endsWith('s') ? t.slice(0, -1) : t;
+      uni.push(semPlural.length > 6 ? semPlural.slice(0, 6) : semPlural);
     }
   }
-  const total = chamados.length;
-  const idf = new Map();
-  for (const [termo, n] of freqDoc) idf.set(termo, Math.log(1 + total / n));
-  return idf;
+  // Bigramas capturam frases que decidem sozinhas ("nota fiscal",
+  // "contas pagar", "fechamento caixa") — o IDF alto deles faz o resto.
+  const saida = uni.slice();
+  for (let i = 0; i < uni.length - 1; i++) saida.push(uni[i] + '§' + uni[i + 1]);
+  return saida;
 }
 
-function _vetorTfIdf(texto, idf, idfPadrao) {
+function _vetorTfIdf(tokens, idf, idfPadrao) {
   const freq = new Map();
-  for (const termo of _tokensClassificador(texto)) freq.set(termo, (freq.get(termo) || 0) + 1);
+  for (const termo of tokens) freq.set(termo, (freq.get(termo) || 0) + 1);
 
   const vetor = new Map();
   let soma = 0;
   for (const [termo, n] of freq) {
-    // Termo ausente do histórico entra com IDF máximo: não casa com ninguém,
-    // mas conta na norma — assim descrição cheia de termo desconhecido resulta
-    // em similaridade baixa e cai no fallback, em vez de num palpite forçado.
+    // Termo ausente do corpus entra com IDF máximo: não casa com ninguém,
+    // mas conta na norma — descrição cheia de termo desconhecido resulta em
+    // similaridade baixa e cai no fallback, em vez de num palpite forçado.
     const peso = (1 + Math.log(n)) * (idf.has(termo) ? idf.get(termo) : idfPadrao);
     vetor.set(termo, peso);
     soma += peso * peso;
@@ -570,24 +582,66 @@ function _vetorTfIdf(texto, idf, idfPadrao) {
   return vetor;
 }
 
-function _classificarPorVizinhos(descricao, historico) {
-  if (!Array.isArray(historico) || historico.length < _MIN_HISTORICO) return null;
+// Corpus tokenizado + vetores prontos. Reconstruir a cada chamado seria
+// desperdício; o cache invalida quando muda a contagem de chamados/etiquetas
+// e expira por tempo (recategorizar um chamado antigo não muda a contagem —
+// sem o TTL, o cache nunca veria a correção).
+const _CORPUS_TTL_MS = 2 * 60 * 1000;
+let _corpusCache = null;
 
-  const idf = _construirIdf(historico);
-  const idfPadrao = Math.log(1 + historico.length);
-  const alvo = _vetorTfIdf(descricao, idf, idfPadrao);
+function _resetCorpusCache() { _corpusCache = null; }
+
+function _construirCorpus(historico, dinamicas) {
+  const chave = `${historico.length}:${dinamicas.length}`;
+  if (_corpusCache && _corpusCache.chave === chave && (Date.now() - _corpusCache.em) < _CORPUS_TTL_MS) {
+    return _corpusCache;
+  }
+
+  const vocabCurto = _vocabCurto(dinamicas);
+  const docs = [];
+
+  for (const c of historico) {
+    docs.push({ id: c.categoria, peso: 1, tokens: _tokensClassificador(c.descricao, vocabCurto) });
+  }
+  for (const et of dinamicas) {
+    // Nome entra 2x (é o sinal mais forte) + descrição + palavras estáticas
+    // da categoria correspondente, quando existir.
+    const estatica = CATEGORIAS.find(c => c.id === et.slug);
+    const texto = [et.nome, et.nome, et.descricao || '', estatica ? estatica.palavras.join(' ') : ''].join(' ');
+    docs.push({ id: et.slug, peso: _PESO_DOC_ETIQUETA, tokens: _tokensClassificador(texto, vocabCurto) });
+  }
+
+  const freqDoc = new Map();
+  for (const d of docs) {
+    for (const termo of new Set(d.tokens)) freqDoc.set(termo, (freqDoc.get(termo) || 0) + 1);
+  }
+  const idf = new Map();
+  for (const [termo, n] of freqDoc) idf.set(termo, Math.log(1 + docs.length / n));
+  const idfPadrao = Math.log(1 + docs.length);
+
+  for (const d of docs) d.vetor = _vetorTfIdf(d.tokens, idf, idfPadrao);
+
+  _corpusCache = { chave, em: Date.now(), docs, idf, idfPadrao, vocabCurto, dinamicas };
+  return _corpusCache;
+}
+
+function _classificarPorVizinhos(descricao, historico, dinamicas = []) {
+  if (!Array.isArray(historico)) return null;
+  if (historico.length < _MIN_HISTORICO && dinamicas.length === 0) return null;
+
+  const corpus = _construirCorpus(historico, dinamicas);
+  const alvo = _vetorTfIdf(_tokensClassificador(descricao, corpus.vocabCurto), corpus.idf, corpus.idfPadrao);
   if (!alvo) return null;
 
   const vizinhos = [];
-  for (const c of historico) {
-    const vetor = _vetorTfIdf(c.descricao, idf, idfPadrao);
-    if (!vetor) continue;
+  for (const d of corpus.docs) {
+    if (!d.vetor) continue;
     let sim = 0;
     for (const [termo, peso] of alvo) {
-      const outro = vetor.get(termo);
+      const outro = d.vetor.get(termo);
       if (outro) sim += peso * outro;
     }
-    if (sim > 0) vizinhos.push({ categoria: c.categoria, sim });
+    if (sim > 0) vizinhos.push({ id: d.id, sim: sim * d.peso });
   }
   if (!vizinhos.length) return null;
 
@@ -595,7 +649,17 @@ function _classificarPorVizinhos(descricao, historico) {
 
   const votos = {};
   for (const v of vizinhos.slice(0, _K_VIZINHOS)) {
-    votos[v.categoria] = (votos[v.categoria] || 0) + v.sim;
+    votos[v.id] = (votos[v.id] || 0) + v.sim;
+  }
+
+  // Citação textual do nome da etiqueta é o sinal mais confiável que existe:
+  // "erro no radzap" tem que ir para radzap, com ou sem histórico.
+  const textoNorm = ` ${normalizar(descricao).replace(/\s+/g, ' ').trim()} `;
+  for (const et of corpus.dinamicas) {
+    const nome = normalizar(et.nome).replace(/\s+/g, ' ').trim();
+    if (nome.length >= 3 && textoNorm.includes(` ${nome} `)) {
+      votos[et.slug] = (votos[et.slug] || 0) + _BONUS_NOME_ETIQUETA;
+    }
   }
 
   const ranking = Object.entries(votos).sort((a, b) => b[1] - a[1]);
@@ -608,10 +672,30 @@ async function classificarInteligente(descricao) {
   if (!descricao?.trim()) return CATEGORIAS.find(c => c.id === 'outros');
 
   const dinamicas = _carregarEtiquetasDinamicas();
-  const historico = _chamadosCategorizados(400);
+  const historico = _chamadosCategorizados(900);
   const textoNorm = normalizar(descricao);
 
-  // 1. Keyword scoring (static categories)
+  function resolverCategoria(id) {
+    const et = dinamicas.find(e => e.slug === id);
+    if (et) return { id: et.slug, nome: et.nome, cor: et.cor || '#6B7280' };
+    const est = CATEGORIAS.find(c => c.id === id);
+    if (est) return est;
+    return null;
+  }
+
+  // 1. Motor principal: TF-IDF + kNN sobre chamados + etiquetas.
+  try {
+    const previsto = _classificarPorVizinhos(descricao, historico, dinamicas);
+    if (previsto) {
+      const cat = resolverCategoria(previsto);
+      if (cat) return cat;
+    }
+  } catch (err) {
+    console.error('[categorizador-local] erro:', err.message);
+  }
+
+  // 2. Fallback: keyword scoring nas listas estáticas curadas — cobre o caso
+  //    de banco recém-instalado, sem histórico nem etiquetas dinâmicas.
   const kwScores = {};
   for (const cat of CATEGORIAS) {
     if (cat.id === 'outros') continue;
@@ -622,69 +706,17 @@ async function classificarInteligente(descricao) {
     }
     if (score > 0) kwScores[cat.id] = score;
   }
-
-  // 2. Dynamic etiqueta matching (nome + descrição)
-  const etiqScores = {};
-  for (const et of dinamicas) {
-    let score = 0;
-    if (textoNorm.includes(normalizar(et.nome))) score += 5;
-    if (et.descricao) {
-      for (const p of _tokens(et.descricao)) {
-        if (textoNorm.includes(p)) score += Math.max(1, Math.floor(p.length / 4));
-      }
-    }
-    if (score > 0) etiqScores[et.slug] = score;
+  const melhorKw = Object.entries(kwScores).sort((a, b) => b[1] - a[1])[0];
+  if (melhorKw) {
+    const cat = resolverCategoria(melhorKw[0]);
+    if (cat) return cat;
   }
 
-  // 3. Historical chamados similarity
-  const histScores = _scorePorHistorico(descricao, historico);
-
-  // 4. Combine scores: keyword × 2, etiqueta × 1.5, histórico × 12
-  const combined = {};
-  const add = (id, s) => { combined[id] = (combined[id] || 0) + s; };
-  for (const [id, s] of Object.entries(kwScores))   add(id, s * 2);
-  for (const [id, s] of Object.entries(etiqScores)) add(id, s * 1.5);
-  for (const [id, s] of Object.entries(histScores)) add(id, s * 12);
-
-  const entries = Object.entries(combined).sort((a, b) => b[1] - a[1]);
-
-  // Resolve id → category object
-  function resolverCategoria(id) {
-    const est = CATEGORIAS.find(c => c.id === id);
-    if (est) return est;
-    const et = dinamicas.find(e => e.slug === id);
-    if (et) return { id: et.slug, nome: et.nome, cor: et.cor || '#6B7280' };
-    return null;
-  }
-
-  // 5. Se há vencedor claro com confiança suficiente, pula IA
-  if (entries.length) {
-    const [topId, topScore] = entries[0];
-    const secScore = entries[1]?.[1] ?? 0;
-    if (topScore >= 5 && topScore >= secScore * 1.6) {
-      const cat = resolverCategoria(topId);
-      if (cat) return cat;
-    }
-  }
-
-  // 6. Classificador local por vizinhos mais próximos (TF-IDF + kNN).
-  //    Aprende com os chamados que a equipe já categorizou — quanto mais
-  //    histórico, melhor acerta. Roda offline, sem chave de API.
-  try {
-    const previsto = _classificarPorVizinhos(descricao, historico);
-    if (previsto) {
-      const cat = resolverCategoria(previsto);
-      if (cat) return cat;
-    }
-  } catch (err) {
-    console.error('[categorizador-local] erro:', err.message);
-  }
-
-  // Fallback: melhor score combinado ou 'outros'
-  const fallback = entries.length ? resolverCategoria(entries[0][0]) : null;
-  return fallback || CATEGORIAS.find(c => c.id === 'outros');
+  return CATEGORIAS.find(c => c.id === 'outros');
 }
 
 // _classificarPorVizinhos é exportado para permitir teste isolado do
 // classificador sem precisar subir o banco.
-module.exports = { classificar, classificarInteligente, CATEGORIAS, _classificarPorVizinhos };
+// _classificarPorVizinhos e _resetCorpusCache são exportados para os testes
+// (o reset garante que cada caso de teste parte de corpus limpo).
+module.exports = { classificar, classificarInteligente, CATEGORIAS, _classificarPorVizinhos, _resetCorpusCache };
