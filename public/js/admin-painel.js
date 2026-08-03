@@ -1887,7 +1887,6 @@ function renderModalBody(c) {
                 Anexar arquivos
               </button>
               <input type="file" id="input-admin-anexo" multiple style="display:none">
-              <button class="btn btn-primary btn-sm" id="btn-enviar-admin-anexo" style="display:none">Enviar</button>
             </div>
             <div class="anexo-tiles" id="admin-anexo-tiles"></div>
             <p class="form-hint" id="admin-anexo-hint" style="margin-top:.35rem">Você pode clicar várias vezes para adicionar mais arquivos. Até 10, máx. 200 MB cada.</p>
@@ -2137,7 +2136,6 @@ function setupModalEventos(c) {
 
   const btnAddAdminAnexo = document.getElementById('btn-add-admin-anexo');
   const inputAdminAnexo = document.getElementById('input-admin-anexo');
-  const btnEnviarAdminAnexo = document.getElementById('btn-enviar-admin-anexo');
   const tilesBoxAdmin = document.getElementById('admin-anexo-tiles');
   const hintAdmin = document.getElementById('admin-anexo-hint');
   let _adminAnexos = [];
@@ -2146,7 +2144,6 @@ function setupModalEventos(c) {
     if (!tilesBoxAdmin) return;
     if (!_adminAnexos.length) {
       tilesBoxAdmin.innerHTML = '';
-      if (btnEnviarAdminAnexo) btnEnviarAdminAnexo.style.display = 'none';
       if (hintAdmin) { hintAdmin.style.color = ''; hintAdmin.textContent = 'Clique para escolher, arraste arquivos para esta área ou cole (Ctrl+V) um print. Até 10, máx. 200 MB cada.'; }
       return;
     }
@@ -2165,28 +2162,23 @@ function setupModalEventos(c) {
         </div>
       </div>`;
     }).join('');
-    if (btnEnviarAdminAnexo) {
-      btnEnviarAdminAnexo.style.display = '';
-      btnEnviarAdminAnexo.textContent = `Enviar ${_adminAnexos.length} ${_adminAnexos.length === 1 ? 'arquivo' : 'arquivos'}`;
-    }
     if (hintAdmin) {
       hintAdmin.style.color = 'var(--gold-dark)';
-      hintAdmin.textContent = `✓ ${_adminAnexos.length} pronto${_adminAnexos.length === 1 ? '' : 's'} para enviar · clique em "Anexar arquivos" para adicionar mais`;
+      hintAdmin.textContent = _uploadingAdmin
+        ? `Enviando ${_adminAnexos.length} arquivo${_adminAnexos.length === 1 ? '' : 's'}…`
+        : `✓ ${_adminAnexos.length} arquivo${_adminAnexos.length === 1 ? '' : 's'} pronto${_adminAnexos.length === 1 ? '' : 's'} · clique em "Anexar arquivos" para adicionar mais`;
     }
   }
 
   if (btnAddAdminAnexo) btnAddAdminAnexo.addEventListener('click', () => inputAdminAnexo.click());
 
   if (inputAdminAnexo) inputAdminAnexo.addEventListener('change', function () {
-    Array.from(this.files || []).forEach(f => {
-      const dup = _adminAnexos.some(x => x.name === f.name && x.size === f.size);
-      if (!dup && _adminAnexos.length < 10) _adminAnexos.push(f);
-    });
+    _addAdminAnexoFiles(Array.from(this.files || []));
     this.value = '';
-    _renderAdminAnexoTiles();
   });
 
-  // Helper compartilhado: adiciona arquivos (de input, drop ou paste) na lista.
+  let _uploadingAdmin = false;
+
   function _addAdminAnexoFiles(files) {
     let added = 0;
     Array.from(files || []).forEach(f => {
@@ -2194,8 +2186,36 @@ function setupModalEventos(c) {
       const dup = _adminAnexos.some(x => x.name === f.name && x.size === f.size);
       if (!dup) { _adminAnexos.push(f); added++; }
     });
-    if (added) _renderAdminAnexoTiles();
+    if (added) { _renderAdminAnexoTiles(); _enviarAdminAnexosAuto(); }
     return added;
+  }
+
+  async function _enviarAdminAnexosAuto() {
+    if (_uploadingAdmin || !_adminAnexos.length) return;
+    _uploadingAdmin = true;
+    _renderAdminAnexoTiles();
+    const msgEl = document.getElementById('msg-admin-anexo');
+    const fd = new FormData();
+    _adminAnexos.forEach(f => fd.append('anexos', f, f.name));
+    try {
+      const r = await fetch(`/api/admin/chamados/${c.id}/anexos`, { method: 'POST', body: fd });
+      const d = await r.json();
+      if (r.ok) {
+        _adminAnexos = [];
+        _renderAdminAnexoTiles();
+        if (msgEl) {
+          msgEl.innerHTML = `<span style="font-size:.76rem;color:var(--success)">✓ ${d.adicionados.length} arquivo(s) anexado(s)</span>`;
+          setTimeout(() => { msgEl.innerHTML = ''; }, 2500);
+        }
+        _carregarAnexosExtras(c.id);
+      } else if (msgEl) {
+        msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${_esc(d.erro || 'Erro ao enviar.')}</span>`;
+      }
+    } catch {
+      if (msgEl) msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>';
+    }
+    _uploadingAdmin = false;
+    _renderAdminAnexoTiles();
   }
 
   // Drag-and-drop na secao 'Anexo do suporte'.
@@ -2283,41 +2303,10 @@ function setupModalEventos(c) {
 
   if (tilesBoxAdmin) tilesBoxAdmin.addEventListener('click', (e) => {
     const btn = e.target.closest('.anexo-tile-remove');
-    if (!btn) return;
+    if (!btn || _uploadingAdmin) return;
     _adminAnexos.splice(+btn.dataset.idx, 1);
     _renderAdminAnexoTiles();
   });
-
-  if (btnEnviarAdminAnexo) {
-    btnEnviarAdminAnexo.addEventListener('click', async () => {
-      const msgEl = document.getElementById('msg-admin-anexo');
-      if (!_adminAnexos.length) return;
-      btnEnviarAdminAnexo.disabled = true;
-      const originalText = btnEnviarAdminAnexo.textContent;
-      btnEnviarAdminAnexo.textContent = 'Enviando…';
-      const fd = new FormData();
-      _adminAnexos.forEach(f => fd.append('anexos', f, f.name));
-      try {
-        const r = await fetch(`/api/admin/chamados/${c.id}/anexos`, { method: 'POST', body: fd });
-        const d = await r.json();
-        if (r.ok) {
-          _adminAnexos = [];
-          _renderAdminAnexoTiles();
-          if (msgEl) {
-            msgEl.innerHTML = `<span style="font-size:.76rem;color:var(--success)">✓ ${d.adicionados.length} arquivo(s) anexado(s)</span>`;
-            setTimeout(() => { msgEl.innerHTML = ''; }, 2500);
-          }
-          _carregarAnexosExtras(c.id);
-        } else if (msgEl) {
-          msgEl.innerHTML = `<span style="font-size:.76rem;color:#b91c1c">${_esc(d.erro || 'Erro ao enviar.')}</span>`;
-        }
-      } catch {
-        if (msgEl) msgEl.innerHTML = '<span style="font-size:.76rem;color:#b91c1c">Erro de conexão.</span>';
-      }
-      btnEnviarAdminAnexo.disabled = false;
-      btnEnviarAdminAnexo.textContent = originalText;
-    });
-  }
 
   const btnTrocarUsuario = document.getElementById('btn-trocar-usuario');
   if (btnTrocarUsuario) {
