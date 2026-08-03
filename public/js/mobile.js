@@ -987,7 +987,6 @@ async function renderDetalhe(c) {
         </div>` : ''}
         <div style="display:flex;align-items:center;gap:.5rem">
           <input type="file" id="mob-input-admin-anexo" style="flex:1;font-size:.8rem">
-          <button class="mob-btn mob-btn-ghost mob-btn-sm" id="mob-btn-enviar-admin-anexo" style="flex-shrink:0">Enviar</button>
         </div>
         <div id="mob-msg-admin-anexo" style="font-size:.78rem;margin-top:.25rem"></div>
       </div>
@@ -1062,15 +1061,13 @@ async function renderDetalhe(c) {
     this.value = '';
   });
 
-  document.getElementById('mob-btn-enviar-admin-anexo').addEventListener('click', async () => {
-    const input = document.getElementById('mob-input-admin-anexo');
+  document.getElementById('mob-input-admin-anexo').addEventListener('change', async function() {
     const msgEl = document.getElementById('mob-msg-admin-anexo');
-    if (!input.files.length) { msgEl.textContent = 'Selecione um arquivo.'; return; }
-    const btn = document.getElementById('mob-btn-enviar-admin-anexo');
-    btn.disabled = true;
-    btn.textContent = '…';
+    if (!this.files.length) return;
+    msgEl.textContent = 'Enviando…';
     const fd = new FormData();
-    fd.append('admin_anexo', input.files[0]);
+    fd.append('admin_anexo', this.files[0]);
+    this.value = '';
     try {
       const r = await fetch(`/api/admin/chamados/${c.id}/admin-anexo`, { method: 'POST', body: fd });
       const d = await r.json();
@@ -1079,13 +1076,9 @@ async function renderDetalhe(c) {
         if (resp.ok) renderDetalhe(await resp.json());
       } else {
         msgEl.textContent = d.erro || 'Erro ao enviar.';
-        btn.disabled = false;
-        btn.textContent = 'Enviar';
       }
     } catch {
       msgEl.textContent = 'Erro de conexão.';
-      btn.disabled = false;
-      btn.textContent = 'Enviar';
     }
   });
 
