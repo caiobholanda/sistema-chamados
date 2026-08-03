@@ -191,7 +191,20 @@
       btn.type = 'button';
       btn.className = 'chat-btn-novas';
       btn.addEventListener('click', () => {
-        box.scrollTop = box.scrollHeight;
+        requestAnimationFrame(() => {
+          box.scrollTop = box.scrollHeight;
+          box.querySelectorAll('img').forEach(img => {
+            if (!img.complete) {
+              img.addEventListener('load',  () => { box.scrollTop = box.scrollHeight; }, { once: true });
+              img.addEventListener('error', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+            }
+          });
+          box.querySelectorAll('video').forEach(vid => {
+            if (vid.readyState < 1) {
+              vid.addEventListener('loadedmetadata', () => { box.scrollTop = box.scrollHeight; }, { once: true });
+            }
+          });
+        });
       });
       // Posiciona absoluto relativo ao container
       const parent = box.parentElement;
