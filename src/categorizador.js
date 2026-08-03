@@ -683,15 +683,23 @@ async function classificarInteligente(descricao) {
     return null;
   }
 
+  // Rastro da decisão. Sem isto, uma classificação errada em produção é
+  // indistinguível de uma falha silenciosa (banco vazio, exceção engolida) —
+  // as duas terminam em 'outros'. Aparece nos logs do Fly.
+  const _trilha = (origem, resultado) => {
+    console.log(`[categorizador] ${origem} -> ${resultado} | historico=${historico.length} etiquetas=${dinamicas.length} | "${descricao.slice(0, 60)}"`);
+  };
+
   // 1. Motor principal: TF-IDF + kNN sobre chamados + etiquetas.
   try {
     const previsto = _classificarPorVizinhos(descricao, historico, dinamicas);
     if (previsto) {
       const cat = resolverCategoria(previsto);
-      if (cat) return cat;
+      if (cat) { _trilha('motor', cat.id); return cat; }
+      _trilha('motor-nao-resolvido', previsto);
     }
   } catch (err) {
-    console.error('[categorizador-local] erro:', err.message);
+    console.error('[categorizador] ERRO no motor:', err.message);
   }
 
   // 2. Fallback: keyword scoring nas listas estáticas curadas — cobre o caso
@@ -709,9 +717,10 @@ async function classificarInteligente(descricao) {
   const melhorKw = Object.entries(kwScores).sort((a, b) => b[1] - a[1])[0];
   if (melhorKw) {
     const cat = resolverCategoria(melhorKw[0]);
-    if (cat) return cat;
+    if (cat) { _trilha('fallback-keyword', cat.id); return cat; }
   }
 
+  _trilha('ultimo-recurso', 'outros');
   return CATEGORIAS.find(c => c.id === 'outros');
 }
 
