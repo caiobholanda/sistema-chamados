@@ -4,7 +4,7 @@
 https://sistema-chamados-granmarquise.fly.dev
 
 ## Repositório no GitHub
-https://github.com/caiobholanda/sistema-chamados
+https://github.com/Hotel-Gran-Marquise/hub-helpdesk
 
 ## Como rodar localmente
 
@@ -13,7 +13,7 @@ https://github.com/caiobholanda/sistema-chamados
 
 ### Passos
 ```bash
-git clone https://github.com/caiobholanda/sistema-chamados.git
+git clone https://github.com/Hotel-Gran-Marquise/hub-helpdesk.git
 cd sistema-chamados
 npm install
 ```

@@ -7,7 +7,7 @@ Sistema interno de suporte de TI do Hotel Gran Marquise (Fortaleza). Usuários d
 - **Stack:** Node.js + Express + better-sqlite3 + JWT (sem framework frontend)
 - **Banco:** SQLite em `data/chamados.db`
 - **Site em produção:** https://sistema-chamados-granmarquise.fly.dev
-- **Repositório:** https://github.com/caiobholanda/sistema-chamados
+- **Repositório:** https://github.com/Hotel-Gran-Marquise/hub-helpdesk
 
 ## Estrutura de arquivos
 
@@ -48,7 +48,7 @@ Qualquer `git push origin main` dispara o GitHub Actions (`.github/workflows/fly
 ## Como rodar localmente
 
 ```bash
-git clone https://github.com/caiobholanda/sistema-chamados.git
+git clone https://github.com/Hotel-Gran-Marquise/hub-helpdesk.git
 cd sistema-chamados
 npm install
 ```
