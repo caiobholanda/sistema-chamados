@@ -10,6 +10,10 @@ jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'Hotel-Gran-Marquise'
+    concurrency:
+      group: deploy-${{ github.workflow }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@1.5
