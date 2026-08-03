@@ -489,6 +489,121 @@ function _scorePorHistorico(descricao, chamados) {
   return scores;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Classificador local (TF-IDF + k vizinhos mais próximos)
+ *
+ * Substitui a chamada de IA que existia aqui. A diferença para o
+ * _similaridade acima é o peso IDF: termos raros e discriminativos ("toner",
+ * "pabx", "nobreak") pesam muito mais que termos que aparecem em quase todo
+ * chamado ("computador", "sistema"), que é justamente o que fazia a
+ * similaridade simples errar nos casos ambíguos.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+const _MIN_HISTORICO = 8;   // abaixo disso a amostra não sustenta a decisão
+const _K_VIZINHOS = 12;
+const _MIN_CONFIANCA = 0.25;
+
+// Setores do hotel. Aparecem o tempo todo nas descrições ("impressora da
+// nutrição", "telefone da governança") mas indicam ONDE está o problema, não
+// QUAL é — se entrarem no cálculo, um chamado de telefone acaba classificado
+// como impressora só porque as duas mencionam o mesmo setor.
+const _LOCAIS_BRUTOS = [
+  'banquetes', 'rooftop', 'comercial', 'vendas', 'compras', 'almoxarifado',
+  'concierge', 'confeitaria', 'padaria', 'controladoria', 'cozinha',
+  'estacionamento', 'eventos', 'convencoes', 'financeiro', 'fitness',
+  'gerencia', 'governanca', 'juridico', 'lavanderia', 'lobby', 'marketing',
+  'mensageria', 'portaria', 'nutricao', 'piscina', 'recepcao', 'recursos',
+  'humanos', 'reservas', 'restaurante', 'mangostin', 'mucuripe', 'revenue',
+  'management', 'rouparia', 'seguranca', 'occitane', 'transportes',
+  'andar', 'sala', 'setor', 'departamento', 'apartamento', 'quarto', 'hotel',
+];
+
+// Rede de segurança: se um termo de setor também for palavra-chave de alguma
+// categoria, ele volta a contar — a categoria tem prioridade sobre o local.
+const _LOCAIS = (() => {
+  const vocabCategorias = new Set();
+  for (const cat of CATEGORIAS) {
+    for (const palavra of cat.palavras) {
+      for (const termo of normalizar(palavra).split(/\s+/)) {
+        if (termo) vocabCategorias.add(termo);
+      }
+    }
+  }
+  return new Set(_LOCAIS_BRUTOS.filter(l => !vocabCategorias.has(l)));
+})();
+
+function _tokensClassificador(texto) {
+  return _tokens(texto).filter(t => !_LOCAIS.has(t));
+}
+
+function _construirIdf(chamados) {
+  const freqDoc = new Map();
+  for (const c of chamados) {
+    for (const termo of new Set(_tokensClassificador(c.descricao))) {
+      freqDoc.set(termo, (freqDoc.get(termo) || 0) + 1);
+    }
+  }
+  const total = chamados.length;
+  const idf = new Map();
+  for (const [termo, n] of freqDoc) idf.set(termo, Math.log(1 + total / n));
+  return idf;
+}
+
+function _vetorTfIdf(texto, idf, idfPadrao) {
+  const freq = new Map();
+  for (const termo of _tokensClassificador(texto)) freq.set(termo, (freq.get(termo) || 0) + 1);
+
+  const vetor = new Map();
+  let soma = 0;
+  for (const [termo, n] of freq) {
+    // Termo ausente do histórico entra com IDF máximo: não casa com ninguém,
+    // mas conta na norma — assim descrição cheia de termo desconhecido resulta
+    // em similaridade baixa e cai no fallback, em vez de num palpite forçado.
+    const peso = (1 + Math.log(n)) * (idf.has(termo) ? idf.get(termo) : idfPadrao);
+    vetor.set(termo, peso);
+    soma += peso * peso;
+  }
+
+  const norma = Math.sqrt(soma);
+  if (!norma) return null;
+  for (const [termo, peso] of vetor) vetor.set(termo, peso / norma);
+  return vetor;
+}
+
+function _classificarPorVizinhos(descricao, historico) {
+  if (!Array.isArray(historico) || historico.length < _MIN_HISTORICO) return null;
+
+  const idf = _construirIdf(historico);
+  const idfPadrao = Math.log(1 + historico.length);
+  const alvo = _vetorTfIdf(descricao, idf, idfPadrao);
+  if (!alvo) return null;
+
+  const vizinhos = [];
+  for (const c of historico) {
+    const vetor = _vetorTfIdf(c.descricao, idf, idfPadrao);
+    if (!vetor) continue;
+    let sim = 0;
+    for (const [termo, peso] of alvo) {
+      const outro = vetor.get(termo);
+      if (outro) sim += peso * outro;
+    }
+    if (sim > 0) vizinhos.push({ categoria: c.categoria, sim });
+  }
+  if (!vizinhos.length) return null;
+
+  vizinhos.sort((a, b) => b.sim - a.sim);
+
+  const votos = {};
+  for (const v of vizinhos.slice(0, _K_VIZINHOS)) {
+    votos[v.categoria] = (votos[v.categoria] || 0) + v.sim;
+  }
+
+  const ranking = Object.entries(votos).sort((a, b) => b[1] - a[1]);
+  const [melhor, peso] = ranking[0];
+  if (peso < _MIN_CONFIANCA) return null;
+  return melhor;
+}
+
 async function classificarInteligente(descricao) {
   if (!descricao?.trim()) return CATEGORIAS.find(c => c.id === 'outros');
 
@@ -552,57 +667,17 @@ async function classificarInteligente(descricao) {
     }
   }
 
-  // 6. IA com contexto rico
+  // 6. Classificador local por vizinhos mais próximos (TF-IDF + kNN).
+  //    Aprende com os chamados que a equipe já categorizou — quanto mais
+  //    histórico, melhor acerta. Roda offline, sem chave de API.
   try {
-    const Anthropic = require('@anthropic-ai/sdk');
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      const cat = entries.length ? resolverCategoria(entries[0][0]) : null;
-      return cat || CATEGORIAS.find(c => c.id === 'outros');
+    const previsto = _classificarPorVizinhos(descricao, historico);
+    if (previsto) {
+      const cat = resolverCategoria(previsto);
+      if (cat) return cat;
     }
-
-    const ai = new Anthropic({ apiKey });
-
-    // Monta lista de categorias com descrições
-    const todasCats = [
-      ...CATEGORIAS.filter(c => c.id !== 'outros').map(c => ({ id: c.id, nome: c.nome, descricao: null })),
-      ...dinamicas.map(e => ({ id: e.slug, nome: e.nome, descricao: e.descricao || null })),
-    ];
-
-    // Top candidatos pelo score combinado para incluir exemplos reais
-    const topIds = new Set(entries.slice(0, 8).map(([id]) => id));
-
-    // Exemplos reais do histórico para os candidatos principais
-    const exemplos = {};
-    for (const id of topIds) {
-      const exs = historico.filter(h => h.categoria === id).slice(0, 3);
-      if (exs.length) exemplos[id] = exs.map(e => `  • "${e.descricao.slice(0, 160)}"`).join('\n');
-    }
-
-    const listaCats = todasCats.map(c => {
-      let linha = `[${c.id}] ${c.nome}`;
-      if (c.descricao) linha += ` — ${c.descricao.slice(0, 120)}`;
-      if (exemplos[c.id]) linha += `\n  Chamados reais desta categoria:\n${exemplos[c.id]}`;
-      return linha;
-    }).join('\n');
-
-    const msg = await ai.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 50,
-      system: `Você é o classificador de chamados de suporte TI do Hotel Gran Marquise (Fortaleza, hotel 5 estrelas).
-Analise a descrição do chamado e identifique a categoria mais adequada com base nas categorias disponíveis, nas suas descrições e nos exemplos reais de chamados anteriores.
-Responda APENAS com o id entre colchetes (ex: impressora). Nenhuma outra palavra.`,
-      messages: [{
-        role: 'user',
-        content: `CATEGORIAS DISPONÍVEIS:\n${listaCats}\n\nNOVO CHAMADO: "${descricao.replace(/"/g, "'").slice(0, 600)}"\n\nCategoria (apenas o id):`,
-      }],
-    });
-
-    const resposta = msg.content[0]?.text?.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-    const cat = resolverCategoria(resposta);
-    if (cat) return cat;
   } catch (err) {
-    console.error('[categorizador-ia] erro:', err.message);
+    console.error('[categorizador-local] erro:', err.message);
   }
 
   // Fallback: melhor score combinado ou 'outros'
@@ -610,4 +685,6 @@ Responda APENAS com o id entre colchetes (ex: impressora). Nenhuma outra palavra
   return fallback || CATEGORIAS.find(c => c.id === 'outros');
 }
 
-module.exports = { classificar, classificarInteligente, CATEGORIAS };
+// _classificarPorVizinhos é exportado para permitir teste isolado do
+// classificador sem precisar subir o banco.
+module.exports = { classificar, classificarInteligente, CATEGORIAS, _classificarPorVizinhos };
