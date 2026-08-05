@@ -210,6 +210,14 @@ app.get('/sso', (req, res) => {
       }
     }
 
+    // Rebaixamento ANTES do gate de usuário do portal: quem foi provisionado
+    // só pela Liberação do Hub NÃO tem registro em `usuarios`, então o return
+    // de `usuario_inativo` abaixo fazia o rebaixamento nunca acontecer — a
+    // conta seguia admin com o cookie de 30 dias depois de sair da Liberação.
+    // Admin NATIVO (criado pelo master local) não é tocado: a função só
+    // desativa quem tem via_hub=1.
+    if (rebaixarAdminViaHubSeAplicavel(email)) res.clearCookie('token');
+
     const usuario = buscarUsuarioPorEmail(email);
     if (!usuario || usuario.ativo === 0) return res.redirect(HUB_URL + '/?erro=usuario_inativo');
     const token = jwt.sign(
@@ -217,11 +225,6 @@ app.get('/sso', (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: 30 * 24 * 60 * 60 }
     );
-    // Rebaixamento: se a conta foi provisionada pela Liberação do Hub e saiu
-    // de lá, desativa o registro e derruba o cookie admin de 30 dias. Admin
-    // NATIVO (criado pelo master local) que só está abrindo o portal '/'
-    // mantém a sessão admin da outra aba intacta — o Hub não manda nele.
-    if (rebaixarAdminViaHubSeAplicavel(email)) res.clearCookie('token');
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
     return res.redirect(_propagaTheme(destinoSeguro(next, '/'), theme));
   } catch (err) {

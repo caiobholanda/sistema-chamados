@@ -515,6 +515,11 @@ function initDb() {
       atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- observacao/especificacao/qtd_usado tambem sao adicionadas por ALTER mais
+    -- acima (para bancos antigos), MAS aquele bloco roda antes deste CREATE.
+    -- Em banco vazio o ALTER falhava silencioso, a tabela nascia sem as colunas
+    -- e o seedEstoque derrubava o processo no primeiro boot. Declarar aqui
+    -- resolve o banco novo; o ALTER continua cobrindo o banco existente.
     CREATE TABLE IF NOT EXISTS estoque_itens (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
@@ -525,6 +530,9 @@ function initDb() {
       qtd_amarelo INTEGER DEFAULT 0,
       qtd_geral INTEGER DEFAULT 0,
       urgente INTEGER DEFAULT 0,
+      observacao TEXT DEFAULT '',
+      especificacao TEXT DEFAULT '',
+      qtd_usado INTEGER DEFAULT 0,
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
       atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -537,6 +545,7 @@ function initDb() {
       quantidade INTEGER NOT NULL DEFAULT 1,
       admin_nome TEXT DEFAULT '',
       observacao TEXT DEFAULT '',
+      chamado_id INTEGER,
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -546,6 +555,7 @@ function initDb() {
       ip TEXT DEFAULT '',
       selb TEXT DEFAULT '',
       localizacao TEXT DEFAULT '',
+      numero_serie TEXT DEFAULT '',
       criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
       atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -2072,6 +2082,11 @@ function provisionarAdminViaHub(email, nome) {
   const atual = db.prepare('SELECT * FROM admins WHERE email = ? OR usuario = ? ORDER BY ativo DESC LIMIT 1').get(email, email);
   if (atual && atual.ativo === 1) return atual;
   if (atual) {
+    // Só reativa quem o próprio Hub provisionou. Admin NATIVO desativado pelo
+    // master local não é ressuscitado pela Liberação: o Hub não manda nele —
+    // e, como via_hub=0, `rebaixarAdminViaHubSeAplicavel` também nunca
+    // conseguiria desligá-lo de volta (promoveria sem poder rebaixar).
+    if (atual.via_hub !== 1) return null;
     db.prepare('UPDATE admins SET ativo = 1 WHERE id = ?').run(atual.id);
     return db.prepare('SELECT * FROM admins WHERE id = ?').get(atual.id);
   }
