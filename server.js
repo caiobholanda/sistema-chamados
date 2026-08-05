@@ -14,7 +14,7 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
-const { initDb, initSugestoes, criarAdminMasterSeNecessario, getChamadosComPrazoPendente, registrarAlertaPrazo, buscarUsuarioPorEmail, buscarAdminPorEmail, listarAdmins, listarUsuarios } = require('./src/db');
+const { initDb, initSugestoes, criarAdminMasterSeNecessario, getChamadosComPrazoPendente, registrarAlertaPrazo, buscarUsuarioPorEmail, buscarAdminPorEmail, provisionarAdminViaHub, rebaixarAdminViaHubSeAplicavel, listarAdmins, listarUsuarios } = require('./src/db');
 const jwt = require('jsonwebtoken');
 const push = require('./src/push');
 const { executarChamadosProgramados } = require('./src/scheduler');
@@ -184,9 +184,22 @@ app.get('/sso', (req, res) => {
     const payload = jwt.verify(sso_token, process.env.SSO_SECRET);
     const { email, tipo } = payload;
 
-    if (tipo === 'admin') {
-      const admin = buscarAdminPorEmail(email);
-      if (!admin || admin.ativo === 0) return res.redirect(HUB_URL + '/?erro=usuario_nao_encontrado');
+    // A aba Liberação do Hub (site_permissions do card 'chamados') também
+    // concede admin aqui — antes só a tabela local `admins` decidia e a aba
+    // era decorativa. Quem o Hub liberou é provisionado/reativado localmente.
+    const hubAdminChamados = Array.isArray(payload.sites_admin) && payload.sites_admin.includes('chamados');
+
+    if (tipo === 'admin' || hubAdminChamados) {
+      let admin = buscarAdminPorEmail(email);
+      if (!admin && hubAdminChamados) {
+        try { admin = provisionarAdminViaHub(email, payload.nome); }
+        catch (e) { console.error('[SSO] falha ao provisionar admin via Hub:', e.message); }
+      }
+      // tipo==='admin' sem registro local ativo mantém o erro de sempre; quem
+      // veio só pela Liberação e falhou no provisionamento cai no fluxo de
+      // usuário comum logo abaixo (nunca bloqueia o acesso ao portal).
+      if ((!admin || admin.ativo === 0) && tipo === 'admin') return res.redirect(HUB_URL + '/?erro=usuario_nao_encontrado');
+      if (admin && admin.ativo !== 0) {
       const token = jwt.sign(
         { sub: admin.id, is_master: admin.is_master === 1, nome: admin.nome_completo },
         process.env.JWT_SECRET,
@@ -194,6 +207,7 @@ app.get('/sso', (req, res) => {
       );
       res.cookie('token', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
       return res.redirect(_propagaTheme(destinoSeguro(next, '/admin-painel.html'), theme));
+      }
     }
 
     const usuario = buscarUsuarioPorEmail(email);
@@ -203,6 +217,11 @@ app.get('/sso', (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: 30 * 24 * 60 * 60 }
     );
+    // Rebaixamento: se a conta foi provisionada pela Liberação do Hub e saiu
+    // de lá, desativa o registro e derruba o cookie admin de 30 dias. Admin
+    // NATIVO (criado pelo master local) que só está abrindo o portal '/'
+    // mantém a sessão admin da outra aba intacta — o Hub não manda nele.
+    if (rebaixarAdminViaHubSeAplicavel(email)) res.clearCookie('token');
     res.cookie('token_usuario', token, { httpOnly: true, sameSite: 'Strict', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 60 * 60 * 1000 });
     return res.redirect(_propagaTheme(destinoSeguro(next, '/'), theme));
   } catch (err) {

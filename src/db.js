@@ -128,6 +128,10 @@ function initDb() {
   try { db.exec('ALTER TABLE admins ADD COLUMN precisa_trocar_senha INTEGER DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN ramal TEXT'); } catch {}
   try { db.exec('ALTER TABLE admins ADD COLUMN is_test INTEGER DEFAULT 0'); } catch {}
+  // via_hub=1: admin provisionado pela aba Liberação do Hub (o Hub é a fonte
+  // de verdade do papel dele — remoção lá desativa aqui no próximo SSO).
+  // via_hub=0: admin nativo, gerenciado pelo master local.
+  try { db.exec('ALTER TABLE admins ADD COLUMN via_hub INTEGER DEFAULT 0'); } catch {}
   try { db.exec("UPDATE admins SET is_test = 1 WHERE email = 'estagioadmin@granmarquise.com.br'"); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN novidades_usuario INTEGER DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE chamados ADD COLUMN novidades_admin INTEGER DEFAULT 0'); } catch {}
@@ -2055,6 +2059,43 @@ function buscarAdminPorEmail(email) {
   return getDb().prepare('SELECT * FROM admins WHERE email = ? AND ativo = 1').get(email);
 }
 
+// Admin liberado pela aba Liberação do Hub (site_permissions do card 'chamados').
+// O cookie admin precisa de um registro local (sub = admins.id), então cria ou
+// reativa a conta aqui. A senha é aleatória e nunca comunicada — essa conta só
+// entra via SSO do Hub; o login local por senha continua impossível para ela.
+function provisionarAdminViaHub(email, nome) {
+  const db = getDb();
+  // Busca por email OU por usuario: o master local pode ter cadastrado o admin
+  // com o email no campo `usuario` e a coluna `email` NULL — sem esse OR, o
+  // INSERT abaixo colidiria com o índice UNIQUE(usuario) WHERE ativo=1 e a
+  // Liberação do Hub falharia justamente para essa conta.
+  const atual = db.prepare('SELECT * FROM admins WHERE email = ? OR usuario = ? ORDER BY ativo DESC LIMIT 1').get(email, email);
+  if (atual && atual.ativo === 1) return atual;
+  if (atual) {
+    db.prepare('UPDATE admins SET ativo = 1 WHERE id = ?').run(atual.id);
+    return db.prepare('SELECT * FROM admins WHERE id = ?').get(atual.id);
+  }
+  const senhaAleatoria = require('crypto').randomBytes(32).toString('hex');
+  const hash = bcrypt.hashSync(senhaAleatoria, 12);
+  const info = db.prepare(
+    'INSERT INTO admins (usuario, nome_completo, senha_hash, is_master, ativo, email, via_hub) VALUES (?, ?, ?, 0, 1, ?, 1)'
+  ).run(email, nome || email, hash, email);
+  return db.prepare('SELECT * FROM admins WHERE id = ?').get(info.lastInsertRowid);
+}
+
+// Rebaixamento vindo do Hub: só desativa quem foi provisionado PELO Hub
+// (via_hub=1). Admin nativo criado pelo master local não é tocado — a fonte
+// de verdade dele é o painel local, não a aba Liberação.
+function rebaixarAdminViaHubSeAplicavel(email) {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM admins WHERE (email = ? OR usuario = ?) AND ativo = 1').get(email, email);
+  if (row && row.via_hub === 1) {
+    db.prepare('UPDATE admins SET ativo = 0 WHERE id = ?').run(row.id);
+    return true;
+  }
+  return !row; // sem registro ativo = também não é admin local
+}
+
 function listarAdmins() {
   return getDb().prepare('SELECT id, usuario, nome_completo, email, ramal, cargo, matricula, data_admissao, data_nascimento, is_master, ativo, criado_em, COALESCE(is_test,0) as is_test FROM admins ORDER BY criado_em ASC').all();
 }
@@ -3214,6 +3255,8 @@ module.exports = {
   buscarAdminPorUsuario,
   buscarAdminPorId,
   buscarAdminPorEmail,
+  provisionarAdminViaHub,
+  rebaixarAdminViaHubSeAplicavel,
   listarAdmins,
   listarAdminsTransferencia,
   criarAdmin,
