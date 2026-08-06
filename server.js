@@ -187,7 +187,11 @@ app.get('/sso', (req, res) => {
     // A aba Liberação do Hub (site_permissions do card 'chamados') também
     // concede admin aqui — antes só a tabela local `admins` decidia e a aba
     // era decorativa. Quem o Hub liberou é provisionado/reativado localmente.
-    const hubAdminChamados = Array.isArray(payload.sites_admin) && payload.sites_admin.includes('chamados');
+    // Campo AUSENTE (token de um Hub antigo) e' diferente de lista VAZIA
+    // (o Hub disse que a conta nao e admin aqui). Sem essa distincao, um token
+    // legado rebaixaria silenciosamente todo admin provisionado pelo Hub.
+    const hubInformouPapeis = Array.isArray(payload.sites_admin);
+    const hubAdminChamados = hubInformouPapeis && payload.sites_admin.includes('chamados');
 
     if (tipo === 'admin' || hubAdminChamados) {
       let admin = buscarAdminPorEmail(email);
@@ -216,7 +220,7 @@ app.get('/sso', (req, res) => {
     // conta seguia admin com o cookie de 30 dias depois de sair da Liberação.
     // Admin NATIVO (criado pelo master local) não é tocado: a função só
     // desativa quem tem via_hub=1.
-    if (rebaixarAdminViaHubSeAplicavel(email)) res.clearCookie('token');
+    if (hubInformouPapeis && rebaixarAdminViaHubSeAplicavel(email)) res.clearCookie('token');
 
     const usuario = buscarUsuarioPorEmail(email);
     if (!usuario || usuario.ativo === 0) return res.redirect(HUB_URL + '/?erro=usuario_inativo');

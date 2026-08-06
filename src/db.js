@@ -388,6 +388,12 @@ function initDb() {
   if (!db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_admins_usuario_ativo'").get()) {
     try {
       db.pragma('foreign_keys = OFF');
+      // ATENCAO: esta reconstrucao roda DEPOIS dos ALTER TABLE admins la de cima.
+      // Em banco novo (volume zerado) as duas rodam no mesmo boot, entao tudo que
+      // o ALTER adicionou seria descartado aqui. Por isso admins_v2 precisa
+      // declarar as colunas novas explicitamente — sem `via_hub`, a aba Liberacao
+      // do Hub deixava de conceder admin silenciosamente ate o segundo boot.
+      // Ao adicionar coluna nova em `admins`, adicione TAMBEM aqui.
       db.transaction(() => {
         db.exec(`
           CREATE TABLE admins_v2 (
@@ -398,11 +404,12 @@ function initDb() {
             is_master INTEGER DEFAULT 0,
             ativo INTEGER DEFAULT 1,
             criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-            email TEXT
+            email TEXT,
+            via_hub INTEGER DEFAULT 0
           );
-          INSERT INTO admins_v2 (id, usuario, nome_completo, senha_hash, is_master, ativo, criado_em, email)
+          INSERT INTO admins_v2 (id, usuario, nome_completo, senha_hash, is_master, ativo, criado_em, email, via_hub)
             SELECT id, usuario, nome_completo, senha_hash, COALESCE(is_master, 0), COALESCE(ativo, 1),
-                   COALESCE(criado_em, CURRENT_TIMESTAMP), email FROM admins;
+                   COALESCE(criado_em, CURRENT_TIMESTAMP), email, 0 FROM admins;
           DROP TABLE admins;
           ALTER TABLE admins_v2 RENAME TO admins;
           CREATE UNIQUE INDEX idx_admins_usuario_ativo ON admins(usuario) WHERE ativo = 1;
@@ -2108,7 +2115,12 @@ function rebaixarAdminViaHubSeAplicavel(email) {
     db.prepare('UPDATE admins SET ativo = 0 WHERE id = ?').run(row.id);
     return true;
   }
-  return !row; // sem registro ativo = também não é admin local
+  // Retorna true SO quando desativou de fato. Antes devolvia `!row`, e o
+  // "nao achei registro admin" derrubava o cookie de quem estava so abrindo o
+  // portal com outro e-mail (o master local, cujo registro tem email NULL,
+  // perdia a sessao). Cookie de admin apagado no banco ja e' invalidado pelo
+  // requireAdmin, que revalida a cada request.
+  return false;
 }
 
 function listarAdmins() {
