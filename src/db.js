@@ -166,6 +166,10 @@ function initDb() {
   try { db.exec("ALTER TABLE admins ADD COLUMN matricula TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE usuarios ADD COLUMN data_admissao TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE usuarios ADD COLUMN data_nascimento TEXT DEFAULT NULL"); } catch {}
+  // RH do SPA (tela Contas do Hub envia; antes eram descartados em silêncio)
+  try { db.exec("ALTER TABLE usuarios ADD COLUMN vinculo TEXT DEFAULT NULL"); } catch {}
+  try { db.exec("ALTER TABLE usuarios ADD COLUMN bilingue INTEGER DEFAULT 0"); } catch {}
+  try { db.exec("ALTER TABLE usuarios ADD COLUMN idiomas TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE admins ADD COLUMN data_admissao TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE admins ADD COLUMN data_nascimento TEXT DEFAULT NULL"); } catch {}
   try { db.exec("ALTER TABLE termos_aceite ADD COLUMN cargo TEXT DEFAULT ''"); } catch {}
@@ -1967,9 +1971,9 @@ function assinarChamado(id, assinatura) {
 
 function registrarUsuario(dados) {
   const result = getDb().prepare(`
-    INSERT INTO usuarios (nome, email, senha_hash, ramal, setor, cargo, matricula, data_admissao, data_nascimento)
-    VALUES (@nome, @email, @senha_hash, @ramal, @setor, @cargo, @matricula, @data_admissao, @data_nascimento)
-  `).run({ ramal: null, setor: null, cargo: null, matricula: null, data_admissao: null, data_nascimento: null, ...dados });
+    INSERT INTO usuarios (nome, email, senha_hash, ramal, setor, cargo, matricula, data_admissao, data_nascimento, vinculo, bilingue, idiomas)
+    VALUES (@nome, @email, @senha_hash, @ramal, @setor, @cargo, @matricula, @data_admissao, @data_nascimento, @vinculo, @bilingue, @idiomas)
+  `).run({ ramal: null, setor: null, cargo: null, matricula: null, data_admissao: null, data_nascimento: null, vinculo: null, bilingue: 0, idiomas: null, ...dados });
   return result.lastInsertRowid;
 }
 
@@ -1982,7 +1986,7 @@ function buscarUsuarioPorId(id) {
 }
 
 function listarUsuarios() {
-  return getDb().prepare('SELECT id, nome, email, ativo, ramal, setor, cargo, matricula, data_admissao, data_nascimento, criado_em FROM usuarios ORDER BY criado_em DESC').all();
+  return getDb().prepare('SELECT id, nome, email, ativo, ramal, setor, cargo, matricula, data_admissao, data_nascimento, vinculo, bilingue, idiomas, criado_em FROM usuarios ORDER BY criado_em DESC').all();
 }
 
 function atualizarUsuario(id, dados) {
@@ -1998,6 +2002,9 @@ function atualizarUsuario(id, dados) {
   if (dados.matricula !== undefined) { campos.push('matricula = ?'); values.push(dados.matricula); }
   if (dados.data_admissao !== undefined) { campos.push('data_admissao = ?'); values.push(dados.data_admissao || null); }
   if (dados.data_nascimento !== undefined) { campos.push('data_nascimento = ?'); values.push(dados.data_nascimento || null); }
+  if (dados.vinculo !== undefined) { campos.push('vinculo = ?'); values.push(dados.vinculo || null); }
+  if (dados.bilingue !== undefined) { campos.push('bilingue = ?'); values.push(dados.bilingue ? 1 : 0); }
+  if (dados.idiomas !== undefined) { campos.push('idiomas = ?'); values.push(dados.idiomas || null); }
   if (campos.length === 0) return;
   values.push(id);
   getDb().prepare(`UPDATE usuarios SET ${campos.join(', ')} WHERE id = ?`).run(...values);

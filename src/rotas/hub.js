@@ -167,8 +167,13 @@ router.post('/portal-usuarios', async (req, res) => {
 
     const data_admissao = sanit(req.body.data_admissao || '') || null;
     const data_nascimento = sanit(req.body.data_nascimento || '') || null;
+    const cargo = sanit(req.body.cargo || '') || null;
+    const matricula = sanit(req.body.matricula || '') || null;
+    const vinculo = sanit(req.body.vinculo || '') || null;
+    const bilingue = req.body.bilingue ? 1 : 0;
+    const idiomas = sanit(req.body.idiomas || '') || null;
     const senha_hash = await bcrypt.hash(senha, 12);
-    const id = db.registrarUsuario({ nome, email, senha_hash, ramal: ramal || null, setor: setor || null, data_admissao, data_nascimento });
+    const id = db.registrarUsuario({ nome, email, senha_hash, ramal: ramal || null, setor: setor || null, data_admissao, data_nascimento, cargo, matricula, vinculo, bilingue, idiomas });
     db.atualizarUsuario(id, { precisa_trocar_senha: 1 });
     res.status(201).json({ ok: true, id });
   } catch (err) {
@@ -223,6 +228,11 @@ router.patch('/portal-usuarios/:id', async (req, res) => {
     if (req.body.setor !== undefined) dados.setor = sanit(req.body.setor || '') || null;
     if (req.body.data_admissao !== undefined) dados.data_admissao = sanit(req.body.data_admissao || '') || null;
     if (req.body.data_nascimento !== undefined) dados.data_nascimento = sanit(req.body.data_nascimento || '') || null;
+    if (req.body.cargo !== undefined) dados.cargo = sanit(req.body.cargo || '') || null;
+    if (req.body.matricula !== undefined) dados.matricula = sanit(req.body.matricula || '') || null;
+    if (req.body.vinculo !== undefined) dados.vinculo = sanit(req.body.vinculo || '') || null;
+    if (req.body.bilingue !== undefined) dados.bilingue = req.body.bilingue ? 1 : 0;
+    if (req.body.idiomas !== undefined) dados.idiomas = sanit(req.body.idiomas || '') || null;
 
     db.atualizarUsuario(u.id, dados);
     res.json({ ok: true });
